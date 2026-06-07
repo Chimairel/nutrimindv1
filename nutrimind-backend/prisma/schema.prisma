@@ -1,0 +1,426 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════
+
+enum Role {
+  USER
+  NUTRITIONIST
+  ADMIN
+}
+
+enum Goal {
+  LOSE_WEIGHT
+  GAIN_WEIGHT
+  MAINTAIN
+  BUILD_MUSCLE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHTLY_ACTIVE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum DietaryPreference {
+  OMNIVORE
+  VEGETARIAN
+  VEGAN
+  PESCATARIAN
+}
+
+enum CarbPreference {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum HealthConditionType {
+  DIABETES
+  HYPERTENSION
+  KIDNEY_DISEASE
+  HEART_CONDITION
+  PREGNANT
+  NONE
+}
+
+enum AllergenType {
+  SHELLFISH
+  NUTS
+  DAIRY
+  GLUTEN
+  EGGS
+  NONE
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum MealPlanStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AIConfidenceFlag {
+  SAFE
+  CAUTION
+  NEEDS_REVIEW
+}
+
+enum MealLogSource {
+  SYSTEM_GENERATED
+  USER_LOGGED
+}
+
+enum MealLogDataSource {
+  FNRI
+  GEMINI_ESTIMATED
+  SYSTEM
+}
+
+enum MealLogStatus {
+  DONE
+  PENDING
+  SKIPPED
+}
+
+enum NotificationType {
+  PLAN_APPROVED
+  PLAN_REJECTED
+  REVIEW_REQUEST
+  ASSIGNMENT
+  WEEKLY_CHECKIN
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACTIVE
+  ENDED
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABLES
+// ═══════════════════════════════════════════════════════════════
+
+model User {
+  id                       String    @id @default(cuid())
+  name                     String
+  email                    String    @unique
+  passwordHash             String
+  role                     Role      @default(USER)
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?
+  emailVerificationExpiry  DateTime?
+  passwordResetToken       String?
+  passwordResetExpiry      DateTime?
+  tosAccepted              Boolean   @default(false)
+  tosAcceptedAt            DateTime?
+  onboardingDone           Boolean   @default(false)
+  image                    String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  // Relations
+  accounts                 Account[]
+  sessions                 Session[]
+  userProfile              UserProfile?
+  healthConditions         HealthCondition[]
+  allergies                Allergy[]
+  nutritionReport          NutritionReport?
+  nutritionistProfile      NutritionistProfile?  @relation("UserToNutritionistProfile")
+  nutritionistVerifications NutritionistProfile[] @relation("AdminVerifier")
+  nutritionistAssignments  NutritionistAssignment[]
+  mealPlans                MealPlan[]            @relation("UserMealPlans")
+  mealLogs                 MealLog[]
+  weightLogs               WeightLog[]
+  dailyNutritionLogs       DailyNutritionLog[]
+  groceryLists             GroceryList[]
+  notifications            Notification[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  access_token      String? @db.Text
+  refresh_token     String? @db.Text
+  expires_at        Int?
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String   @unique
+  expires      DateTime
+}
+
+model UserProfile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age                Int?
+  biologicalSex      String?            // "MALE" or "FEMALE"
+  heightCm           Float?
+  weightKg           Float?
+  targetWeightKg     Float?
+  goal               Goal?
+  activityLevel      ActivityLevel?
+  dietaryPreference  DietaryPreference?
+  carbPreference     CarbPreference?
+  foodCulture        String?
+  dailyCalorieTarget Int?
+  lastCheckinAt      DateTime?
+  checkinStreak      Int                @default(0)
+  updatedAt          DateTime           @updatedAt
+}
+
+model HealthCondition {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  condition HealthConditionType
+}
+
+model Allergy {
+  id       String       @id @default(cuid())
+  userId   String
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allergen AllergenType
+
+  @@map("Allgy") // Preserves existing table name to avoid data loss during migration
+}
+
+model NutritionReport {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedAt       DateTime  @default(now())
+  acknowledgedAt    DateTime?
+  foodsToAvoid      Json
+  foodsToLimit      Json
+  foodsRecommended  Json
+  drinksGuidance    Json
+  generalSummary    String    @db.Text
+  basedOnConditions Json
+  basedOnAllergies  Json
+}
+
+model NutritionistProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation("UserToNutritionistProfile", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedByAdminId String?
+  verifiedByAdmin   User?     @relation("AdminVerifier", fields: [verifiedByAdminId], references: [id])
+  prcLicenseNumber  String    @unique
+  prcLicenseExpiry  DateTime
+  specialization    String?
+  yearsOfExperience Int?
+  university        String?
+  bio               String?   @db.Text
+  isVerified        Boolean   @default(false)
+  rating            Float     @default(0)
+  totalVerified     Int       @default(0)
+  verifiedAt        DateTime?
+
+  // Relations
+  assignments      NutritionistAssignment[]
+  mealPlansReviewed MealPlan[]
+  verifiedMeals    MealLibrary[]
+}
+
+model NutritionistAssignment {
+  id                    String              @id @default(cuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile @relation(fields: [nutritionistProfileId], references: [id], onDelete: Cascade)
+  status                AssignmentStatus    @default(PENDING)
+  assignedAt            DateTime            @default(now())
+  endedAt               DateTime?
+}
+
+model FoodItem {
+  id         String      @id @default(cuid())
+  name       String
+  category   String?
+  calories   Float
+  proteinG   Float
+  carbsG     Float
+  fatG       Float
+  fiber      Float?
+  sodium     Float?
+  potassium  Float?
+  calcium    Float?
+  iron       Float?
+  vitaminA   Float?
+  vitaminC   Float?
+  vitaminB1  Float?
+  vitaminB2  Float?
+  niacin     Float?
+  water      Float?
+  source     String      @default("FNRI")
+
+  // Relations
+  aliases         FoodAlias[]
+  mealIngredients MealIngredient[]
+}
+
+model FoodAlias {
+  id         String   @id @default(cuid())
+  foodItemId String
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  alias      String
+  createdAt  DateTime @default(now())
+}
+
+model MealPlan {
+  id               String           @id @default(cuid())
+  planGroupId      String
+  userId           String
+  user             User             @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
+  nutritionistId   String?
+  nutritionist     NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
+  libraryMealId    String?          @unique
+  libraryMeal      MealLibrary?     @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
+  status           MealPlanStatus   @default(PENDING_REVIEW)
+  mealType         MealType
+  mealName         String
+  description      String?          @db.Text
+  calories         Float
+  proteinG         Float
+  carbsG           Float
+  fatG             Float
+  aiConfidenceFlag AIConfidenceFlag @default(SAFE)
+  nutritionistNote String?          @db.Text
+  scheduledDate    DateTime
+  reviewedAt       DateTime?
+  createdAt        DateTime         @default(now())
+
+  // Relations
+  ingredients      MealIngredient[]
+  mealLogs         MealLog[]
+}
+
+model MealLibrary {
+  id                       String               @id @default(cuid())
+  verifiedByNutritionistId String?
+  verifiedByNutritionist   NutritionistProfile? @relation(fields: [verifiedByNutritionistId], references: [id])
+  mealName                 String
+  description              String?              @db.Text
+  mealType                 MealType
+  calories                 Float
+  proteinG                 Float
+  carbsG                   Float
+  fatG                     Float
+  suitableConditions       Json?
+  allergenFree             Json?
+  dietaryTags              Json?
+  usageCount               Int                  @default(0)
+  addedAt                  DateTime             @default(now())
+
+  // Relations
+  mealPlans                MealPlan?            @relation("PlanLibraryMeal")
+}
+
+model MealIngredient {
+  id             String    @id @default(cuid())
+  mealPlanId     String
+  mealPlan       MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  foodItemId     String?
+  foodItem       FoodItem? @relation(fields: [foodItemId], references: [id])
+  ingredientName String
+  category       String?
+}
+
+model MealLog {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlanId          String?
+  mealPlan            MealPlan?          @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  source              MealLogSource
+  mealName            String
+  calories            Float
+  proteinG            Float
+  carbsG              Float
+  fatG                Float
+  dataSource          MealLogDataSource
+  status              MealLogStatus      @default(PENDING)
+  warningType         String?
+  warningShown        Boolean            @default(false)
+  warningAcknowledged Boolean            @default(false)
+  loggedAt            DateTime           @default(now())
+  notes               String?            @db.Text
+}
+
+model WeightLog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weightKg Float
+  loggedAt DateTime @default(now())
+  note     String?  @db.Text
+}
+
+model DailyNutritionLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logDate        DateTime
+  totalCalories  Float
+  totalProteinG  Float
+  totalCarbsG    Float
+  totalFatG      Float
+  targetCalories Float
+  adherencePct   Float
+}
+
+model GroceryList {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekLabel   String
+  generatedAt DateTime @default(now())
+
+  // Relations
+  groceryItems GroceryItem[]
+}
+
+model GroceryItem {
+  id             String      @id @default(cuid())
+  groceryListId  String
+  groceryList    GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
+  ingredientName String
+  category       String?
+  isChecked      Boolean     @default(false)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}

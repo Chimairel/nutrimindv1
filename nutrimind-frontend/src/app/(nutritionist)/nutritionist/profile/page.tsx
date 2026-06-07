@@ -1,0 +1,106 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import api from '@/lib/axios';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
+
+interface NProfile {
+  id: string;
+  prcLicenseNumber: string;
+  prcLicenseExpiry: string;
+  specialization?: string;
+  yearsOfExperience?: number;
+  university?: string;
+  bio?: string;
+  isVerified: boolean;
+  totalVerified: number;
+  rating: number;
+}
+
+export default function NutritionistProfilePage() {
+  const { logout } = useAuth();
+  const [profile, setProfile] = useState<NProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [bio, setBio] = useState('');
+  const [specialization, setSpecialization] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const res = await api.get('/nutritionist/profile');
+        if (res.data?.success && res.data.data) {
+          setProfile(res.data.data);
+          setBio(res.data.data.bio || '');
+          setSpecialization(res.data.data.specialization || '');
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/nutritionist/profile', { bio, specialization });
+    } catch (err) {
+      console.error('Save failed:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><span className="text-brand-muted animate-pulse">Loading...</span></div>;
+  }
+
+  return (
+    <div className="px-6 py-8 max-w-2xl mx-auto space-y-6">
+      <h1 className="text-2xl font-extrabold text-brand-text font-display">Nutritionist Profile</h1>
+
+      <Card className="p-5 space-y-3 text-sm">
+        <div className="flex justify-between"><span className="text-brand-muted">PRC License</span><span className="text-brand-text font-mono">{profile?.prcLicenseNumber}</span></div>
+        <div className="flex justify-between"><span className="text-brand-muted">License Expiry</span><span className="text-brand-text">{profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : '—'}</span></div>
+        <div className="flex justify-between"><span className="text-brand-muted">Verified</span><span className={profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}>{profile?.isVerified ? '✅ Yes' : '⏳ Pending'}</span></div>
+        <div className="flex justify-between"><span className="text-brand-muted">Meals Verified</span><span className="text-brand-green font-bold">{profile?.totalVerified}</span></div>
+        <div className="flex justify-between"><span className="text-brand-muted">Rating</span><span className="text-brand-text">⭐ {profile?.rating?.toFixed(1)}</span></div>
+      </Card>
+
+      <Card className="p-5 space-y-4">
+        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Edit Profile</h2>
+        <div>
+          <label className="text-xs text-brand-muted block mb-1">Specialization</label>
+          <input
+            value={specialization}
+            onChange={(e) => setSpecialization(e.target.value)}
+            className="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none"
+            placeholder="e.g. Sports Nutrition, Clinical Nutrition"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-brand-muted block mb-1">Bio</label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            className="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none resize-none"
+            rows={4}
+            placeholder="Tell patients about yourself..."
+          />
+        </div>
+        <Button variant="primary" onClick={handleSave} isLoading={saving} className="text-xs">
+          Save Changes
+        </Button>
+      </Card>
+
+      <Button variant="secondary" onClick={logout} className="w-full py-3 text-sm">
+        Sign Out
+      </Button>
+    </div>
+  );
+}

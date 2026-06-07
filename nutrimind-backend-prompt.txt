@@ -1,0 +1,438 @@
+# NutriMind — Backend
+# Express.js + Prisma + PostgreSQL + Gemini
+
+## FLEXIBILITY NOTE
+This prompt is the planned baseline for NutriMind.
+During building, requirements will change, new ideas
+will emerge, and some features may be cut or modified.
+Always prioritize my current conversation instructions
+over anything written in this prompt.
+If I say "change X" — change X.
+If I say "forget Y" — forget Y.
+This document is a starting point, not a rulebook.
+
+## WHO I AM
+I am a CS student in the Philippines building NutriMind
+as my capstone project. I am building this myself with
+AI assistance — not vibe coding. I want to understand
+every line of code. Explain what each piece does before
+or alongside the code. I prefer working code with clear
+explanations. Never give partial code — always give full
+file implementations. If something is complex, break it
+down step by step.
+
+## WHAT NUTRIMIND IS
+NutriMind is an AI-powered PWA nutrition and meal
+planning system targeting health-conscious young urban
+Filipinos aged 18-35. It generates personalized 7-day
+meal plans using the Google Gemini API and validates
+nutrition data against the FNRI (Food and Nutrition
+Research Institute) Philippine Food Composition Table.
+
+## TECH STACK — BACKEND
+- Node.js + Express.js
+- TypeScript (strict mode)
+- Prisma ORM
+- PostgreSQL
+- JWT (jsonwebtoken) for auth
+- bcryptjs for password hashing
+- Google Gemini API with 4-model fallback rotation
+- React-PDF for PDF generation (streamed via API)
+- Vercel Cron Jobs for scheduled notifications
+- cors, helmet, express-validator for middleware
+- dotenv for environment variables
+
+## THIS IS A FRESH START
+The backend is being built from scratch. There is no
+existing codebase. Do not assume anything exists
+unless I explicitly tell you it does.
+
+## PROJECT STRUCTURE
+nutrimind-backend/
+  prisma/
+    schema.prisma
+    seed.ts          <- FNRI CSV import
+  src/
+    controllers/     <- route handlers
+    middleware/      <- auth, rbac, validation
+    routes/          <- express routers
+    services/        <- business logic
+    lib/
+      prisma.ts      <- Prisma singleton
+      gemini.ts      <- Gemini + fallback
+      fnri.ts        <- FNRI lookup function
+      jwt.ts         <- JWT helpers
+      pdf.ts         <- React-PDF generators
+      calculations.ts <- calorie + macro math
+    types/           <- shared TypeScript types
+    app.ts           <- Express app setup
+    server.ts        <- entry point
+  .env
+  package.json
+  tsconfig.json
+
+## ROLES & RBAC
+Role stored on User table as enum:
+USER | NUTRITIONIST | ADMIN
+
+JWT payload includes:
+{
+  userId: string
+  email: string
+  role: 'USER' | 'NUTRITIONIST' | 'ADMIN'
+  iat: number
+  exp: number
+}
+
+RBAC middleware checks role on every
+protected route and returns 403 if mismatch.
+
+Route access:
+- /api/user/*         -> USER only
+- /api/nutritionist/* -> NUTRITIONIST only
+- /api/admin/*        -> ADMIN only
+- /api/auth/*         -> public
+
+## DATABASE — 20 TABLES
+
+### 1. User
+id (PK, cuid), name, email,
+passwordHash, role (enum: USER/NUTRITIONIST/ADMIN),
+tosAccepted, tosAcceptedAt, onboardingDone,
+image, createdAt, updatedAt
+
+### 2. Account (OAuth placeholder)
+id (PK), userId (FK), type, provider,
+providerAccountId, access_token,
+refresh_token, expires_at
+
+### 3. Session
+id (PK), userId (FK), sessionToken, expires
+
+### 4. UserProfile
+id (PK), userId (FK, unique), age, heightCm,
+weightKg, targetWeightKg,
+goal (enum: LOSE_WEIGHT/GAIN_WEIGHT/
+MAINTAIN/BUILD_MUSCLE),
+activityLevel (enum: SEDENTARY/LIGHTLY_ACTIVE/
+ACTIVE/VERY_ACTIVE),
+dietaryPreference (enum: OMNIVORE/VEGETARIAN/
+VEGAN/PESCATARIAN),
+carbPreference (enum: LOW/MODERATE/HIGH),
+foodCulture, dailyCalorieTarget,
+lastCheckinAt, checkinStreak, updatedAt
+
+### 5. HealthCondition
+id (PK), userId (FK),
+condition (enum: DIABETES/HYPERTENSION/
+KIDNEY_DISEASE/HEART_CONDITION/PREGNANT/NONE)
+
+### 6. Allergy
+id (PK), userId (FK),
+allergen (enum: SHELLFISH/NUTS/DAIRY/
+GLUTEN/EGGS/NONE)
+
+### 7. NutritionReport
+id (PK), userId (FK, unique),
+generatedAt, acknowledgedAt,
+foodsToAvoid (JSON), foodsToLimit (JSON),
+foodsRecommended (JSON), drinksGuidance (JSON),
+generalSummary, basedOnConditions (JSON),
+basedOnAllergies (JSON)
+
+### 8. NutritionistProfile
+id (PK), userId (FK, unique),
+verifiedByAdminId (FK, nullable),
+prcLicenseNumber (unique), prcLicenseExpiry,
+specialization, yearsOfExperience,
+university, bio, isVerified, rating,
+totalVerified, verifiedAt
+
+### 9. NutritionistAssignment
+id (PK), userId (FK),
+nutritionistProfileId (FK),
+status (enum: PENDING/ACTIVE/ENDED),
+assignedAt, endedAt
+
+### 10. FoodItem (FNRI Dataset)
+id (PK), name, category, calories,
+proteinG, carbsG, fatG, fiber, sodium,
+potassium, calcium, iron, vitaminA,
+vitaminC, vitaminB1, vitaminB2, niacin,
+water, source (always "FNRI")
+
+### 11. FoodAlias
+id (PK), foodItemId (FK), alias, createdAt
+Starts empty. Self-populates via fuzzy matching.
+Examples:
+  "kangkong"  -> "Swamp cabbage, leaves, raw"
+  "malunggay" -> "Horseradish leaves, raw"
+  "tokwa"     -> "Soybean curd, fresh"
+  "ampalaya"  -> "Bitter gourd, raw"
+  "pechay"    -> "Mustard, Chinese white, raw"
+
+### 12. MealPlan
+id (PK),
+planGroupId (UUID - groups 21 meals of one
+7-day plan together),
+userId (FK), nutritionistId (FK, nullable),
+libraryMealId (FK, nullable unique),
+status (enum: PENDING_REVIEW/APPROVED/
+REJECTED/CANCELLED),
+mealType (enum: BREAKFAST/LUNCH/DINNER/SNACK),
+mealName, description, calories,
+proteinG, carbsG, fatG,
+aiConfidenceFlag (enum: SAFE/CAUTION/NEEDS_REVIEW),
+nutritionistNote, scheduledDate,
+reviewedAt, createdAt
+
+Note: One 7-day plan = 21 rows, same planGroupId.
+When user regenerates -> old meals set CANCELLED,
+new planGroupId created.
+
+### 13. MealLibrary
+id (PK), verifiedByNutritionistId (FK),
+mealName, description, mealType (enum),
+calories, proteinG, carbsG, fatG,
+suitableConditions (JSON), allergenFree (JSON),
+dietaryTags (JSON), usageCount, addedAt
+
+### 14. MealIngredient
+id (PK), mealPlanId (FK), foodItemId (FK),
+ingredientName, category
+
+### 15. MealLog
+id (PK), userId (FK),
+mealPlanId (FK, nullable),
+source (enum: SYSTEM_GENERATED/USER_LOGGED),
+mealName, calories, proteinG, carbsG, fatG,
+dataSource (enum: FNRI/GEMINI_ESTIMATED/SYSTEM),
+status (enum: DONE/PENDING/SKIPPED),
+warningType, warningShown,
+warningAcknowledged, loggedAt, notes
+
+### 16. WeightLog
+id (PK), userId (FK), weightKg,
+loggedAt, note (String, optional)
+
+### 17. DailyNutritionLog
+id (PK), userId (FK), logDate,
+totalCalories, totalProteinG,
+totalCarbsG, totalFatG,
+targetCalories, adherencePct
+
+### 18. GroceryList
+id (PK), userId (FK), weekLabel, generatedAt
+
+### 19. GroceryItem
+id (PK), groceryListId (FK),
+ingredientName, category, isChecked
+
+### 20. Notification
+id (PK), userId (FK), title, message,
+type (enum: PLAN_APPROVED/PLAN_REJECTED/
+REVIEW_REQUEST/ASSIGNMENT/WEEKLY_CHECKIN),
+isRead, createdAt
+
+## API ROUTES
+
+### Auth (public)
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/refresh
+POST /api/auth/logout
+
+### Onboarding (USER)
+POST /api/user/onboarding/profile
+POST /api/user/onboarding/conditions
+POST /api/user/onboarding/allergies
+POST /api/user/onboarding/tos
+POST /api/user/onboarding/complete
+
+### Nutrition Report (USER)
+POST /api/user/nutrition-report/generate
+POST /api/user/nutrition-report/acknowledge
+GET  /api/user/nutrition-report
+
+### Meal Plans (USER)
+POST /api/user/meals/generate
+GET  /api/user/meals/current
+GET  /api/user/meals/history
+POST /api/user/meals/log-outside
+PATCH /api/user/meals/:id/status
+
+### Grocery (USER)
+GET  /api/user/grocery/current
+PATCH /api/user/grocery/:id/check
+GET  /api/user/grocery/pdf
+
+### Profile (USER)
+GET  /api/user/profile
+PATCH /api/user/profile
+GET  /api/user/weight
+POST /api/user/weight
+
+### Check-in (USER)
+POST /api/user/checkin/submit
+GET  /api/user/checkin/status
+
+### Notifications (USER)
+GET  /api/user/notifications
+PATCH /api/user/notifications/:id/read
+
+### PDF (USER)
+GET  /api/user/nutrition-report/pdf
+GET  /api/user/grocery/pdf
+
+### Nutritionist Portal (NUTRITIONIST)
+GET  /api/nutritionist/queue
+PATCH /api/nutritionist/review/:id
+GET  /api/nutritionist/patients
+GET  /api/nutritionist/library
+GET  /api/nutritionist/profile
+PATCH /api/nutritionist/profile
+
+### Admin (ADMIN)
+GET  /api/admin/users
+GET  /api/admin/nutritionists
+PATCH /api/admin/nutritionists/:id/verify
+GET  /api/admin/analytics
+POST /api/admin/library/seed
+
+### Cron (protected with CRON_SECRET)
+POST /api/cron/weekly-checkin
+POST /api/cron/checkin-reminder
+
+### FNRI (internal)
+GET  /api/fnri/lookup?name=
+POST /api/fnri/import
+
+## CORE LOGIC
+
+### FNRI Lookup (/src/lib/fnri.ts)
+4-step chain per ingredient:
+1. Exact match in FoodItem (case insensitive)
+2. Alias match in FoodAlias
+3. Fuzzy match in FoodItem (contains)
+   -> if fuzzy matches, auto-save to FoodAlias
+4. Gemini estimates nutrition (last resort)
+
+Returns: { food, source: 'FNRI' | 'ESTIMATED' }
+
+### Gemini Fallback (/src/lib/gemini.ts)
+Models in order:
+1. gemini-2.5-flash
+2. gemini-2.0-flash
+3. gemini-1.5-pro
+4. gemini-1.5-flash
+
+Rules:
+- Always fetch latest user profile from DB
+- Always return strict JSON only
+  (no markdown, no backticks, no preamble)
+- Inject filtered FNRI subset into meal gen prompts
+  (~100-150 items filtered by meal type/category)
+- Include conditions + allergies as hard constraints
+- Never cache user profile
+
+### 7-Day Plan Generation Logic
+Check MealLibrary for profile match
+(conditions + allergens + dietaryPreference + goal)
+        |
+MATCH -> serve verified meals
+         increment usageCount
+         status: APPROVED
+
+NO MATCH -> Gemini generates 21 meals
+         -> FNRI lookup per ingredient
+         -> aiConfidenceFlag per meal:
+            SAFE         = no conditions, all FNRI
+            CAUTION      = has conditions, FNRI used
+            NEEDS_REVIEW = has conditions + ESTIMATED
+         -> Save all as PENDING_REVIEW
+         -> Cancel previous planGroupId meals
+         -> Notify nutritionist if NEEDS_REVIEW
+
+### Nutritionist Queue Logic
+- Hybrid: assigned patients first, then global queue
+- Sort: NEEDS_REVIEW -> CAUTION -> SAFE
+- Approve -> auto-save to MealLibrary
+- Reject  -> regenerate that meal via Gemini
+
+### JWT Auth Flow
+Register/Login -> bcrypt hash/compare
+-> sign JWT (userId, email, role)
+-> return accessToken + refreshToken
+-> frontend stores in httpOnly cookie
+-> every request sends Bearer token
+-> middleware verifies + attaches user to req
+
+### Nutrition Calculation
+ingredient nutrition x serving
+-> meal total
+-> day total (all meals that day)
+-> DailyNutritionLog upsert
+
+### Weekly Check-in Scheduling (Vercel Cron)
+Sunday 8PM  -> fire WEEKLY_CHECKIN notification
+Monday 8AM  -> reminder if not completed
+Monday 12PM -> second reminder if still not done
+After 3 missed -> auto-generate using last profile
+All cron routes protected with CRON_SECRET
+
+## LEGAL PROTECTION LAYERS
+Layer 1: tosAccepted + tosAcceptedAt on User
+Layer 2: acknowledgedAt on NutritionReport
+Layer 3: PENDING_REVIEW status on MealPlan
+Layer 4: warningShown + warningAcknowledged on MealLog
+Layer 5: source field on MealLog
+         (SYSTEM_GENERATED vs USER_LOGGED)
+
+## CODING CONVENTIONS
+- Express.js with TypeScript throughout
+- Controllers handle request/response only
+- Services handle all business logic
+- Prisma client singleton at src/lib/prisma.ts
+- Always validate request body (express-validator)
+- Always return consistent JSON:
+  { success: boolean, data?: any, error?: string }
+- Always handle errors with try/catch
+- Never expose passwordHash in any response
+- JWT secret from environment variables only
+- Gemini always returns strict JSON only
+- Never cache user profile for Gemini prompts
+- PDF generation streamed via API route
+- CRON_SECRET required for all cron routes
+
+## BUILD PHASES — BACKEND
+
+Phase 1 — Foundation
+  Prisma schema (all 20 tables)
+  FNRI CSV import script (seed.ts)
+  Express app setup (app.ts, server.ts)
+  JWT auth (register, login, refresh, logout)
+  RBAC middleware
+
+Phase 2 — AI Layer
+  FNRI lookup function (/src/lib/fnri.ts)
+  Gemini client + 4-model fallback
+  7-day meal plan generation API
+  Nutrition report generation API
+
+Phase 3 — Meal System
+  Meal library matching logic
+  Nutritionist review + approval API
+  Auto-save to library on approval
+  planGroupId + CANCELLED logic
+
+Phase 4 — Supporting Features
+  Outside meal logging + warning check API
+  Weekly check-in + Vercel Cron setup
+  Grocery list aggregation API
+  PDF generation (streamed)
+  Notification system
+
+Phase 5 — Portals
+  Nutritionist portal routes
+  Admin routes + analytics
+  Pre-seed tools for meal library

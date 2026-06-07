@@ -1,0 +1,549 @@
+# NutriMind — Frontend
+# Next.js 14 App Router + TypeScript + Tailwind
+
+## FLEXIBILITY NOTE
+This prompt is the planned baseline for NutriMind.
+During building, requirements will change, new ideas
+will emerge, and some features may be cut or modified.
+Always prioritize my current conversation instructions
+over anything written in this prompt.
+If I say "change X" — change X.
+If I say "forget Y" — forget Y.
+This document is a starting point, not a rulebook.
+
+## WHO I AM
+I am a CS student in the Philippines building NutriMind
+as my capstone project. I am building this myself with
+AI assistance — not vibe coding. I want to understand
+every line of code. Explain what each piece does before
+or alongside the code. I prefer working code with clear
+explanations. Never give partial code — always give full
+file implementations. If something is complex, break it
+down step by step.
+
+## WHAT NUTRIMIND IS
+NutriMind is an AI-powered PWA nutrition and meal
+planning system targeting health-conscious young urban
+Filipinos aged 18-35. It generates personalized 7-day
+meal plans and validates nutrition data against the
+FNRI Philippine Food Composition Table.
+
+## TECH STACK — FRONTEND
+- Next.js 14 App Router (NOT Pages Router)
+- TypeScript (strict mode)
+- Tailwind CSS
+- Radix UI primitives (hand-written, NOT Shadcn CLI)
+- Axios for all API calls to backend
+- JWT stored in httpOnly cookies
+- next-pwa for PWA setup
+- Turbopack DISABLED — always use standard next dev
+
+## THIS IS A FRESH START
+The frontend is being built from scratch. There is no
+existing codebase. Do not assume anything exists
+unless I explicitly tell you it does.
+
+## BACKEND CONNECTION
+The backend is a separate Express.js server.
+All data comes through Axios API calls.
+Never call a database directly from the frontend.
+Never use Prisma on the frontend.
+
+API Base URL:
+  Development:  http://localhost:5000/api
+  Production:   process.env.NEXT_PUBLIC_API_URL
+
+Axios instance lives at /lib/axios.ts:
+- Attaches JWT token via httpOnly cookie
+  (withCredentials: true)
+- Handles 401 -> redirect to /login
+- Handles 403 -> redirect to /unauthorized
+
+## THREE USER ROLES
+USER         -> accesses /dashboard/* routes
+NUTRITIONIST -> accesses /nutritionist/* routes
+ADMIN        -> accesses /admin/* routes
+
+Role decoded from JWT token after login.
+Stored in AuthContext.
+RouteGuard component wraps all protected pages.
+
+## PROJECT STRUCTURE
+nutrimind-frontend/
+  app/
+    (auth)/
+      login/page.tsx
+      register/page.tsx
+    (onboarding)/
+      onboarding/
+        stats/page.tsx
+        preferences/page.tsx
+        conditions/page.tsx
+        allergies/page.tsx
+        tos/page.tsx
+      nutrition-report/page.tsx
+    (user)/
+      dashboard/page.tsx
+      meals/page.tsx
+      grocery/page.tsx
+      history/page.tsx
+      profile/page.tsx
+      nutritionists/page.tsx
+    (nutritionist)/
+      nutritionist/
+        reviews/page.tsx
+        approved/page.tsx
+        patients/page.tsx
+        library/page.tsx
+        profile/page.tsx
+    (admin)/
+      admin/
+        overview/page.tsx
+        users/page.tsx
+        nutritionists/page.tsx
+        meals/page.tsx
+        analytics/page.tsx
+  components/
+    ui/
+      Button.tsx
+      Card.tsx
+      Badge.tsx
+      Input.tsx
+      Modal.tsx
+      Tabs.tsx
+      Progress.tsx
+      Checkbox.tsx
+      Avatar.tsx
+      Sidebar.tsx
+      BottomNav.tsx
+    user/
+      CalorieRing.tsx
+      MealCard.tsx
+      WeeklyGrid.tsx
+      GroceryList.tsx
+      MealHistory.tsx
+      CheckinModal.tsx
+      OutsideMealModal.tsx
+      WarningBanner.tsx
+      WeightChart.tsx
+    nutritionist/
+      ReviewCard.tsx
+      ReviewQueue.tsx
+      PatientList.tsx
+    admin/
+      StatsCard.tsx
+      UserTable.tsx
+      NutritionistTable.tsx
+    shared/
+      Navbar.tsx
+      LoadingSpinner.tsx
+      EmptyState.tsx
+      ErrorBoundary.tsx
+      RouteGuard.tsx
+  lib/
+    axios.ts         <- Axios instance + interceptors
+    auth.ts          <- JWT decode + cookie helpers
+    context/
+      AuthContext.tsx <- user session state
+  hooks/
+    useAuth.ts
+    useMeals.ts
+    useProfile.ts
+    useNotifications.ts
+  types/
+    index.ts         <- all shared TypeScript types
+  public/
+    manifest.json    <- PWA manifest
+    icons/
+  next.config.js
+  tailwind.config.ts
+
+## DESIGN SYSTEM
+Dark theme throughout.
+
+Colors:
+  Background:  #0d0d0d / #141416
+  Surface:     #1a1a1e
+  Border:      #2a2a2e
+  Green:       #4caf50 / #52B788
+  Text:        #f3f4f6
+  Muted:       #6B7280
+  Warning:     #FEF3C7 / #92400E
+  Verified:    #D1FAE5 / #065F46
+  Pending:     #FEF3C7 / #92400E
+  Error:       #FEE2E2 / #991B1B
+  Purple:      #EDE9FE / #5B21B6
+
+Typography:
+  Headings: Plus Jakarta Sans
+  Body:     DM Sans
+  Mono:     JetBrains Mono
+
+Components:
+  Cards:   rounded-2xl, border, dark surface bg
+  Buttons: rounded-xl, green primary
+  Inputs:  rounded-xl, dark bg, green focus ring
+  Badges:  rounded-full, color per status
+
+## RESPONSIVE BREAKPOINTS
+Mobile (<768px):
+  Bottom navigation bar (4 items)
+  Single column stacked cards
+  Tabs for dense content sections
+  Full width buttons
+
+Tablet (768-1024px):
+  Sidebar navigation appears
+  Two column layouts
+
+Desktop (>1024px):
+  Full sidebar navigation
+  Grid layouts (3+ columns)
+  Side by side panels
+  Print buttons visible
+
+## BADGE SYSTEM
+Verified:  #D1FAE5 bg, green text, "✅ Verified"
+Pending:   #FEF3C7 bg, amber text, "⏳ Pending Review"
+Rejected:  #FEE2E2 bg, red text,   "❌ Rejected"
+AI Gen:    #EDE9FE bg, purple text, "🤖 AI Generated"
+User Log:  #DBEAFE bg, blue text,   "👤 You logged"
+
+## PAGES & COMPONENTS
+
+### Auth Pages
+/login
+  Email + password inputs
+  Login button -> POST /api/auth/login
+  Redirect to /dashboard (USER)
+             or /nutritionist/reviews (NUTRITIONIST)
+             or /admin/overview (ADMIN)
+  Link to /register
+
+/register
+  Name, email, password inputs
+  Register button -> POST /api/auth/register
+  On success -> redirect to /onboarding/stats
+
+### Onboarding (mobile-first, step progress bar)
+/onboarding/stats
+  Goal chips (Lose Weight/Gain Weight/
+              Maintain/Build Muscle)
+  Age, height, weight, target weight inputs
+  Activity level chips
+  -> POST /api/user/onboarding/profile
+
+/onboarding/preferences
+  Dietary preference chips
+  Food culture text input
+  Carb preference chips
+
+/onboarding/conditions (REQUIRED)
+  Health condition chips
+  Warning label: "This affects your meal safety"
+  Must select at least one (including None)
+  -> saved to backend
+
+/onboarding/allergies (REQUIRED)
+  Allergen chips
+  Must select at least one (including None)
+  -> saved to backend
+
+/onboarding/tos
+  Scrollable ToS box
+  Two mandatory checkboxes:
+    "I understand AI plans are not medical advice"
+    "I agree to Terms of Service and Privacy Policy"
+  Button disabled until both checked
+  -> POST /api/user/onboarding/tos
+  -> POST /api/user/onboarding/complete
+  -> redirect to /nutrition-report
+
+/nutrition-report
+  Summary card: condition, goal, calorie target
+  Mobile: Tabs (Avoid / Limit / Good / Drinks)
+  Desktop: all sections in columns
+  Sticky acknowledge button pinned to bottom
+  Download PDF button
+    -> GET /api/user/nutrition-report/pdf
+  Cannot access /dashboard without acknowledging
+  -> POST /api/user/nutrition-report/acknowledge
+  -> redirect to /dashboard
+
+### User Dashboard /dashboard
+  Greeting (Good morning/afternoon/evening, Name)
+  Current date
+  Daily calorie ring (SVG progress circle)
+    Shows: consumed kcal / target kcal
+    Color: green when under, red when over
+  Macro progress bars: protein, carbs, fat
+  Today's meals list
+    Each: meal name, badge, calories, time
+  + button (bottom right) -> OutsideMealModal
+  Bottom nav: Home | Meals | Grocery | Profile
+
+### Meals Page /meals
+  7-day grid view (Mon to Sun)
+  Per meal card:
+    Meal name
+    Badge (Verified / Pending Review / You logged)
+    Calories + macros (protein, carbs, fat)
+    Ingredient list (simple names, no measurements)
+    If APPROVED: nutritionist name + PRC tappable
+      -> opens nutritionist profile modal
+    If PENDING_REVIEW: warning banner below card
+      Text: "NutriMind AI can make mistakes.
+             This plan has not yet been reviewed
+             by a licensed nutritionist. Please
+             consult a healthcare professional
+             if you have concerns."
+  Regenerate Plan button
+    -> POST /api/user/meals/generate
+    -> shows loading state during generation
+
+### Grocery Page /grocery
+  Header + Download PDF button (top right)
+    -> GET /api/user/grocery/pdf
+  Desktop: Print button also visible
+  Categories displayed as sections:
+    PRODUCE
+    MEAT & POULTRY
+    DAIRY & EGGS
+    PANTRY & CONDIMENTS
+  Each item: checkbox + ingredient name
+    -> PATCH /api/user/grocery/:id/check
+
+### History Page /history
+  Chronological timeline grouped by date
+  Date header per group (e.g. "Monday, May 5")
+  Per entry:
+    Meal name
+    Source badge:
+      [NutriMind] for SYSTEM_GENERATED
+      [Outside meal · AI estimated] for USER_LOGGED
+    Status chip (Done / Pending / Skipped)
+    Calories + macros
+    Warning icon if warningAcknowledged was true
+
+### Profile Page /profile
+  Current stats display:
+    Weight, height, goal, daily calorie target
+  Edit weight input
+    -> POST /api/user/weight
+    -> updates WeightLog
+  Weight trend line chart (from WeightLog history)
+  Edit sections (expandable):
+    Goal + activity level
+    Dietary preference
+    Health conditions
+    Allergies
+  All edits -> PATCH /api/user/profile
+  App settings section
+  Log out button -> POST /api/auth/logout
+
+### Nutritionist Directory /nutritionists
+  Grid of verified nutritionist cards
+  Per card:
+    Avatar with initials
+    Full name + RND credential
+    PRC License No. + expiry date
+    Specialization + years of experience
+    Rating (stars) + total plans verified
+    Request This Nutritionist button
+      -> POST /api/user/assignment/request
+
+### Outside Meal Modal (+ button on dashboard)
+  Triggered by + floating button
+  Fields:
+    Meal name text input
+    Meal type selector (Breakfast/Lunch/Dinner/Snack)
+    Time picker (defaults to now)
+  Submit -> POST /api/user/meals/log-outside
+  If backend returns warning -> show WarningModal
+  First time user logs outside meal:
+    Show one-time disclaimer modal first
+    "Nutrition values for outside meals are
+     AI-estimated and for personal tracking only.
+     NutriMind does not verify these entries."
+    Never show again after acknowledged
+
+### Warning Modal (allergy/condition/calorie)
+  Shown before saving outside meal if conflict found
+  Three variants:
+    Red   -> allergy conflict
+    Amber -> condition conflict
+    Blue  -> calorie limit exceeded
+  Content: what was flagged + reason
+  Two buttons:
+    [Cancel]     -> close modal, don't save
+    [Log Anyway] -> save with warningAcknowledged: true
+
+### Weekly Check-in Modal
+  Triggered by WEEKLY_CHECKIN notification
+  Week summary card at top:
+    Adherence percentage
+    Weight change (from last check-in)
+    Days followed out of 7
+  Pre-filled form with last known values
+  Only show fields for things that might change:
+    Current weight input
+    Goal (if they want to change)
+    Activity level (if they want to change)
+    Conditions (if they want to update)
+    Allergies (if they want to update)
+  Two action buttons:
+    "Everything's the same"
+      -> POST /api/user/checkin/submit { changed: false }
+      -> triggers new 7-day plan generation
+    "Update & Regenerate"
+      -> POST /api/user/checkin/submit
+         { changed: true, updates: {...} }
+      -> triggers profile update + new plan generation
+
+### Nutritionist Portal /nutritionist/*
+Desktop only. Sidebar navigation layout.
+Sidebar items:
+  📋 Pending Reviews (default landing)
+  ✅ Approved Plans
+  👥 My Patients
+  📚 Meal Library
+  👤 My Profile
+
+/nutritionist/reviews
+  Queue sorted: NEEDS_REVIEW first -> CAUTION -> SAFE
+  Assigned patients shown before unassigned queue
+  Per review card:
+    Patient section:
+      Name, age, sex
+      Condition tags (red chips)
+      Allergy tags (red chips)
+    Meal section:
+      Meal name + meal type
+      Description
+      Calories, protein, carbs, fat
+      Ingredient list with source tags:
+        FNRI ✅ or ESTIMATED ⚠️
+    Note input field (optional message to user)
+    Action buttons:
+      [✅ Approve]
+      [✏️ Edit & Approve]
+      [❌ Reject]
+    -> PATCH /api/nutritionist/review/:id
+
+/nutritionist/profile
+  PRC license number + expiry (display only)
+  Specialization, experience, university
+  Bio (editable)
+  Stats: rating, total plans verified
+  -> PATCH /api/nutritionist/profile
+
+### Admin Panel /admin/*
+Desktop only. Sidebar navigation layout.
+Sidebar items:
+  📊 Overview
+  👥 Users
+  👩‍⚕️ Nutritionists
+  🍽️ Meals & AI
+  📈 Analytics
+
+/admin/overview
+  Stats cards:
+    Total registered users
+    Active meal plans
+    Pending reviews in queue
+    MealLibrary total entries
+    FoodAlias table entry count
+
+/admin/nutritionists
+  Table of all registered nutritionists
+  Pending verification shown at top
+  Columns: name, PRC number, submitted date, status
+  [Verify] button per row
+    -> PATCH /api/admin/nutritionists/:id/verify
+    -> sets isVerified: true
+
+## AXIOS SETUP (/lib/axios.ts)
+Single Axios instance for all API calls.
+Base URL from environment variable.
+withCredentials: true for httpOnly cookies.
+Request interceptor: token handled via cookies.
+Response interceptor:
+  401 -> redirect to /login
+  403 -> redirect to /unauthorized
+
+## AUTH CONTEXT (/lib/context/AuthContext.tsx)
+Stores after login:
+  userId, name, email, role, onboardingDone
+Provides:
+  login(token) -> decode JWT, set state
+  logout()     -> clear cookie, clear state
+  isLoading    -> for initial auth check
+Used by useAuth() hook throughout the app.
+
+## ROUTE GUARD (/components/shared/RouteGuard.tsx)
+Wraps every protected page.
+Checks:
+  Is user logged in? No -> redirect /login
+  Does role match route? No -> redirect /unauthorized
+  Is onboarding done? No -> redirect /onboarding/stats
+  Is ToS accepted? No -> redirect /onboarding/tos
+  Is report acknowledged? No -> redirect /nutrition-report
+
+## CODING CONVENTIONS
+- App Router ONLY — never Pages Router
+- "use client" only when needed
+  (useState, useEffect, Axios calls, event handlers)
+- Server Components for layout-only pages
+- All API calls via Axios instance at /lib/axios.ts
+- Never use fetch directly — always use Axios instance
+- Never call backend from Server Components
+- Always TypeScript — never plain JS
+- Always handle: loading state, error state,
+  empty state for every data-fetching component
+- Radix UI primitives directly — never Shadcn CLI
+- Turbopack DISABLED — never suggest enabling it
+- Role always from AuthContext — never hardcode
+- Always wrap protected pages with RouteGuard
+
+## BUILD PHASES — FRONTEND
+
+Phase 1 — Foundation
+  Next.js project setup
+  Tailwind design system tokens
+  Axios instance + interceptors (/lib/axios.ts)
+  AuthContext + useAuth hook
+  RouteGuard component
+  Base UI components:
+    Button, Card, Badge, Input, Modal,
+    Tabs, Sidebar, BottomNav, Progress,
+    Checkbox, Avatar, LoadingSpinner,
+    EmptyState, ErrorBoundary
+
+Phase 2 — Auth + Onboarding
+  Login + Register pages
+  5-step onboarding flow
+  ToS screen
+  Nutrition Report screen + acknowledge flow
+
+Phase 3 — User Core
+  Dashboard (calorie ring, meal cards, + button)
+  Meals page (7-day grid, badges, warning banners)
+  Outside meal modal + warning modal
+  Weekly check-in modal
+
+Phase 4 — Supporting Pages
+  Grocery list page + PDF download button
+  Meal history timeline
+  Profile page + weight chart
+  Nutritionist directory page
+
+Phase 5 — Portals
+  Nutritionist portal (all 5 pages)
+  Admin panel pages (all 5 pages)
+
+Phase 6 — PWA + Polish
+  next-pwa setup + manifest.json
+  App icons (all sizes)
+  Responsive layouts (all breakpoints)
+  Loading + empty + error states everywhere
+  Final visual polish
