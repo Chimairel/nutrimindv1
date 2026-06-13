@@ -13,6 +13,7 @@ import axios from 'axios';
 export default function OnboardingAllergiesPage() {
   const router = useRouter();
   const [selectedAllergens, setSelectedAllergens] = useState<AllergenType[]>([]);
+  const [otherAllergies, setOtherAllergies] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,9 +46,10 @@ export default function OnboardingAllergiesPage() {
 
     setIsLoading(true);
     try {
-      // Send allergens to backend onboarding allergies endpoint
+      // Send allergens + optional custom text to backend
       await api.post('/user/onboarding/allergies', {
         allergies: selectedAllergens,
+        otherAllergies: otherAllergies.trim() || undefined,
       });
 
       // Advance to final step 5: Terms of Service
@@ -107,6 +109,16 @@ export default function OnboardingAllergiesPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding/conditions')}
+              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit mb-1"
+            >
+              <span>←</span>
+              <span>Back to Step 3</span>
+            </button>
+
             <div className="flex flex-col gap-3">
               {allergensList.map((item) => {
                 const isSelected = selectedAllergens.includes(item.value);
@@ -140,6 +152,27 @@ export default function OnboardingAllergiesPage() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Other / Custom Allergies — always visible, disabled when NONE selected */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold tracking-wide text-brand-muted uppercase">
+                Other Allergies <span className="text-brand-border font-normal normal-case">(optional)</span>
+              </label>
+              <textarea
+                id="other-allergies"
+                value={otherAllergies}
+                onChange={(e) => setOtherAllergies(e.target.value)}
+                placeholder={selectedAllergens.includes('NONE') ? 'N/A — No allergies selected' : 'e.g., Soy, Sesame, Fish, Mango...'}
+                rows={2}
+                disabled={selectedAllergens.includes('NONE')}
+                className={`w-full px-4 py-3 rounded-xl bg-brand-bgAlt/50 border border-brand-border text-brand-text text-sm placeholder:text-brand-muted/50 focus:outline-none focus:border-brand-green transition-all resize-none ${
+                  selectedAllergens.includes('NONE') ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
+              />
+              <p className="text-[10px] text-brand-muted leading-relaxed">
+                Type any allergy not listed above. The AI will completely exclude these ingredients.
+              </p>
             </div>
 
             <Button

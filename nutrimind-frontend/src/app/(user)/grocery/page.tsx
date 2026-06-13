@@ -99,6 +99,25 @@ export default function GroceryListPage() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await api.get('/user/grocery/pdf', {
+        responseType: 'blob',
+      });
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.setAttribute('download', `NutriMind_Grocery_List_${groceryList?.weekLabel || 'Current'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('[Grocery] Failed to download PDF:', err);
+      alert('Failed to generate PDF. Make sure you have an active grocery list.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
@@ -142,14 +161,24 @@ export default function GroceryListPage() {
           </p>
         </div>
         {groceryList && (
-          <Button
-            variant="secondary"
-            onClick={handleGenerateList}
-            disabled={isGenerating}
-            className="text-xs font-bold py-2 bg-brand-surface/80 border-brand-border/80 hover:bg-brand-border hover:text-brand-green transition-all"
-          >
-            {isGenerating ? '🔄 Re-compiling...' : '🔄 Regenerate List'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 text-xs font-semibold py-2"
+            >
+              <span>📥</span>
+              <span>Download PDF</span>
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleGenerateList}
+              disabled={isGenerating}
+              className="text-xs font-bold py-2 bg-brand-surface/80 border-brand-border/80 hover:bg-brand-border hover:text-brand-green transition-all"
+            >
+              {isGenerating ? '🔄 Re-compiling...' : '🔄 Regenerate List'}
+            </Button>
+          </div>
         )}
       </div>
 

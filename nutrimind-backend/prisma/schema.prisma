@@ -188,6 +188,8 @@ model UserProfile {
   carbPreference     CarbPreference?
   foodCulture        String?
   dailyCalorieTarget Int?
+  otherConditions    String?            // Free-text custom health conditions (e.g., "Gout, Celiac")
+  otherAllergies     String?            // Free-text custom food allergies (e.g., "Soy, Sesame")
   lastCheckinAt      DateTime?
   checkinStreak      Int                @default(0)
   updatedAt          DateTime           @updatedAt

@@ -19,7 +19,7 @@ export default function ProfilePage() {
     if (!weightInput) return;
     setIsLogging(true);
     try {
-      await api.post('/user/weight-log', { weightKg: parseFloat(weightInput), note: weightNote });
+      await api.post('/user/progress/weight', { weightKg: parseFloat(weightInput), note: weightNote });
       setLogMsg('Weight logged! ✅');
       setWeightInput('');
       setWeightNote('');

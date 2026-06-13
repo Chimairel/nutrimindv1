@@ -12,6 +12,7 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
 import CalorieRing from '@/components/user/CalorieRing';
 import MealCard from '@/components/user/MealCard';
+import CheckinModal from '@/components/user/CheckinModal';
 import { MealPlan, MealType } from '@/types';
 import axios from 'axios';
 
@@ -39,6 +40,9 @@ export default function DashboardPage() {
     estimate: { calories: number; proteinG: number; carbsG: number; fatG: number };
   } | null>(null);
 
+  // Check-in status
+  const [isCheckinDue, setIsCheckinDue] = useState(false);
+
   // Load active plan meals
   const fetchCurrentPlan = async () => {
     setIsLoading(true);
@@ -59,9 +63,21 @@ export default function DashboardPage() {
     }
   };
 
+  const checkCheckinStatus = async () => {
+    try {
+      const res = await api.get('/user/checkin/status');
+      if (res.data?.success && res.data.data?.isDue) {
+        setIsCheckinDue(true);
+      }
+    } catch (err) {
+      console.error('[Dashboard] Failed to fetch checkin status', err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchCurrentPlan();
+      checkCheckinStatus();
     }
   }, [user]);
 
@@ -529,6 +545,14 @@ export default function DashboardPage() {
           )}
         </div>
       </Modal>
+
+      <CheckinModal 
+        isOpen={isCheckinDue} 
+        onClose={() => setIsCheckinDue(false)} 
+        onPlanRegenerated={() => {
+          fetchCurrentPlan();
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import React from 'react';
 import { AuthenticatedRequest } from '@/types';
 import { GroceryService } from '@/services/grocery.service';
 
@@ -79,6 +80,35 @@ export class GroceryController {
         success: false,
         error: err.message || 'Failed to update item status.',
       });
+    }
+  }
+
+  /**
+   * GET /api/user/grocery/pdf
+   * Streams the grocery list as a PDF
+   */
+  static async downloadGroceryPdf(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized user.' });
+      }
+
+      const groceryList = await GroceryService.getGroceryList(userId);
+      if (!groceryList || !groceryList.groceryItems || groceryList.groceryItems.length === 0) {
+        return res.status(404).json({ success: false, error: 'No active grocery list found.' });
+      }
+
+      const { GroceryListPDF, streamPdf } = await import('@/lib/pdf');
+      const document = React.createElement(GroceryListPDF, { groceryList });
+      const stream = await streamPdf(document);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=nutrimind-grocery-list.pdf');
+      stream.pipe(res);
+    } catch (error: any) {
+      console.error('[GroceryController] downloadGroceryPdf error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to generate grocery list PDF.' });
     }
   }
 }

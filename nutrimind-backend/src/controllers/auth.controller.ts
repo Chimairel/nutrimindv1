@@ -48,6 +48,35 @@ export class AuthController {
   }
 
   /**
+   * POST /api/auth/google
+   * Authenticates via Google ID token.
+   */
+  static async googleAuth(req: Request, res: Response) {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({
+          success: false,
+          error: 'Google ID token is required.',
+        });
+      }
+
+      const result = await AuthService.googleAuth(idToken);
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        error: error.message || 'Google authentication failed.',
+      });
+    }
+  }
+
+  /**
    * POST /api/auth/verify-email
    * Verifies email with 6-digit OTP. Requires authentication.
    */

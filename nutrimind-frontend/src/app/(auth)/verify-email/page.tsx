@@ -31,7 +31,17 @@ export default function VerifyEmailPage() {
       const response = await api.post('/auth/verify-email', { otp: code });
       if (response.data?.success) {
         setSuccess('Email verified successfully! Redirecting...');
-        await refreshSession();
+        // Try to refresh session — if it fails (e.g. rate limit), still redirect
+        try {
+          await refreshSession();
+        } catch {
+          // Session will be refreshed on next page load via AuthContext
+          console.warn('[VerifyEmail] refreshSession failed, redirecting anyway.');
+        }
+        // Always redirect after successful verification — don't stay stuck
+        setTimeout(() => {
+          window.location.href = '/onboarding/stats';
+        }, 1500);
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };

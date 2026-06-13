@@ -18,7 +18,7 @@ export const Checkbox = React.forwardRef<
         ref={ref}
         id={id}
         className={`
-          peer h-5.5 w-5.5 shrink-0 rounded-md border border-brand-border bg-brand-bgAlt
+          peer h-5 w-5 shrink-0 rounded-md border border-brand-border bg-brand-bgAlt
           transition-all duration-200 outline-none
           hover:border-brand-green/60
           focus:ring-2 focus:ring-brand-green/20

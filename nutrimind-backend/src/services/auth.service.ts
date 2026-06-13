@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@/lib/jwt';
 import { JWTPayload } from '@/types';
 import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email';
+import { OAuth2Client } from 'google-auth-library';
 
 /**
  * Generates a cryptographically secure 6-digit OTP.
@@ -75,6 +76,109 @@ export class AuthService {
     // Generate tokens (user gets tokens immediately but must verify email to proceed)
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        emailVerified: user.emailVerified,
+        onboardingDone: user.onboardingDone,
+      },
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  /**
+   * Authenticates a user via Google OAuth.
+   * Verifies the Google ID token, creates or finds the user, and returns JWT tokens.
+   * Google-authenticated users have emailVerified=true automatically.
+   */
+  static async googleAuth(idToken: string) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('Google OAuth is not configured on the server.');
+    }
+
+    const client = new OAuth2Client(clientId);
+
+    // Verify the Google ID token
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({
+        idToken,
+        audience: clientId,
+      });
+    } catch {
+      throw new Error('Invalid Google credential. Please try again.');
+    }
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      throw new Error('Unable to retrieve account information from Google.');
+    }
+
+    const { email, given_name, family_name, name: googleName, picture } = payload;
+    const sanitizedEmail = email.trim().toLowerCase();
+    const displayName = [given_name, family_name].filter(Boolean).join(' ') || googleName || 'Google User';
+
+    // Check if user already exists
+    let user = await prisma.user.findUnique({
+      where: { email: sanitizedEmail },
+    });
+
+    if (user) {
+      // Existing user — just log them in
+      // If they registered with email/password before, upgrade their emailVerified to true
+      if (!user.emailVerified) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            emailVerified: true,
+            emailVerificationToken: null,
+            emailVerificationExpiry: null,
+          },
+        });
+        user = { ...user, emailVerified: true };
+      }
+
+      // Update profile picture if they don't have one
+      if (!user.image && picture) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { image: picture },
+        });
+      }
+    } else {
+      // New user — create account with emailVerified=true (Google already verified)
+      // Generate a random password hash (they can only login via Google)
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash(randomPassword, salt);
+
+      user = await prisma.user.create({
+        data: {
+          name: displayName,
+          email: sanitizedEmail,
+          passwordHash,
+          role: 'USER',
+          emailVerified: true,
+          image: picture || null,
+        },
+      });
+    }
+
+    // Create token payloads
+    const jwtPayload: JWTPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = signAccessToken(jwtPayload);
+    const refreshToken = signRefreshToken(jwtPayload);
 
     return {
       user: {

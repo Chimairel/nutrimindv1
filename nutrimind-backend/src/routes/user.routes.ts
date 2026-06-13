@@ -39,8 +39,14 @@ router.post('/onboarding/complete', UserController.completeOnboarding);
  * Nutrition Report Endpoints
  */
 router.get('/nutrition-report', UserController.getNutritionReport);
+router.get('/nutrition-report/pdf', UserController.downloadNutritionReportPdf);
 router.post('/nutrition-report/generate', UserController.generateReport);
 router.post('/nutrition-report/acknowledge', UserController.acknowledgeReport);
+
+/**
+ * Nutritionist Directory
+ */
+router.get('/nutritionists', UserController.getNutritionists);
 
 // ──────────────────────────────────────────
 // Notifications
@@ -66,18 +72,6 @@ router.get('/notifications', async (req: AuthenticatedRequest, res: Response) =>
 router.patch('/notifications/:id/read', async (req: AuthenticatedRequest, res: Response) => {
   try {
     await NotificationService.markAsRead(req.user!.userId, req.params.id);
-    return res.json({ success: true });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * PATCH /api/user/notifications/read-all
- */
-router.patch('/notifications/read-all', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    await NotificationService.markAllAsRead(req.user!.userId);
     return res.json({ success: true });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -140,11 +134,11 @@ router.get('/checkin/status', async (req: AuthenticatedRequest, res: Response) =
 });
 
 /**
- * POST /api/user/checkin
+ * POST /api/user/checkin/submit
  * Submits a weekly check-in.
  * Body: { changed: boolean, updates?: { weightKg?: number, activityLevel?: string, goal?: string } }
  */
-router.post('/checkin', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/checkin/submit', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { changed, updates } = req.body;
     const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });

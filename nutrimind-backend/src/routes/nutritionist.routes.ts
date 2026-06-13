@@ -84,6 +84,22 @@ router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 /**
+ * GET /api/nutritionist/approved
+ * Returns all meal plans this nutritionist has approved.
+ */
+router.get('/approved', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const profile = await NutritionistService.getProfile(req.user!.userId);
+    if (!profile) return res.status(404).json({ success: false, error: 'Nutritionist profile not found.' });
+
+    const approved = await NutritionistService.getApprovedMeals(profile.id);
+    return res.status(200).json({ success: true, data: approved });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * GET /api/nutritionist/profile
  */
 router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {

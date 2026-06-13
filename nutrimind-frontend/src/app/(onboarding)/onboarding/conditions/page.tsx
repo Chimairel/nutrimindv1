@@ -13,6 +13,7 @@ import axios from 'axios';
 export default function OnboardingConditionsPage() {
   const router = useRouter();
   const [selectedConditions, setSelectedConditions] = useState<HealthConditionType[]>([]);
+  const [otherConditions, setOtherConditions] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,9 +46,10 @@ export default function OnboardingConditionsPage() {
 
     setIsLoading(true);
     try {
-      // Send selected health conditions to the database
+      // Send selected health conditions + optional custom text to the database
       await api.post('/user/onboarding/conditions', {
         conditions: selectedConditions,
+        otherConditions: otherConditions.trim() || undefined,
       });
 
       // Proceed to Step 4: Allergies
@@ -115,6 +117,16 @@ export default function OnboardingConditionsPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Back button row */}
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding/preferences')}
+              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit mb-1"
+            >
+              <span>←</span>
+              <span>Back to Step 2</span>
+            </button>
+
             <div className="flex flex-col gap-3">
               {conditionsList.map((item) => {
                 const isSelected = selectedConditions.includes(item.value);
@@ -148,6 +160,27 @@ export default function OnboardingConditionsPage() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Other / Custom Conditions — always visible, disabled only when NONE selected */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold tracking-wide text-brand-muted uppercase">
+                Other Conditions <span className="text-brand-border font-normal normal-case">(optional)</span>
+              </label>
+              <textarea
+                id="other-conditions"
+                value={otherConditions}
+                onChange={(e) => setOtherConditions(e.target.value)}
+                placeholder={selectedConditions.includes('NONE') ? 'N/A — No conditions selected' : 'e.g., Gout, Celiac disease, Thyroid disorder...'}
+                rows={2}
+                disabled={selectedConditions.includes('NONE')}
+                className={`w-full px-4 py-3 rounded-xl bg-brand-bgAlt/50 border border-brand-border text-brand-text text-sm placeholder:text-brand-muted/50 focus:outline-none focus:border-brand-green transition-all resize-none ${
+                  selectedConditions.includes('NONE') ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
+              />
+              <p className="text-[10px] text-brand-muted leading-relaxed">
+                Type any condition not listed above. The AI will account for it in your meal plan.
+              </p>
             </div>
 
             <Button

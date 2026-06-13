@@ -22,6 +22,40 @@ export default function OnboardingStatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // When goal changes, auto-handle the target weight field
+  const handleGoalChange = (newGoal: Goal) => {
+    setGoal(newGoal);
+    setError(null);
+    if (newGoal === 'MAINTAIN') {
+      // Lock target weight to current weight for maintain goal
+      setTargetWeight(weight);
+    }
+  };
+
+  // Derive live validation state for the target weight field
+  const parsedWeight = parseFloat(weight);
+  const parsedTargetWeight = parseFloat(targetWeight);
+  const hasWeightValues = !isNaN(parsedWeight) && !isNaN(parsedTargetWeight);
+
+  const targetWeightState: 'valid' | 'invalid' | 'neutral' = (() => {
+    if (!hasWeightValues || goal === 'MAINTAIN') return 'neutral';
+    if (goal === 'GAIN_WEIGHT' || goal === 'BUILD_MUSCLE') {
+      return parsedTargetWeight >= parsedWeight ? 'valid' : 'invalid';
+    }
+    if (goal === 'LOSE_WEIGHT') {
+      return parsedTargetWeight <= parsedWeight ? 'valid' : 'invalid';
+    }
+    return 'neutral';
+  })();
+
+  const targetWeightHint = (() => {
+    if (goal === 'MAINTAIN') return '🔒 Locked to your current weight';
+    if (goal === 'GAIN_WEIGHT') return '📈 Must be ≥ current weight';
+    if (goal === 'BUILD_MUSCLE') return '💪 Must be ≥ current weight';
+    if (goal === 'LOSE_WEIGHT') return '📉 Must be ≤ current weight';
+    return '';
+  })();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -46,6 +80,20 @@ export default function OnboardingStatsPage() {
     }
     if (isNaN(parsedTargetWeight) || parsedTargetWeight < 30 || parsedTargetWeight > 300) {
       setError('Please provide a realistic target weight.');
+      return;
+    }
+
+    // Goal-aware target weight validation
+    if ((goal === 'GAIN_WEIGHT' || goal === 'BUILD_MUSCLE') && parsedTargetWeight < parsedWeight) {
+      setError(
+        `Your target weight (${parsedTargetWeight} kg) should be equal to or higher than your current weight (${parsedWeight} kg) for a "${goal === 'GAIN_WEIGHT' ? 'Gain Weight' : 'Build Muscle'}" goal.`
+      );
+      return;
+    }
+    if (goal === 'LOSE_WEIGHT' && parsedTargetWeight > parsedWeight) {
+      setError(
+        `Your target weight (${parsedTargetWeight} kg) should be equal to or lower than your current weight (${parsedWeight} kg) for a "Lose Weight" goal.`
+      );
       return;
     }
 
@@ -135,7 +183,7 @@ export default function OnboardingStatsPage() {
                     <button
                       key={item.value}
                       type="button"
-                      onClick={() => setGoal(item.value)}
+                      onClick={() => handleGoalChange(item.value)}
                       className={`
                         flex items-center gap-2.5 px-4 py-3 rounded-xl border font-semibold text-sm transition-all duration-200 outline-none
                         ${isSelected 
@@ -178,18 +226,55 @@ export default function OnboardingStatsPage() {
                 type="number"
                 placeholder="68.5"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                  setWeight(e.target.value);
+                  // Keep target weight in sync for MAINTAIN goal
+                  if (goal === 'MAINTAIN') setTargetWeight(e.target.value);
+                }}
                 disabled={isLoading}
               />
-              <Input
-                id="targetWeight"
-                label="Target Weight (kg)"
-                type="number"
-                placeholder="65.0"
-                value={targetWeight}
-                onChange={(e) => setTargetWeight(e.target.value)}
-                disabled={isLoading}
-              />
+
+              {/* Target Weight — smart field with live goal-aware validation */}
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="targetWeight"
+                  className={`text-sm font-bold tracking-wide ${
+                    goal === 'MAINTAIN' ? 'text-brand-muted' : 'text-brand-text/90'
+                  }`}
+                >
+                  Target Weight (kg)
+                </label>
+                <input
+                  id="targetWeight"
+                  type="number"
+                  placeholder={goal === 'MAINTAIN' ? 'Same as current weight' : '65.0'}
+                  value={targetWeight}
+                  onChange={(e) => setTargetWeight(e.target.value)}
+                  disabled={isLoading || goal === 'MAINTAIN'}
+                  className={`
+                    w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 outline-none
+                    bg-brand-bgAlt/50 text-brand-text
+                    ${
+                      goal === 'MAINTAIN'
+                        ? 'border-brand-border/40 opacity-50 cursor-not-allowed text-brand-muted'
+                        : targetWeightState === 'invalid'
+                        ? 'border-status-error-text/60 bg-status-error-bg/5 focus:border-status-error-text'
+                        : targetWeightState === 'valid'
+                        ? 'border-brand-green/60 bg-brand-green/5 focus:border-brand-green'
+                        : 'border-brand-border focus:border-brand-green'
+                    }
+                  `}
+                />
+                {/* Hint text below the field */}
+                <p className={`text-[10px] font-semibold leading-tight ${
+                  goal === 'MAINTAIN' ? 'text-brand-muted' :
+                  targetWeightState === 'invalid' ? 'text-status-error-text' :
+                  targetWeightState === 'valid' ? 'text-brand-green' :
+                  'text-brand-muted'
+                }`}>
+                  {targetWeightHint}
+                </p>
+              </div>
             </div>
 
             {/* Activity Level Selector */}

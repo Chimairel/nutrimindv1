@@ -6,12 +6,13 @@ if (!apiKey) {
   console.warn('⚠️ GEMINI_API_KEY is not defined in environment variables.');
 }
 
-// Model sequence rotation (order of preference)
+// Model sequence rotation (order of preference, updated June 2026)
+// Free-tier Flash models first, heavier Pro models as fallback
 const MODEL_SEQUENCE = [
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash'
+  'gemini-3.5-flash',       // Latest, fastest — best free-tier option
+  'gemini-2.5-flash',       // Stable, production-ready
+  'gemini-3.1-flash-lite',  // High-volume, low-cost fallback
+  'gemini-2.5-pro',         // Heavyweight reasoning fallback
 ];
 
 /**

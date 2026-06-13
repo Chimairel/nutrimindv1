@@ -59,6 +59,16 @@ router.post(
 );
 
 /**
+ * Route: POST /api/auth/google
+ * Description: Authenticates using a Google ID token (OAuth).
+ */
+router.post(
+  '/google',
+  authLimiter,
+  AuthController.googleAuth
+);
+
+/**
  * Route: POST /api/auth/verify-email
  * Description: Verifies user's email with 6-digit OTP. Requires auth token.
  */

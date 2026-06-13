@@ -31,6 +31,20 @@ export function useNotifications() {
 
   useEffect(() => {
     fetchNotifications();
+
+    // Auto-refresh every 60 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 60000);
+
+    // Refresh on window focus
+    const handleFocus = () => fetchNotifications();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [fetchNotifications]);
 
   const markAsRead = async (id: string) => {
@@ -40,7 +54,9 @@ export function useNotifications() {
   };
 
   const markAllAsRead = async () => {
-    await api.patch('/user/notifications/read-all');
+    const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
+    await Promise.all(unreadIds.map((id) => api.patch(`/user/notifications/${id}/read`)));
+    
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
   };

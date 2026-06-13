@@ -103,6 +103,16 @@ export default function OnboardingTosPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding/allergies')}
+              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
+            >
+              <span>←</span>
+              <span>Back to Step 4</span>
+            </button>
+
             <Checkbox
               id="medicalDisclaimer"
               checked={medicalDisclaimer}

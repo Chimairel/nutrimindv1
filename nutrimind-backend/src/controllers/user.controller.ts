@@ -1,4 +1,5 @@
 import { Response } from 'express';
+
 import { AuthenticatedRequest } from '@/types';
 import { UserService } from '@/services/user.service';
 import { NutritionReportService } from '@/services/nutrition-report.service';
@@ -64,12 +65,17 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { conditions } = req.body;
+      const { conditions, otherConditions } = req.body;
       if (!Array.isArray(conditions)) {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of conditions.' });
       }
 
       const savedConditions = await UserService.updateHealthConditions(userId, conditions);
+
+      // Also save any custom free-text conditions if provided
+      if (typeof otherConditions === 'string') {
+        await UserService.updateOtherConditions(userId, otherConditions.trim());
+      }
 
       return res.status(200).json({
         success: true,
@@ -92,12 +98,17 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { allergies } = req.body;
+      const { allergies, otherAllergies } = req.body;
       if (!Array.isArray(allergies)) {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of allergies.' });
       }
 
       const savedAllergies = await UserService.updateAllergies(userId, allergies);
+
+      // Also save any custom free-text allergies if provided
+      if (typeof otherAllergies === 'string') {
+        await UserService.updateOtherAllergies(userId, otherAllergies.trim());
+      }
 
       return res.status(200).json({
         success: true,
@@ -181,6 +192,41 @@ export class UserController {
   }
 
   /**
+   * GET /api/user/nutrition-report/pdf
+   * Streams the nutrition report as a PDF
+   */
+  static async downloadNutritionReportPdf(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const report = await NutritionReportService.getReport(userId);
+      if (!report) {
+        return res.status(404).json({ success: false, error: 'Report not found.' });
+      }
+
+      const userDetails = await UserService.getUserProfileDetails(userId);
+      if (!userDetails) {
+        return res.status(404).json({ success: false, error: 'User details not found.' });
+      }
+
+      const React = await import('react');
+      const { NutritionReportPDF, streamPdf } = await import('@/lib/pdf');
+      const document = React.createElement(NutritionReportPDF, { user: userDetails, report });
+      const stream = await streamPdf(document);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=nutrimind-report.pdf');
+      stream.pipe(res);
+    } catch (error: unknown) {
+      console.error('[UserController] downloadNutritionReportPdf error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to generate PDF.' });
+    }
+  }
+
+  /**
    * POST /api/user/nutrition-report/generate
    * Generates custom mock report.
    */
@@ -225,6 +271,23 @@ export class UserController {
     } catch (error: any) {
       console.error('[UserController] acknowledgeReport error:', error);
       return res.status(500).json({ success: false, error: 'Failed to acknowledge nutrition report.' });
+    }
+  }
+
+  /**
+   * GET /api/user/nutritionists
+   * Returns a list of verified nutritionists for the user directory.
+   */
+  static async getNutritionists(req: AuthenticatedRequest, res: Response) {
+    try {
+      const nutritionists = await UserService.getNutritionistDirectory();
+      return res.status(200).json({
+        success: true,
+        data: nutritionists,
+      });
+    } catch (error: any) {
+      console.error('[UserController] getNutritionists error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve nutritionist directory.' });
     }
   }
 }

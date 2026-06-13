@@ -16,6 +16,12 @@ export default function NutritionReportPage() {
   const router = useRouter();
   const { user, refreshSession } = useAuth();
   const [report, setReport] = useState<NutritionReport | null>(null);
+  const [profileData, setProfileData] = useState<{
+    name: string;
+    goal: string;
+    dailyCalorieTarget: number;
+    conditions: string[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
@@ -24,12 +30,26 @@ export default function NutritionReportPage() {
     const fetchReport = async () => {
       setIsLoading(true);
       try {
+        // Fetch profile data for the summary card
+        const profileRes = await api.get('/user/profile');
+        if (profileRes.data?.success) {
+          const p = profileRes.data.data;
+          setProfileData({
+            name: p.name || 'User',
+            goal: p.userProfile?.goal || 'MAINTAIN',
+            dailyCalorieTarget: p.userProfile?.dailyCalorieTarget || 0,
+            conditions: (p.healthConditions || [])
+              .map((c: { condition: string }) => c.condition)
+              .filter((c: string) => c !== 'NONE'),
+          });
+        }
+
         // Try getting existing report first
         const getRes = await api.get('/user/nutrition-report');
         if (getRes.data && getRes.data.success && getRes.data.data) {
           setReport(getRes.data.data);
         } else {
-          // If none exists, trigger a generation (which currently yields backend mock data)
+          // If none exists, trigger a generation
           const genRes = await api.post('/user/nutrition-report/generate');
           if (genRes.data && genRes.data.success) {
             setReport(genRes.data.data);
@@ -178,21 +198,33 @@ export default function NutritionReportPage() {
           <div className="absolute top-0 right-0 h-16 w-32 bg-brand-green/5 blur-xl rounded-full" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center justify-between text-left">
             <div>
-              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Age & Status</span>
-              <p className="text-base font-bold text-brand-text font-display">Juan Dela Cruz</p>
+              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Name</span>
+              <p className="text-base font-bold text-brand-text font-display">{profileData?.name || user?.name || 'User'}</p>
             </div>
             <div>
               <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Active Goal</span>
-              <Badge variant="verified">Maintain Weight</Badge>
+              <Badge variant="verified">
+                {profileData?.goal?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Maintain'}
+              </Badge>
             </div>
             <div>
               <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Calorie Target</span>
-              <p className="text-xl font-extrabold text-brand-green font-display">2,150 kcal <span className="text-xs font-normal text-brand-muted">/ day</span></p>
+              <p className="text-xl font-extrabold text-brand-green font-display">
+                {profileData?.dailyCalorieTarget ? profileData.dailyCalorieTarget.toLocaleString() : '—'} kcal <span className="text-xs font-normal text-brand-muted">/ day</span>
+              </p>
             </div>
             <div>
               <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Health Restrictions</span>
               <div className="flex gap-1.5 flex-wrap">
-                <Badge variant="rejected">Hypertension</Badge>
+                {profileData?.conditions && profileData.conditions.length > 0 ? (
+                  profileData.conditions.map((condition, idx) => condition ? (
+                    <Badge key={idx} variant="rejected">
+                      {String(condition).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </Badge>
+                  ) : null)
+                ) : (
+                  <span className="text-xs text-brand-muted">None reported</span>
+                )}
               </div>
             </div>
           </div>

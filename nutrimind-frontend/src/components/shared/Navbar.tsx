@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
+import NotificationDropdown from '@/components/shared/NotificationDropdown';
 
 export const Navbar: React.FC = () => {
   const { user } = useAuth();
@@ -24,15 +25,7 @@ export const Navbar: React.FC = () => {
 
       {/* Interactive Toolbar */}
       <div className="flex items-center gap-4 ml-auto">
-        {/* Notification Bell */}
-        <button 
-          className="relative rounded-lg p-2 text-brand-muted hover:bg-brand-surface hover:text-brand-green transition-all outline-none focus:ring-2 focus:ring-brand-green/20"
-          aria-label="View notifications"
-        >
-          <span className="text-lg leading-none">🔔</span>
-          {/* Active notification ping dot indicator */}
-          <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-brand-green" />
-        </button>
+        <NotificationDropdown />
 
         {/* Divider */}
         <div className="h-6 w-px bg-brand-border" />

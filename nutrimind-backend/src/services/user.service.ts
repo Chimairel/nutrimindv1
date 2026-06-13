@@ -20,6 +20,8 @@ interface ProfileUpdateData {
   dietaryPreference?: DietaryPreference;
   carbPreference?: CarbPreference;
   foodCulture?: string;
+  otherConditions?: string;
+  otherAllergies?: string;
 }
 
 export class UserService {
@@ -92,6 +94,30 @@ export class UserService {
     // Fetch and return updated allergies
     return prisma.allergy.findMany({
       where: { userId },
+    });
+  }
+
+  /**
+   * Saves custom free-text health conditions to the user's profile.
+   * This is separate from the enum-based healthConditions table.
+   */
+  static async updateOtherConditions(userId: string, otherConditions: string) {
+    return prisma.userProfile.upsert({
+      where: { userId },
+      update: { otherConditions },
+      create: { userId, otherConditions },
+    });
+  }
+
+  /**
+   * Saves custom free-text food allergies to the user's profile.
+   * This is separate from the enum-based allergies table.
+   */
+  static async updateOtherAllergies(userId: string, otherAllergies: string) {
+    return prisma.userProfile.upsert({
+      where: { userId },
+      update: { otherAllergies },
+      create: { userId, otherAllergies },
     });
   }
 
@@ -231,5 +257,37 @@ export class UserService {
       allergies: user.allergies.map((a) => a.allergen),
       nutritionReport: user.nutritionReport,
     };
+  }
+
+  /**
+   * Fetches the user-facing directory of verified nutritionists
+   */
+  static async getNutritionistDirectory() {
+    return prisma.user.findMany({
+      where: {
+        role: 'NUTRITIONIST',
+        nutritionistProfile: {
+          isVerified: true,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        nutritionistProfile: {
+          select: {
+            prcLicenseNumber: true,
+            specialization: true,
+            yearsOfExperience: true,
+            university: true,
+            bio: true,
+            rating: true,
+            totalVerified: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

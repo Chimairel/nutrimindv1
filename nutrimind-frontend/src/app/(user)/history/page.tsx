@@ -16,7 +16,9 @@ interface MealLogEntry {
   dataSource: string;
   status: string;
   warningType?: string;
-  loggedAt: string;
+  loggedAt?: string;
+  createdAt?: string;
+  scheduledDate?: string;
 }
 
 export default function HistoryPage() {
@@ -27,7 +29,7 @@ export default function HistoryPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const res = await api.get('/user/meals/logs');
+        const res = await api.get('/user/meals/history');
         if (res.data?.success) {
           setLogs(res.data.data);
         }
@@ -42,10 +44,18 @@ export default function HistoryPage() {
 
   const filteredLogs = filter === 'all' ? logs : logs.filter((l) => l.source === filter);
 
+  // Helper to get the best available date from the record
+  const getDate = (log: MealLogEntry): Date => {
+    const raw = log.loggedAt || log.scheduledDate || log.createdAt;
+    if (!raw) return new Date();
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   // Group by date
   const groupedByDate: Record<string, MealLogEntry[]> = {};
   filteredLogs.forEach((log) => {
-    const dateKey = new Date(log.loggedAt).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
+    const dateKey = getDate(log).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
     if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
     groupedByDate[dateKey].push(log);
   });
@@ -107,7 +117,7 @@ export default function HistoryPage() {
                       {log.source === 'SYSTEM_GENERATED' ? '🍽️ Plan' : '🍕 Outside'}
                     </Badge>
                     <div className="text-[10px] text-brand-muted mt-1">
-                      {new Date(log.loggedAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
+                      {getDate(log).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 </Card>

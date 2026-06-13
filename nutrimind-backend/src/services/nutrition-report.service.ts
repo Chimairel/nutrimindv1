@@ -48,6 +48,8 @@ export class NutritionReportService {
     const profile = user.userProfile;
     const conditions = user.healthConditions.map((c) => c.condition);
     const allergens = user.allergies.map((a) => a.allergen);
+    const otherConditions = profile.otherConditions || '';
+    const otherAllergies = profile.otherAllergies || '';
 
     // Verify stats exist
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
@@ -85,8 +87,8 @@ export class NutritionReportService {
       `- Regional Cooking Style & Cultural Background: ${profile.foodCulture || 'Filipino'}\n` +
       `\n` +
       `[CLINICAL CONSTRAINTS]\n` +
-      `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}\n` +
-      `- Confirmed Food Allergies (HARD EXCLUSIONS): ${allergens.join(', ') || 'NONE'}\n` +
+      `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +
+      `- Confirmed Food Allergies (HARD EXCLUSIONS): ${allergens.join(', ') || 'NONE'}${otherAllergies ? '; Additional: ' + otherAllergies : ''}\n` +
       `\n` +
       `[AVAILABLE NATIVE FILIPINO INGREDIENTS CONTEXT]\n` +
       `${formattedLocalFoods}\n` +

@@ -93,6 +93,16 @@ export default function OnboardingPreferencesPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding/stats')}
+              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
+            >
+              <span>←</span>
+              <span>Back to Step 1</span>
+            </button>
+
             {/* Dietary Preference Selector */}
             <div className="flex flex-col gap-2.5">
               <label className="text-sm font-bold tracking-wide text-brand-text/90">

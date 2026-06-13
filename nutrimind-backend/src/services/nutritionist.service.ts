@@ -227,4 +227,30 @@ export class NutritionistService {
       include: { verifiedByNutritionist: { select: { userId: true } } },
     });
   }
+
+  /**
+   * Returns all meal plans approved by this nutritionist.
+   */
+  static async getApprovedMeals(nutritionistProfileId: string) {
+    return prisma.mealPlan.findMany({
+      where: {
+        status: MealPlanStatus.APPROVED,
+        nutritionistId: nutritionistProfileId,
+      },
+      select: {
+        id: true,
+        mealName: true,
+        mealType: true,
+        calories: true,
+        proteinG: true,
+        carbsG: true,
+        fatG: true,
+        nutritionistNote: true,
+        reviewedAt: true,
+        scheduledDate: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { reviewedAt: 'desc' },
+    });
+  }
 }

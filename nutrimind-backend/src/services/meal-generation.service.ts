@@ -55,6 +55,8 @@ export class MealGenerationService {
     const profile = user.userProfile;
     const userConditions = user.healthConditions.map((c) => c.condition);
     const userAllergens = user.allergies.map((a) => a.allergen);
+    const otherConditions = profile.otherConditions || '';
+    const otherAllergies = profile.otherAllergies || '';
 
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
     if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
@@ -187,8 +189,8 @@ export class MealGenerationService {
       `- Cooking Culture Style: ${profile.foodCulture || 'Filipino'}\n` +
       `\n` +
       `[CLINICAL SAFE GUARDS]\n` +
-      `- Medical Conditions: ${userConditions.join(', ') || 'NONE'}\n` +
-      `- Allergens to EXCLUDE completely: ${userAllergens.join(', ') || 'NONE'}\n` +
+      `- Medical Conditions: ${userConditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +
+      `- Allergens to EXCLUDE completely: ${userAllergens.join(', ') || 'NONE'}${otherAllergies ? '; Additional: ' + otherAllergies : ''}\n` +
       `\n` +
       `[NATIVE FILIPINO INGREDIENTS DICTIONARY]\n` +
       `${formattedFoodsContext}\n` +
