@@ -18,7 +18,7 @@ export class MealsController {
       }
 
       console.log(`[MealsController] Starting meal plan generation for user: ${userId}`);
-      const planGroupId = await MealGenerationService.generate7DayPlan(userId);
+      const planGroupId = await MealGenerationService.generatePlanForUser(userId);
 
       // Fetch and return the newly generated meals
       const meals = await prisma.mealPlan.findMany({
@@ -98,7 +98,11 @@ export class MealsController {
 
   /**
    * GET /api/user/meals/history
-   * Returns all historic plans grouped by planGroupId.
+   * Returns:
+   *  - "Plan Meals" = MealLog records with source=SYSTEM_GENERATED and status=DONE
+   *    (meals the user checked off as eaten from their plan)
+   *  - "Outside Meals" = MealLog records with source=USER_LOGGED
+   * Both normalized to the same shape and sorted by loggedAt descending.
    */
   static async getPlanHistory(req: AuthenticatedRequest, res: Response) {
     try {
@@ -107,21 +111,36 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const allPlans = await prisma.mealPlan.findMany({
+      // Fetch ALL meal logs for this user (both plan-checked and outside)
+      const allLogs = await prisma.mealLog.findMany({
         where: { userId },
-        include: { ingredients: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { loggedAt: 'desc' },
       });
+
+      // Normalize to unified shape
+      const normalized = allLogs.map((l) => ({
+        id: l.id,
+        mealName: l.mealName,
+        source: l.source as string,          // 'SYSTEM_GENERATED' | 'USER_LOGGED'
+        calories: l.calories,
+        proteinG: l.proteinG,
+        carbsG: l.carbsG,
+        fatG: l.fatG,
+        dataSource: l.dataSource as string,
+        status: l.status as string,
+        warningType: l.warningType ?? null,
+        loggedAt: l.loggedAt.toISOString(),
+      }));
 
       return res.status(200).json({
         success: true,
-        data: allPlans,
+        data: normalized,
       });
     } catch (error: any) {
       console.error('[MealsController] getPlanHistory error:', error);
       return res.status(500).json({
         success: false,
-        error: 'Failed to retrieve meal plan history.',
+        error: 'Failed to retrieve meal history.',
       });
     }
   }

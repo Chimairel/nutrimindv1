@@ -28,6 +28,10 @@ export type NotificationType = 'PLAN_APPROVED' | 'PLAN_REJECTED' | 'REVIEW_REQUE
 
 export type AssignmentStatus = 'PENDING' | 'ACTIVE' | 'ENDED';
 
+export type ShoppingDayGroup = 'WEEKEND' | 'WEEKDAY';
+
+export type PlanType = 'STARTER' | 'WEEKLY';
+
 export interface JWTPayload {
   userId: string;
   email: string;
@@ -68,6 +72,7 @@ export interface UserProfile {
   carbPreference?: CarbPreference;
   foodCulture?: string;
   dailyCalorieTarget?: number;
+  shoppingDayGroup?: ShoppingDayGroup;
   lastCheckinAt?: string;
   checkinStreak: number;
   updatedAt: string;
@@ -136,6 +141,7 @@ export interface MealPlan {
   carbsG: number;
   fatG: number;
   aiConfidenceFlag: AIConfidenceFlag;
+  planType: PlanType;
   nutritionistNote?: string;
   scheduledDate: string;
   reviewedAt?: string;

@@ -52,8 +52,8 @@ export default function OnboardingAllergiesPage() {
         otherAllergies: otherAllergies.trim() || undefined,
       });
 
-      // Advance to final step 5: Terms of Service
-      router.push('/onboarding/tos');
+      // Advance to step 5: Shopping Day
+      router.push('/onboarding/shopping-day');
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(
@@ -85,10 +85,10 @@ export default function OnboardingAllergiesPage() {
         {/* Onboarding progress bar */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 4 of 5</span>
-            <span className="text-brand-green">80% Completed</span>
+            <span>Step 4 of 6</span>
+            <span className="text-brand-green">66% Completed</span>
           </div>
-          <Progress value={80} className="bg-brand-border/40" />
+          <Progress value={66} className="bg-brand-border/40" />
         </div>
 
         <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">

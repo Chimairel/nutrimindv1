@@ -113,6 +113,16 @@ enum AssignmentStatus {
   ENDED
 }
 
+enum ShoppingDayGroup {
+  WEEKEND   // week runs Sunday to Saturday
+  WEEKDAY   // week runs Monday to Sunday
+}
+
+enum PlanType {
+  STARTER   // one-time bridge plan until first full cycle
+  WEEKLY    // normal 7-day repeating plan
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -190,6 +200,7 @@ model UserProfile {
   dailyCalorieTarget Int?
   otherConditions    String?            // Free-text custom health conditions (e.g., "Gout, Celiac")
   otherAllergies     String?            // Free-text custom food allergies (e.g., "Soy, Sesame")
+  shoppingDayGroup   ShoppingDayGroup?  // Determines weekly plan cycle anchor day
   lastCheckinAt      DateTime?
   checkinStreak      Int                @default(0)
   updatedAt          DateTime           @updatedAt
@@ -312,6 +323,7 @@ model MealPlan {
   carbsG           Float
   fatG             Float
   aiConfidenceFlag AIConfidenceFlag @default(SAFE)
+  planType         PlanType         @default(WEEKLY)
   nutritionistNote String?          @db.Text
   scheduledDate    DateTime
   reviewedAt       DateTime?

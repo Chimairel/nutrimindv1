@@ -32,6 +32,19 @@ router.use(requireRole('USER'));
 router.post('/onboarding/profile', UserController.updateProfile);
 router.post('/onboarding/conditions', UserController.updateConditions);
 router.post('/onboarding/allergies', UserController.updateAllergies);
+router.post('/onboarding/shopping-day', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { shoppingDayGroup } = req.body;
+    if (!shoppingDayGroup || !['WEEKEND', 'WEEKDAY'].includes(shoppingDayGroup)) {
+      return res.status(400).json({ success: false, error: 'shoppingDayGroup must be WEEKEND or WEEKDAY.' });
+    }
+    const { UserService } = await import('@/services/user.service');
+    const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayGroup);
+    return res.status(200).json({ success: true, data: profile });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
 router.post('/onboarding/tos', UserController.acceptTos);
 router.post('/onboarding/complete', UserController.completeOnboarding);
 

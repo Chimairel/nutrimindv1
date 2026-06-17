@@ -122,7 +122,21 @@ export class UserService {
   }
 
   /**
+   * Saves the user's preferred shopping day group.
+   * WEEKEND → weekly cycle runs Sunday to Saturday.
+   * WEEKDAY → weekly cycle runs Monday to Sunday.
+   */
+  static async saveShoppingDay(userId: string, shoppingDayGroup: 'WEEKEND' | 'WEEKDAY') {
+    return prisma.userProfile.upsert({
+      where: { userId },
+      update: { shoppingDayGroup },
+      create: { userId, shoppingDayGroup },
+    });
+  }
+
+  /**
    * Accepts the Terms of Service.
+
    */
   static async acceptTos(userId: string) {
     return prisma.user.update({

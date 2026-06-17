@@ -137,6 +137,25 @@ export default function WeeklyPlanPage() {
 
   const groupedDays = groupMealsByDate();
 
+  // Detect if the current plan is a Starter Plan
+  const isStarterPlan = meals.length > 0 && meals[0].planType === 'STARTER';
+
+  // For Starter Plan banner: compute day range and next cycle start
+  const starterFirstDate = isStarterPlan && groupedDays.length > 0
+    ? new Date(groupedDays[0].dateKey)
+    : null;
+  const starterLastDate = isStarterPlan && groupedDays.length > 0
+    ? new Date(groupedDays[groupedDays.length - 1].dateKey)
+    : null;
+
+  // Determine next weekStartDay label from the plan group
+  const nextCycleDay = (() => {
+    if (!isStarterPlan || !starterLastDate) return null;
+    const dayAfter = new Date(starterLastDate);
+    dayAfter.setDate(dayAfter.getDate() + 1);
+    return dayAfter.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  })();
+
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text p-6 md:p-12 pb-32 select-none relative">
       <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[300px] w-[500px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
@@ -144,17 +163,40 @@ export default function WeeklyPlanPage() {
       {/* Main Container */}
       <div className="max-w-6xl mx-auto flex flex-col gap-8">
         
+        {/* Starter Plan Banner — shown only for STARTER plans */}
+        {isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
+          <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🌱</span>
+              <h2 className="text-base font-extrabold text-brand-green font-display tracking-tight">
+                Your Starter Plan
+              </h2>
+            </div>
+            <p className="text-xs text-brand-muted">
+              {groupedDays.length} day{groupedDays.length !== 1 ? 's' : ''} ·{' '}
+              {starterFirstDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} to{' '}
+              {starterLastDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </p>
+            <p className="text-[11px] text-brand-text/60 leading-relaxed">
+              Your full 7-day plan begins on <span className="font-semibold text-brand-text/80">{nextCycleDay}</span>, matching your preferred shopping day.
+            </p>
+          </div>
+        )}
+
         {/* Header Block */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 text-left">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-2xl">🗓️</span>
+              <span className="text-2xl">{isStarterPlan ? '🌱' : '🗓️'}</span>
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-brand-green">
-                WEEKLY MEAL PLAN
+                {isStarterPlan ? 'STARTER PLAN' : 'WEEKLY MEAL PLAN'}
               </h1>
             </div>
             <p className="text-xs text-brand-muted uppercase tracking-wider font-bold">
-              Complete 7-day scheduled breakdown and macro targets
+              {isStarterPlan
+                ? `${groupedDays.length}-day kickoff plan · Full weekly cycle starts ${nextCycleDay}`
+                : 'Complete 7-day scheduled breakdown and macro targets'
+              }
             </p>
           </div>
           <div className="flex gap-2">

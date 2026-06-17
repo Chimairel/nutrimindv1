@@ -127,4 +127,81 @@ export class CronService {
       logs: processedLogs,
     };
   }
+
+  /**
+   * Sends weekly check-in notifications for all users in a shopping day group,
+   * and auto-regenerates plans for users with 3+ consecutive missed check-ins.
+   * Called by two separate cron jobs (one per ShoppingDayGroup).
+   */
+  static async runWeeklyCheckin(group: 'WEEKEND' | 'WEEKDAY') {
+    console.log(`[CronService] Running weekly check-in for ${group} group...`);
+
+    const users = await prisma.user.findMany({
+      where: {
+        onboardingDone: true,
+        role: 'USER',
+        userProfile: {
+          shoppingDayGroup: group,
+        },
+      },
+      include: {
+        userProfile: true,
+      },
+    });
+
+    console.log(`[CronService] Found ${users.length} ${group} users to notify.`);
+    const results = [];
+
+    for (const user of users) {
+      try {
+        const profile = user.userProfile;
+        if (!profile) continue;
+
+        // Send weekly check-in notification
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            title: '🛒 Weekly Check-In',
+            message: 'Your new week is starting! Let us know if your health goals or dietary needs have changed so we can refresh your meal plan.',
+            type: 'WEEKLY_CHECKIN',
+          },
+        });
+
+        // Auto-regenerate if checkinStreak is -3 or worse (3 consecutive missed weeks)
+        const missedCheckins = profile.checkinStreak < 0 ? Math.abs(profile.checkinStreak) : 0;
+        if (missedCheckins >= 3) {
+          console.log(`[CronService] Auto-regenerating plan for ${user.email} (${missedCheckins} missed check-ins).`);
+          const { MealGenerationService } = await import('@/services/meal-generation.service');
+          await MealGenerationService.generatePlanForUser(user.id);
+
+          await prisma.notification.create({
+            data: {
+              userId: user.id,
+              title: '🔄 Meal Plan Auto-Refreshed',
+              message: 'We noticed you have missed several weekly check-ins, so we refreshed your meal plan with the same preferences. Update your profile anytime to customize it.',
+              type: 'WEEKLY_CHECKIN',
+            },
+          });
+
+          // Reset streak
+          await prisma.userProfile.update({
+            where: { userId: user.id },
+            data: { checkinStreak: 0 },
+          });
+        }
+
+        results.push({ userId: user.id, email: user.email, notified: true });
+      } catch (err) {
+        console.error(`[CronService] Weekly check-in failed for user ${user.email}:`, err);
+        results.push({ userId: user.id, email: user.email, notified: false });
+      }
+    }
+
+    return {
+      success: true,
+      group,
+      processedCount: results.length,
+      results,
+    };
+  }
 }

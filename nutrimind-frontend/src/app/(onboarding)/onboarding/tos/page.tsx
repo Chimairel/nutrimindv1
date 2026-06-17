@@ -63,7 +63,7 @@ export default function OnboardingTosPage() {
         {/* Onboarding progress */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 5 of 5</span>
+            <span>Step 6 of 6</span>
             <span className="text-brand-green">100% Completed</span>
           </div>
           <Progress value={100} className="bg-brand-border/40" />
@@ -106,11 +106,11 @@ export default function OnboardingTosPage() {
             {/* Back button */}
             <button
               type="button"
-              onClick={() => router.push('/onboarding/allergies')}
+              onClick={() => router.push('/onboarding/shopping-day')}
               className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
             >
               <span>←</span>
-              <span>Back to Step 4</span>
+              <span>Back to Step 5</span>
             </button>
 
             <Checkbox

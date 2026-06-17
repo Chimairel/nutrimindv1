@@ -51,4 +51,38 @@ router.post('/daily-checkin', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/cron/weekly-checkin-weekend
+ * Fires Saturday night → notifies + optionally regenerates plans for WEEKEND shoppers.
+ */
+router.post('/weekly-checkin-weekend', async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token || token !== process.env.CRON_SECRET) {
+      return res.status(401).json({ success: false, error: 'Unauthorized.' });
+    }
+    const result = await CronService.runWeeklyCheckin('WEEKEND');
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Cron execution failed.' });
+  }
+});
+
+/**
+ * POST /api/cron/weekly-checkin-weekday
+ * Fires Sunday night → notifies + optionally regenerates plans for WEEKDAY shoppers.
+ */
+router.post('/weekly-checkin-weekday', async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token || token !== process.env.CRON_SECRET) {
+      return res.status(401).json({ success: false, error: 'Unauthorized.' });
+    }
+    const result = await CronService.runWeeklyCheckin('WEEKDAY');
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Cron execution failed.' });
+  }
+});
+
 export default router;

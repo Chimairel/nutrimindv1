@@ -7,7 +7,9 @@ import {
   AIConfidenceFlag, 
   HealthConditionType, 
   AllergenType,
-  NotificationType
+  NotificationType,
+  PlanType,
+  ShoppingDayGroup,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
@@ -34,10 +36,50 @@ interface GeminiMealPlanResponse {
 
 export class MealGenerationService {
   /**
-   * Generates a 7-day, 21-meal plan customized to the user's macro metrics,
-   * clinical restrictions, food preferences, and cultural style.
+   * Determines whether to generate a STARTER plan (partial days until next
+   * weekStartDay) or a full WEEKLY plan, based on the user's shoppingDayGroup.
+   * Falls back to a 7-day WEEKLY plan for users without a shoppingDayGroup.
    */
-  static async generate7DayPlan(userId: string): Promise<string> {
+  static async generatePlanForUser(userId: string): Promise<string> {
+    const profile = await prisma.userProfile.findUnique({ where: { userId } });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDow = today.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+
+    // Determine week start day from shoppingDayGroup (default WEEKLY if not set)
+    const group = profile?.shoppingDayGroup;
+    const weekStartDow = group === ShoppingDayGroup.WEEKDAY ? 1 : 0; // WEEKDAY→Mon(1), WEEKEND/default→Sun(0)
+
+    if (!group || todayDow === weekStartDow) {
+      // No shopping preference set, OR today is exactly the week start → full WEEKLY plan
+      return MealGenerationService.generate7DayPlan(userId, PlanType.WEEKLY, 7, today);
+    }
+
+    // Calculate days remaining until next weekStartDay
+    const daysUntilStart = (weekStartDow - todayDow + 7) % 7;
+    if (daysUntilStart === 0) {
+      // Should never reach here due to check above, but safety net
+      return MealGenerationService.generate7DayPlan(userId, PlanType.WEEKLY, 7, today);
+    }
+
+    console.log(`[Meal Generation] Generating STARTER plan: ${daysUntilStart} day(s) until next cycle starts.`);
+    return MealGenerationService.generate7DayPlan(userId, PlanType.STARTER, daysUntilStart, today);
+  }
+
+  /**
+   * Generates a meal plan for N days, customized to the user's macro metrics,
+   * clinical restrictions, food preferences, and cultural style.
+   * planType: STARTER (bridge plan) or WEEKLY (normal 7-day cycle).
+   * numDays: number of days to cover (1-7).
+   * startDate: the first day of the plan.
+   */
+  static async generate7DayPlan(
+    userId: string,
+    planType: PlanType = PlanType.WEEKLY,
+    numDays: number = 7,
+    startDate: Date = new Date(),
+  ): Promise<string> {
     // 1. Fetch live user details, profile, conditions, and allergies
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -105,9 +147,9 @@ export class MealGenerationService {
     const lunches = matchedLibraryMeals.filter((m) => m.mealType === MealType.LUNCH);
     const dinners = matchedLibraryMeals.filter((m) => m.mealType === MealType.DINNER);
 
-    // If we have at least 7 verified meals in each category, serve from the Library!
-    if (breakfasts.length >= 7 && lunches.length >= 7 && dinners.length >= 7) {
-      console.log(`[Meal Generation] Sufficient pre-verified meals found in library. Constructing plan...`);
+    // If we have at least numDays verified meals in each category, serve from the Library!
+    if (breakfasts.length >= numDays && lunches.length >= numDays && dinners.length >= numDays) {
+      console.log(`[Meal Generation] Sufficient pre-verified meals found in library. Constructing ${numDays}-day ${planType} plan...`);
       const newPlanGroupId = randomUUID();
       const planMealsToCreate = [];
 
@@ -117,8 +159,8 @@ export class MealGenerationService {
         data: { status: MealPlanStatus.CANCELLED },
       });
 
-      for (let day = 0; day < 7; day++) {
-        const scheduledDate = new Date();
+      for (let day = 0; day < numDays; day++) {
+        const scheduledDate = new Date(startDate);
         scheduledDate.setDate(scheduledDate.getDate() + day);
         scheduledDate.setHours(0, 0, 0, 0);
 
@@ -134,6 +176,7 @@ export class MealGenerationService {
             userId,
             libraryMealId: m.source.id,
             status: MealPlanStatus.APPROVED, // Pre-verified items are automatically approved!
+            planType,
             mealType: m.type,
             mealName: m.source.mealName,
             description: m.source.description,
@@ -162,7 +205,8 @@ export class MealGenerationService {
     }
 
     // --- STEP 2: Fallback to Gemini AI meal plan generation ---
-    console.log(`[Meal Generation] Insufficient verified meals in library. Cascading to Google Gemini AI...`);
+    const totalMeals = numDays * 3; // 3 meals/day
+    console.log(`[Meal Generation] Insufficient verified meals in library. Cascading to Google Gemini AI (${numDays} days, ${totalMeals} meals)...`);
     
     // Fetch local Filipino foods context subset to inject in context
     const localFoodsContext = await getFNRISubset();
@@ -173,12 +217,12 @@ export class MealGenerationService {
 
     const systemInstruction = 
       "You are a clinical database dietitian specialized in the Philippine Food Composition Table. " +
-      "You generate customized 7-day meal plans (Breakfast, Lunch, Dinner per day = 21 meals) for young urban Filipinos. " +
+      `You generate customized ${numDays}-day meal plans (Breakfast, Lunch, Dinner per day = ${totalMeals} meals) for young urban Filipinos. ` +
       "Prioritize native, cost-effective Filipino dishes and fresh market items (e.g. tinola, sinigang, nilaga, adobong kangkong, galunggong) " +
       "over expensive Western imports (e.g. salmon, kale, quinoa, avocado).";
 
     const prompt = 
-      `Compile a highly customized, culturally appropriate 7-day meal plan (3 meals/day: BREAKFAST, LUNCH, DINNER = exactly 21 meals in total) matching these specs:\n` +
+      `Compile a highly customized, culturally appropriate ${numDays}-day meal plan (3 meals/day: BREAKFAST, LUNCH, DINNER = exactly ${totalMeals} meals in total) matching these specs:\n` +
       `\n` +
       `[PATIENT CLINICAL METRICS]\n` +
       `- Name: ${user.name}\n` +
@@ -223,8 +267,8 @@ export class MealGenerationService {
 
     const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(prompt, systemInstruction);
 
-    if (!aiResponse || !Array.isArray(aiResponse.meals) || aiResponse.meals.length !== 21) {
-      throw new Error('Gemini API failed to generate a precise 21-meal plan layout.');
+    if (!aiResponse || !Array.isArray(aiResponse.meals) || aiResponse.meals.length !== totalMeals) {
+      throw new Error(`Gemini API failed to generate a precise ${totalMeals}-meal plan layout.`);
     }
 
     const newPlanGroupId = randomUUID();
@@ -241,9 +285,9 @@ export class MealGenerationService {
     // Array to save plans
     const createdPlansList = [];
 
-    // Loop through the 21 generated meals
+    // Loop through the generated meals
     for (const rawMeal of aiResponse.meals) {
-      const scheduledDate = new Date();
+      const scheduledDate = new Date(startDate);
       scheduledDate.setDate(scheduledDate.getDate() + (rawMeal.dayNumber - 1));
       scheduledDate.setHours(0, 0, 0, 0);
 
@@ -293,6 +337,7 @@ export class MealGenerationService {
           planGroupId: newPlanGroupId,
           userId,
           status,
+          planType,
           mealType: rawMeal.mealType,
           mealName: rawMeal.mealName,
           description: rawMeal.description,
