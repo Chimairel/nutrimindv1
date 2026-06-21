@@ -9,6 +9,8 @@ import EmptyState from '@/components/shared/EmptyState';
 import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import axios from 'axios';
+import { ShoppingCart, Download, RefreshCw, AlertTriangle, Check } from 'lucide-react';
+
 
 interface GroceryItem {
   id: string;
@@ -153,9 +155,12 @@ export default function GroceryListPage() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 mb-8 text-left">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-            🛒 GROCERY SHOPPING LIST
-          </h1>
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-6 h-6 text-brand-green shrink-0" />
+            <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
+              GROCERY SHOPPING LIST
+            </h1>
+          </div>
           <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
             Consolidated ingredients mapped from your active 7-Day meal plan
           </p>
@@ -167,16 +172,26 @@ export default function GroceryListPage() {
               onClick={handleDownloadPDF}
               className="flex items-center gap-2 text-xs font-semibold py-2"
             >
-              <span>📥</span>
+              <Download className="w-4 h-4" />
               <span>Download PDF</span>
             </Button>
             <Button
               variant="secondary"
               onClick={handleGenerateList}
               disabled={isGenerating}
-              className="text-xs font-bold py-2 bg-brand-surface/80 border-brand-border/80 hover:bg-brand-border hover:text-brand-green transition-all"
+              className="text-xs font-bold py-2 bg-brand-surface/80 border-brand-border/80 hover:bg-brand-border hover:text-brand-green transition-all flex items-center gap-1.5"
             >
-              {isGenerating ? '🔄 Re-compiling...' : '🔄 Regenerate List'}
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Re-compiling...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Regenerate List</span>
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -184,7 +199,7 @@ export default function GroceryListPage() {
 
       {error && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
-          <span>⚠️</span>
+          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -193,7 +208,7 @@ export default function GroceryListPage() {
       {!groceryList ? (
         <div className="py-12">
           <EmptyState
-            icon="🛒"
+            icon={<ShoppingCart className="h-8 w-8 text-brand-green" />}
             title="No Active Grocery Checklist"
             description="Generate a categorized shopping checklist compiling every local ingredient needed for your 7-day clinical Filipino meal plan."
             actionText="Generate Grocery Checklist"
@@ -258,14 +273,14 @@ export default function GroceryListPage() {
                         {/* Custom Animated Checkbox */}
                         <div 
                           className={`
-                            w-5 h-5 rounded-md border flex items-center justify-center text-[10px] font-black transition-all duration-200
+                            w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200
                             ${item.isChecked 
                               ? 'bg-brand-green border-brand-green text-brand-background shadow-md shadow-brand-green/10' 
                               : 'border-brand-border/80 bg-brand-background hover:border-brand-green/60'
                             }
                           `}
                         >
-                          {item.isChecked && '✓'}
+                          {item.isChecked && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
                         </div>
                         
                         <span className="text-xs font-semibold tracking-wide">

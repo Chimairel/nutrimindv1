@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { Check, Clock, Star } from 'lucide-react';
 
 interface NProfile {
   id: string;
@@ -61,15 +62,36 @@ export default function NutritionistProfilePage() {
   }
 
   return (
-    <div className="px-6 py-8 max-w-2xl mx-auto space-y-6">
+    <div className="px-6 py-8 max-w-2xl mx-auto space-y-6 text-left">
       <h1 className="text-2xl font-extrabold text-brand-text font-display">Nutritionist Profile</h1>
 
       <Card className="p-5 space-y-3 text-sm">
         <div className="flex justify-between"><span className="text-brand-muted">PRC License</span><span className="text-brand-text font-mono">{profile?.prcLicenseNumber}</span></div>
         <div className="flex justify-between"><span className="text-brand-muted">License Expiry</span><span className="text-brand-text">{profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : '—'}</span></div>
-        <div className="flex justify-between"><span className="text-brand-muted">Verified</span><span className={profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}>{profile?.isVerified ? '✅ Yes' : '⏳ Pending'}</span></div>
+        <div className="flex justify-between">
+          <span className="text-brand-muted">Verified</span>
+          <span className={profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}>
+            {profile?.isVerified ? (
+              <span className="inline-flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 stroke-[3px]" />
+                <span>Yes</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pending</span>
+              </span>
+            )}
+          </span>
+        </div>
         <div className="flex justify-between"><span className="text-brand-muted">Meals Verified</span><span className="text-brand-green font-bold">{profile?.totalVerified}</span></div>
-        <div className="flex justify-between"><span className="text-brand-muted">Rating</span><span className="text-brand-text">⭐ {profile?.rating?.toFixed(1)}</span></div>
+        <div className="flex justify-between">
+          <span className="text-brand-muted">Rating</span>
+          <span className="text-brand-text inline-flex items-center gap-1">
+            <Star className="w-3.5 h-3.5 fill-brand-green stroke-brand-green" />
+            <span>{profile?.rating?.toFixed(1)}</span>
+          </span>
+        </div>
       </Card>
 
       <Card className="p-5 space-y-4">
@@ -104,3 +126,4 @@ export default function NutritionistProfilePage() {
     </div>
   );
 }
+

@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import { Coffee, Sun, Moon, Apple, Utensils, CheckCircle } from 'lucide-react';
 
 interface ApprovedMeal {
   id: string;
@@ -53,18 +54,21 @@ export default function NutritionistApprovedPage() {
     );
   }
 
-  const mealTypeLabels: Record<string, { label: string; icon: string }> = {
-    BREAKFAST: { label: 'Breakfast', icon: '🍳' },
-    LUNCH: { label: 'Lunch', icon: '☀️' },
-    DINNER: { label: 'Dinner', icon: '🌙' },
-    SNACK: { label: 'Snack', icon: '🍎' },
+  const mealTypeLabels: Record<string, { label: string; icon: React.ReactNode }> = {
+    BREAKFAST: { label: 'Breakfast', icon: <Coffee className="w-4 h-4 text-brand-green" /> },
+    LUNCH: { label: 'Lunch', icon: <Sun className="w-4 h-4 text-amber-500" /> },
+    DINNER: { label: 'Dinner', icon: <Moon className="w-4 h-4 text-indigo-400" /> },
+    SNACK: { label: 'Snack', icon: <Apple className="w-4 h-4 text-red-500" /> },
   };
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto space-y-6">
+    <div className="px-6 py-8 max-w-4xl mx-auto space-y-6 text-left">
       {/* Header */}
       <div className="border-b border-brand-border/60 pb-6">
-        <h1 className="text-2xl font-extrabold text-brand-text font-display">✅ Approved Plans</h1>
+        <div className="flex items-center gap-2">
+          <CheckCircle className="w-6 h-6 text-brand-green shrink-0" />
+          <h1 className="text-2xl font-extrabold text-brand-text font-display">Approved Plans</h1>
+        </div>
         <p className="text-xs text-brand-muted mt-1 uppercase tracking-wider font-semibold">
           Meal plans you have reviewed and approved
         </p>
@@ -72,14 +76,14 @@ export default function NutritionistApprovedPage() {
 
       {meals.length === 0 ? (
         <EmptyState
-          icon="✅"
+          icon={<CheckCircle className="h-8 w-8 text-brand-green" />}
           title="No Approved Plans Yet"
           description="Meals you approve from the review queue will appear here."
         />
       ) : (
         <div className="space-y-3">
           {meals.map((meal) => {
-            const type = mealTypeLabels[meal.mealType] || { label: meal.mealType, icon: '🍽️' };
+            const type = mealTypeLabels[meal.mealType] || { label: meal.mealType, icon: <Utensils className="w-4 h-4 text-brand-muted" /> };
             const reviewDate = new Date(meal.reviewedAt);
             const isValidDate = !isNaN(reviewDate.getTime());
 
@@ -88,7 +92,7 @@ export default function NutritionistApprovedPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{type.icon}</span>
+                      {type.icon}
                       <span className="text-xs font-extrabold tracking-wider text-brand-muted uppercase">{type.label}</span>
                       <Badge variant="verified" className="text-[10px]">Approved</Badge>
                     </div>
@@ -144,3 +148,4 @@ export default function NutritionistApprovedPage() {
     </div>
   );
 }
+

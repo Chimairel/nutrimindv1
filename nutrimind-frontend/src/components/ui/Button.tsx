@@ -19,8 +19,8 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-green focus:ring-offset-2 focus:ring-offset-brand-bg disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100';
   
   const variants = {
-    primary: 'bg-brand-green hover:bg-[#58c090] text-[#0d0d0d] shadow-lg shadow-brand-green/10',
-    secondary: 'bg-brand-surface border border-brand-border text-brand-text hover:bg-brand-border hover:border-brand-muted',
+    primary: 'bg-brand-green hover:bg-brand-greenHover text-brand-bg shadow-lg shadow-brand-green/10',
+    secondary: 'bg-brand-surface border border-brand-border text-brand-text hover:bg-brand-bg-alt hover:text-brand-text',
     danger: 'bg-status-error-text text-brand-text hover:bg-red-700 shadow-lg shadow-red-900/10',
     ghost: 'bg-transparent text-brand-text hover:bg-brand-surface hover:text-brand-green',
   };

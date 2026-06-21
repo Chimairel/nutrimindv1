@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import { DietaryPreference, CarbPreference } from '@/types';
-
+import { Egg, Apple, Wheat, Check, AlertTriangle, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 
 export default function OnboardingPreferencesPage() {
@@ -55,10 +55,10 @@ export default function OnboardingPreferencesPage() {
     { value: 'PESCATARIAN', label: 'Pescatarian', desc: 'Vegetarian + seafood' },
   ];
 
-  const carbList: { value: CarbPreference; label: string; icon: string }[] = [
-    { value: 'LOW', label: 'Low Carb', icon: '🥚' },
-    { value: 'MODERATE', label: 'Moderate Carb', icon: '🌽' },
-    { value: 'HIGH', label: 'High Carb', icon: '🍚' },
+  const carbList: { value: CarbPreference; label: string; icon: React.ReactNode }[] = [
+    { value: 'LOW', label: 'Low Carb', icon: <Egg className="w-5 h-5 text-brand-green" /> },
+    { value: 'MODERATE', label: 'Moderate Carb', icon: <Apple className="w-5 h-5 text-brand-green" /> },
+    { value: 'HIGH', label: 'High Carb', icon: <Wheat className="w-5 h-5 text-brand-green" /> },
   ];
 
   return (
@@ -87,7 +87,7 @@ export default function OnboardingPreferencesPage() {
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-              <span>⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
@@ -99,7 +99,7 @@ export default function OnboardingPreferencesPage() {
               onClick={() => router.push('/onboarding/stats')}
               className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
             >
-              <span>←</span>
+              <ArrowLeft className="w-3 h-3 shrink-0" />
               <span>Back to Step 1</span>
             </button>
 
@@ -117,20 +117,20 @@ export default function OnboardingPreferencesPage() {
                       type="button"
                       onClick={() => setDietary(item.value)}
                       className={`
-                        flex items-center justify-between px-5 py-3 rounded-xl border text-left transition-all duration-200 outline-none
+                        flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
                         ${isSelected 
-                          ? 'border-brand-green bg-brand-green/10 shadow-lg shadow-brand-green/5' 
+                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
                           : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
                     >
                       <div>
-                        <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-brand-green' : 'text-brand-text'}`}>
+                        <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}>
                           {item.label}
                         </h4>
-                        <p className="text-xs text-brand-muted mt-0.5 leading-tight">{item.desc}</p>
+                        <p className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{item.desc}</p>
                       </div>
-                      {isSelected && <span className="text-brand-green font-bold">✓</span>}
+                      {isSelected && <Check className="w-4 h-4 text-white stroke-[3px] shrink-0" />}
                     </button>
                   );
                 })}
@@ -151,14 +151,14 @@ export default function OnboardingPreferencesPage() {
                       type="button"
                       onClick={() => setCarb(item.value)}
                       className={`
-                        flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-xl border text-center transition-all duration-200 outline-none
+                        flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all duration-200 outline-none
                         ${isSelected 
-                          ? 'border-brand-green bg-brand-green/10 text-brand-green shadow-lg shadow-brand-green/5' 
+                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
                           : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >
-                      <span className="text-2xl">{item.icon}</span>
+                      <span className="shrink-0">{item.icon}</span>
                       <span className="text-xs font-bold">{item.label}</span>
                     </button>
                   );

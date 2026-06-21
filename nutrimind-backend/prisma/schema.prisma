@@ -85,6 +85,7 @@ enum AIConfidenceFlag {
 enum MealLogSource {
   SYSTEM_GENERATED
   USER_LOGGED
+  USER_SWAPPED
 }
 
 enum MealLogDataSource {
@@ -105,6 +106,8 @@ enum NotificationType {
   REVIEW_REQUEST
   ASSIGNMENT
   WEEKLY_CHECKIN
+  MEAL_FLAGGED
+  FLAG_RESOLVED
 }
 
 enum AssignmentStatus {
@@ -161,6 +164,7 @@ model User {
   dailyNutritionLogs       DailyNutritionLog[]
   groceryLists             GroceryList[]
   notifications            Notification[]
+  planSwapTrackers         PlanSwapTracker[]
 }
 
 model Account {
@@ -258,6 +262,7 @@ model NutritionistProfile {
   assignments      NutritionistAssignment[]
   mealPlansReviewed MealPlan[]
   verifiedMeals    MealLibrary[]
+  submittedFlags   MealLibraryFlag[] @relation("SubmittedFlags")
 }
 
 model NutritionistAssignment {
@@ -312,7 +317,7 @@ model MealPlan {
   user             User             @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
   nutritionistId   String?
   nutritionist     NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
-  libraryMealId    String?          @unique
+  libraryMealId    String?
   libraryMeal      MealLibrary?     @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
   status           MealPlanStatus   @default(PENDING_REVIEW)
   mealType         MealType
@@ -332,6 +337,7 @@ model MealPlan {
   // Relations
   ingredients      MealIngredient[]
   mealLogs         MealLog[]
+  swapLogs         SwapLog[]
 }
 
 model MealLibrary {
@@ -349,10 +355,12 @@ model MealLibrary {
   allergenFree             Json?
   dietaryTags              Json?
   usageCount               Int                  @default(0)
+  status                   MealLibraryStatus    @default(APPROVED)
   addedAt                  DateTime             @default(now())
 
   // Relations
-  mealPlans                MealPlan?            @relation("PlanLibraryMeal")
+  mealPlans                MealPlan[]           @relation("PlanLibraryMeal")
+  flags                    MealLibraryFlag[]    @relation("MealFlags")
 }
 
 model MealIngredient {
@@ -437,4 +445,53 @@ model Notification {
   type      NotificationType
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
+}
+
+enum MealLibraryStatus {
+  APPROVED
+  FLAGGED
+}
+
+enum FlagStatus {
+  PENDING
+  RESOLVED_REMOVED
+  RESOLVED_KEPT
+}
+
+model MealLibraryFlag {
+  id                      String              @id @default(cuid())
+  mealLibraryId           String
+  mealLibrary             MealLibrary         @relation("MealFlags", fields: [mealLibraryId], references: [id], onDelete: Cascade)
+  flaggedByNutritionistId String
+  flaggedByNutritionist   NutritionistProfile @relation("SubmittedFlags", fields: [flaggedByNutritionistId], references: [id], onDelete: Cascade)
+  reason                  String              @db.Text
+  status                  FlagStatus          @default(PENDING)
+  resolvedAt              DateTime?
+  createdAt               DateTime            @default(now())
+}
+
+model PlanSwapTracker {
+  id          String   @id @default(cuid())
+  planGroupId String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swapsUsed   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  swapLogs    SwapLog[]
+}
+
+model SwapLog {
+  id                  String           @id @default(cuid())
+  planSwapTrackerId   String
+  planSwapTracker     PlanSwapTracker  @relation(fields: [planSwapTrackerId], references: [id], onDelete: Cascade)
+  mealPlanId          String
+  mealPlan            MealPlan         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  originalMealName    String
+  originalCalories    Float
+  newMealName         String
+  newCalories         Float
+  calorieDelta        Float
+  warningShown        Boolean          @default(false)
+  warningAcknowledged Boolean          @default(false)
+  swappedAt           DateTime         @default(now())
 }

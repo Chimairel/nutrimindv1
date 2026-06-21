@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Button from '@/components/ui/Button';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
   children?: ReactNode;
@@ -41,8 +42,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex min-h-[400px] w-full flex-col items-center justify-center text-center p-8 bg-brand-surface/20 border border-brand-border rounded-2xl max-w-lg mx-auto my-12">
-          <div className="text-4xl mb-4 bg-status-error-bg text-status-error-text p-4 rounded-full w-16 h-16 flex items-center justify-center font-bold">
-            ⚠️
+          <div className="bg-status-error-bg text-status-error-text p-4 rounded-full w-16 h-16 flex items-center justify-center font-bold mb-4">
+            <AlertTriangle className="w-8 h-8 text-status-error-text" />
           </div>
           <h2 className="text-xl font-bold tracking-tight text-brand-text mb-2 font-display">
             Something went wrong
@@ -55,8 +56,9 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.error.toString()}
             </div>
           )}
-          <Button variant="secondary" onClick={this.handleReset}>
-            🔄 Reload Interface
+          <Button variant="secondary" onClick={this.handleReset} className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin-slow" />
+            <span>Reload Interface</span>
           </Button>
         </div>
       );
@@ -67,3 +69,4 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
+

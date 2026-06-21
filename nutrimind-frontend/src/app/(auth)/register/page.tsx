@@ -44,8 +44,8 @@ export default function RegisterPage() {
       const response = await api.post('/auth/register', { name, email, password });
 
       if (response.data && response.data.success) {
-        const { accessToken } = response.data.data;
-        login(accessToken);
+        const { accessToken, refreshToken } = response.data.data;
+        login(accessToken, refreshToken);
       } else {
         setError(response.data.error || 'Failed to complete registration.');
       }

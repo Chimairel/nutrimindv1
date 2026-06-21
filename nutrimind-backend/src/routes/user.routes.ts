@@ -20,6 +20,7 @@ router.use(authenticate);
  * Available to all authenticated roles (USER, NUTRITIONIST, ADMIN).
  */
 router.get('/profile', UserController.getProfile);
+router.put('/profile/avatar', UserController.updateAvatar);
 
 // ──────────────────────────────────────────
 // Below routes are restricted to USER role
@@ -30,6 +31,7 @@ router.use(requireRole('USER'));
  * Onboarding Flow Endpoints
  */
 router.post('/onboarding/profile', UserController.updateProfile);
+router.get('/onboarding/suggestions', UserController.getSuggestions);
 router.post('/onboarding/conditions', UserController.updateConditions);
 router.post('/onboarding/allergies', UserController.updateAllergies);
 router.post('/onboarding/shopping-day', async (req: AuthenticatedRequest, res: Response) => {

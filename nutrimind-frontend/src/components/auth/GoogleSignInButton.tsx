@@ -3,11 +3,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
+import { AlertTriangle } from 'lucide-react';
 
 /**
  * Google Identity Services "Sign in with Google" button.
  * Loads the GIS script, renders the button, and handles the callback.
  */
+
 
 declare global {
   interface Window {
@@ -82,8 +84,8 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
       });
 
       if (res.data && res.data.success) {
-        const { accessToken } = res.data.data;
-        login(accessToken);
+        const { accessToken, refreshToken } = res.data.data;
+        login(accessToken, refreshToken);
       } else {
         setError(res.data.error || 'Google sign-in failed.');
       }
@@ -104,7 +106,7 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
     <div className="w-full flex flex-col items-center gap-2">
       {error && (
         <div className="w-full p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
-          <span>⚠️</span>
+          <AlertTriangle className="w-4 h-4 text-status-error-text" />
           <span>{error}</span>
         </div>
       )}

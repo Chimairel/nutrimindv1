@@ -72,14 +72,114 @@ router.get('/patients', async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * GET /api/nutritionist/library
- * Browse the MealLibrary.
+ * Browse the MealLibrary with search, filters, and pagination.
  */
 router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const library = await NutritionistService.getMealLibrary();
+    const { search, mealType, conditionTag, status, verifiedByMe, page, limit } = req.query;
+    const library = await NutritionistService.getMealLibraryWithFilters(req.user!.userId, {
+      search: search as string,
+      mealType: mealType as string,
+      conditionTag: conditionTag as string,
+      status: status as string,
+      verifiedByMe: verifiedByMe === 'true',
+      page: page ? parseInt(page as string) : undefined,
+      limit: limit ? parseInt(limit as string) : undefined,
+    });
     return res.status(200).json({ success: true, data: library });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nutritionist/library/:id
+ * Retrieve details of a single library meal.
+ */
+router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const meal = await NutritionistService.getLibraryMeal(req.params.id);
+    if (!meal) return res.status(404).json({ success: false, error: 'Meal not found.' });
+    return res.status(200).json({ success: true, data: meal });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PATCH /api/nutritionist/library/:id
+ * Edit library meal details (Only original verifier or admin override).
+ */
+router.patch('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const updated = await NutritionistService.editLibraryMeal(
+      req.user!.userId,
+      req.user!.role,
+      req.params.id,
+      req.body
+    );
+    return res.status(200).json({ success: true, data: updated });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/nutritionist/library/:id
+ * Delete a meal from library (Only original verifier or admin override).
+ */
+router.delete('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await NutritionistService.deleteLibraryMeal(
+      req.user!.userId,
+      req.user!.role,
+      req.params.id
+    );
+    return res.status(200).json({ success: true, message: 'Meal deleted successfully.' });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/nutritionist/library/:id/flag
+ * Flag a meal for re-review (Only allowed if requester is NOT original verifier).
+ */
+router.post('/library/:id/flag', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { reason } = req.body;
+    if (!reason) return res.status(400).json({ success: false, error: 'Flag reason is required.' });
+
+    const flag = await NutritionistService.flagLibraryMeal(
+      req.user!.userId,
+      req.params.id,
+      reason
+    );
+    return res.status(201).json({ success: true, data: flag });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PATCH /api/nutritionist/library/:id/resolve-flag
+ * Resolve pending flags (Only original verifier or admin override).
+ */
+router.patch('/library/:id/resolve-flag', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { resolution, updatedFields } = req.body;
+    if (!resolution) return res.status(400).json({ success: false, error: 'Resolution action is required.' });
+
+    const result = await NutritionistService.resolveLibraryMealFlag(
+      req.user!.userId,
+      req.user!.role,
+      req.params.id,
+      resolution,
+      updatedFields
+    );
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
   }
 });
 

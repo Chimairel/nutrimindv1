@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { CheckCircle, Flame, Check, X } from 'lucide-react';
 
 interface QueueItem {
   id: string;
@@ -81,15 +82,15 @@ export default function ReviewsPage() {
   }
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto space-y-6">
+    <div className="px-6 py-8 max-w-4xl mx-auto space-y-6 text-left">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-brand-text font-display">Review Queue</h1>
         <Badge variant="pending" className="text-xs">{queue.length} pending</Badge>
       </div>
 
       {queue.length === 0 ? (
-        <Card className="p-12 text-center">
-          <span className="text-5xl block mb-4">✅</span>
+        <Card className="p-12 text-center flex flex-col items-center justify-center gap-4">
+          <CheckCircle className="w-12 h-12 text-brand-green" />
           <p className="text-brand-muted">All caught up! No meals pending review.</p>
         </Card>
       ) : (
@@ -111,8 +112,11 @@ export default function ReviewsPage() {
               <p className="text-xs text-brand-muted mb-3 line-clamp-2">{meal.description}</p>
             )}
 
-            <div className="flex gap-4 text-xs text-brand-muted mb-3">
-              <span>🔥 {meal.calories} kcal</span>
+            <div className="flex gap-4 text-xs text-brand-muted mb-3 items-center">
+              <span className="flex items-center gap-1">
+                <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                <span>{meal.calories} kcal</span>
+              </span>
               <span>P: {meal.proteinG}g</span>
               <span>C: {meal.carbsG}g</span>
               <span>F: {meal.fatG}g</span>
@@ -148,11 +152,13 @@ export default function ReviewsPage() {
               </div>
             ) : (
               <div className="flex gap-2">
-                <Button variant="primary" onClick={() => handleApprove(meal.id)} isLoading={actionLoading === meal.id} className="text-xs px-6">
-                  ✅ Approve
+                <Button variant="primary" onClick={() => handleApprove(meal.id)} isLoading={actionLoading === meal.id} className="text-xs px-6 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Approve</span>
                 </Button>
-                <Button variant="secondary" onClick={() => setRejectId(meal.id)} className="text-xs px-6">
-                  ❌ Reject
+                <Button variant="secondary" onClick={() => setRejectId(meal.id)} className="text-xs px-6 flex items-center gap-1.5">
+                  <X className="w-3.5 h-3.5" />
+                  <span>Reject</span>
                 </Button>
               </div>
             )}
@@ -162,3 +168,4 @@ export default function ReviewsPage() {
     </div>
   );
 }
+

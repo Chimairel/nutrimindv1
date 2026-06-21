@@ -47,13 +47,33 @@ export default function CalorieRing({ consumed, target, className = '' }: Calori
           cx="112"
           cy="112"
           r={radius}
-          stroke={isOverLimit ? '#f87171' : '#52B788'} // Red warning if over target, primary green otherwise
+          stroke={isOverLimit ? '#f87171' : 'var(--brand-green)'} // Red warning if over target, primary theme green otherwise
           strokeWidth={strokeWidth}
           fill="transparent"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           className="transition-all duration-1000 ease-out cursor-pointer"
+        />
+
+        {/* Outer border ring */}
+        <circle
+          cx="112"
+          cy="112"
+          r={radius + strokeWidth / 2}
+          stroke="var(--brand-border)"
+          strokeWidth="2"
+          fill="transparent"
+        />
+
+        {/* Inner border ring */}
+        <circle
+          cx="112"
+          cy="112"
+          r={radius - strokeWidth / 2}
+          stroke="var(--brand-border)"
+          strokeWidth="2"
+          fill="transparent"
         />
       </svg>
 

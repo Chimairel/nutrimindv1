@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { MealPlanStatus, AIConfidenceFlag, NotificationType } from '@prisma/client';
+import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealLibraryStatus, FlagStatus } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 
 export class NutritionistService {
@@ -45,7 +45,16 @@ export class NutritionistService {
   static async approveMealPlan(nutritionistProfileId: string, mealPlanId: string, note?: string) {
     const plan = await prisma.mealPlan.findUnique({
       where: { id: mealPlanId },
-      include: { ingredients: true, user: true },
+      include: {
+        ingredients: true,
+        user: {
+          include: {
+            healthConditions: true,
+            allergies: true,
+            userProfile: true,
+          },
+        },
+      },
     });
 
     if (!plan) throw new Error('Meal plan not found.');
@@ -53,19 +62,15 @@ export class NutritionistService {
       throw new Error('Only PENDING_REVIEW meals can be approved.');
     }
 
-    // 1. Update meal plan status
-    await prisma.mealPlan.update({
-      where: { id: mealPlanId },
-      data: {
-        status: MealPlanStatus.APPROVED,
-        nutritionistId: nutritionistProfileId,
-        nutritionistNote: note || null,
-        reviewedAt: new Date(),
-      },
-    });
+    const suitableConditions = plan.user.healthConditions.map((hc) => hc.condition);
+    const allergenFree = plan.user.allergies.map((a) => a.allergen);
+    const dietaryTags = [
+      plan.user.userProfile?.dietaryPreference,
+      plan.user.userProfile?.goal,
+    ].filter(Boolean) as string[];
 
-    // 2. Auto-save to MealLibrary
-    await prisma.mealLibrary.create({
+    // 1. Auto-save to MealLibrary
+    const libraryMeal = await prisma.mealLibrary.create({
       data: {
         verifiedByNutritionistId: nutritionistProfileId,
         mealName: plan.mealName,
@@ -75,9 +80,21 @@ export class NutritionistService {
         proteinG: plan.proteinG,
         carbsG: plan.carbsG,
         fatG: plan.fatG,
-        suitableConditions: [],
-        allergenFree: [],
-        dietaryTags: [],
+        suitableConditions,
+        allergenFree,
+        dietaryTags,
+      },
+    });
+
+    // 2. Update meal plan status and link it to the library meal
+    await prisma.mealPlan.update({
+      where: { id: mealPlanId },
+      data: {
+        status: MealPlanStatus.APPROVED,
+        nutritionistId: nutritionistProfileId,
+        nutritionistNote: note || null,
+        reviewedAt: new Date(),
+        libraryMealId: libraryMeal.id,
       },
     });
 
@@ -253,4 +270,386 @@ export class NutritionistService {
       orderBy: { reviewedAt: 'desc' },
     });
   }
+
+  /**
+   * Checks if the user is authorized to perform mutations (edit/delete/resolve flags)
+   * on a verified meal entry. Only the verifier has permissions, except for ADMIN
+   * override if the verifier account has been deactivated or is inactive.
+   */
+  static async checkLibraryMealMutationPermission(
+    userId: string,
+    userRole: string,
+    meal: any
+  ): Promise<boolean> {
+    if (!meal) return false;
+
+    // Check if user is the original verifier
+    if (meal.verifiedByNutritionist?.userId === userId) {
+      return true;
+    }
+
+    // Check if user is ADMIN and the verifier account is inactive/deactivated/deleted
+    if (userRole === 'ADMIN') {
+      const verifierProfile = await prisma.nutritionistProfile.findUnique({
+        where: { id: meal.verifiedByNutritionistId || '' },
+        include: { user: true },
+      });
+
+      if (
+        !verifierProfile ||
+        !verifierProfile.user ||
+        verifierProfile.user.role !== 'NUTRITIONIST' ||
+        verifierProfile.prcLicenseExpiry < new Date()
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Query MealLibrary with advanced filters, search, and pagination
+   */
+  static async getMealLibraryWithFilters(
+    currentUserId: string,
+    filters: {
+      search?: string;
+      mealType?: string;
+      conditionTag?: string;
+      status?: string;
+      verifiedByMe?: boolean;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (filters.search) {
+      where.mealName = {
+        contains: filters.search,
+        mode: 'insensitive',
+      };
+    }
+
+    if (filters.mealType && filters.mealType !== 'All') {
+      where.mealType = filters.mealType;
+    }
+
+    if (filters.conditionTag && filters.conditionTag !== 'All') {
+      where.suitableConditions = {
+        array_contains: filters.conditionTag,
+      };
+    }
+
+    if (filters.status && filters.status !== 'All') {
+      where.status = filters.status;
+    }
+
+    if (filters.verifiedByMe) {
+      where.verifiedByNutritionist = {
+        userId: currentUserId,
+      };
+    }
+
+    const [total, meals] = await Promise.all([
+      prisma.mealLibrary.count({ where }),
+      prisma.mealLibrary.findMany({
+        where,
+        orderBy: { addedAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          verifiedByNutritionist: {
+            include: {
+              user: {
+                select: { name: true },
+              },
+            },
+          },
+          flags: {
+            where: { status: 'PENDING' },
+            include: {
+              flaggedByNutritionist: {
+                include: {
+                  user: {
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return { total, page, limit, meals };
+  }
+
+  /**
+   * Get single library meal details
+   */
+  static async getLibraryMeal(mealId: string) {
+    return prisma.mealLibrary.findUnique({
+      where: { id: mealId },
+      include: {
+        verifiedByNutritionist: {
+          include: {
+            user: {
+              select: { name: true },
+            },
+          },
+        },
+        flags: {
+          include: {
+            flaggedByNutritionist: {
+              include: {
+                user: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Update meal details in MealLibrary
+   */
+  static async editLibraryMeal(
+    userId: string,
+    userRole: string,
+    mealId: string,
+    updatedFields: any
+  ) {
+    const meal = await prisma.mealLibrary.findUnique({
+      where: { id: mealId },
+      include: { verifiedByNutritionist: true },
+    });
+
+    if (!meal) throw new Error('Meal not found.');
+
+    const hasPermission = await this.checkLibraryMealMutationPermission(userId, userRole, meal);
+    if (!hasPermission) {
+      throw new Error('Unauthorized: Only the original verifying nutritionist can edit this meal.');
+    }
+
+    return prisma.mealLibrary.update({
+      where: { id: mealId },
+      data: {
+        mealName: updatedFields.mealName,
+        description: updatedFields.description,
+        calories: parseFloat(updatedFields.calories || 0),
+        proteinG: parseFloat(updatedFields.proteinG || 0),
+        carbsG: parseFloat(updatedFields.carbsG || 0),
+        fatG: parseFloat(updatedFields.fatG || 0),
+        suitableConditions: updatedFields.suitableConditions || meal.suitableConditions,
+        allergenFree: updatedFields.allergenFree || meal.allergenFree,
+        dietaryTags: updatedFields.dietaryTags || meal.dietaryTags,
+      },
+    });
+  }
+
+  /**
+   * Delete verified meal from MealLibrary
+   */
+  static async deleteLibraryMeal(userId: string, userRole: string, mealId: string) {
+    const meal = await prisma.mealLibrary.findUnique({
+      where: { id: mealId },
+      include: { verifiedByNutritionist: true },
+    });
+
+    if (!meal) throw new Error('Meal not found.');
+
+    const hasPermission = await this.checkLibraryMealMutationPermission(userId, userRole, meal);
+    if (!hasPermission) {
+      throw new Error('Unauthorized: Only the original verifying nutritionist can delete this meal.');
+    }
+
+    return prisma.mealLibrary.delete({
+      where: { id: mealId },
+    });
+  }
+
+  /**
+   * Flag a library meal for re-review
+   */
+  static async flagLibraryMeal(userId: string, mealId: string, reason: string) {
+    const meal = await prisma.mealLibrary.findUnique({
+      where: { id: mealId },
+      include: { verifiedByNutritionist: true },
+    });
+
+    if (!meal) throw new Error('Meal not found.');
+
+    if (meal.verifiedByNutritionist?.userId === userId) {
+      throw new Error('You cannot flag your own verified meal. Edit it directly instead.');
+    }
+
+    const flaggerProfile = await prisma.nutritionistProfile.findUnique({
+      where: { userId },
+    });
+    if (!flaggerProfile) throw new Error('Flagger profile not found.');
+
+    const [flag] = await prisma.$transaction([
+      prisma.mealLibraryFlag.create({
+        data: {
+          mealLibraryId: mealId,
+          flaggedByNutritionistId: flaggerProfile.id,
+          reason,
+          status: FlagStatus.PENDING,
+        },
+      }),
+      prisma.mealLibrary.update({
+        where: { id: mealId },
+        data: { status: MealLibraryStatus.FLAGGED },
+      }),
+    ]);
+
+    if (meal.verifiedByNutritionist?.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: meal.verifiedByNutritionist.userId,
+          title: 'Meal Plan Flagged 🚩',
+          message: `Your verified meal "${meal.mealName}" was flagged for re-review: ${reason}`,
+          type: 'MEAL_FLAGGED',
+        },
+      });
+    }
+
+    return flag;
+  }
+
+  /**
+   * Resolve an active flag (edit, delete, or dismiss)
+   */
+  static async resolveLibraryMealFlag(
+    userId: string,
+    userRole: string,
+    mealId: string,
+    resolution: 'edit' | 'delete' | 'dismiss',
+    updatedFields?: any
+  ) {
+    const meal = await prisma.mealLibrary.findUnique({
+      where: { id: mealId },
+      include: {
+        verifiedByNutritionist: true,
+        flags: {
+          where: { status: 'PENDING' },
+          include: {
+            flaggedByNutritionist: true,
+          },
+        },
+      },
+    });
+
+    if (!meal) throw new Error('Meal not found.');
+
+    const hasPermission = await this.checkLibraryMealMutationPermission(userId, userRole, meal);
+    if (!hasPermission) {
+      throw new Error('Unauthorized: Only the original verifying nutritionist can resolve flags on this meal.');
+    }
+
+    const pendingFlags = meal.flags;
+    const flagIds = pendingFlags.map((f) => f.id);
+
+    if (resolution === 'delete') {
+      await prisma.mealLibrary.delete({
+        where: { id: mealId },
+      });
+
+      for (const flag of pendingFlags) {
+        if (flag.flaggedByNutritionist?.userId) {
+          await prisma.notification.create({
+            data: {
+              userId: flag.flaggedByNutritionist.userId,
+              title: 'Flag Resolved: Meal Removed 🗑️',
+              message: `The meal "${meal.mealName}" you flagged has been removed from the library.`,
+              type: 'FLAG_RESOLVED',
+            },
+          });
+        }
+      }
+      return { success: true };
+    }
+
+    const newStatus = MealLibraryStatus.APPROVED;
+    const flagStatus = FlagStatus.RESOLVED_KEPT;
+
+    if (resolution === 'edit') {
+      if (!updatedFields) throw new Error('Updated fields are required for edit resolution.');
+
+      await prisma.$transaction([
+        prisma.mealLibraryFlag.updateMany({
+          where: { id: { in: flagIds } },
+          data: { status: flagStatus, resolvedAt: new Date() },
+        }),
+        prisma.mealLibrary.update({
+          where: { id: mealId },
+          data: {
+            mealName: updatedFields.mealName,
+            description: updatedFields.description,
+            calories: parseFloat(updatedFields.calories || 0),
+            proteinG: parseFloat(updatedFields.proteinG || 0),
+            carbsG: parseFloat(updatedFields.carbsG || 0),
+            fatG: parseFloat(updatedFields.fatG || 0),
+            suitableConditions: updatedFields.suitableConditions || meal.suitableConditions,
+            allergenFree: updatedFields.allergenFree || meal.allergenFree,
+            dietaryTags: updatedFields.dietaryTags || meal.dietaryTags,
+            status: newStatus,
+          },
+        }),
+      ]);
+
+      for (const flag of pendingFlags) {
+        if (flag.flaggedByNutritionist?.userId) {
+          await prisma.notification.create({
+            data: {
+              userId: flag.flaggedByNutritionist.userId,
+              title: 'Flag Resolved: Meal Updated ✏️',
+              message: `The meal "${meal.mealName}" you flagged has been updated and kept in the library.`,
+              type: 'FLAG_RESOLVED',
+            },
+          });
+        }
+      }
+      return { success: true };
+    }
+
+    if (resolution === 'dismiss') {
+      await prisma.$transaction([
+        prisma.mealLibraryFlag.updateMany({
+          where: { id: { in: flagIds } },
+          data: { status: flagStatus, resolvedAt: new Date() },
+        }),
+        prisma.mealLibrary.update({
+          where: { id: mealId },
+          data: { status: newStatus },
+        }),
+      ]);
+
+      for (const flag of pendingFlags) {
+        if (flag.flaggedByNutritionist?.userId) {
+          await prisma.notification.create({
+            data: {
+              userId: flag.flaggedByNutritionist.userId,
+              title: 'Flag Dismissed ℹ️',
+              message: `Your flag on meal "${meal.mealName}" was dismissed by the original verifier.`,
+              type: 'FLAG_RESOLVED',
+            },
+          });
+        }
+      }
+      return { success: true };
+    }
+
+    throw new Error('Invalid resolution type.');
+  }
 }
+

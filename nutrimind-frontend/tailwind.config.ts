@@ -9,17 +9,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0d0d0d",
-        foreground: "#f3f4f6",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         brand: {
-          bg: "#0d0d0d",
-          bgAlt: "#141416",
-          surface: "#1a1a1e",
-          border: "#2a2a2e",
-          green: "#52B788",
-          greenLight: "#4caf50",
-          text: "#f3f4f6",
-          muted: "#6B7280",
+          bg: "var(--brand-bg)",
+          bgAlt: "var(--brand-bg-alt)",
+          surface: "var(--brand-surface)",
+          border: "var(--brand-border)",
+          green: "var(--brand-green)",
+          greenHover: "var(--brand-green-hover)",
+          greenLight: "var(--brand-green-light)",
+          text: "var(--brand-text)",
+          muted: "var(--brand-muted)",
         },
         status: {
           verified: {

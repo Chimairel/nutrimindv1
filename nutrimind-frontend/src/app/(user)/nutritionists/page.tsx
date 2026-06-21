@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import { Users, AlertTriangle, Stethoscope, User, Star } from 'lucide-react';
 
 interface Nutritionist {
   id: string;
@@ -68,9 +69,12 @@ export default function NutritionistsDirectoryPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 mb-8 text-left">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-            👩‍⚕️ NUTRITIONIST DIRECTORY
-          </h1>
+          <div className="flex items-center gap-2">
+            <Users className="w-6 h-6 text-brand-green shrink-0" />
+            <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
+              NUTRITIONIST DIRECTORY
+            </h1>
+          </div>
           <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
             Browse and connect with verified Registered Nutritionist-Dietitians
           </p>
@@ -79,7 +83,7 @@ export default function NutritionistsDirectoryPage() {
 
       {error && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
-          <span>⚠️</span>
+          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -87,7 +91,7 @@ export default function NutritionistsDirectoryPage() {
       {nutritionists.length === 0 && !error ? (
         <div className="py-12">
           <EmptyState
-            icon="🩺"
+            icon={<Stethoscope className="h-8 w-8 text-brand-green" />}
             title="No Nutritionists Available"
             description="There are currently no verified nutritionists in the directory. Check back later!"
           />
@@ -99,11 +103,11 @@ export default function NutritionistsDirectoryPage() {
               <div>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-brand-surface border border-brand-border/80 flex items-center justify-center text-xl overflow-hidden shadow-inner">
+                    <div className="w-14 h-14 rounded-2xl bg-brand-surface flex items-center justify-center overflow-hidden shadow-inner">
                       {pro.image ? (
                         <img src={pro.image} alt={pro.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span>🧑‍⚕️</span>
+                        <User className="w-6 h-6 text-brand-muted" />
                       )}
                     </div>
                     <div>
@@ -123,12 +127,12 @@ export default function NutritionistsDirectoryPage() {
                 </div>
 
                 {pro.nutritionistProfile?.bio && (
-                  <p className="text-xs text-brand-muted line-clamp-3 mb-4 leading-relaxed">
+                  <p className="text-xs text-brand-muted line-clamp-3 mb-4 leading-relaxed text-left">
                     {pro.nutritionistProfile.bio}
                   </p>
                 )}
 
-                <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-2 gap-2 mb-4 text-left">
                   <div className="bg-brand-surface/40 p-2 border border-brand-border/40 rounded-lg">
                     <span className="block text-[10px] text-brand-muted uppercase font-bold tracking-wider mb-1">
                       Experience
@@ -141,8 +145,9 @@ export default function NutritionistsDirectoryPage() {
                     <span className="block text-[10px] text-brand-muted uppercase font-bold tracking-wider mb-1">
                       Rating
                     </span>
-                    <span className="text-sm font-bold text-brand-green">
-                      ⭐ {pro.nutritionistProfile?.rating ? pro.nutritionistProfile.rating.toFixed(1) : 'New'}
+                    <span className="text-sm font-bold text-brand-green flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-brand-green stroke-brand-green" />
+                      <span>{pro.nutritionistProfile?.rating ? pro.nutritionistProfile.rating.toFixed(1) : 'New'}</span>
                     </span>
                   </div>
                   <div className="bg-brand-surface/40 p-2 border border-brand-border/40 rounded-lg col-span-2">
@@ -170,3 +175,4 @@ export default function NutritionistsDirectoryPage() {
     </div>
   );
 }
+

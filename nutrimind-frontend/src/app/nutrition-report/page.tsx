@@ -11,6 +11,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { NutritionReport } from '@/types';
 import axios from 'axios';
+import { AlertTriangle, ClipboardList, Download, XCircle, Check, Droplet } from 'lucide-react';
+
 
 export default function NutritionReportPage() {
   const router = useRouter();
@@ -137,7 +139,7 @@ export default function NutritionReportPage() {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6 text-center">
         <Card className="max-w-md p-8 border-brand-border/60 bg-brand-surface/30">
-          <span className="text-4xl mb-4 block">⚠️</span>
+          <AlertTriangle className="w-12 h-12 text-status-error-text mx-auto mb-4" />
           <h3 className="text-lg font-bold font-display text-brand-text mb-2">Report Resolution Failed</h3>
           <p className="text-xs text-brand-muted leading-relaxed mb-6">{error || 'An unexpected error occurred.'}</p>
           <Button variant="primary" onClick={() => window.location.reload()}>
@@ -172,10 +174,10 @@ export default function NutritionReportPage() {
       <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[400px] w-[600px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
 
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border pb-6 max-w-6xl mx-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border pb-6 max-w-6xl mx-auto w-full text-left">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">📋</span>
+            <ClipboardList className="w-6 h-6 text-brand-green shrink-0" />
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-brand-green">
               PERSONAL NUTRITION REPORT
             </h1>
@@ -185,16 +187,17 @@ export default function NutritionReportPage() {
           </p>
         </div>
         <Button variant="secondary" onClick={handleDownloadPDF} className="flex items-center gap-2 text-xs font-semibold py-2">
-          <span>📥</span>
+          <Download className="w-4 h-4" />
           <span>Download PDF</span>
         </Button>
       </div>
+
 
       {/* Main layout container */}
       <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
         
         {/* Core Summary card */}
-        <Card className="p-6 border-brand-border/60 bg-gradient-to-br from-[#1a1a1e] to-[#141416] relative overflow-hidden">
+        <Card className="p-6 border-brand-border/60 bg-gradient-to-br from-brand-surface to-brand-bgAlt relative overflow-hidden">
           <div className="absolute top-0 right-0 h-16 w-32 bg-brand-green/5 blur-xl rounded-full" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center justify-between text-left">
             <div>
@@ -250,7 +253,8 @@ export default function NutritionReportPage() {
             <TabsContent value="avoid">
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
                 <h4 className="text-xs font-bold text-status-error-text tracking-wide uppercase mb-4 flex items-center gap-1.5 font-display">
-                  <span>❌</span> Foods to Avoid completely
+                  <XCircle className="w-4 h-4 text-status-error-text shrink-0" />
+                  <span>Foods to Avoid completely</span>
                 </h4>
                 {renderList(report.foodsToAvoid)}
               </Card>
@@ -258,7 +262,8 @@ export default function NutritionReportPage() {
             <TabsContent value="limit">
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
                 <h4 className="text-xs font-bold text-status-pending-text tracking-wide uppercase mb-4 flex items-center gap-1.5 font-display">
-                  <span>⚠️</span> Foods to Limit/Control portions
+                  <AlertTriangle className="w-4 h-4 text-status-pending-text shrink-0" />
+                  <span>Foods to Limit/Control portions</span>
                 </h4>
                 {renderList(report.foodsToLimit)}
               </Card>
@@ -266,7 +271,8 @@ export default function NutritionReportPage() {
             <TabsContent value="good">
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
                 <h4 className="text-xs font-bold text-brand-green tracking-wide uppercase mb-4 flex items-center gap-1.5 font-display">
-                  <span>✓</span> Recommended Foods to increase
+                  <Check className="w-4 h-4 text-brand-green stroke-[3px] shrink-0" />
+                  <span>Recommended Foods to increase</span>
                 </h4>
                 {renderList(report.foodsRecommended)}
               </Card>
@@ -274,7 +280,8 @@ export default function NutritionReportPage() {
             <TabsContent value="drinks">
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
                 <h4 className="text-xs font-bold text-blue-400 tracking-wide uppercase mb-4 flex items-center gap-1.5 font-display">
-                  <span>💧</span> Drinking and Hydration targets
+                  <Droplet className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>Drinking and Hydration targets</span>
                 </h4>
                 {renderList(report.drinksGuidance)}
               </Card>
@@ -286,28 +293,32 @@ export default function NutritionReportPage() {
         <div className="hidden md:grid grid-cols-4 gap-6">
           <Card className="p-5 bg-brand-surface/20 border-brand-border/50">
             <h4 className="text-xs font-bold text-status-error-text tracking-wider uppercase mb-4 flex items-center gap-1.5 font-display">
-              <span>❌</span> Foods to Avoid
+              <XCircle className="w-4 h-4 text-status-error-text shrink-0" />
+              <span>Foods to Avoid</span>
             </h4>
             {renderList(report.foodsToAvoid)}
           </Card>
 
           <Card className="p-5 bg-brand-surface/20 border-brand-border/50">
             <h4 className="text-xs font-bold text-status-pending-text tracking-wider uppercase mb-4 flex items-center gap-1.5 font-display">
-              <span>⚠️</span> Foods to Limit
+              <AlertTriangle className="w-4 h-4 text-status-pending-text shrink-0" />
+              <span>Foods to Limit</span>
             </h4>
             {renderList(report.foodsToLimit)}
           </Card>
 
           <Card className="p-5 bg-brand-surface/20 border-brand-border/50">
             <h4 className="text-xs font-bold text-brand-green tracking-wider uppercase mb-4 flex items-center gap-1.5 font-display">
-              <span>✓</span> Recommended
+              <Check className="w-4 h-4 text-brand-green stroke-[3px] shrink-0" />
+              <span>Recommended</span>
             </h4>
             {renderList(report.foodsRecommended)}
           </Card>
 
           <Card className="p-5 bg-brand-surface/20 border-brand-border/50">
             <h4 className="text-xs font-bold text-blue-400 tracking-wider uppercase mb-4 flex items-center gap-1.5 font-display">
-              <span>💧</span> Hydration Goals
+              <Droplet className="w-4 h-4 text-blue-400 shrink-0" />
+              <span>Hydration Goals</span>
             </h4>
             {renderList(report.drinksGuidance)}
           </Card>

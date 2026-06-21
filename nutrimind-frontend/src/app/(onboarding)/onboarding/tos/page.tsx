@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import Checkbox from '@/components/ui/Checkbox';
-
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 
 export default function OnboardingTosPage() {
@@ -97,7 +97,7 @@ export default function OnboardingTosPage() {
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-              <span>⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
@@ -109,7 +109,7 @@ export default function OnboardingTosPage() {
               onClick={() => router.push('/onboarding/shopping-day')}
               className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
             >
-              <span>←</span>
+              <ArrowLeft className="w-3 h-3 shrink-0" />
               <span>Back to Step 5</span>
             </button>
 

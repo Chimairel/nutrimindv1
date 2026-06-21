@@ -15,6 +15,8 @@ import MealCard from '@/components/user/MealCard';
 import CheckinModal from '@/components/user/CheckinModal';
 import { MealPlan, MealType } from '@/types';
 import axios from 'axios';
+import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils } from 'lucide-react';
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -82,7 +84,7 @@ export default function DashboardPage() {
   }, [user]);
 
   // Handles scheduled meal checkoff toggles
-  const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'PENDING') => {
+  const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
     try {
       await api.patch(`/user/meals/${mealPlanId}/status`, { status: newStatus });
       // Fetch plan again to sync local UI check marks and total calories
@@ -255,18 +257,16 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => router.push('/meals')} className="text-xs font-semibold py-2">
-              📅 Weekly Plan
-            </Button>
-            <Button variant="primary" onClick={() => setIsLogModalOpen(true)} className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10">
-              ➕ Log Outside Meal
+            <Button variant="secondary" onClick={() => router.push('/meals')} className="text-xs font-semibold py-2 flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              <span>Weekly Plan</span>
             </Button>
           </div>
         </div>
 
         {error && (
           <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
-            <span>⚠️</span>
+            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -275,7 +275,7 @@ export default function DashboardPage() {
         {currentMeals.length === 0 ? (
           <div className="py-12">
             <EmptyState
-              icon="🍽️"
+              icon={<Utensils className="h-8 w-8 text-brand-green" />}
               title="No Active Meal Plan"
               description="You do not have a meal plan scheduled. Generate a customized 7-day plan (21 meals) mapped to your clinical target calories and Filipino food culture."
               actionText="Generate 7-Day Plan"
@@ -293,9 +293,9 @@ export default function DashboardPage() {
                     key={item.offset}
                     onClick={() => setSelectedDayOffset(item.offset)}
                     className={`
-                      flex flex-col items-center justify-center p-3 rounded-2xl min-w-[70px] border transition-all duration-200 outline-none
+                      flex flex-col items-center justify-center p-3 rounded-2xl min-w-[70px] border-2 transition-all duration-200 outline-none
                       ${isSelected 
-                        ? 'border-brand-green bg-brand-green/10 text-brand-green shadow-lg shadow-brand-green/5' 
+                        ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
                         : 'border-brand-border bg-brand-surface/40 text-brand-muted hover:text-brand-text'
                       }
                     `}
@@ -311,12 +311,12 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center mt-4">
               
               {/* Calorie Ring Gauge Card */}
-              <Card className="p-8 border-brand-border/60 bg-[#1a1a1e]/40 flex items-center justify-center md:col-span-1 min-h-[300px]">
+              <Card className="p-8 border-brand-border/60 bg-brand-surface/40 flex items-center justify-center md:col-span-1 min-h-[300px]">
                 <CalorieRing consumed={caloriesConsumed} target={caloriesTarget} />
               </Card>
 
               {/* Macros Target Progress Card */}
-              <Card className="p-8 border-brand-border/60 bg-[#1a1a1e]/40 md:col-span-2 min-h-[300px] flex flex-col justify-center gap-6">
+              <Card className="relative p-8 border-brand-border/60 bg-brand-surface/40 md:col-span-2 min-h-[300px] flex flex-col justify-center gap-6 !overflow-visible">
                 <div>
                   <h3 className="text-sm font-bold tracking-wider text-brand-muted uppercase mb-4">
                     Daily Macronutrient Budgets
@@ -326,13 +326,19 @@ export default function DashboardPage() {
                 {/* Protein Bar */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-brand-green uppercase tracking-wider">Protein</span>
+                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-protein)' }}>Protein</span>
                     <span className="text-brand-text">{Math.round(proteinConsumed)}g / {Math.round(proteinTarget)}g</span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-brand-border/40 overflow-hidden">
+                  <div 
+                    className="w-full h-4 rounded-full border-2 border-brand-border overflow-hidden"
+                    style={{ backgroundColor: 'var(--macro-track-bg)' }}
+                  >
                     <div 
-                      className="h-full bg-brand-green rounded-full transition-all duration-1000" 
-                      style={{ width: `${Math.min(100, (proteinConsumed / Math.max(1, proteinTarget)) * 100)}%` }} 
+                      className="h-full rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${Math.min(100, (proteinConsumed / Math.max(1, proteinTarget)) * 100)}%`,
+                        backgroundColor: 'var(--macro-protein)'
+                      }} 
                     />
                   </div>
                 </div>
@@ -340,13 +346,19 @@ export default function DashboardPage() {
                 {/* Carbs Bar */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-amber-500 uppercase tracking-wider">Carbohydrates</span>
+                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-carbs)' }}>Carbohydrates</span>
                     <span className="text-brand-text">{Math.round(carbsConsumed)}g / {Math.round(carbsTarget)}g</span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-brand-border/40 overflow-hidden">
+                  <div 
+                    className="w-full h-4 rounded-full border-2 border-brand-border overflow-hidden"
+                    style={{ backgroundColor: 'var(--macro-track-bg)' }}
+                  >
                     <div 
-                      className="h-full bg-amber-400 rounded-full transition-all duration-1000" 
-                      style={{ width: `${Math.min(100, (carbsConsumed / Math.max(1, carbsTarget)) * 100)}%` }} 
+                      className="h-full rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${Math.min(100, (carbsConsumed / Math.max(1, carbsTarget)) * 100)}%`,
+                        backgroundColor: 'var(--macro-carbs)'
+                      }} 
                     />
                   </div>
                 </div>
@@ -354,15 +366,32 @@ export default function DashboardPage() {
                 {/* Fat Bar */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-blue-400 uppercase tracking-wider">Fat</span>
+                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-fat)' }}>Fat</span>
                     <span className="text-brand-text">{Math.round(fatConsumed)}g / {Math.round(fatTarget)}g</span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-brand-border/40 overflow-hidden">
+                  <div 
+                    className="w-full h-4 rounded-full border-2 border-brand-border overflow-hidden"
+                    style={{ backgroundColor: 'var(--macro-track-bg)' }}
+                  >
                     <div 
-                      className="h-full bg-blue-400 rounded-full transition-all duration-1000" 
-                      style={{ width: `${Math.min(100, (fatConsumed / Math.max(1, fatTarget)) * 100)}%` }} 
+                      className="h-full rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${Math.min(100, (fatConsumed / Math.max(1, fatTarget)) * 100)}%`,
+                        backgroundColor: 'var(--macro-fat)'
+                      }} 
                     />
                   </div>
+                </div>
+
+                {/* Floating Log Outside Meal Circular Button */}
+                <div className="absolute bottom-0 translate-y-1/2 right-6 md:right-8 z-10">
+                  <button
+                    onClick={() => setIsLogModalOpen(true)}
+                    className="h-14 w-14 md:h-16 md:w-16 rounded-full border-2 border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/10 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 hover-pulse outline-none"
+                    title="Log Outside Meal"
+                  >
+                    <Plus className="w-8 h-8 stroke-[3.5px]" />
+                  </button>
                 </div>
               </Card>
             </div>
@@ -414,9 +443,9 @@ export default function DashboardPage() {
       }} title="LOG OUTSIDE MEAL">
         <div className="flex flex-col gap-5 p-2 text-left">
           
-          {logError && (
+           {logError && (
             <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-              <span>⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span>{logError}</span>
             </div>
           )}
@@ -426,7 +455,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-5">
               <div className="p-4 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text flex flex-col gap-2.5 leading-relaxed">
                 <span className="font-extrabold text-sm flex items-center gap-1.5 uppercase font-display">
-                  <span>🚨</span> Clinical Guardrail Alert!
+                  <AlertCircle className="w-4 h-4 text-status-pending-text shrink-0" /> Clinical Guardrail Alert!
                 </span>
                 <ul className="flex flex-col gap-2 list-disc pl-4 text-xs font-semibold">
                   {warningData.reasons.map((reason, rIdx) => (
@@ -445,15 +474,33 @@ export default function DashboardPage() {
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Cal</span>
                     <span>{Math.round(warningData.estimate.calories)}</span>
                   </div>
-                  <div className="bg-brand-green/10 text-brand-green p-2.5 rounded-lg">
+                  <div 
+                    className="p-2.5 rounded-lg border border-brand-border/20"
+                    style={{ 
+                      backgroundColor: 'var(--macro-protein-bg)',
+                      color: 'var(--macro-protein)'
+                    }}
+                  >
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Prot</span>
                     <span>{Math.round(warningData.estimate.proteinG)}g</span>
                   </div>
-                  <div className="bg-amber-400/10 text-amber-500 p-2.5 rounded-lg">
+                  <div 
+                    className="p-2.5 rounded-lg border border-brand-border/20"
+                    style={{ 
+                      backgroundColor: 'var(--macro-carbs-bg)',
+                      color: 'var(--macro-carbs)'
+                    }}
+                  >
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Carb</span>
                     <span>{Math.round(warningData.estimate.carbsG)}g</span>
                   </div>
-                  <div className="bg-blue-400/10 text-blue-400 p-2.5 rounded-lg">
+                  <div 
+                    className="p-2.5 rounded-lg border border-brand-border/20"
+                    style={{ 
+                      backgroundColor: 'var(--macro-fat-bg)',
+                      color: 'var(--macro-fat)'
+                    }}
+                  >
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Fat</span>
                     <span>{Math.round(warningData.estimate.fatG)}g</span>
                   </div>

@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 /**
  * Unauthorized Page — shown when a user tries to access a route
@@ -13,7 +14,7 @@ export default function UnauthorizedPage() {
     <div className="min-h-screen flex items-center justify-center bg-brand-bg px-4">
       <div className="text-center max-w-md">
         {/* Icon */}
-        <div className="text-6xl mb-6">🚫</div>
+        <ShieldAlert className="w-16 h-16 text-status-error-text mx-auto mb-6" />
 
         {/* Heading */}
         <h1 className="text-3xl font-extrabold text-brand-text font-display mb-3">
@@ -36,12 +37,14 @@ export default function UnauthorizedPage() {
           </Link>
           <button
             onClick={() => window.history.back()}
-            className="text-brand-muted hover:text-brand-green text-sm transition-colors cursor-pointer"
+            className="text-brand-muted hover:text-brand-green text-sm transition-colors cursor-pointer flex items-center gap-1.5 justify-center"
           >
-            ← Go Back
+            <ArrowLeft className="w-4 h-4" />
+            <span>Go Back</span>
           </button>
         </div>
       </div>
     </div>
   );
 }
+

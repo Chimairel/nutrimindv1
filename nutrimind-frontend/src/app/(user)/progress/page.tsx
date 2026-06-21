@@ -9,6 +9,8 @@ import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import axios from 'axios';
+import { TrendingUp, Plus, CheckCircle, AlertTriangle, Lightbulb, BarChart3 } from 'lucide-react';
+
 
 interface WeightLog {
   id: string;
@@ -158,7 +160,8 @@ export default function ProgressPage() {
     if (weightLogs.length === 0) {
       return (
         <div className="flex h-48 items-center justify-center border border-dashed border-brand-border rounded-2xl bg-brand-surface/20 text-brand-muted text-xs font-semibold">
-          📈 Log your weight to generate progress graphs
+          <TrendingUp className="w-4 h-4 text-brand-green mr-1.5" />
+          <span>Log your weight to generate progress graphs</span>
         </div>
       );
     }
@@ -307,9 +310,12 @@ export default function ProgressPage() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 mb-8 text-left">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-            📈 PROGRESS & METRICS
-          </h1>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-brand-green shrink-0" />
+            <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
+              PROGRESS & METRICS
+            </h1>
+          </div>
           <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
             Monitor weight adjustments and dynamic calorie target adherence
           </p>
@@ -321,22 +327,23 @@ export default function ProgressPage() {
             setFormError(null);
             setSuccessMessage(null);
           }}
-          className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10"
+          className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10 flex items-center gap-1.5"
         >
-          ➕ Log Today&apos;s Weight
+          <Plus className="w-4 h-4" />
+          <span>Log Today&apos;s Weight</span>
         </Button>
       </div>
 
       {successMessage && (
         <div className="p-4 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
-          <span>✅</span>
+          <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
       {error && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
-          <span>⚠️</span>
+          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -348,7 +355,7 @@ export default function ProgressPage() {
           
           {formError && (
             <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
-              <span>⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span>{formError}</span>
             </div>
           )}
@@ -428,8 +435,9 @@ export default function ProgressPage() {
             </div>
           </div>
           
-          <p className="text-[10px] text-brand-muted leading-relaxed font-semibold uppercase tracking-wider border-t border-brand-border/40 pt-4 mt-2">
-            💡 Recalculations occur dynamically as your body changes
+          <p className="text-[10px] text-brand-muted leading-relaxed font-semibold uppercase tracking-wider border-t border-brand-border/40 pt-4 mt-2 flex items-center gap-1.5">
+            <Lightbulb className="w-3.5 h-3.5 text-brand-green shrink-0 animate-pulse" />
+            <span>Recalculations occur dynamically as your body changes</span>
           </p>
         </Card>
       </div>
@@ -442,8 +450,9 @@ export default function ProgressPage() {
           </h3>
           
           {history?.dailyNutritionLogs.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-brand-border rounded-xl text-brand-muted text-xs font-bold">
-              📊 Yesterday&apos;s adherence scores compile automatically overnight
+            <div className="p-8 text-center border border-dashed border-brand-border rounded-xl text-brand-muted text-xs font-bold flex items-center justify-center gap-1.5">
+              <BarChart3 className="w-4 h-4 text-brand-green shrink-0" />
+              <span>Yesterday&apos;s adherence scores compile automatically overnight</span>
             </div>
           ) : (
             <div className="overflow-x-auto">

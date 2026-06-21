@@ -5,17 +5,41 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import { useTheme } from '@/lib/context/ThemeContext';
+import { Brain, Soup, Bot, UserCheck } from 'lucide-react';
 
 export default function Home() {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div className="flex flex-col min-h-screen bg-brand-bg text-brand-text select-none relative">
       {/* Navbar segment */}
-      <header className="flex h-16 items-center justify-between border-b border-brand-border px-6 md:px-12 bg-[#0d0d0d]/60 backdrop-blur-md sticky top-0 z-30">
+      <header className="flex h-16 items-center justify-between border-b border-brand-border px-6 md:px-12 bg-brand-bg/60 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🧠</span>
+          <Brain className="w-6 h-6 text-brand-green" />
           <h1 className="font-extrabold text-lg tracking-wider text-brand-green font-display">NUTRIMIND</h1>
         </div>
+
         <div className="flex items-center gap-4">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border bg-brand-bgAlt/50 text-brand-text hover:text-brand-green hover:border-brand-green/30 hover:scale-105 active:scale-95 transition-all duration-200 outline-none cursor-pointer"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
+            )}
+          </button>
+
           <Link href="/login">
             <Button variant="ghost" size="sm">Log In</Button>
           </Link>
@@ -64,7 +88,10 @@ export default function Home() {
             interactive 
             header={
               <div className="flex items-center justify-between">
-                <span className="font-bold tracking-wide font-display text-sm">🍳 Sinigang na Bangus</span>
+                <div className="flex items-center gap-2">
+                  <Soup className="w-4 h-4 text-brand-green" />
+                  <span className="font-bold tracking-wide font-display text-sm">Sinigang na Bangus</span>
+                </div>
                 <Badge variant="verified">Verified FNRI</Badge>
               </div>
             }
@@ -86,7 +113,10 @@ export default function Home() {
             interactive 
             header={
               <div className="flex items-center justify-between">
-                <span className="font-bold tracking-wide font-display text-sm">🤖 AI Planner Rotation</span>
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-brand-green" />
+                  <span className="font-bold tracking-wide font-display text-sm">AI Planner Rotation</span>
+                </div>
                 <Badge variant="ai">4-Model Failover</Badge>
               </div>
             }
@@ -104,7 +134,10 @@ export default function Home() {
             interactive 
             header={
               <div className="flex items-center justify-between">
-                <span className="font-bold tracking-wide font-display text-sm">👩‍⚕️ RND Specialist Queue</span>
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-brand-green" />
+                  <span className="font-bold tracking-wide font-display text-sm">RND Specialist Queue</span>
+                </div>
                 <Badge variant="pending">Review Queue</Badge>
               </div>
             }
@@ -119,7 +152,7 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="border-t border-brand-border py-6 text-center text-xs text-brand-muted bg-[#141416]/30">
+      <footer className="border-t border-brand-border py-6 text-center text-xs text-brand-muted bg-brand-bgAlt/30">
         <p>© 2026 NutriMind. All rights reserved. Built for Filipino health-conscious urban professionals.</p>
       </footer>
     </div>

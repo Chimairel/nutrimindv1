@@ -149,6 +149,16 @@ export class UserService {
   }
 
   /**
+   * Updates the user's avatar image seed or custom URL.
+   */
+  static async updateUserImage(userId: string, image: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { image },
+    });
+  }
+
+  /**
    * Finalizes user onboarding by:
    * 1. Pulling their latest profile and health conditions.
    * 2. Calculating BMR/TDEE and setting the target daily calories.
@@ -227,6 +237,7 @@ export class UserService {
         tosAccepted: true,
         tosAcceptedAt: true,
         onboardingDone: true,
+        image: true,
         createdAt: true,
         updatedAt: true,
         userProfile: true,
@@ -264,6 +275,7 @@ export class UserService {
       tosAccepted: user.tosAccepted,
       tosAcceptedAt: user.tosAcceptedAt,
       onboardingDone: user.onboardingDone,
+      image: user.image,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       userProfile: user.userProfile,

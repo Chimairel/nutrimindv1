@@ -15,12 +15,13 @@ export interface UserSession {
   onboardingDone: boolean;
   tosAccepted: boolean;
   reportAcknowledged: boolean;
+  image?: string;
 }
 
 export interface AuthContextType {
   user: UserSession | null;
   isLoading: boolean;
-  login: (token: string) => void;
+  login: (token: string, refreshToken?: string) => void;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
   updateUserSession: (updates: Partial<UserSession>) => void;
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get('/user/profile');
       if (response.data && response.data.success) {
-        const { id, name, email, role, emailVerified, onboardingDone, tosAccepted, nutritionReport } = response.data.data;
+        const { id, name, email, role, emailVerified, onboardingDone, tosAccepted, image, nutritionReport } = response.data.data;
         
         setUser({
           userId: id,
@@ -48,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           emailVerified: emailVerified ?? false,
           onboardingDone,
           tosAccepted,
+          image,
           reportAcknowledged: !!nutritionReport?.acknowledgedAt,
         });
       }
@@ -77,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             emailVerified: false, // will load from API
             onboardingDone: false, // will load from API
             tosAccepted: false,
+            image: undefined,
             reportAcknowledged: false,
           });
           
@@ -93,9 +96,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuthCookie();
   }, []);
 
-  const login = (token: string) => {
+  const login = (token: string, refreshToken?: string) => {
     // Save token in cookie for the client middleware & interceptor
     cookieHelper.set('nutrimind_session', token, 7);
+    if (refreshToken) {
+      cookieHelper.set('nutrimind_refresh', refreshToken, 7);
+    }
     const decoded = decodeToken(token);
     
     if (decoded) {
@@ -107,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         emailVerified: false,
         onboardingDone: false,
         tosAccepted: false,
+        image: undefined,
         reportAcknowledged: false,
       });
       
@@ -148,6 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       // Clear client caches anyway
       cookieHelper.clear('nutrimind_session');
+      cookieHelper.clear('nutrimind_refresh');
       setUser(null);
       setIsLoading(false);
       router.push('/login');

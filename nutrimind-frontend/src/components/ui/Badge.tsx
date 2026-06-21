@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check, Clock, AlertCircle, Bot, User } from 'lucide-react';
 
 export type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'ai' | 'user';
 
@@ -23,11 +24,11 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const icons = {
-    verified: '✅',
-    pending: '⏳',
-    rejected: '❌',
-    ai: '🤖',
-    user: '👤',
+    verified: <Check className="w-3 h-3 stroke-[3px]" />,
+    pending: <Clock className="w-3 h-3" />,
+    rejected: <AlertCircle className="w-3 h-3" />,
+    ai: <Bot className="w-3 h-3" />,
+    user: <User className="w-3 h-3" />,
   };
 
   const defaultText = {
@@ -43,10 +44,11 @@ export const Badge: React.FC<BadgeProps> = ({
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${styles[variant]} ${className}`}
       {...props}
     >
-      {showIcon && <span>{icons[variant]}</span>}
+      {showIcon && icons[variant]}
       <span>{children || defaultText[variant]}</span>
     </span>
   );
 };
 
 export default Badge;
+

@@ -1,8 +1,9 @@
 import React from 'react';
 import Button from '@/components/ui/Button';
+import { Utensils } from 'lucide-react';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   description: string;
   actionText?: string;
@@ -11,7 +12,7 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = '🍽️',
+  icon = <Utensils className="h-8 w-8 text-brand-green" />,
   title,
   description,
   actionText,
@@ -25,7 +26,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         ${className}
       `}
     >
-      <div className="text-4xl mb-4 bg-brand-border/40 p-4 rounded-full w-16 h-16 flex items-center justify-center shadow-inner">
+      <div className="text-brand-green bg-brand-border/40 p-4 rounded-full w-16 h-16 flex items-center justify-center shadow-inner mb-4">
         {icon}
       </div>
       <h3 className="text-lg font-bold tracking-tight text-brand-text mb-1.5 font-display">
@@ -44,3 +45,4 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 };
 
 export default EmptyState;
+

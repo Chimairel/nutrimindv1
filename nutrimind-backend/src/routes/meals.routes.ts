@@ -39,4 +39,28 @@ router.post('/log-outside', MealsController.logOutsideMeal);
  */
 router.patch('/:id/status', MealsController.updateMealStatus);
 
+/**
+ * Route: GET /api/user/meals/compatible-library
+ * Description: Retrieves all compatible approved library meals for the logged-in user.
+ */
+router.get('/compatible-library', MealsController.getCompatibleLibrary);
+
+/**
+ * Route: GET /api/user/meals/:id/swap-options
+ * Description: Retrieves swap options for a given meal plan slot.
+ */
+router.get('/:id/swap-options', MealsController.getSwapOptions);
+
+/**
+ * Route: GET /api/user/meals/:id/swap-preview
+ * Description: Generates swap calorie warnings.
+ */
+router.get('/:id/swap-preview', MealsController.getSwapPreview);
+
+/**
+ * Route: POST /api/user/meals/:id/swap
+ * Description: Executes a meal plan slot swap.
+ */
+router.post('/:id/swap', MealsController.executeSwap);
+
 export default router;

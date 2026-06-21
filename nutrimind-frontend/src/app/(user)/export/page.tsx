@@ -7,6 +7,8 @@ import api from '@/lib/axios';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import Button from '@/components/ui/Button';
 import axios from 'axios';
+import { AlertTriangle, ArrowLeft, Ban, CheckCircle, GlassWater } from 'lucide-react';
+
 
 interface MealPlan {
   id: string;
@@ -119,7 +121,10 @@ export default function ClinicalExportPage() {
   if (error) {
     return (
       <div className="max-w-md mx-auto my-12 p-6 rounded-2xl bg-status-error-bg/10 border border-status-error-text/30 text-status-error-text text-left">
-        <h3 className="text-lg font-bold mb-2">⚠️ Error loading clinical sheet</h3>
+        <h3 className="text-lg font-bold mb-2 flex items-center gap-1.5">
+          <AlertTriangle className="w-5 h-5 text-status-error-text" />
+          <span>Error loading clinical sheet</span>
+        </h3>
         <p className="text-sm mb-6">{error}</p>
         <Button variant="primary" onClick={() => router.back()}>
           Go Back
@@ -168,9 +173,10 @@ export default function ClinicalExportPage() {
         <div>
           <button 
             onClick={() => router.back()}
-            className="text-xs font-semibold text-slate-600 hover:text-brand-green transition-colors"
+            className="text-xs font-semibold text-slate-600 hover:text-brand-green transition-colors flex items-center gap-1"
           >
-            ← Back to Dashboard
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Dashboard</span>
           </button>
           <h1 className="text-sm font-bold text-slate-800 mt-1">CLINICAL EXPORT PREVIEW</h1>
         </div>
@@ -293,26 +299,38 @@ export default function ClinicalExportPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="border border-slate-200 p-3 rounded-lg">
-              <span className="font-extrabold text-red-700 uppercase block mb-1">🛑 Avoid Categories</span>
-              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5">
+              <span className="font-extrabold text-red-700 uppercase mb-1 flex items-center gap-1.5">
+                <Ban className="w-4 h-4 text-red-700 shrink-0" />
+                <span>Avoid Categories</span>
+              </span>
+              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
                 {(reportData.foodsToAvoid || []).map((food, i) => <li key={i}>{food}</li>)}
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
-              <span className="font-extrabold text-amber-700 uppercase block mb-1">⚠️ Limit Categories</span>
-              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5">
+              <span className="font-extrabold text-amber-700 uppercase mb-1 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Limit Categories</span>
+              </span>
+              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
                 {(reportData.foodsToLimit || []).map((food, i) => <li key={i}>{food}</li>)}
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
-              <span className="font-extrabold text-green-700 uppercase block mb-1">✅ Recommended Categories</span>
-              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5">
+              <span className="font-extrabold text-green-700 uppercase mb-1 flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-green-700 shrink-0" />
+                <span>Recommended Categories</span>
+              </span>
+              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
                 {(reportData.foodsRecommended || []).map((food, i) => <li key={i}>{food}</li>)}
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
-              <span className="font-extrabold text-blue-700 uppercase block mb-1">🥤 Drinks & Hydration</span>
-              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5">
+              <span className="font-extrabold text-blue-700 uppercase mb-1 flex items-center gap-1.5">
+                <GlassWater className="w-4 h-4 text-blue-700 shrink-0" />
+                <span>Drinks & Hydration</span>
+              </span>
+              <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
                 {(reportData.drinksGuidance || []).map((food, i) => <li key={i}>{food}</li>)}
               </ul>
             </div>

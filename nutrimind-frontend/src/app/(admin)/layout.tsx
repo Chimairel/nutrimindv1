@@ -4,11 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import RouteGuard from '@/components/shared/RouteGuard';
+import Sidebar from '@/components/ui/Sidebar';
+import Navbar from '@/components/shared/Navbar';
+import { LayoutDashboard, Users, Stethoscope } from 'lucide-react';
 
 const navItems = [
-  { href: '/admin/overview', label: 'Overview', icon: '📊' },
-  { href: '/admin/users', label: 'Users', icon: '👥' },
-  { href: '/admin/nutritionists', label: 'Nutritionists', icon: '🩺' },
+  { href: '/admin/overview', label: 'Overview', icon: LayoutDashboard },
+  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/nutritionists', label: 'Nutritionists', icon: Stethoscope },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,51 +19,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <RouteGuard>
-      <div className="flex min-h-screen bg-brand-bg">
-        {/* Sidebar */}
-        <aside className="w-64 bg-brand-card border-r border-brand-border p-6 hidden md:flex flex-col">
-          <div className="mb-8">
-            <h2 className="text-lg font-extrabold text-brand-green font-display">🧠 NutriMind</h2>
-            <p className="text-xs text-brand-muted mt-1">Admin Panel</p>
-          </div>
-          <nav className="flex-1 space-y-1">
-            {navItems.map((item) => (
+      <div className="flex h-screen w-full bg-brand-bg overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Navbar />
+          <main className="flex-1 overflow-y-auto custom-scrollbar pb-20 md:pb-6 relative">
+            {children}
+          </main>
+        </div>
+
+        {/* Mobile Nav */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface border-t border-brand-border flex justify-around py-3 md:hidden">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                  pathname === item.href
-                    ? 'bg-brand-green/10 text-brand-green'
-                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-border/40'
+                className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
+                  isActive ? 'text-brand-green' : 'text-brand-muted hover:text-brand-text'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
-                {item.label}
+                <Icon className="h-5 w-5 shrink-0" />
+                <span>{item.label}</span>
               </Link>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Mobile Nav */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-card border-t border-brand-border flex justify-around py-3 md:hidden">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
-                pathname === item.href ? 'text-brand-green' : 'text-brand-muted'
-              }`}
-            >
-              <span className="text-xl">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+            );
+          })}
         </div>
-
-        {/* Main */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-6">
-          {children}
-        </main>
       </div>
     </RouteGuard>
   );

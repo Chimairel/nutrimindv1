@@ -72,9 +72,44 @@ export class UserController {
 
       const savedConditions = await UserService.updateHealthConditions(userId, conditions);
 
-      // Also save any custom free-text conditions if provided
-      if (typeof otherConditions === 'string') {
-        await UserService.updateOtherConditions(userId, otherConditions.trim());
+      // Validate otherConditions free text
+      if (typeof otherConditions === 'string' && otherConditions.trim()) {
+        const rawConditions = otherConditions.split(',').map((c: string) => c.trim()).filter(Boolean);
+        const { COMMON_CONDITIONS, HealthValidationService } = await import('@/services/health-validation.service');
+        const normalizedList: string[] = [];
+
+        for (const rawCond of rawConditions) {
+          const exactMatch = COMMON_CONDITIONS.find(
+            (c) => c.toLowerCase() === rawCond.toLowerCase()
+          );
+
+          if (exactMatch) {
+            normalizedList.push(exactMatch);
+          } else {
+            try {
+              const normalized = await HealthValidationService.normalizeHealthInput(rawCond, 'condition');
+              if (normalized === 'INVALID') {
+                return res.status(400).json({
+                  success: false,
+                  error: `We couldn't recognize "${rawCond}" as a health condition. Please check your spelling, or describe it differently.`,
+                  errorCode: 'UNRECOGNIZED_INPUT',
+                });
+              }
+              normalizedList.push(normalized);
+            } catch (err: any) {
+              console.error('[UserController] Normalization service error:', err);
+              return res.status(503).json({
+                success: false,
+                error: 'The health validation service is temporarily unavailable. Please try again in a few moments.',
+                errorCode: 'VALIDATION_SERVICE_UNAVAILABLE',
+              });
+            }
+          }
+        }
+
+        await UserService.updateOtherConditions(userId, normalizedList.join(', '));
+      } else {
+        await UserService.updateOtherConditions(userId, '');
       }
 
       return res.status(200).json({
@@ -105,9 +140,44 @@ export class UserController {
 
       const savedAllergies = await UserService.updateAllergies(userId, allergies);
 
-      // Also save any custom free-text allergies if provided
-      if (typeof otherAllergies === 'string') {
-        await UserService.updateOtherAllergies(userId, otherAllergies.trim());
+      // Validate otherAllergies free text
+      if (typeof otherAllergies === 'string' && otherAllergies.trim()) {
+        const rawAllergies = otherAllergies.split(',').map((a: string) => a.trim()).filter(Boolean);
+        const { COMMON_ALLERGIES, HealthValidationService } = await import('@/services/health-validation.service');
+        const normalizedList: string[] = [];
+
+        for (const rawAller of rawAllergies) {
+          const exactMatch = COMMON_ALLERGIES.find(
+            (a) => a.toLowerCase() === rawAller.toLowerCase()
+          );
+
+          if (exactMatch) {
+            normalizedList.push(exactMatch);
+          } else {
+            try {
+              const normalized = await HealthValidationService.normalizeHealthInput(rawAller, 'allergy');
+              if (normalized === 'INVALID') {
+                return res.status(400).json({
+                  success: false,
+                  error: `We couldn't recognize "${rawAller}" as a food allergen. Please check your spelling, or describe it differently.`,
+                  errorCode: 'UNRECOGNIZED_INPUT',
+                });
+              }
+              normalizedList.push(normalized);
+            } catch (err: any) {
+              console.error('[UserController] Normalization service error:', err);
+              return res.status(503).json({
+                success: false,
+                error: 'The allergy validation service is temporarily unavailable. Please try again in a few moments.',
+                errorCode: 'VALIDATION_SERVICE_UNAVAILABLE',
+              });
+            }
+          }
+        }
+
+        await UserService.updateOtherAllergies(userId, normalizedList.join(', '));
+      } else {
+        await UserService.updateOtherAllergies(userId, '');
       }
 
       return res.status(200).json({
@@ -288,6 +358,56 @@ export class UserController {
     } catch (error: any) {
       console.error('[UserController] getNutritionists error:', error);
       return res.status(500).json({ success: false, error: 'Failed to retrieve nutritionist directory.' });
+    }
+  }
+
+  /**
+   * PUT /api/user/profile/avatar
+   * Updates User's avatar seed (stored in image field)
+   */
+  static async updateAvatar(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized: Missing user payload.' });
+      }
+
+      const { image } = req.body;
+      if (typeof image !== 'string') {
+        return res.status(400).json({ success: false, error: 'image seed is required.' });
+      }
+
+      const updatedUser = await UserService.updateUserImage(userId, image);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          image: updatedUser.image,
+        },
+      });
+    } catch (error: any) {
+      console.error('[UserController] updateAvatar error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to update user avatar.' });
+    }
+  }
+
+  /**
+   * GET /api/user/onboarding/suggestions
+   * Returns curated lists of common clinical conditions and food allergens for autocompleting.
+   */
+  static async getSuggestions(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { COMMON_CONDITIONS, COMMON_ALLERGIES } = await import('@/services/health-validation.service');
+      return res.status(200).json({
+        success: true,
+        data: {
+          conditions: COMMON_CONDITIONS,
+          allergies: COMMON_ALLERGIES,
+        },
+      });
+    } catch (error: any) {
+      console.error('[UserController] getSuggestions error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve autocomplete suggestions.' });
     }
   }
 }

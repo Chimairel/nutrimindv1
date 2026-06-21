@@ -2,8 +2,9 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
+import { MealSwapService } from '@/services/meal-swap.service';
 import prisma from '@/lib/prisma';
-import { MealPlanStatus, MealLogSource, MealLogDataSource, MealLogStatus } from '@prisma/client';
+import { MealPlanStatus, MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
 
 export class MealsController {
   /**
@@ -111,26 +112,71 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      // Fetch ALL meal logs for this user (both plan-checked and outside)
+      const { search, source, status, startDate, endDate } = req.query;
+
+      const where: any = { userId };
+
+      if (search && typeof search === 'string') {
+        where.mealName = {
+          contains: search,
+          mode: 'insensitive',
+        };
+      }
+
+      if (source && typeof source === 'string') {
+        where.source = source as MealLogSource;
+      }
+
+      if (status && typeof status === 'string' && status !== 'All') {
+        where.status = status as MealLogStatus;
+      } else {
+        where.status = { in: ['DONE', 'SKIPPED'] };
+      }
+
+      if (startDate || endDate) {
+        where.loggedAt = {};
+        if (startDate && typeof startDate === 'string') {
+          where.loggedAt.gte = new Date(startDate);
+        }
+        if (endDate && typeof endDate === 'string') {
+          where.loggedAt.lte = new Date(endDate);
+        }
+      }
+
+      // Fetch ALL meal logs for this user (both plan-checked and outside) with search and filters
       const allLogs = await prisma.mealLog.findMany({
-        where: { userId },
+        where,
+        include: {
+          mealPlan: {
+            include: {
+              swapLogs: {
+                orderBy: { swappedAt: 'desc' },
+                take: 1,
+              },
+            },
+          },
+        },
         orderBy: { loggedAt: 'desc' },
       });
 
       // Normalize to unified shape
-      const normalized = allLogs.map((l) => ({
-        id: l.id,
-        mealName: l.mealName,
-        source: l.source as string,          // 'SYSTEM_GENERATED' | 'USER_LOGGED'
-        calories: l.calories,
-        proteinG: l.proteinG,
-        carbsG: l.carbsG,
-        fatG: l.fatG,
-        dataSource: l.dataSource as string,
-        status: l.status as string,
-        warningType: l.warningType ?? null,
-        loggedAt: l.loggedAt.toISOString(),
-      }));
+      const normalized = allLogs.map((l) => {
+        const latestSwap = l.mealPlan?.swapLogs?.[0];
+        return {
+          id: l.id,
+          mealName: l.mealName,
+          source: l.source as string,          // 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED'
+          calories: l.calories,
+          proteinG: l.proteinG,
+          carbsG: l.carbsG,
+          fatG: l.fatG,
+          dataSource: l.dataSource as string,
+          status: l.status as string,
+          warningType: l.warningType ?? null,
+          loggedAt: l.loggedAt.toISOString(),
+          calorieDelta: latestSwap ? latestSwap.calorieDelta : null,
+        };
+      });
 
       return res.status(200).json({
         success: true,
@@ -254,6 +300,123 @@ export class MealsController {
       return res.status(500).json({
         success: false,
         error: 'Failed to update scheduled meal status.',
+      });
+    }
+  }
+
+  /**
+   * GET /api/user/meals/:id/swap-options
+   * Returns compatible swap choices from verified MealLibrary.
+   */
+  static async getSwapOptions(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const mealPlanId = req.params.id;
+      const options = await MealSwapService.getEligibleSwapOptions(userId, mealPlanId);
+
+      return res.status(200).json({
+        success: true,
+        data: options,
+      });
+    } catch (error: any) {
+      console.error('[MealsController] getSwapOptions error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to retrieve swap options.',
+      });
+    }
+  }
+
+  /**
+   * POST /api/user/meals/:id/swap
+   * Performs the meal swap.
+   */
+  static async executeSwap(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const mealPlanId = req.params.id;
+      const { newLibraryMealId, warningShown, warningAcknowledged } = req.body;
+
+      if (!newLibraryMealId) {
+        return res.status(400).json({ success: false, error: 'Missing newLibraryMealId parameter.' });
+      }
+
+      const result = await MealSwapService.swapMeal(
+        userId,
+        mealPlanId,
+        newLibraryMealId,
+        warningShown,
+        warningAcknowledged
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('[MealsController] executeSwap error:', error);
+      const status = error.message.includes('limit reached') ? 403 : 400;
+      return res.status(status).json({
+        success: false,
+        error: error.message || 'Failed to execute meal swap.',
+      });
+    }
+  }
+
+  /**
+   * GET /api/user/meals/:id/swap-preview
+   * Generates swap calorie warnings.
+   */
+  static async getSwapPreview(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+      const mealPlanId = req.params.id;
+      const libraryMealId = req.query.libraryMealId as string;
+      if (!libraryMealId) {
+        return res.status(400).json({ success: false, error: 'Missing libraryMealId query parameter.' });
+      }
+      const preview = await MealSwapService.getSwapPreview(userId, mealPlanId, libraryMealId);
+      return res.status(200).json({ success: true, data: preview });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * GET /api/user/meals/compatible-library
+   * Returns all compatible approved library meals for the logged-in user.
+   */
+  static async getCompatibleLibrary(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const mealType = req.query.mealType as MealType | undefined;
+      const search = req.query.search as string | undefined;
+      const meals = await MealSwapService.getCompatibleLibraryMeals(userId, mealType, search);
+
+      return res.status(200).json({
+        success: true,
+        data: meals,
+      });
+    } catch (error: any) {
+      console.error('[MealsController] getCompatibleLibrary error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to retrieve compatible meals.',
       });
     }
   }

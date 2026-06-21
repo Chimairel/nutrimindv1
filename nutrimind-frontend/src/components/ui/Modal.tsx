@@ -57,7 +57,7 @@ export const Modal: React.FC<ModalProps> = ({
               </div>
               
               <Dialog.Close 
-                className="rounded-lg p-1.5 text-brand-muted hover:bg-brand-border hover:text-brand-green transition-colors outline-none focus:ring-2 focus:ring-brand-green"
+                className="rounded-lg p-1.5 text-brand-muted hover:bg-brand-bg-alt hover:text-brand-green transition-colors outline-none focus:ring-2 focus:ring-brand-green"
                 aria-label="Close"
               >
                 ✕

@@ -1,5 +1,8 @@
 # NutriMind — AI Agent System Prompt
 
+> **Last Updated:** June 21, 2026
+
+
 ---
 
 ## WHAT IS NUTRIMIND?
@@ -220,6 +223,13 @@ CORRECT: Let me check schema.prisma...
 1. What model does the API query? → Read the service
 2. What fields does that model have? → Read schema.prisma
 3. Does my frontend interface match? → Compare field names
+
+### RULE 9: DOCUMENT ALL CHANGES IN UPDATE_LOG.md
+Whenever you implement a new feature, addendum, or fix a bug:
+- Open `UPDATE_LOG.md` in the project root.
+- Document the change chronologically in a detailed and comprehensive manner, including the exact date of implementation (e.g. `(June 21, 2026)`).
+- Do NOT skip this step. Every feature, addendum, and refinement must be logged with its implementation date.
+
 
 ---
 

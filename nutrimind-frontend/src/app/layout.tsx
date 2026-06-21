@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { ThemeProvider } from "@/lib/context/ThemeContext";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -49,13 +50,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('nutrimind-theme');
+                  var theme = saved === 'light' || saved === 'dark' ? saved : 'light';
+                  document.documentElement.className = theme;
+                } catch (e) {}
+              })()
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${dmSans.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable} font-sans antialiased bg-brand-bg text-brand-text`}
       >
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

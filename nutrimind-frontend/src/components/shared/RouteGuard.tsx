@@ -62,7 +62,6 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     const isUserRoute = pathname.startsWith('/dashboard') || 
                         pathname.startsWith('/meals') || 
                         pathname.startsWith('/grocery') || 
-                        pathname.startsWith('/history') || 
                         pathname.startsWith('/profile') || 
                         pathname.startsWith('/nutritionists');
 

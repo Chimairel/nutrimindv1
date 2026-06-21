@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import { Goal, ActivityLevel } from '@/types';
-
+import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check } from 'lucide-react';
 import axios from 'axios';
 
 export default function OnboardingStatsPage() {
@@ -49,10 +49,26 @@ export default function OnboardingStatsPage() {
   })();
 
   const targetWeightHint = (() => {
-    if (goal === 'MAINTAIN') return '🔒 Locked to your current weight';
-    if (goal === 'GAIN_WEIGHT') return '📈 Must be ≥ current weight';
-    if (goal === 'BUILD_MUSCLE') return '💪 Must be ≥ current weight';
-    if (goal === 'LOSE_WEIGHT') return '📉 Must be ≤ current weight';
+    if (goal === 'MAINTAIN') return (
+      <span className="flex items-center gap-1">
+        <Lock className="w-3 h-3 text-brand-muted shrink-0" /> Locked to your current weight
+      </span>
+    );
+    if (goal === 'GAIN_WEIGHT') return (
+      <span className="flex items-center gap-1">
+        <TrendingUp className="w-3 h-3 text-brand-green shrink-0" /> Must be ≥ current weight
+      </span>
+    );
+    if (goal === 'BUILD_MUSCLE') return (
+      <span className="flex items-center gap-1">
+        <Dumbbell className="w-3 h-3 text-brand-green shrink-0" /> Must be ≥ current weight
+      </span>
+    );
+    if (goal === 'LOSE_WEIGHT') return (
+      <span className="flex items-center gap-1">
+        <TrendingDown className="w-3 h-3 text-brand-green shrink-0" /> Must be ≤ current weight
+      </span>
+    );
     return '';
   })();
 
@@ -125,11 +141,11 @@ export default function OnboardingStatsPage() {
     }
   };
 
-  const goalsList: { value: Goal; label: string; icon: string }[] = [
-    { value: 'LOSE_WEIGHT', label: 'Lose Weight', icon: '📉' },
-    { value: 'GAIN_WEIGHT', label: 'Gain Weight', icon: '📈' },
-    { value: 'MAINTAIN', label: 'Maintain Weight', icon: '⚖️' },
-    { value: 'BUILD_MUSCLE', label: 'Build Muscle', icon: '💪' },
+  const goalsList: { value: Goal; label: string; icon: React.ReactNode }[] = [
+    { value: 'LOSE_WEIGHT', label: 'Lose Weight', icon: <TrendingDown className="w-4 h-4 text-brand-green" /> },
+    { value: 'GAIN_WEIGHT', label: 'Gain Weight', icon: <TrendingUp className="w-4 h-4 text-brand-green" /> },
+    { value: 'MAINTAIN', label: 'Maintain Weight', icon: <Scale className="w-4 h-4 text-brand-green" /> },
+    { value: 'BUILD_MUSCLE', label: 'Build Muscle', icon: <Dumbbell className="w-4 h-4 text-brand-green" /> },
   ];
 
   const activityLevelsList: { value: ActivityLevel; label: string; desc: string }[] = [
@@ -165,7 +181,7 @@ export default function OnboardingStatsPage() {
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-              <span>⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
@@ -185,14 +201,14 @@ export default function OnboardingStatsPage() {
                       type="button"
                       onClick={() => handleGoalChange(item.value)}
                       className={`
-                        flex items-center gap-2.5 px-4 py-3 rounded-xl border font-semibold text-sm transition-all duration-200 outline-none
+                        flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 outline-none
                         ${isSelected 
-                          ? 'border-brand-green bg-brand-green/10 text-brand-green shadow-lg shadow-brand-green/5' 
+                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
                           : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >
-                      <span className="text-base">{item.icon}</span>
+                      <span className="shrink-0">{item.icon}</span>
                       <span>{item.label}</span>
                     </button>
                   );
@@ -291,20 +307,20 @@ export default function OnboardingStatsPage() {
                       type="button"
                       onClick={() => setActivityLevel(item.value)}
                       className={`
-                        flex items-center justify-between px-5 py-3 rounded-xl border text-left transition-all duration-200 outline-none
+                        flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
                         ${isSelected 
-                          ? 'border-brand-green bg-brand-green/10 shadow-lg shadow-brand-green/5' 
+                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
                           : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
                     >
                       <div>
-                        <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-brand-green' : 'text-brand-text'}`}>
+                        <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}>
                           {item.label}
                         </h4>
-                        <p className="text-xs text-brand-muted mt-0.5 leading-tight">{item.desc}</p>
+                        <p className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{item.desc}</p>
                       </div>
-                      {isSelected && <span className="text-brand-green font-bold">✓</span>}
+                      {isSelected && <Check className="w-4 h-4 text-white stroke-[3px] shrink-0" />}
                     </button>
                   );
                 })}

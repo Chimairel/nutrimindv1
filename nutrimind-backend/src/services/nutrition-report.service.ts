@@ -2,6 +2,28 @@ import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
 import { HealthConditionType, AllergenType } from '@prisma/client';
+import { z } from 'zod';
+
+const NUTRITION_REPORT_SYSTEM_CONTEXT = `
+You are generating a nutrition report for a system with this
+EXACT JSON response shape. You MUST use these exact
+field names — do not rename, do not restructure, do not
+add extra fields.
+
+Required response format:
+{
+  "foodsToAvoid": string[],
+  "foodsToLimit": string[],
+  "foodsRecommended": string[],
+  "drinksGuidance": string[],
+  "generalSummary": string
+}
+
+Rules:
+- Return ONLY valid JSON. No markdown formatting, no
+  code fences, no backticks, no preamble, no explanation
+  text before or after the JSON
+`;
 
 export class NutritionReportService {
   /**
@@ -66,6 +88,7 @@ export class NutritionReportService {
 
     // 3. Compile prompt constraints
     const clinicalSystemInstruction = 
+      NUTRITION_REPORT_SYSTEM_CONTEXT + "\n" +
       "You are a licensed Registered Nutritionist-Dietitian (RND) and medical advisor in the Philippines. " +
       "You specialize in custom nutrition plans mapped to the Philippine Food and Nutrition Research Institute (FNRI) standards. " +
       "Your target demographic is young urban health-conscious Filipinos (18-35). " +
@@ -113,6 +136,15 @@ export class NutritionReportService {
 
     console.log(`[Nutrition Report] Querying Gemini API for user: ${user.name} (${userId})...`);
 
+    // Define Zod response schema
+    const NutritionReportSchema = z.object({
+      foodsToAvoid: z.array(z.string()),
+      foodsToLimit: z.array(z.string()),
+      foodsRecommended: z.array(z.string()),
+      drinksGuidance: z.array(z.string()),
+      generalSummary: z.string(),
+    });
+
     // 4. Request the real Gemini AI model to perform the assessment
     const reportData = await generateGenerativeJSON<{
       foodsToAvoid: string[];
@@ -120,7 +152,7 @@ export class NutritionReportService {
       foodsRecommended: string[];
       drinksGuidance: string[];
       generalSummary: string;
-    }>(prompt, clinicalSystemInstruction);
+    }>(prompt, clinicalSystemInstruction, NutritionReportSchema, 0.2);
 
     // Validate structure format
     if (

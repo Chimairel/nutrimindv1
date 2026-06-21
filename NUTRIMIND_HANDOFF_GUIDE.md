@@ -2,7 +2,8 @@
 ### For any AI model continuing this project
 
 > **Owner**: chimairelp@gmail.com  
-> **Last audited**: 2026-06-13  
+> **Last audited**: 2026-06-21  
+
 > **Stack**: Next.js 14 frontend + Express/Prisma backend + Neon PostgreSQL + Gemini AI
 
 ---
@@ -239,9 +240,9 @@ npm run dev                  # -> http://localhost:3000
 
 ---
 
-## RECENT CHANGES (June 12-13, 2026)
+## RECENT CHANGES (June 12-21, 2026)
 
-These changes were made in the last session. Read them to avoid undoing or duplicating work:
+These changes were made in the recent sessions. Read them to avoid undoing or duplicating work:
 
 | Change | Files Modified |
 |--------|---------------|
@@ -251,7 +252,12 @@ These changes were made in the last session. Read them to avoid undoing or dupli
 | **Nutrition report dynamic data**: Replaced hardcoded "Juan Dela Cruz" with real user profile data | `nutrition-report/page.tsx` |
 | **Custom conditions/allergies**: Added `otherConditions`/`otherAllergies` fields to UserProfile schema, backend controllers, Gemini prompts, and frontend pages | `schema.prisma`, `user.service.ts`, `user.controller.ts`, `nutrition-report.service.ts`, `meal-generation.service.ts`, `conditions/page.tsx`, `allergies/page.tsx` |
 | **Back buttons**: Added back navigation to all onboarding steps (preferences, conditions, allergies, TOS) | All 4 onboarding pages |
-| **Gemini model update**: Model sequence updated to June 2026 current models | `gemini.ts` |
+| **Google Gemini model sequence**: Model sequence updated to June 2026 current models | `gemini.ts` |
+| **Addendums 1, 2 & 3 implementation**: Shopping-Day Weekly Plan, Autocomplete chip validations, Meal Library slot-by-slot matching with rotation, schema-aware prompting, and loop Zod validation | `gemini.ts`, `meal-generation.service.ts`, `nutritionist.service.ts`, `nutrition-report.service.ts`, `user.service.ts`, `user.controller.ts`, `user.routes.ts`, `onboarding/*`, `cron.service.ts`, `cron.routes.ts` |
+| **Addendum 4 implementation**: Ownership-based CRUD and cross-nutritionist flagging flow for the verified Meal Library with search, filters, and paginated grid dashboard | `schema.prisma`, `nutritionist.service.ts`, `nutritionist.routes.ts`, `meal-generation.service.ts`, `(nutritionist)/nutritionist/library/page.tsx` |
+| **Addendum 5 implementation**: User-Facing Meal Swap | `schema.prisma`, `meal-swap.service.ts`, `meals.controller.ts`, `meals.routes.ts`, `(user)/meals/page.tsx` |
+| **Addendum 6 implementation (June 20, 2026)**: Weekly regen fix, unified `/meals` page with tabs, swap calorie delta/range warnings, and `SwapLog` model tracking | `schema.prisma`, `cron.service.ts`, `meal-swap.service.ts`, `meals.controller.ts`, `meals.routes.ts`, `(user)/meals/page.tsx`, `Sidebar.tsx`, `index.ts` |
+| **Recent Refinements (June 21, 2026)**: History checkoff uncheck bug resolution (filtering out `PENDING` logs), silent token refresh interceptor implementation | `meals.controller.ts`, `(user)/meals/page.tsx`, `AuthContext.tsx`, `axios.ts`, `login/page.tsx`, `register/page.tsx`, `GoogleSignInButton.tsx` |
 
 ---
 
@@ -666,7 +672,21 @@ Before building any frontend page, **read the backend controller** to see what f
 All NEW code must use `catch (error: unknown)` with `instanceof Error` checks. Do NOT introduce new `catch (error: any)` blocks. There are ~46 legacy `catch (error: any)` blocks in the codebase — do not add to that number.
 
 ### 20. React in backend — use dynamic import only
-Do NOT put `import React from 'react'` at the top of backend controllers. If React is needed for PDF generation with `@react-pdf/renderer`, use `const React = await import('react')` **inside the method** that needs it.
+## Execution Details (Added by Agent):
+### Addendum 4 — Nutritionist Meal Library CRUD & Flagging
+- Updated `schema.prisma` with `MealLibraryFlag` table, `MealLibrary.status` field, and custom enums.
+- Implemented comprehensive CRUD and permission check rules in `nutritionist.service.ts` ensuring ownership-based accountability.
+- Mounted routes in `nutritionist.routes.ts`.
+- Built frontend dashboard page `/nutritionist/library/page.tsx` with Radix modals, filters, and flagging workflows.
+- Verified Next.js production builds and TypeScript types compile cleanly.
+
+### Addendum 5 — User-Facing Meal Swap
+- Modified `schema.prisma` relations from one-to-one to one-to-many (`MealPlan.libraryMealId` -> `MealLibrary.mealPlans`) and created `PlanSwapTracker` model.
+- Created `MealSwapService` (`src/services/meal-swap.service.ts`) checking profile constraints (allergies, health conditions, dietary preference, active goal), weekly cap (3 swaps), and atomically executes swaps (copying ingredients, regenerating grocery list, and updating nutrition logs).
+- Added static helper for querying all compatible verified meals.
+- Mounted controller actions in `meals.controller.ts` and routes in `meals.routes.ts`.
+- Integrated counter, Radix Modal dialog replacement selector, and "Browse Library" search view in `/meals/page.tsx` with disabled conditions and tooltips.
+- Verified full backend/frontend build passes cleanly with 0 errors.
 
 ---
 

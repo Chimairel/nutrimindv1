@@ -157,28 +157,29 @@ export class CronService {
         const profile = user.userProfile;
         if (!profile) continue;
 
+        // Generate new weekly plan for this user
+        console.log(`[CronService] Generating new weekly plan for ${user.email}...`);
+        const { MealGenerationService } = await import('@/services/meal-generation.service');
+        await MealGenerationService.generatePlanForUser(user.id);
+
         // Send weekly check-in notification
         await prisma.notification.create({
           data: {
             userId: user.id,
             title: '🛒 Weekly Check-In',
-            message: 'Your new week is starting! Let us know if your health goals or dietary needs have changed so we can refresh your meal plan.',
+            message: 'Your new weekly meal plan is ready! Let us know if your health goals or dietary needs have changed.',
             type: 'WEEKLY_CHECKIN',
           },
         });
 
-        // Auto-regenerate if checkinStreak is -3 or worse (3 consecutive missed weeks)
+        // Handle missed check-in streak notification (keep existing logic)
         const missedCheckins = profile.checkinStreak < 0 ? Math.abs(profile.checkinStreak) : 0;
         if (missedCheckins >= 3) {
-          console.log(`[CronService] Auto-regenerating plan for ${user.email} (${missedCheckins} missed check-ins).`);
-          const { MealGenerationService } = await import('@/services/meal-generation.service');
-          await MealGenerationService.generatePlanForUser(user.id);
-
           await prisma.notification.create({
             data: {
               userId: user.id,
-              title: '🔄 Meal Plan Auto-Refreshed',
-              message: 'We noticed you have missed several weekly check-ins, so we refreshed your meal plan with the same preferences. Update your profile anytime to customize it.',
+              title: '⚠️ Missed Check-Ins',
+              message: 'You have missed several weekly check-ins. Please review your updated meal plan and confirm your health profile is still accurate.',
               type: 'WEEKLY_CHECKIN',
             },
           });

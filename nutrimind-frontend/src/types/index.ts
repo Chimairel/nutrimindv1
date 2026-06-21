@@ -18,7 +18,7 @@ export type MealPlanStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCE
 
 export type AIConfidenceFlag = 'SAFE' | 'CAUTION' | 'NEEDS_REVIEW';
 
-export type MealLogSource = 'SYSTEM_GENERATED' | 'USER_LOGGED';
+export type MealLogSource = 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED';
 
 export type MealLogDataSource = 'FNRI' | 'GEMINI_ESTIMATED' | 'SYSTEM';
 

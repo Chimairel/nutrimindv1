@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ZodType } from 'zod';
 
 // Retrieve API Key
 const apiKey = process.env.GEMINI_API_KEY;
@@ -43,11 +44,15 @@ function cleanJsonString(rawText: string): string {
  * 
  * @param prompt The main text prompt to analyze
  * @param systemInstruction Optional system directives to enforce role behavior
- * @returns Parsed JSON object of type T
+ * @param schema Optional Zod schema to validate response against
+ * @param temperature Optional temperature for token generation (defaults to 0.2)
+ * @returns Parsed and validated JSON object of type T
  */
 export async function generateGenerativeJSON<T = any>(
   prompt: string,
-  systemInstruction?: string
+  systemInstruction?: string,
+  schema?: ZodType<T>,
+  temperature?: number
 ): Promise<T> {
   if (!apiKey) {
     throw new Error('🛑 Google Gemini API Key is missing. Please set GEMINI_API_KEY in your .env file.');
@@ -70,7 +75,7 @@ export async function generateGenerativeJSON<T = any>(
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0.1, // Low temperature for highly consistent, deterministic structure
+          temperature: temperature !== undefined ? temperature : 0.2, // Default to 0.2 per addendum
         },
       });
 
@@ -84,12 +89,23 @@ export async function generateGenerativeJSON<T = any>(
       const cleanedText = cleanJsonString(rawText);
       
       try {
-        const parsed = JSON.parse(cleanedText) as T;
+        const parsed = JSON.parse(cleanedText);
+        
+        if (schema) {
+          const zodResult = schema.safeParse(parsed);
+          if (!zodResult.success) {
+            console.error(`[Gemini AI] Zod validation failed for model ${modelName}. Error:`, zodResult.error.format());
+            throw new Error(`Zod validation failed for model ${modelName}: ${zodResult.error.message}`);
+          }
+          console.log(`[Gemini AI] Successfully executed and Zod-validated response from: ${modelName}`);
+          return zodResult.data;
+        }
+
         console.log(`[Gemini AI] Successfully executed and parsed response from: ${modelName}`);
-        return parsed;
-      } catch (parseErr) {
-        console.error(`[Gemini AI] JSON parse failure on text from model ${modelName}. Raw content:`, rawText);
-        throw new Error(`Failed to parse generative response from model ${modelName} as JSON.`);
+        return parsed as T;
+      } catch (parseErr: any) {
+        console.error(`[Gemini AI] JSON parse or Zod validation failure on text from model ${modelName}. Raw content:`, rawText);
+        throw new Error(`Failed to parse/validate generative response from model ${modelName} as JSON. Error: ${parseErr.message || parseErr}`);
       }
 
     } catch (err: any) {
