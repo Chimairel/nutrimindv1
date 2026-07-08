@@ -59,9 +59,12 @@ router.post('/nutrition-report/generate', UserController.generateReport);
 router.post('/nutrition-report/acknowledge', UserController.acknowledgeReport);
 
 /**
- * Nutritionist Directory
+ * Profile and Account Settings
  */
-router.get('/nutritionists', UserController.getNutritionists);
+router.put('/profile', UserController.updateProfile);
+router.put('/profile/conditions', UserController.updateConditions);
+router.put('/profile/allergies', UserController.updateAllergies);
+router.put('/profile/settings', UserController.updateAccountSettings);
 
 // ──────────────────────────────────────────
 // Notifications

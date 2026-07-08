@@ -63,13 +63,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Meal Plan', href: '/meals', icon: Utensils },
       { label: 'Grocery List', href: '/grocery', icon: ShoppingCart },
-      { label: 'Nutritionists', href: '/nutritionists', icon: Users },
-      { label: 'Profile', href: '/profile', icon: User },
+      { label: 'Progress', href: '/progress', icon: TrendingUp },
     ],
     NUTRITIONIST: [
       { label: 'Pending Reviews', href: '/nutritionist/reviews', icon: ClipboardList },
       { label: 'Approved Plans', href: '/nutritionist/approved', icon: CheckSquare },
-      { label: 'My Patients', href: '/nutritionist/patients', icon: Users },
       { label: 'Meal Library', href: '/nutritionist/library', icon: BookOpen },
       { label: 'My Profile', href: '/nutritionist/profile', icon: User },
     ],
@@ -151,15 +149,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
       {/* User Session Footer */}
       <div className="border-t border-brand-border pt-4 mt-auto">
-        <div className={`flex items-center gap-3 px-2 mb-4 ${showCollapsed ? 'justify-center' : ''}`}>
+        <Link
+          href={role === 'NUTRITIONIST' ? '/nutritionist/profile' : '/profile'}
+          className={`flex items-center gap-3 p-2 rounded-xl hover:bg-brand-bgAlt/50 transition-colors cursor-pointer group mb-4 ${
+            showCollapsed ? 'justify-center' : ''
+          }`}
+        >
           <Avatar size="sm" src={user.image} fallbackText={user.name} />
           {!showCollapsed && (
-            <div className="overflow-hidden">
-              <h4 className="text-sm font-semibold tracking-wide truncate text-brand-text leading-tight">{user.name}</h4>
+            <div className="overflow-hidden flex-1">
+              <h4 className="text-sm font-semibold tracking-wide truncate text-brand-text group-hover:text-brand-green transition-colors leading-tight">
+                {user.name}
+              </h4>
               <span className="text-xs text-brand-muted truncate block">{user.email}</span>
             </div>
           )}
-        </div>
+        </Link>
         <button
           onClick={() => logout()}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-status-rejected-text/25 text-status-rejected-text hover:bg-status-rejected-bg/25 active:scale-[0.98] transition-all duration-200 text-sm font-semibold outline-none"

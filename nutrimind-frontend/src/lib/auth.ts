@@ -48,11 +48,13 @@ export const cookieHelper = {
       date.setTime(date.getTime() + daysActive * 24 * 60 * 60 * 1000);
       expires = `; expires=${date.toUTCString()}`;
     }
-    document.cookie = `${name}=${value || ''}${expires}; path=${path}; SameSite=Lax; Secure`;
+    const isSecure = window.location.protocol === 'https:';
+    document.cookie = `${name}=${value || ''}${expires}; path=${path}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
   },
 
   clear(name: string, path = '/'): void {
     if (typeof document === 'undefined') return;
-    document.cookie = `${name}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax; Secure`;
+    const isSecure = window.location.protocol === 'https:';
+    document.cookie = `${name}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax${isSecure ? '; Secure' : ''}`;
   }
 };

@@ -63,7 +63,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
                         pathname.startsWith('/meals') || 
                         pathname.startsWith('/grocery') || 
                         pathname.startsWith('/profile') || 
-                        pathname.startsWith('/nutritionists');
+                        pathname.startsWith('/progress');
 
     if (isAdminRoute && user.role !== 'ADMIN') {
       router.push('/unauthorized');

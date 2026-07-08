@@ -1,159 +1,293 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import Avatar from '@/components/ui/Avatar';
 import api from '@/lib/axios';
-import { Check, X, Flame } from 'lucide-react';
-
+import axios from 'axios';
+import { 
+  User, 
+  Lock, 
+  Smile, 
+  CheckCircle, 
+  AlertTriangle 
+} from 'lucide-react';
 
 export default function ProfilePage() {
-  const { profile, isLoading, refresh } = useProfile();
   const { logout, user, updateUserSession } = useAuth();
-  const [weightInput, setWeightInput] = useState('');
-  const [weightNote, setWeightNote] = useState('');
-  const [isLogging, setIsLogging] = useState(false);
-  const [logMsg, setLogMsg] = useState<string | null>(null);
 
+  // Avatar customization state
   const [avatarSeed, setAvatarSeed] = useState(user?.image || '');
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const PRESETS = ['John', 'Jane', 'Felix', 'Coco', 'Cookie', 'Simba', 'Buster', 'Lucky', 'Shadow', 'Sparky'];
 
-  const handleLogWeight = async () => {
-    if (!weightInput) return;
-    setIsLogging(true);
+  // Account settings form state
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [accountSuccess, setAccountSuccess] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+
+  // Password update form state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Save Avatar Update
+  const handleSaveAvatar = async () => {
+    setIsSavingAvatar(true);
+    setAvatarMsg(null);
+    setAvatarError(null);
     try {
-      await api.post('/user/progress/weight', { weightKg: parseFloat(weightInput), note: weightNote });
-      setLogMsg('Weight logged successfully!');
-      setWeightInput('');
-      setWeightNote('');
-      refresh();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      setLogMsg(axiosErr.response?.data?.error || 'Failed to log weight');
+      const res = await api.put('/user/profile/avatar', { image: avatarSeed });
+      if (res.data.success) {
+        setAvatarMsg('Avatar updated successfully!');
+        updateUserSession({ image: avatarSeed });
+      }
+    } catch {
+      setAvatarError('Failed to save avatar.');
     } finally {
-      setIsLogging(false);
+      setIsSavingAvatar(false);
     }
   };
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><span className="text-brand-muted animate-pulse">Loading profile...</span></div>;
-  }
+  // Save Account Credentials Update
+  const handleAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAccount(true);
+    setAccountError(null);
+    setAccountSuccess(null);
 
-  if (!profile) {
-    return <div className="text-brand-muted text-center mt-20">Profile not found.</div>;
-  }
+    try {
+      const res = await api.put('/user/profile/settings', {
+        name,
+        email,
+      });
 
-  const p = profile.userProfile;
+      if (res.data && res.data.success) {
+        setAccountSuccess('Account settings updated successfully!');
+        updateUserSession({
+          name: res.data.data.name,
+          email: res.data.data.email,
+        });
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setAccountError(err.response?.data?.error || 'Failed to update account settings.');
+      } else {
+        setAccountError('Failed to update account settings.');
+      }
+    } finally {
+      setIsSavingAccount(false);
+    }
+  };
+
+  // Handle Password Update
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    try {
+      const res = await api.put('/user/profile/settings', {
+        currentPassword,
+        newPassword,
+      });
+
+      if (res.data && res.data.success) {
+        setPasswordSuccess('Password changed successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setPasswordError(err.response?.data?.error || 'Failed to update password.');
+      } else {
+        setPasswordError('Failed to update password.');
+      }
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  if (!user) {
+    return <div className="text-brand-muted text-center mt-20">Please log in to view settings.</div>;
+  }
 
   return (
-    <div className="px-4 py-6 max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-extrabold text-brand-text font-display">Your Profile</h1>
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 text-brand-text text-left">
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
+          ACCOUNT SETTINGS
+        </h1>
+        <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
+          Manage your account credentials, passwords, and custom pixel-art avatar
+        </p>
+      </div>
 
-      {/* Account Info */}
-      <Card className="p-5">
-        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">Account</h2>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-brand-muted">Name</span><span className="text-brand-text font-semibold">{profile.name}</span></div>
-          <div className="flex justify-between"><span className="text-brand-muted">Email</span><span className="text-brand-text font-semibold">{profile.email}</span></div>
-          <div className="flex justify-between">
-            <span className="text-brand-muted">Email Verified</span>
-            <span className={profile.emailVerified ? 'text-brand-green' : 'text-status-error-text'}>
-              {profile.emailVerified ? (
-                <span className="inline-flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5 stroke-[3px]" />
-                  <span>Yes</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1">
-                  <X className="w-3.5 h-3.5 stroke-[3px]" />
-                  <span>No</span>
-                </span>
-              )}
-            </span>
+      {/* Account Info Form Card */}
+      <Card className="p-6 border-brand-border/60 bg-brand-surface/20 shadow-xl">
+        <h2 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-4 font-display flex items-center gap-1.5">
+          <User className="w-4 h-4 text-brand-green" />
+          <span>Account Credentials</span>
+        </h2>
+
+        {accountSuccess && (
+          <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
+            <span>{accountSuccess}</span>
           </div>
-          <div className="flex justify-between"><span className="text-brand-muted">Joined</span><span className="text-brand-text">{new Date(profile.createdAt).toLocaleDateString()}</span></div>
-        </div>
+        )}
+
+        {accountError && (
+          <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+            <span>{accountError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleAccountSubmit} className="space-y-4">
+          <Input
+            label="Display Name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <Input
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={isSavingAccount}
+              className="text-xs font-bold py-2.5 px-6 shadow-md"
+            >
+              {isSavingAccount ? 'Saving Settings...' : 'Save Account Settings'}
+            </Button>
+          </div>
+        </form>
       </Card>
 
-      {/* Body Stats */}
-      {p && (
-        <Card className="p-5">
-          <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">Body Stats</h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div><span className="text-brand-muted">Age:</span> <strong className="text-brand-text">{p.age || '—'}</strong></div>
-            <div><span className="text-brand-muted">Sex:</span> <strong className="text-brand-text">{p.biologicalSex || '—'}</strong></div>
-            <div><span className="text-brand-muted">Height:</span> <strong className="text-brand-text">{p.heightCm ? `${p.heightCm} cm` : '—'}</strong></div>
-            <div><span className="text-brand-muted">Weight:</span> <strong className="text-brand-text">{p.weightKg ? `${p.weightKg} kg` : '—'}</strong></div>
-            <div><span className="text-brand-muted">Target:</span> <strong className="text-brand-text">{p.targetWeightKg ? `${p.targetWeightKg} kg` : '—'}</strong></div>
-            <div><span className="text-brand-muted">Goal:</span> <strong className="text-brand-text">{p.goal?.replace(/_/g, ' ') || '—'}</strong></div>
-            <div><span className="text-brand-muted">Activity:</span> <strong className="text-brand-text">{p.activityLevel?.replace(/_/g, ' ') || '—'}</strong></div>
-            <div><span className="text-brand-muted">Calories:</span> <strong className="text-brand-green">{p.dailyCalorieTarget ? `${p.dailyCalorieTarget} kcal` : '—'}</strong></div>
-          </div>
-        </Card>
-      )}
+      {/* Password Change Card */}
+      <Card className="p-6 border-brand-border/60 bg-brand-surface/20 shadow-xl">
+        <h2 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-4 font-display flex items-center gap-1.5">
+          <Lock className="w-4 h-4 text-brand-green" />
+          <span>Change Password</span>
+        </h2>
 
-      {/* Diet & Clinical */}
-      <Card className="p-5">
-        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">Diet & Health</h2>
-        <div className="space-y-2 text-sm">
-          <div><span className="text-brand-muted">Diet:</span> <strong className="text-brand-text">{p?.dietaryPreference || 'OMNIVORE'}</strong></div>
-          <div><span className="text-brand-muted">Carb Level:</span> <strong className="text-brand-text">{p?.carbPreference || 'MODERATE'}</strong></div>
-          <div><span className="text-brand-muted">Conditions:</span> <strong className="text-brand-text">{profile.healthConditions.length > 0 ? profile.healthConditions.join(', ') : 'None'}</strong></div>
-          <div><span className="text-brand-muted">Allergies:</span> <strong className="text-brand-text">{profile.allergies.length > 0 ? profile.allergies.join(', ') : 'None'}</strong></div>
-          <div className="flex justify-between items-center">
-            <span className="text-brand-muted">Check-in Streak:</span>
-            <strong className="text-brand-green flex items-center gap-1">
-              <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-              <span>{p?.checkinStreak || 0} weeks</span>
-            </strong>
+        {passwordSuccess && (
+          <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
+            <span>{passwordSuccess}</span>
           </div>
-        </div>
+        )}
+
+        {passwordError && (
+          <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+            <span>{passwordError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <Input
+            label="Current Password"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+          />
+          <Input
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+          <Input
+            label="Confirm New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={isUpdatingPassword}
+              className="text-xs font-bold py-2.5 px-6 shadow-md"
+            >
+              {isUpdatingPassword ? 'Updating Password...' : 'Change Password'}
+            </Button>
+          </div>
+        </form>
       </Card>
 
       {/* Customize Pixel-Art Avatar */}
-      <Card className="p-5">
-        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">Customize Pixel-Art Avatar</h2>
+      <Card className="p-6 border-brand-border/60 bg-brand-surface/20 shadow-xl">
+        <h2 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-4 font-display flex items-center gap-1.5">
+          <Smile className="w-4 h-4 text-brand-green" />
+          <span>Customize Pixel-Art Avatar</span>
+        </h2>
+
+        {avatarMsg && (
+          <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
+            <span>{avatarMsg}</span>
+          </div>
+        )}
+
+        {avatarError && (
+          <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+            <span>{avatarError}</span>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="flex flex-col items-center gap-2">
-            <Avatar size="lg" src={avatarSeed} fallbackText={profile.name} className="shadow" />
-            <span className="text-xs text-brand-muted">Preview</span>
+            <Avatar size="lg" src={avatarSeed} fallbackText={user.name} className="shadow-lg border-2 border-brand-green/20" />
+            <span className="text-[10px] text-brand-muted font-bold uppercase tracking-wider">Avatar Preview</span>
           </div>
 
           <div className="flex-1 w-full space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-brand-muted mb-1">Avatar Sprite Seed</label>
+              <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Avatar Sprite Seed</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Type any word..."
                   value={avatarSeed}
                   onChange={(e) => setAvatarSeed(e.target.value)}
-                  className="flex-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none"
+                  className="flex-1 bg-brand-bgAlt border border-brand-border rounded-xl px-4 py-2.5 text-sm text-brand-text focus:border-brand-green focus:ring-2 focus:ring-brand-green/25 focus:outline-none outline-none transition-all duration-200"
                 />
                 <Button
                   variant="primary"
-                  onClick={async () => {
-                    setIsSavingAvatar(true);
-                    setAvatarMsg(null);
-                    try {
-                      const res = await api.put('/user/profile/avatar', { image: avatarSeed });
-                      if (res.data.success) {
-                        setAvatarMsg('Avatar updated successfully!');
-                        updateUserSession({ image: avatarSeed });
-                      }
-                    } catch {
-                      setAvatarMsg('Failed to save avatar');
-                    } finally {
-                      setIsSavingAvatar(false);
-                    }
-                  }}
+                  onClick={handleSaveAvatar}
                   isLoading={isSavingAvatar}
-                  className="px-4 py-2 text-xs"
+                  className="px-5 py-2.5 text-xs font-bold shadow-md"
                 >
                   Save
                 </Button>
@@ -161,17 +295,17 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-brand-muted mb-1.5">Or choose a preset:</span>
+              <span className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Or choose a preset:</span>
               <div className="flex flex-wrap gap-1.5">
                 {PRESETS.map((p) => (
                   <button
                     key={p}
                     onClick={() => setAvatarSeed(p)}
                     className={`
-                      px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 font-medium
+                      px-3 py-1.5 text-xs rounded-xl border transition-all duration-150 font-bold cursor-pointer outline-none
                       ${avatarSeed === p 
-                        ? 'bg-brand-green text-white border-brand-border' 
-                        : 'bg-brand-surface text-brand-text border-brand-border/30 hover:border-brand-border'
+                        ? 'bg-brand-green/20 text-brand-green border-brand-green' 
+                        : 'bg-brand-bgAlt text-brand-muted border-brand-border/40 hover:border-brand-border hover:text-brand-text'
                       }
                     `}
                   >
@@ -182,39 +316,12 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        {avatarMsg && <p className="text-xs mt-2 text-brand-green">{avatarMsg}</p>}
       </Card>
 
-
-      {/* Quick Weight Log */}
-      <Card className="p-5">
-        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">Quick Weight Log</h2>
-        <div className="flex gap-2 items-end">
-          <input
-            type="number"
-            placeholder="Weight (kg)"
-            value={weightInput}
-            onChange={(e) => setWeightInput(e.target.value)}
-            className="flex-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none"
-          />
-          <input
-            type="text"
-            placeholder="Note (optional)"
-            value={weightNote}
-            onChange={(e) => setWeightNote(e.target.value)}
-            className="flex-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none"
-          />
-          <Button variant="primary" onClick={handleLogWeight} isLoading={isLogging} className="px-4 py-2 text-xs">
-            Log
-          </Button>
-        </div>
-        {logMsg && <p className="text-xs mt-2 text-brand-green">{logMsg}</p>}
-      </Card>
-
-      {/* Logout */}
+      {/* Logout / Sign Out button */}
       <div className="pt-4">
-        <Button variant="secondary" onClick={logout} className="w-full py-3 text-sm">
-          Sign Out
+        <Button variant="secondary" onClick={logout} className="w-full py-3.5 text-sm font-bold shadow-md border-brand-border hover:border-red-500/20 hover:text-red-500 hover:bg-red-500/5">
+          Sign Out of Account
         </Button>
       </div>
     </div>

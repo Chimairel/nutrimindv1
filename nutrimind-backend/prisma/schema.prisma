@@ -86,12 +86,18 @@ enum MealLogSource {
   SYSTEM_GENERATED
   USER_LOGGED
   USER_SWAPPED
+  SAFETY_REPLACED
 }
 
 enum MealLogDataSource {
   FNRI
   GEMINI_ESTIMATED
   SYSTEM
+}
+
+enum MealIngredientDataSource {
+  FNRI
+  GEMINI_ESTIMATED
 }
 
 enum MealLogStatus {
@@ -157,7 +163,6 @@ model User {
   nutritionReport          NutritionReport?
   nutritionistProfile      NutritionistProfile?  @relation("UserToNutritionistProfile")
   nutritionistVerifications NutritionistProfile[] @relation("AdminVerifier")
-  nutritionistAssignments  NutritionistAssignment[]
   mealPlans                MealPlan[]            @relation("UserMealPlans")
   mealLogs                 MealLog[]
   weightLogs               WeightLog[]
@@ -259,21 +264,10 @@ model NutritionistProfile {
   verifiedAt        DateTime?
 
   // Relations
-  assignments      NutritionistAssignment[]
   mealPlansReviewed MealPlan[]
   verifiedMeals    MealLibrary[]
   submittedFlags   MealLibraryFlag[] @relation("SubmittedFlags")
-}
-
-model NutritionistAssignment {
-  id                    String              @id @default(cuid())
-  userId                String
-  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nutritionistProfileId String
-  nutritionistProfile   NutritionistProfile @relation(fields: [nutritionistProfileId], references: [id], onDelete: Cascade)
-  status                AssignmentStatus    @default(PENDING)
-  assignedAt            DateTime            @default(now())
-  endedAt               DateTime?
+  claimedPlans     MealPlan[]        @relation("ClaimedPlans")
 }
 
 model FoodItem {
@@ -330,14 +324,17 @@ model MealPlan {
   aiConfidenceFlag AIConfidenceFlag @default(SAFE)
   planType         PlanType         @default(WEEKLY)
   nutritionistNote String?          @db.Text
-  scheduledDate    DateTime
-  reviewedAt       DateTime?
-  createdAt        DateTime         @default(now())
+  scheduledDate           DateTime
+  reviewedAt              DateTime?
+  createdAt               DateTime             @default(now())
+  claimedByNutritionistId String?
+  claimedByNutritionist   NutritionistProfile? @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
+  claimedAt               DateTime?
 
   // Relations
-  ingredients      MealIngredient[]
-  mealLogs         MealLog[]
-  swapLogs         SwapLog[]
+  ingredients             MealIngredient[]
+  mealLogs                MealLog[]
+  swapLogs                SwapLog[]
 }
 
 model MealLibrary {
@@ -364,13 +361,14 @@ model MealLibrary {
 }
 
 model MealIngredient {
-  id             String    @id @default(cuid())
+  id             String                   @id @default(cuid())
   mealPlanId     String
-  mealPlan       MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealPlan       MealPlan                 @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
   foodItemId     String?
-  foodItem       FoodItem? @relation(fields: [foodItemId], references: [id])
+  foodItem       FoodItem?                @relation(fields: [foodItemId], references: [id])
   ingredientName String
   category       String?
+  dataSource     MealIngredientDataSource @default(FNRI)
 }
 
 model MealLog {

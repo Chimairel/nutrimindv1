@@ -1,4 +1,6 @@
 import { Response } from 'express';
+import bcrypt from 'bcryptjs';
+import prisma from '@/lib/prisma';
 
 import { AuthenticatedRequest } from '@/types';
 import { UserService } from '@/services/user.service';
@@ -42,11 +44,25 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const profile = await UserService.updateUserProfile(userId, req.body);
+      // Convert number fields to floats/ints if they are passed as strings
+      const data = { ...req.body };
+      if (data.age) data.age = parseInt(data.age);
+      if (data.heightCm) data.heightCm = parseFloat(data.heightCm);
+      if (data.weightKg) data.weightKg = parseFloat(data.weightKg);
+      if (data.targetWeightKg) data.targetWeightKg = parseFloat(data.targetWeightKg);
+
+      const profile = await UserService.updateUserProfile(userId, data);
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (user?.onboardingDone) {
+        await UserService.completeOnboarding(userId);
+      }
+
+      const profileDetails = await UserService.getUserProfileDetails(userId);
 
       return res.status(200).json({
         success: true,
-        data: profile,
+        data: profileDetails,
       });
     } catch (error: any) {
       console.error('[UserController] updateProfile error:', error);
@@ -111,6 +127,8 @@ export class UserController {
       } else {
         await UserService.updateOtherConditions(userId, '');
       }
+
+      await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({
         success: true,
@@ -179,6 +197,8 @@ export class UserController {
       } else {
         await UserService.updateOtherAllergies(userId, '');
       }
+
+      await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({
         success: true,
@@ -345,19 +365,94 @@ export class UserController {
   }
 
   /**
-   * GET /api/user/nutritionists
-   * Returns a list of verified nutritionists for the user directory.
+   * PUT /api/user/profile/settings
+   * Updates core account credentials (name, email) and optionally password.
    */
-  static async getNutritionists(req: AuthenticatedRequest, res: Response) {
+  static async updateAccountSettings(req: AuthenticatedRequest, res: Response) {
     try {
-      const nutritionists = await UserService.getNutritionistDirectory();
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const { name, email, currentPassword, newPassword } = req.body;
+
+      // Fetch user to check password and email uniqueness
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found.' });
+      }
+
+      const updateData: any = {};
+
+      if (name && typeof name === 'string') {
+        updateData.name = name.trim();
+      }
+
+      if (email && typeof email === 'string') {
+        const sanitizedEmail = email.trim().toLowerCase();
+        if (sanitizedEmail !== user.email) {
+          // Check uniqueness
+          const existingUser = await prisma.user.findUnique({
+            where: { email: sanitizedEmail },
+          });
+          if (existingUser) {
+            return res.status(400).json({ success: false, error: 'An account with this email address already exists.' });
+          }
+          updateData.email = sanitizedEmail;
+        }
+      }
+
+      // Handle password change if requested
+      if (currentPassword || newPassword) {
+        if (!currentPassword || !newPassword) {
+          return res.status(400).json({ success: false, error: 'Both current password and new password are required to change your password.' });
+        }
+
+        // Verify current password
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isPasswordValid) {
+          return res.status(400).json({ success: false, error: 'Incorrect current password.' });
+        }
+
+        // Validate new password strength: length >= 8, >= 1 uppercase, >= 1 number
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+          return res.status(400).json({
+            success: false,
+            error: 'New password must be at least 8 characters long, contain at least one uppercase letter, and at least one number.',
+          });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(12);
+        updateData.passwordHash = await bcrypt.hash(newPassword, salt);
+      }
+
+      // Save changes
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          onboardingDone: true,
+        },
+      });
+
       return res.status(200).json({
         success: true,
-        data: nutritionists,
+        message: 'Account settings updated successfully.',
+        data: updatedUser,
       });
     } catch (error: any) {
-      console.error('[UserController] getNutritionists error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to retrieve nutritionist directory.' });
+      console.error('[UserController] updateAccountSettings error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to update account settings.' });
     }
   }
 

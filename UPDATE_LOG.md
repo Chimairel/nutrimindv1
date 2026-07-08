@@ -139,6 +139,16 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - *Color Variables*: Overhauled the dark mode CSS variables (`html.dark`) in `globals.css` to transition from pitch black to Claude's warm dark charcoal layout contrast, customized with a subtle green-charcoal background (`#1c201e`), secondary backgrounds (`#212623`), card surfaces (`#282f2b`), borders (`#353e39`), soft green-white text (`#e8ece9`), and sage-tinted muted subheadings (`#88928d`).
   - *Dynamic Templates*: Replaced hardcoded color values with theme-aware dynamic classes inside `page.tsx` (for landing page footer background) and `nutrition-report/page.tsx` (for the summary card gradient layout).
 
+- **Navigation Restructure & Removal of Nutritionist Assignment (June 21, 2026):**
+  - *Database cleanup*: Dropped the `NutritionistAssignment` table and associations from the schema. Created and ran SQL migrations and regenerated the Prisma Client.
+  - *Backend services refactoring*: Updated `getReviewQueue` in `nutritionist.service.ts` to return all pending review meal plans globally, sorted by clinical confidence flag order (`NEEDS_REVIEW` -> `CAUTION` -> `SAFE`). Deleted the obsolete `getPatients` method.
+  - *Safety Recheck and Swapping Flow*: Implemented `UserService.runSafetyRecheck` and `checkSafetyConflict`. On health condition or allergy updates, the service scans remaining unconsumed meals in the active plan for conflicts, swaps them with approved compatible library items (cap-exempt), or calls Gemini AI to regenerate them as pending review slots.
+  - *User Settings Controller*: Created a new `updateAccountSettings` method on `UserController` mapping to `PUT /api/user/profile/settings` to allow users to update their name, email, and password (enforcing strength validations).
+  - *Sidebar Restructuring*: Removed "Nutritionists" and "Profile" from the USER sidebar array. Added a new "Progress" tab. Linked the bottom-pinned user card to the settings page (`/profile`). Removed "My Patients" from the NUTRITIONIST sidebar menu.
+  - *Progress & Settings Overhaul*: Recreated `/progress` page as a centralized biometrics/preferences card, health conditions/allergies choice chips, autocomplete inputs, SVG weight charts, and adherence calendars. Redesigned `/profile` exclusively for credentials, password changes, and DiceBear avatar seeds.
+  - *Build and Compile*: Successfully verified backend/frontend compilation and Next.js static build optimized bundle checks.
+
+
 
 
 

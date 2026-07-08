@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -24,28 +25,28 @@ const config: Config = {
         },
         status: {
           verified: {
-            bg: "#D1FAE5",
-            text: "#065F46",
+            bg: "var(--status-verified-bg)",
+            text: "var(--status-verified-text)",
           },
           pending: {
-            bg: "#FEF3C7",
-            text: "#92400E",
+            bg: "var(--status-pending-bg)",
+            text: "var(--status-pending-text)",
           },
           rejected: {
-            bg: "#FEE2E2",
-            text: "#991B1B",
+            bg: "var(--status-rejected-bg)",
+            text: "var(--status-rejected-text)",
           },
           error: {
-            bg: "#FEE2E2",
-            text: "#991B1B",
+            bg: "var(--status-error-bg)",
+            text: "var(--status-error-text)",
           },
           ai: {
-            bg: "#EDE9FE",
-            text: "#5B21B6",
+            bg: "var(--status-ai-bg)",
+            text: "var(--status-ai-text)",
           },
           user: {
-            bg: "#DBEAFE",
-            text: "#1E40AF",
+            bg: "var(--status-user-bg)",
+            text: "var(--status-user-text)",
           },
         },
       },

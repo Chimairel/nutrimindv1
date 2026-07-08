@@ -108,11 +108,12 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden
+    // Handle 403 Forbidden — log but don't redirect.
+    // The RouteGuard component handles role-based page access.
+    // Redirecting here causes issues when background fetches (e.g. notifications)
+    // hit role-restricted endpoints for non-USER accounts.
     if (error.response && error.response.status === 403) {
-      if (typeof window !== 'undefined') {
-        window.location.href = '/unauthorized';
-      }
+      console.warn('[Axios] 403 Forbidden on:', error.config?.url);
     }
 
     return Promise.reject(error);

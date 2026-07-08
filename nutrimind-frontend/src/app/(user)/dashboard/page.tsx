@@ -22,10 +22,32 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [currentMeals, setCurrentMeals] = useState<MealPlan[]>([]);
-  const [selectedDayOffset, setSelectedDayOffset] = useState(0); // 0 = Today, 1 = Tomorrow, etc.
+  const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Extract unique scheduledDate values in chronological order
+  const uniqueDates = React.useMemo(() => {
+    if (!currentMeals || currentMeals.length === 0) return [];
+    const dateStrings = Array.from(
+      new Set(currentMeals.map((m) => new Date(m.scheduledDate).toDateString()))
+    );
+    return dateStrings.map((dStr) => new Date(dStr)).sort((a, b) => a.getTime() - b.getTime());
+  }, [currentMeals]);
+
+  // Sync selected day offset to today if present in the plan
+  useEffect(() => {
+    if (uniqueDates.length > 0) {
+      const todayStr = new Date().toDateString();
+      const todayIdx = uniqueDates.findIndex((d) => d.toDateString() === todayStr);
+      if (todayIdx !== -1) {
+        setSelectedDayOffset(todayIdx);
+      } else {
+        setSelectedDayOffset(0);
+      }
+    }
+  }, [uniqueDates]);
 
   // Outside Meal Modal State
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -160,9 +182,8 @@ export default function DashboardPage() {
 
   // Calorie & Macros analytics calculations
   const calculateDailyAverages = () => {
-    // Filter scheduled meals matching the selected day offset
-    const activeDate = new Date();
-    activeDate.setDate(activeDate.getDate() + selectedDayOffset);
+    // Filter scheduled meals matching the selected day offset from uniqueDates
+    const activeDate = uniqueDates[selectedDayOffset] || new Date();
     const dateStr = activeDate.toDateString();
 
     const dayMeals = currentMeals.filter(
@@ -230,13 +251,18 @@ export default function DashboardPage() {
     fatTarget,
   } = calculateDailyAverages();
 
-  // Generate 7-day selectors starting from today
-  const daySelectors = Array.from({ length: 7 }).map((_, idx) => {
-    const d = new Date();
-    d.setDate(d.getDate() + idx);
+  // Generate selectors from the actual dates in the active plan group
+  const daySelectors = uniqueDates.map((d, idx) => {
     const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
     const dateLabel = d.getDate();
-    return { offset: idx, dayLabel, dateLabel, dateStr: d.toDateString() };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dCopy = new Date(d);
+    dCopy.setHours(0, 0, 0, 0);
+    const isPast = dCopy.getTime() < today.getTime();
+
+    return { offset: idx, dayLabel, dateLabel, dateStr: d.toDateString(), isPast };
   });
 
   return (
@@ -296,7 +322,9 @@ export default function DashboardPage() {
                       flex flex-col items-center justify-center p-3 rounded-2xl min-w-[70px] border-2 transition-all duration-200 outline-none
                       ${isSelected 
                         ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
-                        : 'border-brand-border bg-brand-surface/40 text-brand-muted hover:text-brand-text'
+                        : item.isPast
+                          ? 'border-brand-border bg-[#e2e8f0] dark:bg-[#222825] text-brand-muted/70 hover:text-brand-text'
+                          : 'border-brand-border bg-brand-surface/40 text-brand-muted hover:text-brand-text'
                       }
                     `}
                   >
@@ -399,7 +427,11 @@ export default function DashboardPage() {
             {/* Today's Meals Section */}
             <div className="flex flex-col gap-4 mt-4 text-left">
               <h2 className="text-lg font-extrabold tracking-tight font-display text-brand-green uppercase">
-                {selectedDayOffset === 0 ? 'Today\'s' : 'Scheduled'} Menu
+                {(() => {
+                  const activeDate = uniqueDates[selectedDayOffset];
+                  const isTodaySelected = activeDate && activeDate.toDateString() === new Date().toDateString();
+                  return isTodaySelected ? "Today's" : "Scheduled";
+                })()} Menu
               </h2>
 
               {mealsList.length === 0 ? (
@@ -424,6 +456,8 @@ export default function DashboardPage() {
                       ingredients={meal.ingredients}
                       mealLogs={meal.mealLogs}
                       onStatusToggle={handleMealStatusToggle}
+                      scheduledDate={meal.scheduledDate}
+                      onCardClick={() => router.push(`/dashboard/${meal.id}`)}
                     />
                   ))}
                 </div>

@@ -27,6 +27,23 @@ router.get('/queue', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 /**
+ * GET /api/nutritionist/queue/:id
+ * Fetches detailed two-panel review card data, setting/extending the claim lock.
+ */
+router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const mealPlanId = req.params.id;
+    const result = await NutritionistService.getReviewCardDetails(req.user!.userId, mealPlanId);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ success: false, error: error.message });
+    }
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * PATCH /api/nutritionist/review/:id
  * Approve or reject a meal plan.
  * Body: { action: 'approve' | 'reject', note?: string }
@@ -36,11 +53,11 @@ router.patch('/review/:id', async (req: AuthenticatedRequest, res: Response) => 
     const profile = await NutritionistService.getProfile(req.user!.userId);
     if (!profile) return res.status(404).json({ success: false, error: 'Nutritionist profile not found.' });
 
-    const { action, note } = req.body;
+    const { action, note, updates } = req.body;
     const mealPlanId = req.params.id;
 
     if (action === 'approve') {
-      const result = await NutritionistService.approveMealPlan(profile.id, mealPlanId, note);
+      const result = await NutritionistService.approveMealPlan(profile.id, mealPlanId, note, updates);
       return res.status(200).json({ success: true, data: result });
     } else if (action === 'reject') {
       if (!note) return res.status(400).json({ success: false, error: 'Rejection reason is required.' });
@@ -50,22 +67,9 @@ router.patch('/review/:id', async (req: AuthenticatedRequest, res: Response) => 
       return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });
     }
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * GET /api/nutritionist/patients
- * Returns list of assigned patients.
- */
-router.get('/patients', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const profile = await NutritionistService.getProfile(req.user!.userId);
-    if (!profile) return res.status(404).json({ success: false, error: 'Nutritionist profile not found.' });
-
-    const patients = await NutritionistService.getPatients(profile.id);
-    return res.status(200).json({ success: true, data: patients });
-  } catch (error: any) {
+    if (error.message.includes('already claimed') || error.message.includes('already reviewed')) {
+      return res.status(409).json({ success: false, error: error.message });
+    }
     return res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -84,6 +84,22 @@ export class MealsController {
         orderBy: { scheduledDate: 'asc' },
       });
 
+      if (meals.length > 0) {
+        const lastMeal = meals[meals.length - 1];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const planEndDate = new Date(lastMeal.scheduledDate);
+        planEndDate.setHours(0, 0, 0, 0);
+
+        if (planEndDate < today) {
+          return res.status(200).json({
+            success: true,
+            data: [],
+          });
+        }
+      }
+
       return res.status(200).json({
         success: true,
         data: meals,
@@ -93,6 +109,45 @@ export class MealsController {
       return res.status(500).json({
         success: false,
         error: 'Failed to retrieve your current meal plan.',
+      });
+    }
+  }
+
+  /**
+   * GET /api/user/meals/:id
+   * Returns details of a specific meal plan item.
+   */
+  static async getMealDetails(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      const { id } = req.params;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const meal = await prisma.mealPlan.findFirst({
+        where: { id, userId },
+        include: {
+          ingredients: true,
+          mealLogs: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!meal) {
+        return res.status(404).json({ success: false, error: 'Meal not found.' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: meal,
+      });
+    } catch (error: any) {
+      console.error('[MealsController] getMealDetails error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve meal details.',
       });
     }
   }
@@ -267,6 +322,7 @@ export class MealsController {
           where: { id: existingLog.id },
           data: {
             status: status as MealLogStatus,
+            source: MealLogSource.SYSTEM_GENERATED,
             loggedAt: new Date(), // Keep timestamps sync with active check mark
           },
         });

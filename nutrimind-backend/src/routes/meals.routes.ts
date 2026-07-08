@@ -46,6 +46,12 @@ router.patch('/:id/status', MealsController.updateMealStatus);
 router.get('/compatible-library', MealsController.getCompatibleLibrary);
 
 /**
+ * Route: GET /api/user/meals/:id
+ * Description: Retrieves details of a specific meal plan item.
+ */
+router.get('/:id', MealsController.getMealDetails);
+
+/**
  * Route: GET /api/user/meals/:id/swap-options
  * Description: Retrieves swap options for a given meal plan slot.
  */

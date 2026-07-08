@@ -352,6 +352,7 @@ export class MealSwapService {
         ingredientName: ing.ingredientName,
         category: ing.category,
         foodItemId: ing.foodItemId,
+        dataSource: ing.dataSource,
       })) || [];
 
       if (ingredientsData.length > 0) {
@@ -361,6 +362,7 @@ export class MealSwapService {
             ingredientName: ing.ingredientName,
             category: ing.category,
             foodItemId: ing.foodItemId,
+            dataSource: ing.dataSource,
           })),
         });
       }

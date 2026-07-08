@@ -299,7 +299,9 @@ export default function WeeklyPlanPage() {
 
   // Triggers full 7-day meal plan regeneration
   const handleRegeneratePlan = async () => {
-    if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?')) return;
+    if (meals.length > 0) {
+      if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?')) return;
+    }
     
     setIsRegenerating(true);
     setError(null);
@@ -604,6 +606,7 @@ export default function WeeklyPlanPage() {
                         onStatusToggle={handleMealStatusToggle}
                         onSwapClick={handleSwapClick}
                         swapsUsed={swapsUsed}
+                        scheduledDate={meal.scheduledDate}
                       />
                     ))}
                   </div>

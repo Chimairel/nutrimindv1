@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Notification {
   id: string;
@@ -11,11 +12,19 @@ interface Notification {
 }
 
 export function useNotifications() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Only USER role accounts have notifications; skip for NUTRITIONIST/ADMIN
+  const isUserRole = user?.role === 'USER';
+
   const fetchNotifications = useCallback(async () => {
+    if (!isUserRole) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const res = await api.get('/user/notifications');
       if (res.data?.success) {
@@ -27,10 +36,12 @@ export function useNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isUserRole]);
 
   useEffect(() => {
     fetchNotifications();
+
+    if (!isUserRole) return;
 
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
@@ -45,7 +56,7 @@ export function useNotifications() {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, isUserRole]);
 
   const markAsRead = async (id: string) => {
     await api.patch(`/user/notifications/${id}/read`);

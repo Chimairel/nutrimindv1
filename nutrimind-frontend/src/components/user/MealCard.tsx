@@ -17,6 +17,7 @@ interface Ingredient {
 interface MealLog {
   id: string;
   status: 'DONE' | 'SKIPPED' | 'PENDING';
+  source?: string;
 }
 
 interface MealCardProps {
@@ -35,6 +36,8 @@ interface MealCardProps {
   onStatusToggle?: (mealId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void>;
   onSwapClick?: (mealId: string) => void;
   swapsUsed?: number;
+  scheduledDate?: string;
+  onCardClick?: () => void;
 }
 
 export default function MealCard({
@@ -52,14 +55,27 @@ export default function MealCard({
   onStatusToggle,
   onSwapClick,
   swapsUsed = 0,
+  scheduledDate,
+  onCardClick,
 }: MealCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Check if meal is logged as DONE or SKIPPED
-  const isLogged = mealLogs.some((l) => l.status === 'DONE' || l.status === 'SKIPPED');
+  // Evaluate past date condition
+  const isPastDate = React.useMemo(() => {
+    if (!scheduledDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(scheduledDate);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() < today.getTime();
+  }, [scheduledDate]);
+
+  // Check if meal is logged as DONE or SKIPPED (or is a past unlogged meal)
   const isCompleted = mealLogs.some((l) => l.status === 'DONE');
-  const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED');
+  const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED') || 
+    (!mealLogs.some((l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')) && isPastDate);
+  const isLogged = isCompleted || isSkipped;
 
   const handleCheckedChange = async (checked: boolean) => {
     if (!onStatusToggle || isUpdating) return;
@@ -102,7 +118,16 @@ export default function MealCard({
   return (
     <>
       {/* Simplified Meal Card inside Grid */}
-      <div onClick={() => setIsOpen(true)} className="block outline-none select-none h-full">
+      <div 
+        onClick={() => {
+          if (onCardClick) {
+            onCardClick();
+          } else {
+            setIsOpen(true);
+          }
+        }} 
+        className="block outline-none select-none h-full cursor-pointer"
+      >
         <Card 
           interactive
           className={`

@@ -11,6 +11,7 @@ import {
   PlanType,
   ShoppingDayGroup,
   MealLibraryStatus,
+  MealIngredientDataSource,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
@@ -341,6 +342,7 @@ export class MealGenerationService {
         ingredientName: string;
         category: string;
         foodItemId: string | null;
+        dataSource: MealIngredientDataSource;
       }[] = [];
 
       for (const ingredientName of rawMeal.ingredients) {
@@ -353,6 +355,7 @@ export class MealGenerationService {
             ingredientName: lookup.food.name || ingredientName,
             category: lookup.food.category || 'PANTRY',
             foodItemId: lookup.food.id || null,
+            dataSource: lookup.source === 'ESTIMATED' ? MealIngredientDataSource.GEMINI_ESTIMATED : MealIngredientDataSource.FNRI,
           });
         } catch (lookupErr) {
           console.warn(`Ingredient lookup failed for: ${ingredientName}, using as estimated.`, lookupErr);
@@ -361,6 +364,7 @@ export class MealGenerationService {
             ingredientName,
             category: 'PANTRY',
             foodItemId: null,
+            dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
           });
         }
       }
@@ -419,14 +423,15 @@ export class MealGenerationService {
             ingredientName: ing.ingredientName,
             category: ing.category,
             foodItemId: ing.foodItemId,
+            dataSource: ing.dataSource,
           })) || [];
 
-          // Create clone for this user (status: APPROVED, libraryMealId omitted to satisfy @unique constraint)
+          // Create clone for this user (status: PENDING_REVIEW, libraryMealId omitted to satisfy @unique constraint)
           const createdPlan = await tx.mealPlan.create({
             data: {
               planGroupId: newPlanGroupId,
               userId,
-              status: MealPlanStatus.APPROVED, // Pre-verified items are automatically approved!
+              status: MealPlanStatus.PENDING_REVIEW, // Every generated meal goes to nutritionist queue for verification
               planType,
               mealType: slot.mealType,
               mealName: slot.libraryMeal.mealName,
@@ -478,38 +483,17 @@ export class MealGenerationService {
       }
     }, { timeout: 30000 });
 
-    // --- STEP 3: Create Nutritionist assignment notifications if NEEDS_REVIEW occurs ---
     const needsReview = createdPlansList.some((p) => p.aiConfidenceFlag === AIConfidenceFlag.NEEDS_REVIEW);
     if (needsReview) {
-      console.log(`[Meal Generation] Clinical warning flagged (NEEDS_REVIEW). Creating nutritionist alert...`);
-      
-      const activeAssignment = await prisma.nutritionistAssignment.findFirst({
-        where: { userId, status: 'ACTIVE' },
-        include: { nutritionistProfile: true },
-      });
-
       const notificationTitle = 'New Meal Plan Awaiting Verification';
-      const notificationMsg = `AI-generated meal plan for patient ${user.name} requires verification due to estimated ingredients and active health restrictions.`;
-
-      if (activeAssignment && activeAssignment.nutritionistProfile) {
-        await prisma.notification.create({
-          data: {
-            userId: activeAssignment.nutritionistProfile.userId,
-            title: notificationTitle,
-            message: notificationMsg,
-            type: NotificationType.REVIEW_REQUEST,
-          },
-        });
-      } else {
-        await prisma.notification.create({
-          data: {
-            userId,
-            title: notificationTitle,
-            message: 'Your new AI meal plan contains clinical alerts and has been queued for Registered Dietitian review.',
-            type: NotificationType.REVIEW_REQUEST,
-          },
-        });
-      }
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: notificationTitle,
+          message: 'Your new AI meal plan contains clinical alerts and has been queued for Registered Dietitian review.',
+          type: NotificationType.REVIEW_REQUEST,
+        },
+      });
     }
 
     return newPlanGroupId;
