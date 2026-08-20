@@ -23,3 +23,4 @@ yarn-error.log*
 Thumbs.db
 *.tsbuildinfo
 **/next-env.d.ts
+nutrimind-backend/.env.runtime-test.local
