@@ -1,4 +1,6 @@
 # NutriMind — Integrated System Reference Manual
+
+> **Documentation status — Aspirational draft; partially superseded (August 19, 2026):** This reference mixes intended requirements with implemented behavior and has not been integration-, E2E-, deployment-, or clinically verified. The canonical current evidence and feature statuses are in [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md). Use [`README.md`](README.md) for the accepted architecture and setup.
 ### Technical Specifications, Database ERD Schema, REST API Directory, and Clinical Logical Flows for SPMP & SRS Documentation
 
 **Status**: Draft System Reference  

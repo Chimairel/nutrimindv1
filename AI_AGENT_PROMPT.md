@@ -1,5 +1,7 @@
 # NutriMind — AI Agent System Prompt
 
+> **Documentation status — Historical and aspirational; partially superseded (August 19, 2026):** This file records earlier build goals and agent instructions. It is not the current implementation-status or architecture authority. Use [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) for current evidence and [`codex/NUTRIMIND_AGENT_MASTER_PROMPT.md`](codex/NUTRIMIND_AGENT_MASTER_PROMPT.md) for current coding-agent workflow. Completion language below describes intended acceptance criteria unless separately verified in the engineering record.
+
 > **Last Updated:** June 21, 2026
 
 
@@ -831,7 +833,7 @@ Backend exists (notification.service.ts). Build:
 
 ## KNOWN BUGS AND GOTCHAS (READ ALL BEFORE CODING)
 
-1. **SMTP_PASS must be quoted**: `SMTP_PASS="pbfi tftt isyp xbbg"` (spaces in password)
+1. **SMTP_PASS must be quoted when it contains spaces**: `SMTP_PASS="<Gmail app password>"` (never place a real value in documentation)
 2. **Email transporter is lazy-loaded**: Do NOT move createTransport to module level
 3. **Rate limiter scope**: authLimiter only on register/login/forgot-password/google, NOT on verify-email
 4. **Badge variants**: Only `verified | pending | rejected | ai | user` - nothing else

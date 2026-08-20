@@ -1,5 +1,7 @@
 # NutriMind System Reference for SPMP and SRS Drafting
 
+> **Documentation status — Historical audit snapshot; current but unverified where still applicable (August 19, 2026):** This July 2026 snapshot remains useful background and already records several gaps, but it is partially superseded by the living [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md). Use the engineering record for current decisions, verification levels, defect/risk status, and traceability.
+
 Last prepared: 2026-07-08
 
 This document summarizes the current NutriMind codebase and implementation state. It is intended as a reference input for generating Software Project Management Plan (SPMP) and Software Requirements Specification (SRS) documents.

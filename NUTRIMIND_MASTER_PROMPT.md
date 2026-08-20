@@ -1,5 +1,7 @@
 # ═══════════════════════════════════════════════════════════════
 # NUTRIMIND — MASTER BUILD PROMPT FOR AI AGENTS
+
+> **Documentation status — Historical and aspirational; superseded as a source of truth (August 19, 2026):** This build prompt preserves the original product vision. It does not describe the current repository reliably and must not override the accepted Next.js frontend + Express/custom JWT backend + Prisma/PostgreSQL architecture. Use [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) for current evidence and [`README.md`](README.md) for contributor setup. Statements below calling this file the single source of truth are retained only as historical text.
 # ═══════════════════════════════════════════════════════════════
 # This document is the single source of truth for building
 # NutriMind. Every AI agent working on this project MUST read

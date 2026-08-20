@@ -1,4 +1,6 @@
 # 📜 NutriMind — Project Update Log & Changelog
+
+> **Documentation status — Historical changelog (August 19, 2026):** Entries preserve what earlier development sessions reported; they do not independently prove current behavior or runtime, integration, E2E, deployment, or clinical verification. Consult [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) for current evidence and accepted status vocabulary.
 A comprehensive timeline of all features, specifications, addendums, and bug fixes implemented in the NutriMind application from inception to June 21, 2026.
 
 ---
@@ -147,7 +149,6 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - *Sidebar Restructuring*: Removed "Nutritionists" and "Profile" from the USER sidebar array. Added a new "Progress" tab. Linked the bottom-pinned user card to the settings page (`/profile`). Removed "My Patients" from the NUTRITIONIST sidebar menu.
   - *Progress & Settings Overhaul*: Recreated `/progress` page as a centralized biometrics/preferences card, health conditions/allergies choice chips, autocomplete inputs, SVG weight charts, and adherence calendars. Redesigned `/profile` exclusively for credentials, password changes, and DiceBear avatar seeds.
   - *Build and Compile*: Successfully verified backend/frontend compilation and Next.js static build optimized bundle checks.
-
 
 
 

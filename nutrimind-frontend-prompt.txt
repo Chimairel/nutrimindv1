@@ -1,4 +1,7 @@
 # NutriMind — Frontend
+
+DOCUMENTATION STATUS — HISTORICAL AND ASPIRATIONAL (August 19, 2026)
+This prompt preserves an earlier planned frontend baseline. It is not current implementation or verification evidence. The canonical current record is docs/NUTRIMIND_ENGINEERING_RECORD.md, and contributor setup is in README.md. Retained requirements below must be checked against current code and approved decisions before use.
 # Next.js 14 App Router + TypeScript + Tailwind
 
 ## FLEXIBILITY NOTE

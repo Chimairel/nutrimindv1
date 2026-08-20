@@ -1,4 +1,6 @@
 # NutriMind — AI Handoff Guide
+
+> **Documentation status — Historical handoff; partially superseded (August 19, 2026):** This file preserves June 2026 operating context. Its precedence rules and “complete” or “production-ready” status claims are not current evidence. Follow the current Codex guides in `codex/` and use [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) as the canonical system/status record.
 ### For any AI model continuing this project
 
 > **Owner**: chimairelp@gmail.com  
@@ -599,7 +601,7 @@ These are hard-won lessons from previous sessions. **Read all of them before sta
 ### 1. SMTP_PASS must be quoted in .env
 Gmail app passwords contain spaces. The `.env` must have:
 ```env
-SMTP_PASS="pbfi tftt isyp xbbg"
+SMTP_PASS="<redacted Gmail app password>"
 ```
 Without quotes, only the first word is read and SMTP auth fails silently.
 

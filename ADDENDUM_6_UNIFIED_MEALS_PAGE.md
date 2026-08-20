@@ -1,4 +1,6 @@
 # NutriMind — Feature Addendum
+
+> **Documentation status — Historical feature specification (August 19, 2026):** This addendum records intended behavior and earlier implementation instructions. It is not current verification evidence. Check [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) for observed behavior, open defects, and verification status.
 # Weekly Regeneration Fix + Unified /meals Page + Swap Calorie Accountability
 
 ## REVISION NOTE

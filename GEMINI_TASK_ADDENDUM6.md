@@ -1,4 +1,6 @@
 # GEMINI IMPLEMENTATION TASK — Addendum 6
+
+> **Documentation status — Historical implementation instructions (August 19, 2026):** Do not execute this task file as a current assignment. It is retained for history; current repository work is governed by the approved task and `codex/` guides. Implementation outcomes must be verified through [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md).
 # Weekly Regen Fix + Unified /meals Page + Swap Calorie Warning
 
 Read ADDENDUM_6_UNIFIED_MEALS_PAGE.md FIRST — that is your
