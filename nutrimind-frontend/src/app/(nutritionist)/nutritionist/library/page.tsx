@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, Utensils, Stethoscope, ShieldAlert, Flag, Salad } from 'lucide-react';
 
@@ -300,23 +301,13 @@ export default function MealLibraryPage() {
   };
 
   return (
-    <div className="px-4 py-8 md:px-8 max-w-6xl mx-auto space-y-6">
+    <div className="portal-page space-y-6">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-brand-text font-display">Meal Library</h1>
-          <p className="text-sm text-brand-muted mt-1">
-            Browse, manage, and verify clinically approved native meal records.
-          </p>
-        </div>
-        <span className="self-start md:self-center px-4 py-2 bg-brand-surface border border-brand-border rounded-xl text-xs text-brand-text font-bold flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-brand-green" /> Total: {totalCount} verified meals
-        </span>
-      </div>
+      <PortalPageHeader icon={BookOpen} eyebrow="Meal intelligence" title="Verified meal library" description="Search, inspect, and maintain the reusable meal evidence available to compatible user plans." meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">{totalCount} records</span>} />
 
       {/* Top Filter Panel */}
-      <Card className="p-5 border-brand-border/60 bg-brand-surface/50 backdrop-blur-md space-y-4">
+      <Card className="portal-filter-panel space-y-4 p-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           
           {/* Search bar */}
@@ -328,7 +319,7 @@ export default function MealLibraryPage() {
                 placeholder="Search e.g. Tinola..."
                 value={searchVal}
                 onChange={(e) => setSearchVal(e.target.value)}
-                className="w-full h-11 bg-brand-bg border border-brand-border rounded-xl px-4 text-sm text-brand-text placeholder-brand-muted/70 focus:outline-none focus:border-brand-green/80 transition-colors"
+                className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10 placeholder:text-brand-muted/60"
               />
               {searchVal && (
                 <button 
@@ -347,7 +338,7 @@ export default function MealLibraryPage() {
             <select
               value={mealType}
               onChange={(e) => { setMealType(e.target.value); setPage(1); }}
-              className="w-full h-11 bg-brand-bg border border-brand-border rounded-xl px-3 text-sm text-brand-text focus:outline-none focus:border-brand-green/80 transition-colors"
+              className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
             >
               <option value="All">All Types</option>
               <option value="BREAKFAST">Breakfast</option>
@@ -363,7 +354,7 @@ export default function MealLibraryPage() {
             <select
               value={conditionTag}
               onChange={(e) => { setConditionTag(e.target.value); setPage(1); }}
-              className="w-full h-11 bg-brand-bg border border-brand-border rounded-xl px-3 text-sm text-brand-text focus:outline-none focus:border-brand-green/80 transition-colors"
+              className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
             >
               <option value="All">All Conditions</option>
               {AVAILABLE_CONDITIONS.map(c => (

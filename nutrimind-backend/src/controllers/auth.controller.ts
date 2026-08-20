@@ -1,6 +1,30 @@
 import { Request, Response } from 'express';
 import AuthService from '@/services/auth.service';
 import { AuthenticatedRequest } from '@/types';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+
+/** Shared cookie options for the HttpOnly refresh token. */
+const REFRESH_COOKIE_NAME = 'nutrimind_refresh';
+const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+
+function setRefreshCookie(res: Response, refreshToken: string) {
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: REFRESH_COOKIE_MAX_AGE,
+    path: '/',
+  });
+}
+
+function clearRefreshCookie(res: Response) {
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+}
 
 export class AuthController {
   /**
@@ -13,14 +37,20 @@ export class AuthController {
 
       const result = await AuthService.register(name, email, password);
 
+      // Set refresh token as HttpOnly cookie, send only accessToken in body
+      setRefreshCookie(res, result.refreshToken);
+
       return res.status(201).json({
         success: true,
-        data: result,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+        },
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        error: error.message || 'Failed to complete registration.',
+        error: sanitizeErrorMessage(error, 'Failed to complete registration.'),
       });
     }
   }
@@ -35,14 +65,20 @@ export class AuthController {
 
       const result = await AuthService.login(email, password);
 
+      // Set refresh token as HttpOnly cookie, send only accessToken in body
+      setRefreshCookie(res, result.refreshToken);
+
       return res.status(200).json({
         success: true,
-        data: result,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+        },
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        error: error.message || 'Failed to authenticate session.',
+        error: sanitizeErrorMessage(error, 'Failed to authenticate session.'),
       });
     }
   }
@@ -64,14 +100,20 @@ export class AuthController {
 
       const result = await AuthService.googleAuth(idToken);
 
+      // Set refresh token as HttpOnly cookie, send only accessToken in body
+      setRefreshCookie(res, result.refreshToken);
+
       return res.status(200).json({
         success: true,
-        data: result,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+        },
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        error: error.message || 'Google authentication failed.',
+        error: sanitizeErrorMessage(error, 'Google authentication failed.'),
       });
     }
   }
@@ -101,7 +143,7 @@ export class AuthController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        error: error.message || 'Email verification failed.',
+        error: sanitizeErrorMessage(error, 'Email verification failed.'),
       });
     }
   }
@@ -126,7 +168,7 @@ export class AuthController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        error: error.message || 'Failed to resend verification code.',
+        error: sanitizeErrorMessage(error, 'Failed to resend verification code.'),
       });
     }
   }
@@ -176,7 +218,7 @@ export class AuthController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        error: error.message || 'Password reset failed.',
+        error: sanitizeErrorMessage(error, 'Password reset failed.'),
       });
     }
   }
@@ -187,7 +229,8 @@ export class AuthController {
    */
   static async refresh(req: Request, res: Response) {
     try {
-      const { refreshToken } = req.body;
+      // Read refresh token from HttpOnly cookie first, fall back to body for backwards compat
+      const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body.refreshToken;
 
       if (!refreshToken) {
         return res.status(400).json({
@@ -203,9 +246,11 @@ export class AuthController {
         data: result,
       });
     } catch (error: any) {
+      // If refresh fails, clear the stale cookie
+      clearRefreshCookie(res);
       return res.status(401).json({
         success: false,
-        error: error.message || 'Invalid or expired session refresh.',
+        error: sanitizeErrorMessage(error, 'Invalid or expired session refresh.'),
       });
     }
   }
@@ -221,11 +266,15 @@ export class AuthController {
         await AuthService.logout(userId);
       }
 
+      // Clear the HttpOnly refresh cookie
+      clearRefreshCookie(res);
+
       return res.status(200).json({
         success: true,
         data: { message: 'Logged out successfully.' },
       });
     } catch (error: any) {
+      clearRefreshCookie(res);
       return res.status(200).json({
         success: true,
         data: { message: 'Logged out successfully.' },

@@ -273,21 +273,24 @@ export default function ReviewsPage() {
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden text-left bg-brand-bg">
+    <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface/65 text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)]">
       {/* Master Queue List Panel */}
-      <div className="w-1/3 border-r border-brand-border flex flex-col h-full overflow-y-auto custom-scrollbar p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-extrabold text-brand-text font-display flex items-center gap-2">
-            Reviews Queue
+      <div className="flex h-full w-[38%] min-w-[280px] flex-col space-y-4 overflow-y-auto border-r border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar">
+        <div className="rounded-[24px] bg-[#07100d] p-5 text-white shadow-card">
+          <p className="portal-kicker">Clinical workflow</p>
+          <div className="mt-3 flex items-center justify-between">
+          <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
+            Review queue
             <button 
               onClick={fetchQueue} 
-              className="p-1 hover:bg-brand-surface rounded text-brand-muted hover:text-brand-text transition"
+              className="rounded-xl p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-brand-cyan"
               title="Refresh queue"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
           </h1>
-          <Badge variant="pending" className="text-[10px]">{queue.length} pending</Badge>
+          <Badge variant="pending" className="text-[9px]">{queue.length} pending</Badge>
+          </div>
         </div>
 
         {isLoading ? (
@@ -307,10 +310,10 @@ export default function ReviewsPage() {
                 <div
                   key={meal.id}
                   onClick={() => handleSelectMeal(meal.id)}
-                  className={`p-4 rounded-xl border transition cursor-pointer text-left ${
+                  className={`cursor-pointer rounded-2xl border p-4 text-left transition ${
                     isSelected
-                      ? 'border-brand-green bg-brand-surface shadow-md'
-                      : 'border-brand-border bg-brand-surface/40 hover:border-brand-muted/40'
+                      ? 'border-brand-green/40 bg-brand-green/[0.08] shadow-md'
+                      : 'border-brand-border/70 bg-brand-surface/55 hover:-translate-y-0.5 hover:border-brand-green/25'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -338,10 +341,10 @@ export default function ReviewsPage() {
       </div>
 
       {/* Details View Panel */}
-      <div className="w-2/3 flex flex-col h-full overflow-y-auto custom-scrollbar p-6 bg-brand-bg/50">
+      <div className="flex h-full flex-1 flex-col overflow-y-auto bg-transparent p-6 custom-scrollbar">
         {selectedMealId === null ? (
           <div className="flex-grow flex flex-col items-center justify-center text-center p-12 space-y-4">
-            <div className="p-4 bg-brand-surface rounded-full border border-brand-border">
+            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] border border-brand-green/20 bg-brand-green/10">
               <Eye className="w-12 h-12 text-brand-muted" />
             </div>
             <div className="space-y-1">
@@ -389,7 +392,7 @@ export default function ReviewsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               
               {/* Left Panel: User Profile */}
-              <div className="bg-brand-surface/60 border border-brand-border rounded-xl p-5 space-y-4">
+              <div className="space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card">
                 <div className="border-b border-brand-border pb-3">
                   <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">User Health Profile</h2>
                   <h3 className="text-base font-extrabold text-brand-text mt-1">{detailData.user.name}</h3>
@@ -452,7 +455,7 @@ export default function ReviewsPage() {
               </div>
 
               {/* Right Panel: Meal Details */}
-              <div className="bg-brand-surface/60 border border-brand-border rounded-xl p-5 space-y-4">
+              <div className="space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card">
                 <div className="border-b border-brand-border pb-3 flex justify-between items-start">
                   <div>
                     <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Meal Details</h2>

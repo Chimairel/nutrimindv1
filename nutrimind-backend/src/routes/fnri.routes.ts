@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
 import { AuthenticatedRequest } from '@/types';
 import { lookupIngredient } from '@/lib/fnri';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get('/lookup', async (req: AuthenticatedRequest, res: Response) => {
     console.error('[FNRI Route] Lookup query execution failed:', error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to resolve ingredient query details.',
+      error: sanitizeErrorMessage(error, 'Failed to resolve ingredient query details.'),
     });
   }
 });

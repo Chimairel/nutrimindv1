@@ -22,6 +22,11 @@ router.post('/generate', grocery_controller_1.GroceryController.generate);
  */
 router.get('/current', grocery_controller_1.GroceryController.getCurrent);
 /**
+ * Route: GET /api/user/grocery/pdf
+ * Description: Streams the grocery list as a PDF.
+ */
+router.get('/pdf', grocery_controller_1.GroceryController.downloadGroceryPdf);
+/**
  * Route: PATCH /api/user/grocery/items/:id/toggle
  * Description: Toggles checked status of a grocery item.
  */

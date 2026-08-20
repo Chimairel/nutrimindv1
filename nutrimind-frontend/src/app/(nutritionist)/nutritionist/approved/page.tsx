@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Coffee, Sun, Moon, Apple, Utensils, CheckCircle } from 'lucide-react';
 
 interface ApprovedMeal {
@@ -62,17 +63,9 @@ export default function NutritionistApprovedPage() {
   };
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto space-y-6 text-left">
+    <div className="portal-page max-w-5xl space-y-6 text-left">
       {/* Header */}
-      <div className="border-b border-brand-border/60 pb-6">
-        <div className="flex items-center gap-2">
-          <CheckCircle className="w-6 h-6 text-brand-green shrink-0" />
-          <h1 className="text-2xl font-extrabold text-brand-text font-display">Approved Plans</h1>
-        </div>
-        <p className="text-xs text-brand-muted mt-1 uppercase tracking-wider font-semibold">
-          Meal plans you have reviewed and approved
-        </p>
-      </div>
+      <PortalPageHeader icon={CheckCircle} eyebrow="Clinical archive" title="Approved plans" description="A traceable view of meals you reviewed and approved for user plans." meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">{meals.length} approved</span>} />
 
       {meals.length === 0 ? (
         <EmptyState
@@ -119,7 +112,7 @@ export default function NutritionistApprovedPage() {
                     <div className="text-[10px] text-brand-muted">
                       <span>Patient: <strong className="text-brand-text">{meal.user.name}</strong></span>
                       {meal.nutritionistNote && (
-                        <span className="ml-3">• Note: <em>{meal.nutritionistNote}</em></span>
+                        <span className="ml-3">Note: <em>{meal.nutritionistNote}</em></span>
                       )}
                     </div>
                   </div>
@@ -129,7 +122,7 @@ export default function NutritionistApprovedPage() {
                     <div className="text-[10px] text-brand-muted">
                       {isValidDate
                         ? reviewDate.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-                        : '—'
+                        : 'Not dated'
                       }
                     </div>
                     <div className="text-[10px] text-brand-muted">
@@ -148,4 +141,3 @@ export default function NutritionistApprovedPage() {
     </div>
   );
 }
-

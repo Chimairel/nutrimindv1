@@ -105,7 +105,7 @@ export default function MealDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -113,7 +113,7 @@ export default function MealDetailPage() {
 
   if (error || !meal) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-8 text-brand-text text-left">
+      <div className="portal-page max-w-3xl text-left text-brand-text">
         <button
           onClick={() => router.push('/dashboard')}
           className="flex items-center gap-1.5 text-xs font-bold text-brand-muted hover:text-brand-text mb-6 group transition-colors"
@@ -159,7 +159,7 @@ export default function MealDetailPage() {
   const Icon = activeLabel.icon;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8 text-brand-text select-none text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="portal-page max-w-3xl select-none text-left text-brand-text animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Back to Dashboard Button */}
       <button
         onClick={() => router.push('/dashboard')}
@@ -170,22 +170,22 @@ export default function MealDetailPage() {
       </button>
 
       {/* Main Meal Details Card */}
-      <Card className="p-6 md:p-8 border-brand-border bg-brand-surface/30 backdrop-blur-md shadow-2xl relative overflow-hidden">
+      <Card className="relative overflow-hidden border-brand-border/70 bg-brand-surface/75 p-6 shadow-card-lg md:p-8">
         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 blur-3xl pointer-events-none rounded-full" />
 
         {/* Header Block */}
-        <div className="flex items-start gap-3.5 mb-6 border-b border-brand-border/60 pb-5">
-          <div className="p-3 bg-brand-bgAlt border border-brand-border rounded-2xl shrink-0 mt-0.5">
-            <Icon className="h-6 w-6 text-brand-green" />
+        <div className="mb-6 flex items-start gap-3.5 rounded-[24px] bg-[#07100d] p-5 text-white shadow-card">
+          <div className="mt-0.5 shrink-0 rounded-2xl bg-brand-accent p-3 text-[#07100d] shadow-neon">
+            <Icon className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[10px] font-extrabold tracking-wider text-brand-muted uppercase">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-accent">
               {activeLabel.label} Details
             </span>
-            <h1 className="text-xl md:text-2xl font-black font-display tracking-tight text-brand-text leading-tight mt-0.5">
+            <h1 className="mt-0.5 font-display text-xl font-black leading-tight tracking-tight text-white md:text-2xl">
               {meal.mealName}
             </h1>
-            <span className="text-xs font-bold text-brand-muted block mt-1">
+            <span className="mt-1 block text-xs font-bold text-white/40">
               {Math.round(meal.calories)} kcal Total Energy
             </span>
           </div>
@@ -246,6 +246,25 @@ export default function MealDetailPage() {
             <p className="text-xs text-brand-text/95 leading-relaxed font-semibold">
               {meal.description || "This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it."}
             </p>
+          </div>
+
+          {/* YouTube Cooking Tutorial Banner */}
+          <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl shrink-0">📺</span>
+              <div>
+                <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
+                <p className="text-[10px] text-brand-muted mt-1 leading-snug">Watch Filipino cooking tutorials for this dish on YouTube.</p>
+              </div>
+            </div>
+            <a
+              href={`https://www.youtube.com/results?search_query=how+to+cook+${encodeURIComponent(meal.mealName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0"
+            >
+              Watch Video
+            </a>
           </div>
 
           {meal.ingredients.length > 0 && (

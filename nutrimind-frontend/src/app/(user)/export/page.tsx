@@ -166,23 +166,23 @@ export default function ClinicalExportPage() {
   const allergies = profileData?.allergies || [];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 p-8 md:p-12 max-w-4xl mx-auto print:p-0 font-sans leading-relaxed">
+    <div className="mx-auto my-4 min-h-screen max-w-4xl overflow-hidden rounded-[30px] bg-white p-8 font-sans leading-relaxed text-slate-900 shadow-card-lg md:p-12 print:m-0 print:rounded-none print:p-0 print:shadow-none">
       
       {/* SCREEN-ONLY TOOLBAR */}
-      <div className="print:hidden flex justify-between items-center border-b border-slate-200 pb-4 mb-8">
+      <div className="mb-8 flex items-center justify-between rounded-[24px] bg-[#07100d] p-5 text-white shadow-card print:hidden">
         <div>
           <button 
             onClick={() => router.back()}
-            className="text-xs font-semibold text-slate-600 hover:text-brand-green transition-colors flex items-center gap-1"
+            className="flex items-center gap-1 text-xs font-semibold text-white/45 transition-colors hover:text-brand-cyan"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>
           </button>
-          <h1 className="text-sm font-bold text-slate-800 mt-1">CLINICAL EXPORT PREVIEW</h1>
+          <h1 className="mt-2 font-display text-lg font-black tracking-tight text-white">Clinical export preview</h1>
         </div>
         <button 
           onClick={() => window.print()}
-          className="bg-brand-green hover:bg-[#40916c] text-white text-xs font-extrabold py-2.5 px-6 rounded-lg shadow-md transition-all cursor-pointer"
+          className="cursor-pointer rounded-2xl bg-brand-accent px-6 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition-all hover:-translate-y-0.5"
         >
           Print / Save PDF
         </button>

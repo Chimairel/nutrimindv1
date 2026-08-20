@@ -974,4 +974,3 @@ export class NutritionistService {
     throw new Error('Invalid resolution type.');
   }
 }
-

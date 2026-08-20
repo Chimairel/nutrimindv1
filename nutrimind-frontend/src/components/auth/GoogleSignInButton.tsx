@@ -54,11 +54,11 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
         });
 
         window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: 'filled_black',
+          theme: 'outline',
           size: 'large',
-          width: '100%',
+          width: Math.min(Math.max(buttonRef.current.clientWidth, 280), 400),
           text: label,
-          shape: 'pill',
+          shape: 'rectangular',
           logo_alignment: 'left',
         });
       }
@@ -84,8 +84,8 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
       });
 
       if (res.data && res.data.success) {
-        const { accessToken, refreshToken } = res.data.data;
-        login(accessToken, refreshToken);
+        const { accessToken } = res.data.data;
+        await login(accessToken);
       } else {
         setError(res.data.error || 'Google sign-in failed.');
       }
@@ -110,10 +110,12 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
           <span>{error}</span>
         </div>
       )}
-      <div
-        ref={buttonRef}
-        className={`w-full flex justify-center transition-opacity ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-      />
+      <div className="w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm">
+        <div
+          ref={buttonRef}
+          className={`flex w-full justify-center transition-opacity ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+        />
+      </div>
     </div>
   );
 }

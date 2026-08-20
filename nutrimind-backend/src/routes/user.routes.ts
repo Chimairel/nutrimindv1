@@ -8,6 +8,7 @@ import { WeightLogService } from '@/services/weight-log.service';
 import { CheckinService } from '@/services/checkin.service';
 import { body } from 'express-validator';
 import validate from '@/middleware/validate';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.post('/onboarding/shopping-day', async (req: AuthenticatedRequest, res: R
     const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayGroup);
     return res.status(200).json({ success: true, data: profile });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.') });
   }
 });
 router.post('/onboarding/tos', UserController.acceptTos);
@@ -80,7 +81,7 @@ router.get('/notifications', async (req: AuthenticatedRequest, res: Response) =>
     const unreadCount = await NotificationService.getUnreadCount(req.user!.userId);
     return res.json({ success: true, data: { notifications, unreadCount } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve notifications.') });
   }
 });
 
@@ -92,7 +93,7 @@ router.patch('/notifications/:id/read', async (req: AuthenticatedRequest, res: R
     await NotificationService.markAsRead(req.user!.userId, req.params.id);
     return res.json({ success: true });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to mark notification as read.') });
   }
 });
 
@@ -109,7 +110,7 @@ router.get('/weight-log', async (req: AuthenticatedRequest, res: Response) => {
     const history = await WeightLogService.getWeightHistory(req.user!.userId);
     return res.json({ success: true, data: history });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve weight history.') });
   }
 });
 
@@ -129,7 +130,7 @@ router.post(
       const entry = await WeightLogService.logWeight(req.user!.userId, weightKg, note);
       return res.status(201).json({ success: true, data: entry });
     } catch (error: any) {
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to log weight entry.') });
     }
   }
 );
@@ -147,7 +148,7 @@ router.get('/checkin/status', async (req: AuthenticatedRequest, res: Response) =
     const status = await CheckinService.getCheckinStatus(req.user!.userId);
     return res.json({ success: true, data: status });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve check-in status.') });
   }
 });
 
@@ -162,7 +163,7 @@ router.post('/checkin/submit', async (req: AuthenticatedRequest, res: Response) 
     const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });
     return res.json({ success: true, data: result });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to submit check-in.') });
   }
 });
 

@@ -22,11 +22,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={`
-        flex flex-col items-center justify-center text-center p-8 border border-dashed border-brand-border rounded-2xl bg-brand-surface/40 max-w-md mx-auto my-6
+        surface-panel mx-auto my-6 flex max-w-lg flex-col items-center justify-center rounded-[28px] border-dashed p-10 text-center
         ${className}
       `}
     >
-      <div className="text-brand-green bg-brand-border/40 p-4 rounded-full w-16 h-16 flex items-center justify-center shadow-inner mb-4">
+      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 p-4 text-brand-green shadow-cyan">
         {icon}
       </div>
       <h3 className="text-lg font-bold tracking-tight text-brand-text mb-1.5 font-display">
@@ -45,4 +45,3 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 };
 
 export default EmptyState;
-

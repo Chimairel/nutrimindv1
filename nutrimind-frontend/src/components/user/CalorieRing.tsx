@@ -36,10 +36,10 @@ export default function CalorieRing({ consumed, target, className = '' }: Calori
           cx="112"
           cy="112"
           r={radius}
-          stroke="#2a2a2e"
+          stroke="var(--brand-border)"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="opacity-40"
+          className="opacity-60"
         />
 
         {/* Fill circle (Progress Indicator) */}
@@ -47,7 +47,7 @@ export default function CalorieRing({ consumed, target, className = '' }: Calori
           cx="112"
           cy="112"
           r={radius}
-          stroke={isOverLimit ? '#f87171' : 'var(--brand-green)'} // Red warning if over target, primary theme green otherwise
+          stroke={isOverLimit ? '#f87171' : 'var(--brand-accent)'} // Red warning if over target, primary theme lime accent otherwise
           strokeWidth={strokeWidth}
           fill="transparent"
           strokeDasharray={circumference}

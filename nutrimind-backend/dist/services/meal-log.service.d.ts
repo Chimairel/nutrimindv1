@@ -33,20 +33,20 @@ export declare class MealLogService {
         log: {
             id: string;
             userId: string;
+            status: import(".prisma/client").$Enums.MealLogStatus;
+            mealName: string;
             calories: number;
             proteinG: number;
             carbsG: number;
             fatG: number;
-            source: import(".prisma/client").$Enums.MealLogSource;
-            mealName: string;
-            status: import(".prisma/client").$Enums.MealLogStatus;
-            warningAcknowledged: boolean;
-            notes: string | null;
             mealPlanId: string | null;
             dataSource: import(".prisma/client").$Enums.MealLogDataSource;
+            source: import(".prisma/client").$Enums.MealLogSource;
             warningType: string | null;
             warningShown: boolean;
+            warningAcknowledged: boolean;
             loggedAt: Date;
+            notes: string | null;
         };
         warnings?: undefined;
         reasons?: undefined;

@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import Card from '@/components/ui/Card';
+import AuthShell from '@/components/auth/AuthShell';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 /**
  * Email Verification Page — 6-digit OTP input with auto-submit and resend cooldown.
@@ -111,40 +112,28 @@ export default function VerifyEmailPage() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-bg px-4 py-12 relative overflow-hidden select-none">
-      {/* Decorative glow */}
-      <div className="absolute top-[30%] left-[50%] translate-x-[-50%] h-[350px] w-[350px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
-
-      <Card className="w-full max-w-md p-8 relative glass-panel shadow-2xl border-brand-border/80">
-        {/* Header */}
-        <div className="flex flex-col items-center gap-2 mb-8 text-center">
-          <span className="text-5xl">📧</span>
-          <h2 className="text-2xl font-extrabold tracking-wider text-brand-green font-display">
-            VERIFY YOUR EMAIL
-          </h2>
-          <p className="text-sm text-brand-muted px-4">
-            We sent a 6-digit verification code to your email. Enter it below to continue.
-          </p>
-        </div>
-
-        {/* Error */}
+    <AuthShell
+      eyebrow="Identity checkpoint"
+      title="Verify your email"
+      description="Enter the 6-digit code sent to your inbox to continue into onboarding."
+      heroTitle={<>One quick check.<br /><span className="text-brand-accent">Then we personalize.</span></>}
+      heroDescription="Verification protects your account before health preferences, meal plans, and progress data are connected to it."
+    >
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-            <span>⚠️</span>
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span className="leading-tight">{error}</span>
           </div>
         )}
 
-        {/* Success */}
         {success && (
-          <div className="mb-6 p-4 rounded-xl bg-brand-green/10 border border-brand-green/25 text-brand-green text-sm font-semibold flex items-center gap-2">
-            <span>✅</span>
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-sm font-semibold text-brand-green">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
             <span className="leading-tight">{success}</span>
           </div>
         )}
 
-        {/* OTP Input Grid */}
-        <div className="flex justify-center gap-3 mb-8" onPaste={handlePaste}>
+        <div className="mb-8 flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -157,31 +146,29 @@ export default function VerifyEmailPage() {
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               disabled={isLoading}
-              className="w-12 h-14 text-center text-2xl font-bold bg-brand-card border-2 border-brand-border rounded-xl text-brand-text focus:border-brand-green focus:outline-none transition-all duration-200 disabled:opacity-50"
+              className="h-14 w-11 rounded-2xl border border-brand-border/80 bg-brand-surface/80 text-center font-mono text-xl font-bold text-brand-text outline-none transition-all duration-200 focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10 disabled:opacity-50 sm:w-12"
               autoFocus={index === 0}
             />
           ))}
         </div>
 
-        {/* Loading indicator */}
         {isLoading && (
-          <div className="text-center mb-4">
-            <span className="text-brand-muted text-sm animate-pulse">Verifying...</span>
+          <div className="mb-4 text-center">
+            <span className="animate-pulse text-sm text-brand-muted">Verifying...</span>
           </div>
         )}
 
-        {/* Resend */}
-        <div className="text-center">
-          <p className="text-xs text-brand-muted mb-2">Didn&apos;t receive the code?</p>
+        <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/45 p-4 text-center">
+          <p className="mb-2 text-xs text-brand-muted">Didn&apos;t receive the code?</p>
           <button
+            type="button"
             onClick={handleResend}
             disabled={resendCooldown > 0 || isLoading}
-            className="text-brand-green hover:underline text-sm font-bold transition-all disabled:text-brand-muted disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+            className="cursor-pointer text-sm font-bold text-brand-green transition hover:text-brand-cyan disabled:cursor-not-allowed disabled:text-brand-muted"
           >
             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
           </button>
         </div>
-      </Card>
-    </div>
+    </AuthShell>
   );
 }

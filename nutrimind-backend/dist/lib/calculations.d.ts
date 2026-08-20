@@ -18,8 +18,8 @@ interface CalorieResult {
  * adjusted for daily activity level and fitness objectives.
  *
  * BMR Calculation (Mifflin-St Jeor as per specifications):
- *   Male:   10 * weight(kg) + 6.25 * height(cm) - 5 * age - 161
- *   Female: 10 * weight(kg) + 6.25 * height(cm) - 5 * age + 5
+ *   Male:   10 * weight(kg) + 6.25 * height(cm) - 5 * age + 5
+ *   Female: 10 * weight(kg) + 6.25 * height(cm) - 5 * age - 161
  *
  * Activity Multipliers:
  *   SEDENTARY:      * 1.2

@@ -7,6 +7,27 @@ exports.NutritionReportService = void 0;
 const prisma_1 = __importDefault(require("@/lib/prisma"));
 const gemini_1 = require("@/lib/gemini");
 const fnri_1 = require("@/lib/fnri");
+const zod_1 = require("zod");
+const NUTRITION_REPORT_SYSTEM_CONTEXT = `
+You are generating a nutrition report for a system with this
+EXACT JSON response shape. You MUST use these exact
+field names — do not rename, do not restructure, do not
+add extra fields.
+
+Required response format:
+{
+  "foodsToAvoid": string[],
+  "foodsToLimit": string[],
+  "foodsRecommended": string[],
+  "drinksGuidance": string[],
+  "generalSummary": string
+}
+
+Rules:
+- Return ONLY valid JSON. No markdown formatting, no
+  code fences, no backticks, no preamble, no explanation
+  text before or after the JSON
+`;
 class NutritionReportService {
     /**
      * Fetches the current nutrition report for the user.
@@ -32,7 +53,7 @@ class NutritionReportService {
      * Contextualizes the prompt with local seeded FNRI foods to prioritize affordable, native
      * Filipino meal plans over Western food items.
      */
-    static async generateMockReport(userId) {
+    static async generateReport(userId) {
         // 1. Fetch live user details, profile, conditions, and allergies
         const user = await prisma_1.default.user.findUnique({
             where: { id: userId },
@@ -48,6 +69,8 @@ class NutritionReportService {
         const profile = user.userProfile;
         const conditions = user.healthConditions.map((c) => c.condition);
         const allergens = user.allergies.map((a) => a.allergen);
+        const otherConditions = profile.otherConditions || '';
+        const otherAllergies = profile.otherAllergies || '';
         // Verify stats exist
         const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
         if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
@@ -60,7 +83,8 @@ class NutritionReportService {
             .slice(0, 100) // Ensure prompt safety by capping length
             .join('\n');
         // 3. Compile prompt constraints
-        const clinicalSystemInstruction = "You are a licensed Registered Nutritionist-Dietitian (RND) and medical advisor in the Philippines. " +
+        const clinicalSystemInstruction = NUTRITION_REPORT_SYSTEM_CONTEXT + "\n" +
+            "You are a licensed Registered Nutritionist-Dietitian (RND) and medical advisor in the Philippines. " +
             "You specialize in custom nutrition plans mapped to the Philippine Food and Nutrition Research Institute (FNRI) standards. " +
             "Your target demographic is young urban health-conscious Filipinos (18-35). " +
             "Ensure all dietary advice is culturally appropriate, prioritizing native Filipino produce (e.g. malunggay, ampalaya, kangkong, saba, calamansi, bangus) " +
@@ -79,8 +103,8 @@ class NutritionReportService {
             `- Regional Cooking Style & Cultural Background: ${profile.foodCulture || 'Filipino'}\n` +
             `\n` +
             `[CLINICAL CONSTRAINTS]\n` +
-            `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}\n` +
-            `- Confirmed Food Allergies (HARD EXCLUSIONS): ${allergens.join(', ') || 'NONE'}\n` +
+            `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +
+            `- Confirmed Food Allergies (HARD EXCLUSIONS): ${allergens.join(', ') || 'NONE'}${otherAllergies ? '; Additional: ' + otherAllergies : ''}\n` +
             `\n` +
             `[AVAILABLE NATIVE FILIPINO INGREDIENTS CONTEXT]\n` +
             `${formattedLocalFoods}\n` +
@@ -103,8 +127,16 @@ class NutritionReportService {
             `- Keep suggestions highly realistic, affordable, and practical for young Filipinos.\n` +
             `- Return ONLY the clean JSON output. Do not wrap in markdown code blocks.`;
         console.log(`[Nutrition Report] Querying Gemini API for user: ${user.name} (${userId})...`);
+        // Define Zod response schema
+        const NutritionReportSchema = zod_1.z.object({
+            foodsToAvoid: zod_1.z.array(zod_1.z.string()),
+            foodsToLimit: zod_1.z.array(zod_1.z.string()),
+            foodsRecommended: zod_1.z.array(zod_1.z.string()),
+            drinksGuidance: zod_1.z.array(zod_1.z.string()),
+            generalSummary: zod_1.z.string(),
+        });
         // 4. Request the real Gemini AI model to perform the assessment
-        const reportData = await (0, gemini_1.generateGenerativeJSON)(prompt, clinicalSystemInstruction);
+        const reportData = await (0, gemini_1.generateGenerativeJSON)(prompt, clinicalSystemInstruction, NutritionReportSchema, 0.2);
         // Validate structure format
         if (!Array.isArray(reportData.foodsToAvoid) ||
             !Array.isArray(reportData.foodsToLimit) ||

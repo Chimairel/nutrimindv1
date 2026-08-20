@@ -174,22 +174,30 @@ export class CronService {
           },
         });
 
-        // Handle missed check-in streak notification (keep existing logic)
-        const missedCheckins = profile.checkinStreak < 0 ? Math.abs(profile.checkinStreak) : 0;
-        if (missedCheckins >= 3) {
-          await prisma.notification.create({
-            data: {
-              userId: user.id,
-              title: '⚠️ Missed Check-Ins',
-              message: 'You have missed several weekly check-ins. Please review your updated meal plan and confirm your health profile is still accurate.',
-              type: 'WEEKLY_CHECKIN',
-            },
-          });
+        // Handle missed check-in streak degradation
+        // If the user's lastCheckinAt is older than 7 days, they missed
+        // their weekly check-in window and their streak should be reset.
+        const lastCheckin = profile.lastCheckinAt;
+        const now = new Date();
+        const missedWindow = lastCheckin
+          ? (now.getTime() - lastCheckin.getTime()) / (1000 * 60 * 60 * 24) > 7
+          : false; // No lastCheckinAt = first cycle, don't penalise
 
-          // Reset streak
+        if (missedWindow && profile.checkinStreak > 0) {
+          console.log(`[CronService] Streak broken for ${user.email} (last check-in: ${lastCheckin?.toISOString()}). Resetting to 0.`);
+
           await prisma.userProfile.update({
             where: { userId: user.id },
             data: { checkinStreak: 0 },
+          });
+
+          await prisma.notification.create({
+            data: {
+              userId: user.id,
+              title: '⚠️ Streak Broken',
+              message: `Your ${profile.checkinStreak}-week check-in streak has been reset because you missed last week's check-in. Complete this week's check-in to start building your streak again!`,
+              type: 'WEEKLY_CHECKIN',
+            },
           });
         }
 

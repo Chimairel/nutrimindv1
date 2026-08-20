@@ -2,6 +2,7 @@
 
 import React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
+import { Check } from 'lucide-react';
 
 interface CheckboxProps extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
   label?: string;
@@ -18,25 +19,23 @@ export const Checkbox = React.forwardRef<
         ref={ref}
         id={id}
         className={`
-          peer h-5 w-5 shrink-0 rounded-md border border-brand-border bg-brand-bgAlt
-          transition-all duration-200 outline-none
-          hover:border-brand-green/60
-          focus:ring-2 focus:ring-brand-green/20
+          peer h-5 w-5 shrink-0 rounded-md border border-brand-border bg-brand-surface/80
+          outline-none transition-all duration-200 hover:border-brand-green/60 focus:ring-2 focus:ring-brand-green/20
           data-[state=checked]:border-brand-green data-[state=checked]:bg-brand-green data-[state=checked]:text-[#0d0d0d]
-          disabled:opacity-40 disabled:cursor-not-allowed
+          disabled:cursor-not-allowed disabled:opacity-40
           ${error ? 'border-status-error-text/60' : ''}
           ${className}
         `}
         {...props}
       >
-        <CheckboxPrimitive.Indicator className="flex items-center justify-center text-[#0d0d0d] font-bold text-xs leading-none">
-          ✓
+        <CheckboxPrimitive.Indicator className="flex items-center justify-center text-[#0d0d0d]">
+          <Check className="h-3.5 w-3.5 stroke-[3]" />
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
       {label && (
         <label
           htmlFor={id}
-          className="text-sm font-medium tracking-wide text-brand-text select-none cursor-pointer peer-disabled:opacity-40 peer-disabled:cursor-not-allowed"
+          className="cursor-pointer select-none text-sm font-medium tracking-wide text-brand-text peer-disabled:cursor-not-allowed peer-disabled:opacity-40"
         >
           {label}
         </label>

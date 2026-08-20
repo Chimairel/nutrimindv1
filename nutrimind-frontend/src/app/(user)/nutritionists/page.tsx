@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Users, AlertTriangle, Stethoscope, User, Star } from 'lucide-react';
 
 interface Nutritionist {
@@ -65,21 +66,9 @@ export default function NutritionistsDirectoryPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 text-brand-text">
+    <div className="portal-page text-brand-text">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 mb-8 text-left">
-        <div>
-          <div className="flex items-center gap-2">
-            <Users className="w-6 h-6 text-brand-green shrink-0" />
-            <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-              NUTRITIONIST DIRECTORY
-            </h1>
-          </div>
-          <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
-            Browse and connect with verified Registered Nutritionist-Dietitians
-          </p>
-        </div>
-      </div>
+      <PortalPageHeader icon={Users} eyebrow="Professional network" title="Nutritionist directory" description="Browse verified Registered Nutritionist-Dietitians connected to the NutriMind platform." className="mb-8" />
 
       {error && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
@@ -175,4 +164,3 @@ export default function NutritionistsDirectoryPage() {
     </div>
   );
 }
-

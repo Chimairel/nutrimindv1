@@ -36,7 +36,7 @@ export declare class NutritionReportService {
      * Contextualizes the prompt with local seeded FNRI foods to prioritize affordable, native
      * Filipino meal plans over Western food items.
      */
-    static generateMockReport(userId: string): Promise<{
+    static generateReport(userId: string): Promise<{
         id: string;
         userId: string;
         generatedAt: Date;

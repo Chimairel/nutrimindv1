@@ -5,7 +5,8 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
-import { Check, Clock, Star } from 'lucide-react';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { Check, Clock, Star, UserRound } from 'lucide-react';
 
 interface NProfile {
   id: string;
@@ -62,15 +63,15 @@ export default function NutritionistProfilePage() {
   }
 
   return (
-    <div className="px-6 py-8 max-w-2xl mx-auto space-y-6 text-left">
-      <h1 className="text-2xl font-extrabold text-brand-text font-display">Nutritionist Profile</h1>
+    <div className="portal-page max-w-4xl space-y-6 text-left">
+      <PortalPageHeader icon={UserRound} eyebrow="Professional identity" title="Nutritionist profile" description="Maintain the professional details shown alongside your clinical review activity." />
 
-      <Card className="p-5 space-y-3 text-sm">
-        <div className="flex justify-between"><span className="text-brand-muted">PRC License</span><span className="text-brand-text font-mono">{profile?.prcLicenseNumber}</span></div>
-        <div className="flex justify-between"><span className="text-brand-muted">License Expiry</span><span className="text-brand-text">{profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : '—'}</span></div>
-        <div className="flex justify-between">
+      <Card className="grid gap-4 p-6 text-sm sm:grid-cols-2">
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4"><span className="text-[10px] uppercase tracking-wider text-brand-muted">PRC License</span><span className="mt-2 block font-mono font-bold text-brand-text">{profile?.prcLicenseNumber}</span></div>
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4"><span className="text-[10px] uppercase tracking-wider text-brand-muted">License expiry</span><span className="mt-2 block font-bold text-brand-text">{profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}</span></div>
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
           <span className="text-brand-muted">Verified</span>
-          <span className={profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}>
+          <span className={`mt-2 flex font-bold ${profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}`}>
             {profile?.isVerified ? (
               <span className="inline-flex items-center gap-1">
                 <Check className="w-3.5 h-3.5 stroke-[3px]" />
@@ -84,33 +85,33 @@ export default function NutritionistProfilePage() {
             )}
           </span>
         </div>
-        <div className="flex justify-between"><span className="text-brand-muted">Meals Verified</span><span className="text-brand-green font-bold">{profile?.totalVerified}</span></div>
-        <div className="flex justify-between">
-          <span className="text-brand-muted">Rating</span>
-          <span className="text-brand-text inline-flex items-center gap-1">
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4"><span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span><span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span></div>
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4 sm:col-span-2">
+          <span className="text-[10px] uppercase tracking-wider text-brand-muted">Rating</span>
+          <span className="mt-2 inline-flex items-center gap-1 font-bold text-brand-text">
             <Star className="w-3.5 h-3.5 fill-brand-green stroke-brand-green" />
             <span>{profile?.rating?.toFixed(1)}</span>
           </span>
         </div>
       </Card>
 
-      <Card className="p-5 space-y-4">
-        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Edit Profile</h2>
+      <Card className="space-y-5 p-6">
+        <p className="portal-section-label">Edit profile</p>
         <div>
-          <label className="text-xs text-brand-muted block mb-1">Specialization</label>
+          <label className="mb-2 block text-xs font-bold text-brand-text">Specialization</label>
           <input
             value={specialization}
             onChange={(e) => setSpecialization(e.target.value)}
-            className="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none"
+            className="w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
             placeholder="e.g. Sports Nutrition, Clinical Nutrition"
           />
         </div>
         <div>
-          <label className="text-xs text-brand-muted block mb-1">Bio</label>
+          <label className="mb-2 block text-xs font-bold text-brand-text">Bio</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none resize-none"
+            className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
             rows={4}
             placeholder="Tell patients about yourself..."
           />
@@ -126,4 +127,3 @@ export default function NutritionistProfilePage() {
     </div>
   );
 }
-

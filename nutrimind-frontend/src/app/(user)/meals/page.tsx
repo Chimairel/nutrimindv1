@@ -8,11 +8,13 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
+import PendingMealPreviewCard, { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import Modal from '@/components/ui/Modal';
 import { MealPlan } from '@/types';
 import axios from 'axios';
-import { Sprout, Calendar, History, BookOpen, RefreshCw, AlertTriangle, Search, FileText, Salad, Utensils } from 'lucide-react';
+import { Sprout, Calendar, History, BookOpen, RefreshCw, AlertTriangle, Search, FileText, Salad, Utensils, CheckCircle2, Clock3, ShieldCheck, Sparkles } from 'lucide-react';
 
 
 interface SwapOption {
@@ -40,6 +42,12 @@ export default function WeeklyPlanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingReview, setPendingReview] = useState<{
+    mealCount: number;
+    planType: 'STARTER' | 'WEEKLY';
+    reviewStatus: 'PENDING_REVIEW';
+    meals: PendingMealPreview[];
+  } | null>(null);
 
   // Meal swap states
   const [swapsUsed, setSwapsUsed] = useState(0);
@@ -86,6 +94,7 @@ export default function WeeklyPlanPage() {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
         setMeals(res.data.data);
+        setPendingReview(res.data.meta?.pendingReview ?? null);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -299,6 +308,8 @@ export default function WeeklyPlanPage() {
 
   // Triggers full 7-day meal plan regeneration
   const handleRegeneratePlan = async () => {
+    if (pendingReview) return;
+
     if (meals.length > 0) {
       if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?')) return;
     }
@@ -309,6 +320,7 @@ export default function WeeklyPlanPage() {
       const res = await api.post('/user/meals/generate');
       if (res.data && res.data.success) {
         setMeals(res.data.data.meals);
+        setPendingReview(res.data.data.pendingReview ?? null);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -371,6 +383,30 @@ export default function WeeklyPlanPage() {
       });
   };
 
+  const groupPendingMealsByDate = () => {
+    const grouped: Record<string, PendingMealPreview[]> = {};
+
+    pendingReview?.meals.forEach((meal) => {
+      const dateKey = new Date(meal.scheduledDate).toDateString();
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(meal);
+    });
+
+    return Object.keys(grouped)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+      .map((dateKey) => {
+        const parsedDate = new Date(dateKey);
+        return {
+          dateKey,
+          weekday: parsedDate.toLocaleDateString('en-US', { weekday: 'long' }),
+          dateStr: parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          mealsList: grouped[dateKey],
+        };
+      });
+  };
+
   const groupHistoryByDate = () => {
     const grouped: Record<string, any[]> = {};
     historyLogs.forEach((log) => {
@@ -399,7 +435,7 @@ export default function WeeklyPlanPage() {
 
   if (isLoading || isRegenerating) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <LoadingSpinner size="lg" />
           <p className="text-sm text-brand-muted animate-pulse font-display font-semibold">
@@ -411,13 +447,15 @@ export default function WeeklyPlanPage() {
   }
 
   const groupedDays = groupMealsByDate();
-  const isStarterPlan = meals.length > 0 && meals[0].planType === 'STARTER';
+  const groupedPendingDays = groupPendingMealsByDate();
+  const displayedPlanDays = groupedDays.length > 0 ? groupedDays : groupedPendingDays;
+  const isStarterPlan = meals[0]?.planType === 'STARTER' || pendingReview?.planType === 'STARTER';
 
-  const starterFirstDate = isStarterPlan && groupedDays.length > 0
-    ? new Date(groupedDays[0].dateKey)
+  const starterFirstDate = isStarterPlan && displayedPlanDays.length > 0
+    ? new Date(displayedPlanDays[0].dateKey)
     : null;
-  const starterLastDate = isStarterPlan && groupedDays.length > 0
-    ? new Date(groupedDays[groupedDays.length - 1].dateKey)
+  const starterLastDate = isStarterPlan && displayedPlanDays.length > 0
+    ? new Date(displayedPlanDays[displayedPlanDays.length - 1].dateKey)
     : null;
 
   const nextCycleDay = (() => {
@@ -428,8 +466,7 @@ export default function WeeklyPlanPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 md:p-12 pb-32 select-none relative">
-      <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[300px] w-[500px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
+    <div className="portal-page select-none pb-32 text-brand-text">
 
       {/* Main Container */}
       <div className="max-w-6xl mx-auto flex flex-col gap-8">
@@ -444,7 +481,7 @@ export default function WeeklyPlanPage() {
               </h2>
             </div>
             <p className="text-xs text-brand-muted">
-              {groupedDays.length} day{groupedDays.length !== 1 ? 's' : ''} ·{' '}
+              {displayedPlanDays.length} day{displayedPlanDays.length !== 1 ? 's' : ''} ·{' '}
               {starterFirstDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} to{' '}
               {starterLastDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </p>
@@ -455,55 +492,28 @@ export default function WeeklyPlanPage() {
         )}
 
         {/* Header Block */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 text-left">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              {activeTab === 'plan' && isStarterPlan ? (
-                <Sprout className="w-6 h-6 text-brand-green shrink-0" />
-              ) : activeTab === 'history' ? (
-                <History className="w-6 h-6 text-brand-green shrink-0" />
-              ) : (
-                <BookOpen className="w-6 h-6 text-brand-green shrink-0" />
-              )}
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-brand-green uppercase">
-                {activeTab === 'plan' ? (isStarterPlan ? 'STARTER PLAN' : 'WEEKLY MEAL PLAN') : activeTab === 'history' ? 'MEAL HISTORY' : 'MEAL LIBRARY'}
-              </h1>
-            </div>
-            <p className="text-xs text-brand-muted uppercase tracking-wider font-bold">
-              {activeTab === 'plan'
-                ? (isStarterPlan
-                  ? `${groupedDays.length}-day kickoff plan · Full weekly cycle starts ${nextCycleDay}`
-                  : 'Complete 7-day scheduled breakdown and macro targets')
-                : activeTab === 'history'
-                ? 'Your logged meal intake history and swapped items'
-                : 'Browse clinically approved recipes matching your profile'
-              }
-            </p>
-            {activeTab === 'plan' && meals.length > 0 && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-muted font-semibold">
+        <PortalPageHeader
+          icon={activeTab === 'plan' && isStarterPlan ? Sprout : activeTab === 'history' ? History : BookOpen}
+          eyebrow={activeTab === 'plan' ? 'Personal meal intelligence' : activeTab === 'history' ? 'Nutrition timeline' : 'Verified collection'}
+          title={activeTab === 'plan' ? (isStarterPlan ? 'Starter meal plan' : 'Weekly meal plan') : activeTab === 'history' ? 'Meal history' : 'Meal library'}
+          description={activeTab === 'plan' ? (isStarterPlan ? `${displayedPlanDays.length}-day kickoff plan. Your full weekly cycle starts ${nextCycleDay}.` : 'Your complete scheduled breakdown, macro targets, and meal review states.') : activeTab === 'history' ? 'Your logged intake history, completion states, and swapped items.' : 'Browse compatible, nutritionist-verified recipes for your profile.'}
+          meta={activeTab === 'plan' && meals.length > 0 ? <span className="font-mono text-[9px] uppercase tracking-wider text-white/45">{swapsUsed} of 3 swaps used</span> : undefined}
+          actions={activeTab === 'plan' ? (pendingReview ? <Badge variant="pending" className="px-3 py-2">Pending verification</Badge> : (
+              <Button variant="primary" onClick={handleRegeneratePlan} className="flex items-center gap-1.5 bg-red-500 text-xs font-bold text-white hover:bg-red-600">
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>{swapsUsed} of 3 swaps used this week</span>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {activeTab === 'plan' && (
-              <Button variant="primary" onClick={handleRegeneratePlan} className="text-xs font-bold py-2 bg-red-500 hover:bg-red-600 border-red-500/20 text-white shadow-xl shadow-red-500/10 flex items-center gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Regenerate Plan</span>
+                <span>Regenerate plan</span>
               </Button>
-            )}
-          </div>
-        </div>
+          )) : undefined}
+        />
 
         {/* Tab Bar */}
-        <div className="flex border-b-2 border-brand-border pb-4 gap-2.5 text-left">
+        <div className="portal-filter-panel flex gap-2 p-2 text-left">
           <button
             onClick={() => setActiveTab('plan')}
-            className={`py-2.5 px-5 font-display font-extrabold text-sm transition-all border-2 rounded-xl flex items-center gap-2 outline-none ${
+            className={`flex items-center gap-2 rounded-2xl border px-5 py-2.5 font-display text-sm font-extrabold outline-none transition-all ${
               activeTab === 'plan'
-                ? 'border-brand-border bg-brand-green text-white shadow-md'
-                : 'border-brand-border bg-brand-surface text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/50'
+                ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon'
+                : 'border-transparent text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
             }`}
           >
             <Calendar className="w-4 h-4" />
@@ -511,10 +521,10 @@ export default function WeeklyPlanPage() {
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-2.5 px-5 font-display font-extrabold text-sm transition-all border-2 rounded-xl flex items-center gap-2 outline-none ${
+            className={`flex items-center gap-2 rounded-2xl border px-5 py-2.5 font-display text-sm font-extrabold outline-none transition-all ${
               activeTab === 'history'
-                ? 'border-brand-border bg-brand-green text-white shadow-md'
-                : 'border-brand-border bg-brand-surface text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/50'
+                ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon'
+                : 'border-transparent text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
             }`}
           >
             <History className="w-4 h-4" />
@@ -522,10 +532,10 @@ export default function WeeklyPlanPage() {
           </button>
           <button
             onClick={() => setActiveTab('library')}
-            className={`py-2.5 px-5 font-display font-extrabold text-sm transition-all border-2 rounded-xl flex items-center gap-2 outline-none ${
+            className={`flex items-center gap-2 rounded-2xl border px-5 py-2.5 font-display text-sm font-extrabold outline-none transition-all ${
               activeTab === 'library'
-                ? 'border-brand-border bg-brand-green text-white shadow-md'
-                : 'border-brand-border bg-brand-surface text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/50'
+                ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon'
+                : 'border-transparent text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -543,16 +553,119 @@ export default function WeeklyPlanPage() {
         {/* Conditional Content Rendering */}
         {activeTab === 'plan' && (
           groupedDays.length === 0 ? (
-            <div className="py-12">
-              <EmptyState
-                icon={<Calendar className="h-8 w-8 text-brand-green" />}
-                title="No Active Meal Plan"
-                description="Generate a customized 7-day plan (21 meals) mapped to your clinical target calories and Filipino food culture."
-                actionText="Generate 7-Day Plan"
-                onAction={handleRegeneratePlan}
+            pendingReview ? (
+              <section className="flex flex-col gap-8 text-left" aria-labelledby="pending-plan-heading">
+                <div className="relative overflow-hidden rounded-[30px] border border-brand-green/20 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/10 p-5 shadow-card md:p-7">
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand-accent/15 blur-3xl" aria-hidden="true" />
+                  <div className="relative flex flex-col gap-6">
+                    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
+                      <div className="max-w-2xl">
+                        <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-green">
+                          <Sparkles className="h-4 w-4" aria-hidden="true" />
+                          AI plan generated
+                        </div>
+                        <h2 id="pending-plan-heading" className="mt-3 font-display text-2xl font-black tracking-tight text-brand-text md:text-3xl">
+                          Your plan is in clinical review
+                        </h2>
+                        <p className="mt-2 text-sm leading-relaxed text-brand-muted">
+                          All {pendingReview.mealCount} meals are connected across {groupedPendingDays.length} scheduled days. You can preview them now while a nutritionist verifies the recommendations.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:min-w-[250px]">
+                        <div className="rounded-2xl border border-brand-border/60 bg-brand-bg/70 p-3.5">
+                          <span className="block font-display text-2xl font-black text-brand-text">{pendingReview.mealCount}</span>
+                          <span className="text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">Meals</span>
+                        </div>
+                        <div className="rounded-2xl border border-brand-border/60 bg-brand-bg/70 p-3.5">
+                          <span className="block font-display text-2xl font-black text-brand-text">{groupedPendingDays.length}</span>
+                          <span className="text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">Days</span>
+                        </div>
+                      </div>
+                    </div>
 
-              />
-            </div>
+                    <div className="grid gap-2 md:grid-cols-3">
+                      <div className="flex items-center gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-3.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-green text-white">
+                          <CheckCircle2 className="h-4.5 w-4.5" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Step 1</p>
+                          <p className="text-xs font-extrabold text-brand-text">Plan generated</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 rounded-2xl border border-status-pending-text/25 bg-status-pending-bg/40 p-3.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-status-pending-text text-white">
+                          <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-status-pending-text">Current</p>
+                          <p className="text-xs font-extrabold text-brand-text">Nutritionist review</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 rounded-2xl border border-brand-border/60 bg-brand-bg/55 p-3.5 opacity-70">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border bg-brand-surface text-brand-muted">
+                          <ShieldCheck className="h-4.5 w-4.5" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Step 3</p>
+                          <p className="text-xs font-extrabold text-brand-text">Ready after approval</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/30 px-4 py-3 text-status-pending-text">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      <p className="text-[11px] font-semibold leading-relaxed">
+                        Preview only. Logging, swaps, regeneration, nutrition totals, and groceries remain disabled until approval.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {groupedPendingDays.map((day, dayIndex) => (
+                  <div key={day.dateKey} className="rounded-[30px] border border-brand-border/60 bg-brand-surface/45 p-4 shadow-card md:p-5">
+                    <div className="mb-5 flex flex-col gap-3 border-b border-brand-border/50 pb-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 font-display text-sm font-black text-brand-green">
+                          {String(dayIndex + 1).padStart(2, '0')}
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-brand-muted">Plan day</p>
+                          <h3 className="mt-0.5 font-display text-lg font-black leading-none text-brand-text">
+                            {day.weekday}
+                          </h3>
+                          <span className="mt-1 block text-[10px] font-bold text-brand-muted">
+                            {day.dateStr}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant="pending" className="self-start px-3 py-1.5 text-[10px] md:self-auto">
+                        {day.mealsList.length} meals pending verification
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                      {day.mealsList.map((meal, index) => (
+                        <PendingMealPreviewCard
+                          key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
+                          meal={meal}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            ) : (
+              <div className="py-12">
+                <EmptyState
+                  icon={<Calendar className="h-8 w-8 text-brand-green" />}
+                  title="No Active Meal Plan"
+                  description="Generate a customized 7-day plan (21 meals) mapped to your clinical target calories and Filipino food culture."
+                  actionText="Generate 7-Day Plan"
+                  onAction={handleRegeneratePlan}
+                />
+              </div>
+            )
           ) : (
             <div className="flex flex-col gap-10 text-left">
               {groupedDays.map((day) => (

@@ -5,8 +5,8 @@ export declare class ProgressService {
      */
     static logWeight(userId: string, weightKg: number, note?: string): Promise<{
         id: string;
-        weightKg: number;
         userId: string;
+        weightKg: number;
         loggedAt: Date;
         note: string | null;
     }>;
@@ -16,8 +16,8 @@ export declare class ProgressService {
     static getProgressHistory(userId: string): Promise<{
         weightLogs: {
             id: string;
-            weightKg: number;
             userId: string;
+            weightKg: number;
             loggedAt: Date;
             note: string | null;
         }[];

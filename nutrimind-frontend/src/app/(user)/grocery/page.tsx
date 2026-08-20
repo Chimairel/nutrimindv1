@@ -6,6 +6,7 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import axios from 'axios';
@@ -150,23 +151,16 @@ export default function GroceryListPage() {
   const progressPercent = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 text-brand-text">
+    <div className="portal-page max-w-5xl text-brand-text">
       
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 mb-8 text-left">
-        <div>
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6 text-brand-green shrink-0" />
-            <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-              GROCERY SHOPPING LIST
-            </h1>
-          </div>
-          <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
-            Consolidated ingredients mapped from your active 7-Day meal plan
-          </p>
-        </div>
-        {groceryList && (
-          <div className="flex items-center gap-2">
+      <PortalPageHeader
+        icon={ShoppingCart}
+        eyebrow="Plan companion"
+        title="Smart grocery list"
+        description="A categorized shopping checklist compiled from your active meal plan."
+        className="mb-8"
+        actions={groceryList ? <div className="flex items-center gap-2">
             <Button
               variant="secondary"
               onClick={handleDownloadPDF}
@@ -193,9 +187,8 @@ export default function GroceryListPage() {
                 </>
               )}
             </Button>
-          </div>
-        )}
-      </div>
+          </div> : undefined}
+      />
 
       {error && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">

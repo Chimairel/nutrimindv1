@@ -50,60 +50,52 @@ api.interceptors.response.use(
       const isRefreshRequest = originalRequest.url && originalRequest.url.includes('/auth/refresh');
 
       if (!isAuthPage && !isRefreshRequest) {
-        const refreshToken = cookieHelper.get('nutrimind_refresh');
-
-        if (refreshToken) {
-          if (isRefreshing) {
-            // Queue this failed request while token is being refreshed
-            return new Promise((resolve, reject) => {
-              failedQueue.push({ resolve, reject });
-            })
-              .then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                return api(originalRequest);
-              })
-              .catch((err) => {
-                return Promise.reject(err);
-              });
-          }
-
-          originalRequest._retry = true;
-          isRefreshing = true;
-
-          try {
-            const refreshResponse = await axios.post(
-              (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api') + '/auth/refresh',
-              { refreshToken }
-            );
-
-            if (refreshResponse.data && refreshResponse.data.success) {
-              const { accessToken } = refreshResponse.data.data;
-              cookieHelper.set('nutrimind_session', accessToken, 7);
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-              
-              processQueue(null, accessToken);
-              isRefreshing = false;
-              
+        if (isRefreshing) {
+          // Queue this failed request while token is being refreshed
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
               return api(originalRequest);
-            }
-          } catch (refreshError) {
-            processQueue(refreshError, null);
+            })
+            .catch((err) => {
+              return Promise.reject(err);
+            });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          // Send refresh request — the HttpOnly cookie is sent automatically
+          // by the browser because withCredentials is true on the api instance.
+          const refreshResponse = await axios.post(
+            (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api') + '/auth/refresh',
+            {},
+            { withCredentials: true }
+          );
+
+          if (refreshResponse.data && refreshResponse.data.success) {
+            const { accessToken } = refreshResponse.data.data;
+            cookieHelper.set('nutrimind_session', accessToken, 7);
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+            processQueue(null, accessToken);
             isRefreshing = false;
-            
-            cookieHelper.clear('nutrimind_session');
-            cookieHelper.clear('nutrimind_refresh');
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login';
-            }
-            return Promise.reject(refreshError);
+
+            return api(originalRequest);
           }
-        } else {
-          // No refresh token available — clear session and redirect
+        } catch (refreshError) {
+          processQueue(refreshError, null);
+          isRefreshing = false;
+
+          // Only clear the access token — the backend clears the HttpOnly refresh cookie
           cookieHelper.clear('nutrimind_session');
-          cookieHelper.clear('nutrimind_refresh');
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }
+          return Promise.reject(refreshError);
         }
       }
     }

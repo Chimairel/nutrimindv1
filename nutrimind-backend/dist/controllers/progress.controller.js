@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProgressController = void 0;
 const progress_service_1 = require("@/services/progress.service");
+const sanitizeError_1 = require("@/lib/sanitizeError");
 class ProgressController {
     /**
      * Logs a new weight log and triggers recalculation of daily calorie targets.
@@ -30,7 +31,7 @@ class ProgressController {
             console.error('[ProgressController] logWeight error:', err);
             return res.status(400).json({
                 success: false,
-                error: err.message || 'Failed to record weight entry.',
+                error: (0, sanitizeError_1.sanitizeErrorMessage)(err, 'Failed to record weight entry.'),
             });
         }
     }

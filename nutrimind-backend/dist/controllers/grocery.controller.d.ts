@@ -13,5 +13,10 @@ export declare class GroceryController {
      * Toggles the checked status of a grocery item.
      */
     static toggleItem(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
+    /**
+     * GET /api/user/grocery/pdf
+     * Streams the grocery list as a PDF
+     */
+    static downloadGroceryPdf(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 }
 //# sourceMappingURL=grocery.controller.d.ts.map

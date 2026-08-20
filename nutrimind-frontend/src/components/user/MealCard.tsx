@@ -73,13 +73,13 @@ export default function MealCard({
 
   // Check if meal is logged as DONE or SKIPPED (or is a past unlogged meal)
   const isCompleted = mealLogs.some((l) => l.status === 'DONE');
-  const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED') || 
+  const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED') ||
     (!mealLogs.some((l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')) && isPastDate);
   const isLogged = isCompleted || isSkipped;
 
   const handleCheckedChange = async (checked: boolean) => {
     if (!onStatusToggle || isUpdating) return;
-    
+
     setIsUpdating(true);
     try {
       await onStatusToggle(id, checked ? 'DONE' : 'PENDING');
@@ -118,23 +118,24 @@ export default function MealCard({
   return (
     <>
       {/* Simplified Meal Card inside Grid */}
-      <div 
+      <div
         onClick={() => {
           if (onCardClick) {
             onCardClick();
           } else {
             setIsOpen(true);
           }
-        }} 
+        }}
         className="block outline-none select-none h-full cursor-pointer"
       >
-        <Card 
+        <Card
           interactive
           className={`
-            p-5 border-brand-border bg-brand-surface h-full flex flex-col justify-between transition-all duration-300
+            border border-brand-border/70 bg-brand-surface h-full transition-all duration-300
             ${isCompleted ? 'border-brand-green/40 shadow-lg shadow-brand-green/5 opacity-80' : ''}
             ${isSkipped ? 'border-red-500/20 opacity-60' : ''}
           `}
+          contentClassName="flex h-full flex-col justify-between p-5"
         >
           {/* Card Top Row */}
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -167,7 +168,7 @@ export default function MealCard({
 
           {/* Card Content */}
           <div className="flex-1 flex flex-col justify-between">
-            <h3 
+            <h3
               className={`
                 text-sm font-extrabold font-display tracking-tight leading-snug mb-1 transition-all
                 ${isCompleted ? 'line-through text-brand-muted' : 'text-brand-text'}
@@ -176,7 +177,7 @@ export default function MealCard({
             >
               {mealName}
             </h3>
-            
+
             <div className="text-[11px] font-bold text-brand-muted mt-2">
               {Math.round(calories)} kcal · {Math.round(proteinG)}g P · {Math.round(carbsG)}g C · {Math.round(fatG)}g F
             </div>
@@ -185,9 +186,9 @@ export default function MealCard({
       </div>
 
       {/* Detailed Info Dialog Popup Modal */}
-      <Modal 
-        isOpen={isOpen} 
-        onClose={() => setIsOpen(false)} 
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
         title={`${activeLabel.label} Details`}
         size="md"
       >
@@ -206,9 +207,9 @@ export default function MealCard({
 
           {/* Prototype Macro Badges Side-By-Side */}
           <div className="grid grid-cols-3 gap-3 mb-1">
-            <div 
+            <div
               className="border rounded-2xl p-3 text-center"
-              style={{ 
+              style={{
                 backgroundColor: 'var(--macro-protein-bg)',
                 borderColor: 'var(--macro-protein-border)'
               }}
@@ -220,10 +221,10 @@ export default function MealCard({
                 Protein
               </span>
             </div>
-            
-            <div 
+
+            <div
               className="border rounded-2xl p-3 text-center"
-              style={{ 
+              style={{
                 backgroundColor: 'var(--macro-carbs-bg)',
                 borderColor: 'var(--macro-carbs-border)'
               }}
@@ -236,9 +237,9 @@ export default function MealCard({
               </span>
             </div>
 
-            <div 
+            <div
               className="border rounded-2xl p-3 text-center"
-              style={{ 
+              style={{
                 backgroundColor: 'var(--macro-fat-bg)',
                 borderColor: 'var(--macro-fat-border)'
               }}
@@ -257,6 +258,25 @@ export default function MealCard({
             {description || "This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it."}
           </p>
 
+          {/* YouTube Cooking Tutorial Helper */}
+          <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl shrink-0">📺</span>
+              <div>
+                <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
+                <p className="text-[10px] text-brand-muted mt-1 leading-snug">Watch Filipino cooking tutorials for this dish on YouTube.</p>
+              </div>
+            </div>
+            <a
+              href={`https://www.youtube.com/results?search_query=how+to+cook+${encodeURIComponent(mealName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none"
+            >
+              Watch Video
+            </a>
+          </div>
+
           {/* Ingredients list */}
           {ingredients.length > 0 && (
             <div>
@@ -265,8 +285,8 @@ export default function MealCard({
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {ingredients.map((ing) => (
-                  <span 
-                    key={ing.id} 
+                  <span
+                    key={ing.id}
                     className="text-[10px] bg-brand-bgAlt border border-brand-border/60 text-brand-text px-2.5 py-1.5 rounded-lg leading-none font-semibold"
                   >
                     {ing.ingredientName}

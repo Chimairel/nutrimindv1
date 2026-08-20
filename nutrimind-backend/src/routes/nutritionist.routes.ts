@@ -3,6 +3,7 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { AuthenticatedRequest } from '@/types';
 import { NutritionistService } from '@/services/nutritionist.service';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ router.get('/queue', async (req: AuthenticatedRequest, res: Response) => {
     const queue = await NutritionistService.getReviewQueue(profile.id);
     return res.status(200).json({ success: true, data: queue });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review queue.') });
   }
 });
 
@@ -36,10 +37,10 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
     const result = await NutritionistService.getReviewCardDetails(req.user!.userId, mealPlanId);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
-    if (error.message.includes('not found')) {
-      return res.status(404).json({ success: false, error: error.message });
+    if (sanitizeErrorMessage(error, '').includes('not found')) {
+      return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Review card not found.') });
     }
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review card details.') });
   }
 });
 
@@ -67,10 +68,11 @@ router.patch('/review/:id', async (req: AuthenticatedRequest, res: Response) => 
       return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });
     }
   } catch (error: any) {
-    if (error.message.includes('already claimed') || error.message.includes('already reviewed')) {
-      return res.status(409).json({ success: false, error: error.message });
+    const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
+    if (msg.includes('already claimed') || msg.includes('already reviewed')) {
+      return res.status(409).json({ success: false, error: msg });
     }
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: msg });
   }
 });
 
@@ -92,7 +94,7 @@ router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
     });
     return res.status(200).json({ success: true, data: library });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal library.') });
   }
 });
 
@@ -106,7 +108,7 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
     if (!meal) return res.status(404).json({ success: false, error: 'Meal not found.' });
     return res.status(200).json({ success: true, data: meal });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve library meal details.') });
   }
 });
 
@@ -124,7 +126,7 @@ router.patch('/library/:id', async (req: AuthenticatedRequest, res: Response) =>
     );
     return res.status(200).json({ success: true, data: updated });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: error.message });
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to edit library meal.') });
   }
 });
 
@@ -141,7 +143,7 @@ router.delete('/library/:id', async (req: AuthenticatedRequest, res: Response) =
     );
     return res.status(200).json({ success: true, message: 'Meal deleted successfully.' });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: error.message });
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete library meal.') });
   }
 });
 
@@ -161,7 +163,7 @@ router.post('/library/:id/flag', async (req: AuthenticatedRequest, res: Response
     );
     return res.status(201).json({ success: true, data: flag });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: error.message });
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to flag library meal.') });
   }
 });
 
@@ -183,7 +185,7 @@ router.patch('/library/:id/resolve-flag', async (req: AuthenticatedRequest, res:
     );
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: error.message });
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to resolve library meal flag.') });
   }
 });
 
@@ -199,7 +201,7 @@ router.get('/approved', async (req: AuthenticatedRequest, res: Response) => {
     const approved = await NutritionistService.getApprovedMeals(profile.id);
     return res.status(200).json({ success: true, data: approved });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve approved meals.') });
   }
 });
 
@@ -211,7 +213,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
     const profile = await NutritionistService.getProfile(req.user!.userId);
     return res.status(200).json({ success: true, data: { ...profile, user: req.user } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist profile.') });
   }
 });
 
@@ -224,7 +226,7 @@ router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
     const profile = await NutritionistService.updateProfile(req.user!.userId, { bio, specialization });
     return res.status(200).json({ success: true, data: profile });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update nutritionist profile.') });
   }
 });
 

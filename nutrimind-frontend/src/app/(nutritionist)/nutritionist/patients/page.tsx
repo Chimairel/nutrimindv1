@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Users, CheckCircle, Clock, User } from 'lucide-react';
 
 interface Patient {
@@ -35,8 +36,8 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto space-y-6 text-left">
-      <h1 className="text-2xl font-extrabold text-brand-text font-display">Your Patients</h1>
+    <div className="portal-page max-w-5xl space-y-6 text-left">
+      <PortalPageHeader icon={Users} eyebrow="Care directory" title="Your patients" description="View the people currently connected to your nutritionist workspace and their onboarding readiness." meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">{patients.length} assigned</span>} />
 
       {patients.length === 0 ? (
         <Card className="p-12 text-center flex flex-col items-center justify-center gap-4">
@@ -46,13 +47,15 @@ export default function PatientsPage() {
       ) : (
         <div className="grid gap-4">
           {patients.map((p) => (
-            <Card key={p.id} className="p-5 flex items-center justify-between">
-              <div>
+            <Card key={p.id} className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green"><User className="h-5 w-5" /></div>
+                <div>
                 <h3 className="text-sm font-bold text-brand-text">{p.user.name}</h3>
                 <p className="text-xs text-brand-muted">{p.user.email}</p>
                 <div className="text-xs text-brand-muted mt-1 flex items-center gap-1.5 flex-wrap">
                   <span>Assigned: {new Date(p.assignedAt).toLocaleDateString()}</span>
-                  <span>•</span>
+                  <span className="h-1 w-1 rounded-full bg-brand-muted" />
                   {p.user.onboardingDone ? (
                     <span className="inline-flex items-center gap-1 text-brand-green">
                       <CheckCircle className="w-3.5 h-3.5" />
@@ -65,9 +68,7 @@ export default function PatientsPage() {
                     </span>
                   )}
                 </div>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-brand-surface flex items-center justify-center">
-                <User className="w-5 h-5 text-brand-muted" />
+                </div>
               </div>
             </Card>
           ))}
@@ -76,4 +77,3 @@ export default function PatientsPage() {
     </div>
   );
 }
-

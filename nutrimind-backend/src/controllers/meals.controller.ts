@@ -4,7 +4,8 @@ import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import prisma from '@/lib/prisma';
-import { MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
+import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealType } from '@prisma/client';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
   assertUserActionableMealPlan,
   filterUserActionableMealPlans,
@@ -12,6 +13,10 @@ import {
   getUserActionableMealPlanWhere,
   isMealPlanNotActionableError,
 } from '@/domain/meal-actionability.policy';
+import {
+  buildPendingMealPlanPreview,
+  summarizeGeneratedMealPlan,
+} from '@/domain/meal-generation-result.policy';
 
 export class MealsController {
   /**
@@ -25,33 +30,41 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      console.log(`[MealsController] Starting meal plan generation for user: ${userId}`);
+      console.log('[MealsController] Starting authenticated meal plan generation.');
       const planGroupId = await MealGenerationService.generatePlanForUser(userId);
 
-      // Fetch and return the newly generated meals
-      const generatedMeals = await prisma.mealPlan.findMany({
+      // Fetch the new group once, but expose only actionable rows as meals.
+      // Pending rows are represented by a count/status summary, never as
+      // actionable meal details.
+      const generatedPlanRows = await prisma.mealPlan.findMany({
         where: {
           planGroupId,
           userId,
-          ...getUserActionableMealPlanWhere(),
         },
         include: { ingredients: true },
         orderBy: { scheduledDate: 'asc' },
       });
-      const meals = filterUserActionableMealPlans(generatedMeals);
+      const meals = filterUserActionableMealPlans(generatedPlanRows);
+      const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
+      const pendingReview = buildPendingMealPlanPreview(generatedPlanRows);
 
       return res.status(200).json({
         success: true,
         data: {
           planGroupId,
           meals,
+          ...generationSummary,
+          pendingReview,
         },
       });
     } catch (error: any) {
-      console.error('[MealsController] generateMealPlan error:', error);
+      console.error(
+        '[MealsController] Meal plan generation failed:',
+        sanitizeErrorMessage(error, 'Internal meal generation failure.')
+      );
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to generate your personalized meal plan.',
+        error: sanitizeErrorMessage(error, 'Failed to generate your personalized meal plan.'),
       });
     }
   }
@@ -80,9 +93,48 @@ export class MealsController {
       });
 
       if (!latestPlan) {
+        const latestPendingPlan = await prisma.mealPlan.findFirst({
+          where: {
+            userId,
+            status: MealPlanStatus.PENDING_REVIEW,
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { planGroupId: true },
+        });
+        const pendingPlanRows = latestPendingPlan
+          ? await prisma.mealPlan.findMany({
+              where: {
+                userId,
+                planGroupId: latestPendingPlan.planGroupId,
+                status: MealPlanStatus.PENDING_REVIEW,
+              },
+              select: {
+                planType: true,
+                status: true,
+                mealName: true,
+                mealType: true,
+                description: true,
+                calories: true,
+                proteinG: true,
+                carbsG: true,
+                fatG: true,
+                scheduledDate: true,
+                ingredients: {
+                  select: {
+                    ingredientName: true,
+                    category: true,
+                  },
+                },
+              },
+            })
+          : [];
+
         return res.status(200).json({
           success: true,
           data: [],
+          meta: {
+            pendingReview: buildPendingMealPlanPreview(pendingPlanRows),
+          },
         });
       }
 
@@ -106,6 +158,9 @@ export class MealsController {
       return res.status(200).json({
         success: true,
         data: meals,
+        meta: {
+          pendingReview: null,
+        },
       });
     } catch (error: any) {
       console.error('[MealsController] getCurrentPlan error:', error);
@@ -281,7 +336,7 @@ export class MealsController {
       console.error('[MealsController] logOutsideMeal error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to check or log outside meal.',
+        error: sanitizeErrorMessage(error, 'Failed to check or log outside meal.'),
       });
     }
   }
@@ -396,7 +451,7 @@ export class MealsController {
       }
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to retrieve swap options.',
+        error: sanitizeErrorMessage(error, 'Failed to retrieve swap options.'),
       });
     }
   }
@@ -436,10 +491,10 @@ export class MealsController {
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({ success: false, error: error.message });
       }
-      const status = error.message.includes('limit reached') ? 403 : 400;
+      const status = sanitizeErrorMessage(error, '').includes('limit reached') ? 403 : 400;
       return res.status(status).json({
         success: false,
-        error: error.message || 'Failed to execute meal swap.',
+        error: sanitizeErrorMessage(error, 'Failed to execute meal swap.'),
       });
     }
   }
@@ -465,7 +520,7 @@ export class MealsController {
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({ success: false, error: error.message });
       }
-      return res.status(400).json({ success: false, error: error.message });
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to preview swap.') });
     }
   }
 
@@ -492,7 +547,7 @@ export class MealsController {
       console.error('[MealsController] getCompatibleLibrary error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to retrieve compatible meals.',
+        error: sanitizeErrorMessage(error, 'Failed to retrieve compatible meals.'),
       });
     }
   }

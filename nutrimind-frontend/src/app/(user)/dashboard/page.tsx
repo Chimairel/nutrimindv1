@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -10,12 +10,14 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import CalorieRing from '@/components/user/CalorieRing';
 import MealCard from '@/components/user/MealCard';
+import PendingMealPreviewCard, { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import CheckinModal from '@/components/user/CheckinModal';
 import { MealPlan, MealType } from '@/types';
 import axios from 'axios';
-import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils } from 'lucide-react';
+import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils, Droplets, Flame, Scale, Clock3, Sparkles } from 'lucide-react';
 
 
 export default function DashboardPage() {
@@ -26,15 +28,26 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingReview, setPendingReview] = useState<{
+    mealCount: number;
+    planType: 'STARTER' | 'WEEKLY';
+    reviewStatus: 'PENDING_REVIEW';
+    meals: PendingMealPreview[];
+  } | null>(null);
+  const generationRequestInFlight = useRef(false);
 
   // Extract unique scheduledDate values in chronological order
   const uniqueDates = React.useMemo(() => {
-    if (!currentMeals || currentMeals.length === 0) return [];
+    const scheduledMeals = currentMeals.length > 0
+      ? currentMeals
+      : pendingReview?.meals ?? [];
+
+    if (scheduledMeals.length === 0) return [];
     const dateStrings = Array.from(
-      new Set(currentMeals.map((m) => new Date(m.scheduledDate).toDateString()))
+      new Set(scheduledMeals.map((meal) => new Date(meal.scheduledDate).toDateString()))
     );
     return dateStrings.map((dStr) => new Date(dStr)).sort((a, b) => a.getTime() - b.getTime());
-  }, [currentMeals]);
+  }, [currentMeals, pendingReview]);
 
   // Sync selected day offset to today if present in the plan
   useEffect(() => {
@@ -66,6 +79,39 @@ export default function DashboardPage() {
 
   // Check-in status
   const [isCheckinDue, setIsCheckinDue] = useState(false);
+  const [checkinInfo, setCheckinInfo] = useState<{ isDue: boolean; streak: number; lastCheckinAt: string | null } | null>(null);
+  
+  // User Profile details
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Water intake state
+  const [waterIntake, setWaterIntake] = useState(0);
+
+  // Fetch user profile metrics
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get('/user/profile');
+      if (res.data?.success) {
+        setUserProfile(res.data.data.userProfile);
+      }
+    } catch (err) {
+      console.error('[Dashboard] Failed to fetch user profile', err);
+    }
+  };
+
+  // Sync water intake from localStorage on client-side mount
+  useEffect(() => {
+    const savedWater = localStorage.getItem('nutrimind_water_intake');
+    if (savedWater) {
+      setWaterIntake(parseInt(savedWater, 10));
+    }
+  }, []);
+
+  const handleAddWater = (amount: number) => {
+    const nextWater = Math.max(0, waterIntake + amount);
+    setWaterIntake(nextWater);
+    localStorage.setItem('nutrimind_water_intake', String(nextWater));
+  };
 
   // Load active plan meals
   const fetchCurrentPlan = async () => {
@@ -75,6 +121,7 @@ export default function DashboardPage() {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
         setCurrentMeals(res.data.data);
+        setPendingReview(res.data.meta?.pendingReview ?? null);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -90,8 +137,11 @@ export default function DashboardPage() {
   const checkCheckinStatus = async () => {
     try {
       const res = await api.get('/user/checkin/status');
-      if (res.data?.success && res.data.data?.isDue) {
-        setIsCheckinDue(true);
+      if (res.data?.success) {
+        setCheckinInfo(res.data.data);
+        if (res.data.data?.isDue) {
+          setIsCheckinDue(true);
+        }
       }
     } catch (err) {
       console.error('[Dashboard] Failed to fetch checkin status', err);
@@ -102,6 +152,7 @@ export default function DashboardPage() {
     if (user) {
       fetchCurrentPlan();
       checkCheckinStatus();
+      fetchProfile();
     }
   }, [user]);
 
@@ -121,12 +172,16 @@ export default function DashboardPage() {
 
   // Triggers 7-day meal plan generation
   const handleGeneratePlan = async () => {
+    if (generationRequestInFlight.current || pendingReview) return;
+
+    generationRequestInFlight.current = true;
     setIsGenerating(true);
     setError(null);
     try {
       const res = await api.post('/user/meals/generate');
       if (res.data && res.data.success) {
         setCurrentMeals(res.data.data.meals);
+        setPendingReview(res.data.data.pendingReview ?? null);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -135,6 +190,7 @@ export default function DashboardPage() {
         setError('Generation execution failed.');
       }
     } finally {
+      generationRequestInFlight.current = false;
       setIsGenerating(false);
     }
   };
@@ -208,7 +264,9 @@ export default function DashboardPage() {
       .reduce((sum, m) => sum + m.fatG, 0);
 
     // Targets
-    const caloriesTarget = dayMeals.reduce((sum, m) => sum + m.calories, 0) || 2000;
+    const caloriesTarget = dayMeals.reduce((sum, m) => sum + m.calories, 0)
+      || userProfile?.dailyCalorieTarget
+      || 2000;
     const proteinTarget = dayMeals.reduce((sum, m) => sum + m.proteinG, 0) || 120;
     const carbsTarget = dayMeals.reduce((sum, m) => sum + m.carbsG, 0) || 220;
     const fatTarget = dayMeals.reduce((sum, m) => sum + m.fatG, 0) || 60;
@@ -228,7 +286,7 @@ export default function DashboardPage() {
 
   if (isLoading || isGenerating) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <LoadingSpinner size="lg" />
           <p className="text-sm text-brand-muted animate-pulse font-display font-semibold">
@@ -265,30 +323,31 @@ export default function DashboardPage() {
     return { offset: idx, dayLabel, dateLabel, dateStr: d.toDateString(), isPast };
   });
 
+  const activePendingDate = uniqueDates[selectedDayOffset];
+  const pendingMealsForSelectedDate = pendingReview?.meals.filter(
+    (meal) => activePendingDate
+      && new Date(meal.scheduledDate).toDateString() === activePendingDate.toDateString()
+  ) ?? [];
+
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 md:p-12 pb-32 select-none relative">
-      <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[300px] w-[500px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
+    <div className="portal-page select-none pb-32 text-brand-text">
 
       {/* Main Container */}
       <div className="max-w-6xl mx-auto flex flex-col gap-8">
         
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-brand-green">
-              MABUHAY, {user?.name.split(' ')[0].toUpperCase()}!
-            </h1>
-            <p className="text-xs text-brand-muted mt-1 uppercase tracking-wider font-bold">
-              Personalized Philippine Nutrition & Safe AI Meal Plans
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => router.push('/meals')} className="text-xs font-semibold py-2 flex items-center gap-1.5">
+        <PortalPageHeader
+          icon={Sparkles}
+          eyebrow="Daily nutrition cockpit"
+          title={<>Mabuhay, {user?.name.split(' ')[0]}.</>}
+          description="Your Filipino meal plan, daily targets, and review-aware nutrition progress in one connected view."
+          actions={
+            <Button variant="primary" onClick={() => router.push('/meals')} className="flex items-center gap-2 text-xs font-bold">
               <Calendar className="w-4 h-4" />
-              <span>Weekly Plan</span>
+              <span>Open weekly plan</span>
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {error && (
           <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
@@ -297,54 +356,175 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Empty State / Trigger Plan Generation */}
-        {currentMeals.length === 0 ? (
+        {/* Empty State / Dashboard */}
+        {currentMeals.length === 0 && !pendingReview ? (
           <div className="py-12">
             <EmptyState
               icon={<Utensils className="h-8 w-8 text-brand-green" />}
               title="No Active Meal Plan"
-              description="You do not have a meal plan scheduled. Generate a customized 7-day plan (21 meals) mapped to your clinical target calories and Filipino food culture."
-              actionText="Generate 7-Day Plan"
+              description="You do not have a meal plan scheduled. Generate a customized plan mapped to your clinical target calories and Filipino food culture."
+              actionText="Generate Meal Plan"
               onAction={handleGeneratePlan}
             />
           </div>
         ) : (
           <>
             {/* Horizontal Date Switcher */}
-            <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none justify-start md:justify-center">
-              {daySelectors.map((item) => {
-                const isSelected = selectedDayOffset === item.offset;
-                return (
-                  <button
-                    key={item.offset}
-                    onClick={() => setSelectedDayOffset(item.offset)}
-                    className={`
-                      flex flex-col items-center justify-center p-3 rounded-2xl min-w-[70px] border-2 transition-all duration-200 outline-none
-                      ${isSelected 
-                        ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
-                        : item.isPast
-                          ? 'border-brand-border bg-[#e2e8f0] dark:bg-[#222825] text-brand-muted/70 hover:text-brand-text'
-                          : 'border-brand-border bg-brand-surface/40 text-brand-muted hover:text-brand-text'
-                      }
-                    `}
+            {uniqueDates.length > 0 && (
+              <div className="mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none" aria-label="Meal plan dates">
+                {daySelectors.map((item) => {
+                  const isSelected = selectedDayOffset === item.offset;
+                  return (
+                    <button
+                      key={item.offset}
+                      onClick={() => setSelectedDayOffset(item.offset)}
+                      aria-pressed={isSelected}
+                      className={`
+                        flex min-w-[76px] flex-col items-center justify-center rounded-2xl border px-4 py-3 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg
+                        ${isSelected
+                          ? 'border-brand-border bg-brand-accent text-black shadow-md shadow-brand-accent/10'
+                          : item.isPast
+                            ? 'border-transparent bg-brand-bgAlt/70 text-brand-muted/70 hover:border-brand-border hover:text-brand-text'
+                            : 'border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/60 hover:text-brand-text'
+                        }
+                      `}
+                    >
+                      <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">{item.dayLabel}</span>
+                      <span className="mt-1 font-display text-xl font-black leading-none">{item.dateLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Daily Wellness Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-2">
+              
+              {/* Check-In Streak Card */}
+              <Card
+                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-brand-green/25 hover:shadow-card-hover"
+                contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Check-In Streak</span>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-600 dark:text-orange-300">
+                    <Flame className="h-4.5 w-4.5" aria-hidden="true" />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <h4 className="text-2xl font-black font-display text-brand-text">
+                    {checkinInfo?.streak ?? 0} {(checkinInfo?.streak ?? 0) === 1 ? 'Week' : 'Weeks'}
+                  </h4>
+                  <p className="text-xs text-brand-muted mt-1">
+                    {isCheckinDue ? 'Your weekly check-in is due today!' : 'Streak active. Keep logging!'}
+                  </p>
+                </div>
+                {isCheckinDue && (
+                  <Button 
+                    variant="accent" 
+                    size="sm" 
+                    onClick={() => setIsCheckinDue(true)} 
+                    className="w-full mt-3 font-bold text-xs"
                   >
-                    <span className="text-[10px] uppercase font-bold tracking-wider">{item.dayLabel}</span>
-                    <span className="text-lg font-extrabold mt-1 font-display leading-none">{item.dateLabel}</span>
+                    Complete Check-In
+                  </Button>
+                )}
+              </Card>
+
+              {/* Weight Progress Card */}
+              <Card
+                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-brand-green/25 hover:shadow-card-hover"
+                contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Weight Goals</span>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-green/20 bg-brand-green/10 text-brand-green">
+                    <Scale className="h-4.5 w-4.5" aria-hidden="true" />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <div className="flex items-baseline gap-2">
+                    <h4 className="text-2xl font-black font-display text-brand-text">
+                      {userProfile?.weightKg ?? '--'} <span className="text-xs font-bold text-brand-muted">kg</span>
+                    </h4>
+                    {userProfile?.targetWeightKg && (
+                      <span className="text-xs font-semibold text-brand-muted">
+                        target: {userProfile.targetWeightKg} kg
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-brand-muted mt-1">
+                    {userProfile?.weightKg && userProfile?.targetWeightKg ? (
+                      (() => {
+                        const diff = userProfile.weightKg - userProfile.targetWeightKg;
+                        if (diff > 0) return `${diff.toFixed(1)} kg to target`;
+                        if (diff < 0) return `${Math.abs(diff).toFixed(1)} kg to target`;
+                        return 'Target weight reached!';
+                      })()
+                    ) : (
+                      'Log weight to track progress'
+                    )}
+                  </p>
+                </div>
+              </Card>
+
+              {/* Water Intake Tracker */}
+              <Card
+                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-blue-500/25 hover:shadow-card-hover"
+                contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Water Intake</span>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300">
+                    <Droplets className="h-4.5 w-4.5" aria-hidden="true" />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <h4 className="text-2xl font-black font-display text-brand-text">
+                    {waterIntake} <span className="text-xs font-bold text-brand-muted">/ 2500 mL</span>
+                  </h4>
+                  {/* Progress bar */}
+                  <div className="w-full bg-brand-bgAlt h-1.5 rounded-full overflow-hidden mt-2">
+                    <div 
+                      className="bg-blue-500 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (waterIntake / 2500) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button 
+                    onClick={() => handleAddWater(-250)}
+                    className="flex-1 py-1 px-3 text-xs font-bold rounded-lg border border-brand-border bg-brand-surface text-brand-text hover:bg-brand-bgAlt transition-colors"
+                  >
+                    -250mL
                   </button>
-                );
-              })}
+                  <button 
+                    onClick={() => handleAddWater(250)}
+                    className="flex-1 py-1 px-3 text-xs font-bold rounded-lg border border-transparent bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                  >
+                    +250mL
+                  </button>
+                </div>
+              </Card>
+
             </div>
 
             {/* Analytics Dashboard Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center mt-4">
               
               {/* Calorie Ring Gauge Card */}
-              <Card className="p-8 border-brand-border/60 bg-brand-surface/40 flex items-center justify-center md:col-span-1 min-h-[300px]">
+              <Card
+                className="min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-1"
+                contentClassName="flex min-h-[300px] items-center justify-center p-6"
+              >
                 <CalorieRing consumed={caloriesConsumed} target={caloriesTarget} />
               </Card>
 
               {/* Macros Target Progress Card */}
-              <Card className="relative p-8 border-brand-border/60 bg-brand-surface/40 md:col-span-2 min-h-[300px] flex flex-col justify-center gap-6 !overflow-visible">
+              <Card
+                className="relative min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-2 !overflow-visible"
+                contentClassName="flex min-h-[300px] flex-col justify-center gap-6 p-6 md:p-8"
+              >
                 <div>
                   <h3 className="text-sm font-bold tracking-wider text-brand-muted uppercase mb-4">
                     Daily Macronutrient Budgets
@@ -415,54 +595,101 @@ export default function DashboardPage() {
                 <div className="absolute bottom-0 translate-y-1/2 right-6 md:right-8 z-10">
                   <button
                     onClick={() => setIsLogModalOpen(true)}
-                    className="h-14 w-14 md:h-16 md:w-16 rounded-full border-2 border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/10 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 hover-pulse outline-none"
+                    className="h-14 w-14 md:h-16 md:w-16 rounded-full border border-brand-border bg-brand-accent text-black shadow-lg shadow-brand-accent/10 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 hover-pulse outline-none"
                     title="Log Outside Meal"
                   >
-                    <Plus className="w-8 h-8 stroke-[3.5px]" />
+                    <Plus className="w-8 h-8 stroke-[3px]" />
                   </button>
                 </div>
               </Card>
             </div>
 
-            {/* Today's Meals Section */}
-            <div className="flex flex-col gap-4 mt-4 text-left">
-              <h2 className="text-lg font-extrabold tracking-tight font-display text-brand-green uppercase">
-                {(() => {
-                  const activeDate = uniqueDates[selectedDayOffset];
-                  const isTodaySelected = activeDate && activeDate.toDateString() === new Date().toDateString();
-                  return isTodaySelected ? "Today's" : "Scheduled";
-                })()} Menu
-              </h2>
-
-              {mealsList.length === 0 ? (
-                <Card className="p-8 text-center text-brand-muted border-brand-border/40 bg-brand-surface/20">
-                  No meals scheduled for this day offset.
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {mealsList.map((meal) => (
-                    <MealCard
-                      key={meal.id}
-                      id={meal.id}
-                      mealName={meal.mealName}
-                      mealType={meal.mealType}
-                      description={meal.description || undefined}
-                      calories={meal.calories}
-                      proteinG={meal.proteinG}
-                      carbsG={meal.carbsG}
-                      fatG={meal.fatG}
-                      status={meal.status}
-                      aiConfidenceFlag={meal.aiConfidenceFlag}
-                      ingredients={meal.ingredients}
-                      mealLogs={meal.mealLogs}
-                      onStatusToggle={handleMealStatusToggle}
-                      scheduledDate={meal.scheduledDate}
-                      onCardClick={() => router.push(`/dashboard/${meal.id}`)}
+            {pendingReview && currentMeals.length === 0 ? (
+              <section className="mt-4 flex flex-col gap-6" aria-labelledby="pending-plan-heading">
+                <div className="relative overflow-hidden rounded-[28px] border border-brand-green/20 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/10 p-5 text-left shadow-card md:p-6">
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-brand-accent/15 blur-3xl" aria-hidden="true" />
+                  <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
+                    <div className="max-w-2xl">
+                      <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-brand-green">
+                        <Sparkles className="h-4 w-4" aria-hidden="true" />
+                        AI plan generated
+                      </div>
+                      <h2 id="pending-plan-heading" className="mt-2 font-display text-2xl font-black tracking-tight text-brand-text">
+                        Review in progress
+                      </h2>
+                      <p className="mt-2 text-sm leading-relaxed text-brand-muted">
+                        Preview the {pendingMealsForSelectedDate.length} meals scheduled for this date while a nutritionist reviews your full {pendingReview.mealCount}-meal {pendingReview.planType === 'STARTER' ? 'starter' : 'weekly'} plan.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/40 px-4 py-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-status-pending-text text-white">
+                        <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-extrabold uppercase tracking-wider text-status-pending-text">Selected day</p>
+                        <p className="text-xs font-extrabold text-brand-text">
+                          {activePendingDate?.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative mt-4 flex items-start gap-2 border-t border-brand-border/50 pt-4 text-status-pending-text">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <p className="text-[11px] font-semibold leading-relaxed">
+                      Pending estimates are preview-only and are not included in the calorie or macronutrient trackers above.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {pendingMealsForSelectedDate.map((meal, index) => (
+                    <PendingMealPreviewCard
+                      key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
+                      meal={meal}
                     />
                   ))}
                 </div>
-              )}
-            </div>
+              </section>
+            ) : (
+              /* Today's Meals Section */
+              <div className="flex flex-col gap-4 mt-4 text-left">
+                <h2 className="text-lg font-extrabold tracking-tight font-display text-brand-text uppercase">
+                  {(() => {
+                    const activeDate = uniqueDates[selectedDayOffset];
+                    const isTodaySelected = activeDate && activeDate.toDateString() === new Date().toDateString();
+                    return isTodaySelected ? "Today's" : "Scheduled";
+                  })()} Menu
+                </h2>
+
+                {mealsList.length === 0 ? (
+                  <Card className="p-8 text-center text-brand-muted border-brand-border/40 bg-brand-surface/20">
+                    No meals scheduled for this day offset.
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {mealsList.map((meal) => (
+                      <MealCard
+                        key={meal.id}
+                        id={meal.id}
+                        mealName={meal.mealName}
+                        mealType={meal.mealType}
+                        description={meal.description || undefined}
+                        calories={meal.calories}
+                        proteinG={meal.proteinG}
+                        carbsG={meal.carbsG}
+                        fatG={meal.fatG}
+                        status={meal.status}
+                        aiConfidenceFlag={meal.aiConfidenceFlag}
+                        ingredients={meal.ingredients}
+                        mealLogs={meal.mealLogs}
+                        onStatusToggle={handleMealStatusToggle}
+                        scheduledDate={meal.scheduledDate}
+                        onCardClick={() => router.push(`/dashboard/${meal.id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

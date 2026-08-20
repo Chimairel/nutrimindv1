@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AutocompleteInput from '@/components/ui/AutocompleteInput';
 import axios from 'axios';
 import { 
@@ -536,22 +537,16 @@ export default function ProgressPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 text-brand-text">
+    <div className="portal-page max-w-5xl text-brand-text">
       
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border/60 pb-6 mb-8 text-left">
-        <div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-brand-green shrink-0" />
-            <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-              PROGRESS & CLINICAL STATS
-            </h1>
-          </div>
-          <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
-            Manage your biometrics, safety profiles, and calorie target records
-          </p>
-        </div>
-        <Button
+      <PortalPageHeader
+        icon={TrendingUp}
+        eyebrow="Health trajectory"
+        title="Progress and health context"
+        description="Track biometrics, nutrition adherence, safety preferences, and calorie-target changes over time."
+        className="mb-8"
+        actions={<Button
           variant="primary"
           onClick={() => {
             setIsLogFormOpen(!isLogFormOpen);
@@ -561,9 +556,10 @@ export default function ProgressPage() {
           className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10 flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
-          <span>Log Today&apos;s Weight</span>
+          <span>Log today&apos;s weight</span>
         </Button>
-      </div>
+        }
+      />
 
       {weightSuccess && (
         <div className="p-4 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-sm font-semibold flex items-center gap-2 text-left mb-6">

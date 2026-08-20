@@ -54,57 +54,136 @@ class MealLogService {
         // --- WARNING CHECKS LAYER ---
         const detectedWarnings = [];
         const conflictReasons = [];
-        // Check Allergen Keywords
-        const lowerIngredients = (estimate.ingredients || []).map((i) => i.toLowerCase());
-        const joinedIngs = lowerIngredients.join(' ') + ' ' + mealName.toLowerCase();
+        /**
+         * Normalize text for allergen matching:
+         * - lowercase
+         * - strip diacritical marks (e.g. ñ → n)
+         * - collapse multiple whitespace to single space
+         * - trim
+         */
+        function normalize(text) {
+            return text
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // strip accents
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+        /**
+         * Check if any keyword matches in the target string.
+         * Short keywords (≤ 3 chars) use word-boundary matching to avoid
+         * false positives (e.g. "nut" matching "nutrition", "egg" matching "eggplant").
+         * Longer keywords use simple substring includes.
+         */
+        function matchesAny(target, keywords) {
+            for (const kw of keywords) {
+                if (kw.length <= 3) {
+                    // Word-boundary match for short keywords
+                    const regex = new RegExp(`\\b${kw}s?\\b`, 'i');
+                    if (regex.test(target))
+                        return kw;
+                }
+                else {
+                    if (target.includes(kw))
+                        return kw;
+                }
+            }
+            return null;
+        }
+        // Build normalized search corpus from ingredients + meal name
+        const lowerIngredients = (estimate.ingredients || []).map((i) => normalize(i));
+        const joinedIngs = lowerIngredients.join(' ') + ' ' + normalize(mealName);
+        // ── Allergen Keyword Checks ──
         if (allergens.includes(client_1.AllergenType.SHELLFISH)) {
-            const keywords = ['shrimp', 'prawn', 'crab', 'lobster', 'shellfish', 'mussel', 'clam', 'oyster', 'hipon', 'alimango', 'alimasag', 'tahong', 'talaba', 'alamang', 'seafood'];
-            if (keywords.some((k) => joinedIngs.includes(k))) {
+            const keywords = [
+                'shrimp', 'prawn', 'crab', 'lobster', 'shellfish', 'mussel', 'clam', 'oyster',
+                'scallop', 'squid', 'pusit', 'calamari', 'octopus',
+                'hipon', 'sugpo', 'alimango', 'alimasag', 'tahong', 'talaba', 'alamang',
+                'bagoong alamang', 'ginataang hipon', 'seafood',
+            ];
+            const hit = matchesAny(joinedIngs, keywords);
+            if (hit) {
                 detectedWarnings.push('ALLERGY');
-                conflictReasons.push('Contains shellfish indicators matching your shellfish allergy.');
+                conflictReasons.push(`Contains shellfish indicator ("${hit}") matching your shellfish allergy.`);
             }
         }
         if (allergens.includes(client_1.AllergenType.NUTS)) {
-            const keywords = ['peanut', 'cashew', 'almond', 'walnut', 'pecan', 'nut', 'mani', 'kasuy', 'hazelnut'];
-            if (keywords.some((k) => joinedIngs.includes(k))) {
+            const keywords = [
+                'peanut', 'cashew', 'almond', 'walnut', 'pecan', 'pistachio', 'macadamia',
+                'hazelnut', 'pine nut', 'pili nut', 'pili', 'mani', 'kasuy',
+                'peanut butter', 'kare-kare', 'kare kare', 'satay', 'nut',
+            ];
+            const hit = matchesAny(joinedIngs, keywords);
+            if (hit) {
                 detectedWarnings.push('ALLERGY');
-                conflictReasons.push('Contains nut indicators matching your tree nut/peanut allergy.');
+                conflictReasons.push(`Contains nut indicator ("${hit}") matching your tree nut/peanut allergy.`);
             }
         }
         if (allergens.includes(client_1.AllergenType.DAIRY)) {
-            const keywords = ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'dairy', 'gatas', 'keso', 'condensed milk', 'evaporated milk'];
-            if (keywords.some((k) => joinedIngs.includes(k))) {
+            const keywords = [
+                'milk', 'cheese', 'butter', 'cream', 'yogurt', 'yoghurt', 'dairy',
+                'whey', 'casein', 'ghee', 'paneer', 'queso', 'keso',
+                'gatas', 'condensed milk', 'evaporated milk', 'powdered milk',
+                'cream cheese', 'sour cream', 'ice cream', 'mozzarella', 'parmesan', 'cheddar',
+            ];
+            const hit = matchesAny(joinedIngs, keywords);
+            if (hit) {
                 detectedWarnings.push('ALLERGY');
-                conflictReasons.push('Contains dairy indicators matching your lactose/dairy allergy.');
+                conflictReasons.push(`Contains dairy indicator ("${hit}") matching your lactose/dairy allergy.`);
             }
         }
         if (allergens.includes(client_1.AllergenType.GLUTEN)) {
-            const keywords = ['wheat', 'flour', 'bread', 'gluten', 'pasta', 'spaghetti', 'macaroni', 'noodles', 'pan de sal', 'soy sauce', 'toyo'];
-            if (keywords.some((k) => joinedIngs.includes(k))) {
+            const keywords = [
+                'wheat', 'flour', 'bread', 'gluten', 'pasta', 'spaghetti', 'macaroni',
+                'noodles', 'pancit', 'pansit', 'miki', 'bihon', 'sotanghon',
+                'pan de sal', 'pandesal', 'panko', 'breadcrumb', 'crouton',
+                'soy sauce', 'toyo', 'teriyaki', 'dumpling', 'siomai', 'wonton',
+                'ramen', 'udon', 'barley', 'couscous', 'seitan',
+            ];
+            const hit = matchesAny(joinedIngs, keywords);
+            if (hit) {
                 detectedWarnings.push('ALLERGY');
-                conflictReasons.push('Contains gluten/wheat indicators matching your wheat/gluten allergy.');
+                conflictReasons.push(`Contains gluten/wheat indicator ("${hit}") matching your wheat/gluten allergy.`);
             }
         }
         if (allergens.includes(client_1.AllergenType.EGGS)) {
-            const keywords = ['egg', 'itlog', 'mayo', 'mayonnaise', 'balut', 'penoy'];
-            if (keywords.some((k) => joinedIngs.includes(k))) {
+            const keywords = [
+                'egg', 'itlog', 'mayo', 'mayonnaise', 'balut', 'penoy',
+                'meringue', 'custard', 'leche flan', 'flan', 'quiche',
+                'tortang', 'torta', 'omelette', 'omelet', 'scrambled',
+            ];
+            const hit = matchesAny(joinedIngs, keywords);
+            if (hit) {
                 detectedWarnings.push('ALLERGY');
-                conflictReasons.push('Contains egg indicators matching your egg allergy.');
+                conflictReasons.push(`Contains egg indicator ("${hit}") matching your egg allergy.`);
             }
         }
-        // Check Clinical Health Conditions
+        // ── Clinical Health Condition Checks ──
         if (conditions.includes(client_1.HealthConditionType.HYPERTENSION)) {
             const highSodium = (estimate.sodium || 0) > 400;
-            const sodiumKeywords = ['chicharon', 'spam', 'hotdog', 'sausage', 'instant noodle', 'tuyo', 'patis', 'bagoong', 'soy sauce', 'toyo', 'salted'];
-            if (highSodium || sodiumKeywords.some((k) => joinedIngs.includes(k))) {
+            const sodiumKeywords = [
+                'chicharon', 'chicharron', 'spam', 'hotdog', 'hot dog', 'sausage', 'longganisa',
+                'instant noodle', 'lucky me', 'nissin', 'cup noodle',
+                'tuyo', 'daing', 'tinapa', 'patis', 'bagoong', 'soy sauce', 'toyo',
+                'salted', 'corned beef', 'canned', 'tocino', 'bacon', 'ham',
+                'sisig', 'lechon kawali',
+            ];
+            if (highSodium || matchesAny(joinedIngs, sodiumKeywords)) {
                 detectedWarnings.push('CONDITION');
                 conflictReasons.push(`High sodium estimated (${estimate.sodium}mg), which is medically unsafe for Hypertension.`);
             }
         }
         if (conditions.includes(client_1.HealthConditionType.DIABETES)) {
             const highSugar = (estimate.sugars || 0) > 15;
-            const sugarKeywords = ['sugar', 'sweet', 'cake', 'pastry', 'soda', 'coke', 'juice', 'condensed milk', 'honey', 'syrup', 'turon', 'bananacue'];
-            if (highSugar || sugarKeywords.some((k) => joinedIngs.includes(k))) {
+            const sugarKeywords = [
+                'sugar', 'sweet', 'cake', 'pastry', 'soda', 'coke', 'soft drink',
+                'juice', 'condensed milk', 'honey', 'syrup', 'maple',
+                'turon', 'bananacue', 'kamotecue', 'halo-halo', 'halo halo',
+                'leche flan', 'ube halaya', 'bibingka', 'puto',
+                'chocolate', 'candy', 'donut', 'doughnut', 'ice cream',
+                'gulaman', 'kalamay', 'sapin-sapin', 'sapin sapin',
+            ];
+            if (highSugar || matchesAny(joinedIngs, sugarKeywords)) {
                 detectedWarnings.push('CONDITION');
                 conflictReasons.push(`High simple sugar content estimated (${estimate.sugars}g), which may spike blood glucose for Diabetics.`);
             }

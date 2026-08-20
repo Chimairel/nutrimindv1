@@ -2,6 +2,7 @@
 
 import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -32,44 +33,36 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        {/* Dark overlay with backdrop-blur support */}
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-all duration-300" />
-        
-        {/* Dialog Content styled as premium dark surface card with pop animation */}
-        <Dialog.Content 
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[#020806]/75 backdrop-blur-md transition-all duration-300" />
+        <Dialog.Content
           className={`
-            fixed left-[50%] top-[50%] z-50 w-[92vw] ${sizeClasses[size]} 
-            translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-brand-border 
-            bg-brand-surface p-6 shadow-2xl outline-none transition-all duration-300
+            fixed left-1/2 top-1/2 z-50 w-[92vw] ${sizeClasses[size]}
+            -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-brand-border/80
+            bg-brand-surface/95 p-6 shadow-card-lg backdrop-blur-2xl outline-none transition-all duration-300
           `}
         >
           <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-5">
               <div>
-                <Dialog.Title className="text-xl font-bold tracking-tight text-brand-text font-display">
+                <Dialog.Title className="font-display text-xl font-bold tracking-tight text-brand-text">
                   {title}
                 </Dialog.Title>
                 {description && (
-                  <Dialog.Description className="mt-1 text-sm text-brand-muted">
+                  <Dialog.Description className="mt-1 text-sm leading-relaxed text-brand-muted">
                     {description}
                   </Dialog.Description>
                 )}
               </div>
-              
-              <Dialog.Close 
-                className="rounded-lg p-1.5 text-brand-muted hover:bg-brand-bg-alt hover:text-brand-green transition-colors outline-none focus:ring-2 focus:ring-brand-green"
+              <Dialog.Close
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/70 bg-brand-bgAlt/70 text-brand-muted outline-none transition-colors hover:border-brand-green/30 hover:text-brand-green focus:ring-2 focus:ring-brand-green/30"
                 aria-label="Close"
               >
-                ✕
+                <X className="h-4 w-4" />
               </Dialog.Close>
             </div>
-            
-            <div className="py-2 text-brand-text text-sm leading-relaxed">
-              {children}
-            </div>
-
+            <div className="py-2 text-sm leading-relaxed text-brand-text">{children}</div>
             {footer && (
-              <div className="flex items-center justify-end gap-3 border-t border-brand-border pt-4 mt-2">
+              <div className="mt-2 flex items-center justify-end gap-3 border-t border-brand-border/70 pt-4">
                 {footer}
               </div>
             )}

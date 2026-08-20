@@ -36,5 +36,30 @@ router.post('/log-outside', meals_controller_1.MealsController.logOutsideMeal);
  * Description: Checks off scheduled meals as DONE or SKIPPED.
  */
 router.patch('/:id/status', meals_controller_1.MealsController.updateMealStatus);
+/**
+ * Route: GET /api/user/meals/compatible-library
+ * Description: Retrieves all compatible approved library meals for the logged-in user.
+ */
+router.get('/compatible-library', meals_controller_1.MealsController.getCompatibleLibrary);
+/**
+ * Route: GET /api/user/meals/:id
+ * Description: Retrieves details of a specific meal plan item.
+ */
+router.get('/:id', meals_controller_1.MealsController.getMealDetails);
+/**
+ * Route: GET /api/user/meals/:id/swap-options
+ * Description: Retrieves swap options for a given meal plan slot.
+ */
+router.get('/:id/swap-options', meals_controller_1.MealsController.getSwapOptions);
+/**
+ * Route: GET /api/user/meals/:id/swap-preview
+ * Description: Generates swap calorie warnings.
+ */
+router.get('/:id/swap-preview', meals_controller_1.MealsController.getSwapPreview);
+/**
+ * Route: POST /api/user/meals/:id/swap
+ * Description: Executes a meal plan slot swap.
+ */
+router.post('/:id/swap', meals_controller_1.MealsController.executeSwap);
 exports.default = router;
 //# sourceMappingURL=meals.routes.js.map

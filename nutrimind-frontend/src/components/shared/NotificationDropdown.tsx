@@ -36,26 +36,26 @@ export default function NotificationDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-lg p-2 text-brand-muted hover:bg-brand-surface hover:text-brand-green transition-all outline-none focus:ring-2 focus:ring-brand-green/20 flex items-center justify-center"
+        className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/70 text-brand-muted shadow-sm outline-none backdrop-blur-md transition hover:-translate-y-0.5 hover:border-brand-green/30 hover:text-brand-green focus:ring-2 focus:ring-brand-green/30"
         aria-label="View notifications"
       >
         <Bell className="w-5 h-5" />
 
         {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-green text-[9px] font-bold text-black">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent text-[8px] font-bold text-[#07100d]">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-h-[400px] flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-brand-surface shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
-          <div className="flex items-center justify-between border-b border-brand-border/60 bg-brand-bg/50 px-4 py-3">
-            <h3 className="text-sm font-bold text-brand-text font-display">Notifications</h3>
+        <div className="absolute right-0 z-50 mt-2 flex max-h-[420px] w-80 flex-col overflow-hidden rounded-[26px] border border-brand-border/70 bg-brand-surface/95 shadow-card-lg backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex items-center justify-between border-b border-white/10 bg-[#07100d] px-4 py-4">
+            <div><p className="portal-kicker">Activity</p><h3 className="mt-1 font-display text-sm font-bold text-white">Notifications</h3></div>
             {unreadCount > 0 && (
               <button 
                 onClick={markAllAsRead}
-                className="text-[10px] font-bold text-brand-green hover:underline tracking-wider uppercase"
+                className="text-[9px] font-bold uppercase tracking-wider text-brand-accent transition hover:text-brand-cyan"
               >
                 Mark all read
               </button>
@@ -76,7 +76,7 @@ export default function NotificationDropdown() {
                      onClick={() => {
                        if (!notif.isRead) markAsRead(notif.id);
                      }}
-                     className={`flex items-start gap-3 border-b border-brand-border/40 p-4 transition-colors cursor-pointer hover:bg-brand-bg/50 ${
+                     className={`flex cursor-pointer items-start gap-3 border-b border-brand-border/40 p-4 transition-colors hover:bg-brand-green/[0.035] ${
                        !notif.isRead ? 'bg-brand-green/5' : ''
                      }`}
                    >

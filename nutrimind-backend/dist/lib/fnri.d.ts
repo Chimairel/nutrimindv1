@@ -20,10 +20,10 @@ export declare function lookupIngredient(ingredientName: string): Promise<Lookup
  */
 export declare function getFNRISubset(): Promise<{
     name: string;
-    category: string | null;
     calories: number;
     proteinG: number;
     carbsG: number;
     fatG: number;
+    category: string | null;
 }[]>;
 //# sourceMappingURL=fnri.d.ts.map

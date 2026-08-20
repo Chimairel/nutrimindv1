@@ -7,8 +7,8 @@ const client_1 = require("@prisma/client");
  * adjusted for daily activity level and fitness objectives.
  *
  * BMR Calculation (Mifflin-St Jeor as per specifications):
- *   Male:   10 * weight(kg) + 6.25 * height(cm) - 5 * age - 161
- *   Female: 10 * weight(kg) + 6.25 * height(cm) - 5 * age + 5
+ *   Male:   10 * weight(kg) + 6.25 * height(cm) - 5 * age + 5
+ *   Female: 10 * weight(kg) + 6.25 * height(cm) - 5 * age - 161
  *
  * Activity Multipliers:
  *   SEDENTARY:      * 1.2
@@ -30,10 +30,10 @@ function calculateDailyTarget(input) {
     // 1. Calculate Basal Metabolic Rate (BMR)
     let bmr = 0;
     if (isFemale) {
-        bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+        bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161; // Female: -161
     }
     else {
-        bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+        bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5; // Male: +5
     }
     // 2. Calculate Total Daily Energy Expenditure (TDEE) based on Activity level
     let activityMultiplier = 1.2;

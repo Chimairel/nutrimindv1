@@ -3,6 +3,7 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { AuthenticatedRequest } from '@/types';
 import { AdminService } from '@/services/admin.service';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get('/analytics', async (req: AuthenticatedRequest, res: Response) => {
     const analytics = await AdminService.getAnalytics();
     return res.status(200).json({ success: true, data: analytics });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve analytics.') });
   }
 });
 
@@ -36,7 +37,7 @@ router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
     const result = await AdminService.getUsers(page, limit, search);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve users.') });
   }
 });
 
@@ -49,7 +50,7 @@ router.get('/nutritionists', async (req: AuthenticatedRequest, res: Response) =>
     const nutritionists = await AdminService.getNutritionists();
     return res.status(200).json({ success: true, data: nutritionists });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionists.') });
   }
 });
 
@@ -62,7 +63,7 @@ router.patch('/nutritionists/:id/verify', async (req: AuthenticatedRequest, res:
     const result = await AdminService.verifyNutritionist(req.user!.userId, req.params.id);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: error.message });
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to verify nutritionist.') });
   }
 });
 

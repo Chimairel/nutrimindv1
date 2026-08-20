@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import PasswordInput from '@/components/ui/PasswordInput';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
 import api from '@/lib/axios';
 import axios from 'axios';
@@ -130,15 +132,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 text-brand-text text-left">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-brand-text via-brand-green to-brand-green">
-          ACCOUNT SETTINGS
-        </h1>
-        <p className="text-xs text-brand-muted mt-1 font-semibold uppercase tracking-wider">
-          Manage your account credentials, passwords, and custom pixel-art avatar
-        </p>
-      </div>
+    <div className="portal-page max-w-4xl space-y-6 text-left text-brand-text">
+      <PortalPageHeader icon={User} eyebrow="Personal identity" title="Account settings" description="Manage your account details, password, and custom profile avatar." />
 
       {/* Account Info Form Card */}
       <Card className="p-6 border-brand-border/60 bg-brand-surface/20 shadow-xl">
@@ -211,23 +206,20 @@ export default function ProfilePage() {
         )}
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <Input
+          <PasswordInput
             label="Current Password"
-            type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
           />
-          <Input
+          <PasswordInput
             label="New Password"
-            type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
           />
-          <Input
+          <PasswordInput
             label="Confirm New Password"
-            type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required

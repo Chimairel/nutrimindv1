@@ -4,6 +4,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   interactive?: boolean;
+  contentClassName?: string;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -11,28 +12,32 @@ export const Card: React.FC<CardProps> = ({
   header,
   footer,
   interactive = false,
+  contentClassName,
   className = '',
   ...props
 }) => {
+  const hasOuterPadding = /(?:^|\s)(?:p|px|py|pt|pr|pb|pl)-/.test(className);
+  const resolvedContentClassName = contentClassName ?? (hasOuterPadding ? '' : 'px-6 py-5');
+
   return (
     <div
       className={`
-        rounded-2xl border border-brand-border bg-brand-surface text-brand-text shadow-xl overflow-hidden
-        ${interactive ? 'transition-all duration-300 hover:border-brand-green/40 hover:bg-brand-bgAlt/40 hover:shadow-2xl hover:shadow-brand-green/5 cursor-pointer hover:translate-y-[-2px]' : ''}
+        overflow-hidden rounded-[28px] border border-brand-border/70 bg-brand-surface/86 text-brand-text shadow-card backdrop-blur-xl transition-all duration-300
+        ${interactive ? 'cursor-pointer hover:-translate-y-1 hover:border-brand-green/30 hover:shadow-card-hover' : ''}
         ${className}
       `}
       {...props}
     >
       {header && (
-        <div className="border-b border-brand-border px-6 py-4 bg-brand-bgAlt/50">
+        <div className="border-b border-brand-border/45 px-6 pb-4 pt-5">
           {header}
         </div>
       )}
-      <div className="px-6 py-5">
+      <div className={resolvedContentClassName}>
         {children}
       </div>
       {footer && (
-        <div className="border-t border-brand-border px-6 py-4 bg-brand-bgAlt/30">
+        <div className="border-t border-brand-border/45 px-6 pb-5 pt-4">
           {footer}
         </div>
       )}

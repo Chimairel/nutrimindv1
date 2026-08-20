@@ -94,8 +94,8 @@ export async function generateGenerativeJSON<T = any>(
         if (schema) {
           const zodResult = schema.safeParse(parsed);
           if (!zodResult.success) {
-            console.error(`[Gemini AI] Zod validation failed for model ${modelName}. Error:`, zodResult.error.format());
-            throw new Error(`Zod validation failed for model ${modelName}: ${zodResult.error.message}`);
+            console.warn(`[Gemini AI] Response validation failed for model ${modelName}.`);
+            throw new Error(`Response validation failed for model ${modelName}.`);
           }
           console.log(`[Gemini AI] Successfully executed and Zod-validated response from: ${modelName}`);
           return zodResult.data;
@@ -103,12 +103,13 @@ export async function generateGenerativeJSON<T = any>(
 
         console.log(`[Gemini AI] Successfully executed and parsed response from: ${modelName}`);
         return parsed as T;
-      } catch (parseErr: any) {
-        console.error(`[Gemini AI] JSON parse or Zod validation failure on text from model ${modelName}. Raw content:`, rawText);
-        throw new Error(`Failed to parse/validate generative response from model ${modelName} as JSON. Error: ${parseErr.message || parseErr}`);
+      } catch {
+        console.warn(`[Gemini AI] JSON parsing or response validation failed for model ${modelName}.`);
+        throw new Error(`Failed to parse or validate the response from model ${modelName}.`);
       }
 
-    } catch (err: any) {
+    } catch {
+      const err = new Error('The AI service could not generate a valid meal plan. Please try again later.');
       lastError = err;
       console.warn(`⚠️ [Gemini AI] Call failed for model ${modelName}. Error: ${err.message || err}. Attempting fallback...`);
     }

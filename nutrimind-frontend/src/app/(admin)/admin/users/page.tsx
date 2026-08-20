@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, Search, Users, XCircle } from 'lucide-react';
 import api from '@/lib/axios';
 import Badge from '@/components/ui/Badge';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 
 interface UserRow {
   id: string;
@@ -22,19 +24,19 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUsers = async (p: number, s: string) => {
+  const fetchUsers = async (requestedPage: number, query: string) => {
     setIsLoading(true);
     try {
-      const params: Record<string, string | number> = { page: p, limit: 20 };
-      if (s) params.search = s;
-      const res = await api.get('/admin/users', { params });
-      if (res.data?.success) {
-        setUsers(res.data.data.users);
-        setTotal(res.data.data.total);
-        setTotalPages(res.data.data.totalPages);
+      const params: Record<string, string | number> = { page: requestedPage, limit: 20 };
+      if (query) params.search = query;
+      const response = await api.get('/admin/users', { params });
+      if (response.data?.success) {
+        setUsers(response.data.data.users);
+        setTotal(response.data.data.total);
+        setTotalPages(response.data.data.totalPages);
       }
-    } catch (err) {
-      console.error('Failed to fetch users:', err);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,79 +46,61 @@ export default function AdminUsersPage() {
     fetchUsers(page, search);
   }, [page, search]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (event: React.FormEvent) => {
+    event.preventDefault();
     setPage(1);
     fetchUsers(1, search);
   };
 
   return (
-    <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-brand-text font-display">Users</h1>
-        <span className="text-xs text-brand-muted">{total} total</span>
-      </div>
+    <div className="portal-page space-y-7">
+      <PortalPageHeader
+        icon={Users}
+        eyebrow="Identity directory"
+        title="User management"
+        description="Inspect account roles, verification state, onboarding progress, and membership across the platform."
+        meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white/50">{total} accounts</span>}
+      />
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
-          className="flex-1 bg-brand-card border border-brand-border rounded-lg px-4 py-2 text-sm text-brand-text focus:border-brand-green focus:outline-none"
-        />
-        <button type="submit" className="bg-brand-green text-brand-bg px-4 py-2 rounded-lg text-sm font-bold cursor-pointer hover:opacity-90 transition-opacity">
-          Search
-        </button>
+      <form onSubmit={handleSearch} className="portal-filter-panel flex gap-2 p-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+          <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email..." className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/70 pl-10 pr-4 text-sm text-brand-text outline-none transition focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10" />
+        </div>
+        <button type="submit" className="rounded-2xl bg-brand-accent px-5 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-0.5">Search</button>
       </form>
 
       {isLoading ? (
-        <div className="text-center py-12"><span className="text-brand-muted animate-pulse">Loading...</span></div>
+        <div className="py-16 text-center"><span className="animate-pulse text-brand-muted">Loading accounts...</span></div>
       ) : (
-        <>
+        <div className="portal-table-shell">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="text-brand-muted text-xs uppercase border-b border-brand-border">
-                  <th className="text-left py-3 px-2">Name</th>
-                  <th className="text-left py-3 px-2">Email</th>
-                  <th className="text-center py-3 px-2">Role</th>
-                  <th className="text-center py-3 px-2">Verified</th>
-                  <th className="text-center py-3 px-2">Onboarded</th>
-                  <th className="text-left py-3 px-2">Joined</th>
+              <thead className="bg-[#07100d] text-white">
+                <tr className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/45">
+                  <th className="px-5 py-4 text-left">Name</th><th className="px-5 py-4 text-left">Email</th><th className="px-5 py-4 text-center">Role</th><th className="px-5 py-4 text-center">Verified</th><th className="px-5 py-4 text-center">Onboarded</th><th className="px-5 py-4 text-left">Joined</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-brand-border/40 hover:bg-brand-border/20 transition-colors">
-                    <td className="py-3 px-2 text-brand-text font-semibold">{u.name}</td>
-                    <td className="py-3 px-2 text-brand-muted">{u.email}</td>
-                    <td className="py-3 px-2 text-center">
-                      <Badge variant={u.role === 'ADMIN' ? 'rejected' : u.role === 'NUTRITIONIST' ? 'verified' : 'user'} className="text-[10px]">
-                        {u.role}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-2 text-center">{u.emailVerified ? '✅' : '❌'}</td>
-                    <td className="py-3 px-2 text-center">{u.onboardingDone ? '✅' : '⏳'}</td>
-                    <td className="py-3 px-2 text-brand-muted text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-b border-brand-border/45 transition last:border-0 hover:bg-brand-green/[0.035]">
+                    <td className="px-5 py-4 font-semibold text-brand-text">{user.name}</td>
+                    <td className="px-5 py-4 text-brand-muted">{user.email}</td>
+                    <td className="px-5 py-4 text-center"><Badge variant={user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'}>{user.role}</Badge></td>
+                    <td className="px-5 py-4 text-center">{user.emailVerified ? <CheckCircle2 className="mx-auto h-4 w-4 text-brand-green" /> : <XCircle className="mx-auto h-4 w-4 text-red-400" />}</td>
+                    <td className="px-5 py-4 text-center">{user.onboardingDone ? <CheckCircle2 className="mx-auto h-4 w-4 text-brand-green" /> : <Clock3 className="mx-auto h-4 w-4 text-amber-500" />}</td>
+                    <td className="px-5 py-4 text-xs text-brand-muted">{new Date(user.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="text-xs text-brand-muted hover:text-brand-green disabled:opacity-30 cursor-pointer">
-              ← Previous
-            </button>
-            <span className="text-xs text-brand-muted">Page {page} of {totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="text-xs text-brand-muted hover:text-brand-green disabled:opacity-30 cursor-pointer">
-              Next →
-            </button>
+          <div className="flex items-center justify-between border-t border-brand-border/50 px-5 py-4">
+            <button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1} className="flex items-center gap-2 text-xs font-semibold text-brand-muted transition hover:text-brand-green disabled:opacity-30"><ChevronLeft className="h-4 w-4" />Previous</button>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-brand-muted">Page {page} of {totalPages}</span>
+            <button onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page >= totalPages} className="flex items-center gap-2 text-xs font-semibold text-brand-muted transition hover:text-brand-green disabled:opacity-30">Next<ChevronRight className="h-4 w-4" /></button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

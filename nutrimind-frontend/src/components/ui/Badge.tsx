@@ -16,11 +16,11 @@ export const Badge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   const styles = {
-    verified: 'bg-status-verified-bg text-status-verified-text border border-status-verified-text/10',
-    pending: 'bg-status-pending-bg text-status-pending-text border border-status-pending-text/10',
-    rejected: 'bg-status-rejected-bg text-status-rejected-text border border-status-rejected-text/10',
-    ai: 'bg-status-ai-bg text-status-ai-text border border-status-ai-text/10',
-    user: 'bg-status-user-bg text-status-user-text border border-status-user-text/10',
+    verified: 'border border-status-verified-text/20 bg-status-verified-bg text-status-verified-text',
+    pending: 'border border-status-pending-text/20 bg-status-pending-bg text-status-pending-text',
+    rejected: 'border border-status-rejected-text/20 bg-status-rejected-bg text-status-rejected-text',
+    ai: 'border border-status-ai-text/20 bg-status-ai-bg text-status-ai-text',
+    user: 'border border-status-user-text/20 bg-status-user-bg text-status-user-text',
   };
 
   const icons = {
@@ -41,7 +41,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${styles[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] ${styles[variant]} ${className}`}
       {...props}
     >
       {showIcon && icons[variant]}
@@ -51,4 +51,3 @@ export const Badge: React.FC<BadgeProps> = ({
 };
 
 export default Badge;
-

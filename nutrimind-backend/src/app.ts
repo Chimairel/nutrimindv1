@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { apiLimiter } from '@/middleware/rateLimiter';
 import { verifyEmailTransporter } from '@/lib/email';
 
@@ -27,6 +28,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 app.use('/api', apiLimiter); // Global API rate limit
 
 // Verify email transporter on startup (non-blocking)

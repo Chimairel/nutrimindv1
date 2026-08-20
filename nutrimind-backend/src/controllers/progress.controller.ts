@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { ProgressService } from '@/services/progress.service';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
 export class ProgressController {
   /**
@@ -32,7 +33,7 @@ export class ProgressController {
       console.error('[ProgressController] logWeight error:', err);
       return res.status(400).json({
         success: false,
-        error: err.message || 'Failed to record weight entry.',
+        error: sanitizeErrorMessage(err, 'Failed to record weight entry.'),
       });
     }
   }

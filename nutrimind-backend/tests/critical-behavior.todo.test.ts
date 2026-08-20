@@ -1,6 +1,7 @@
 import test from 'node:test';
 import './restriction-policy.test';
 import './meal-generation-library-compatibility.test';
+import './meal-generation-result.test';
 
 /**
  * Executable specifications for known defects.

@@ -18,7 +18,7 @@ export declare class UserController {
     static updateConditions(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
     /**
      * POST /api/user/onboarding/allergies
-     * Saves Allergy records (Allgy model).
+     * Saves Allergy records.
      */
     static updateAllergies(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
     /**
@@ -37,6 +37,11 @@ export declare class UserController {
      */
     static getNutritionReport(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
     /**
+     * GET /api/user/nutrition-report/pdf
+     * Streams the nutrition report as a PDF
+     */
+    static downloadNutritionReportPdf(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    /**
      * POST /api/user/nutrition-report/generate
      * Generates custom mock report.
      */
@@ -46,5 +51,20 @@ export declare class UserController {
      * Sets report acknowledgedAt=now.
      */
     static acknowledgeReport(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
+    /**
+     * PUT /api/user/profile/settings
+     * Updates core account credentials (name, email) and optionally password.
+     */
+    static updateAccountSettings(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
+    /**
+     * PUT /api/user/profile/avatar
+     * Updates User's avatar seed (stored in image field)
+     */
+    static updateAvatar(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
+    /**
+     * GET /api/user/onboarding/suggestions
+     * Returns curated lists of common clinical conditions and food allergens for autocompleting.
+     */
+    static getSuggestions(req: AuthenticatedRequest, res: Response): Promise<Response<any, Record<string, any>>>;
 }
 //# sourceMappingURL=user.controller.d.ts.map

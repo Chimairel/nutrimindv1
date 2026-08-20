@@ -27,8 +27,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   return (
     <nav
       className={`
-        md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-brand-surface/90 border-t border-brand-border backdrop-blur-md
-        flex items-center justify-around px-4 select-none
+        fixed bottom-3 left-3 right-3 z-40 flex h-16 select-none items-center justify-around rounded-[22px]
+        border border-white/10 bg-[#07100d]/95 px-3 shadow-[0_18px_45px_rgba(1,8,5,0.38)] backdrop-blur-xl md:hidden
         ${className}
       `}
     >
@@ -40,12 +40,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
             key={item.href}
             href={item.href}
             className={`
-              flex flex-col items-center justify-center gap-1 w-16 h-full transition-all duration-200 outline-none
-              ${isActive ? 'text-brand-green font-bold scale-105' : 'text-brand-muted hover:text-brand-text'}
+              relative flex h-[52px] w-16 flex-col items-center justify-center gap-1 rounded-2xl outline-none transition-all duration-200
+              ${isActive ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon' : 'text-white/45 hover:bg-white/5 hover:text-white'}
             `}
           >
             <Icon className="h-5 w-5 shrink-0" />
-            <span className="text-[10px] tracking-wide leading-none">{item.label}</span>
+            <span className="text-[10px] tracking-wide leading-none font-display">{item.label}</span>
           </Link>
         );
       })}

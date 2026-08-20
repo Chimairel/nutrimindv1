@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = __importDefault(require("@/middleware/auth"));
 const fnri_1 = require("@/lib/fnri");
+const sanitizeError_1 = require("@/lib/sanitizeError");
 const router = (0, express_1.Router)();
 // Secure router under authentication
 router.use(auth_1.default);
@@ -34,7 +35,7 @@ router.get('/lookup', async (req, res) => {
         console.error('[FNRI Route] Lookup query execution failed:', error);
         return res.status(500).json({
             success: false,
-            error: error.message || 'Failed to resolve ingredient query details.',
+            error: (0, sanitizeError_1.sanitizeErrorMessage)(error, 'Failed to resolve ingredient query details.'),
         });
     }
 });

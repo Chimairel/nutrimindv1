@@ -9,6 +9,12 @@ interface RouteGuardProps {
   children: React.ReactNode;
 }
 
+const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
+  if (role === 'ADMIN') return '/admin/overview';
+  if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
+  return '/dashboard';
+};
+
 /**
  * RouteGuard is a layout wrapper component that enforces roles,
  * authentication statuses, and system completion parameters before loading pages.
@@ -52,7 +58,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
     // If already on verify-email but verified, redirect away
     if (isVerifyPage && user.emailVerified) {
-      router.push('/dashboard');
+      router.replace(getRoleHome(user.role));
       return;
     }
 

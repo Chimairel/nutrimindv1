@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { AuthenticatedRequest } from '@/types';
 import { UserService } from '@/services/user.service';
 import { NutritionReportService } from '@/services/nutrition-report.service';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
 export class UserController {
   /**
@@ -255,7 +256,7 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] completeOnboarding error:', error);
-      return res.status(500).json({ success: false, error: error.message || 'Failed to complete user onboarding.' });
+      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to complete user onboarding.') });
     }
   }
 
@@ -335,7 +336,7 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] generateReport error:', error);
-      return res.status(500).json({ success: false, error: error.message || 'Failed to generate nutrition report.' });
+      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to generate nutrition report.') });
     }
   }
 

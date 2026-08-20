@@ -7,12 +7,13 @@ const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
     console.warn('⚠️ GEMINI_API_KEY is not defined in environment variables.');
 }
-// Model sequence rotation (order of preference)
+// Model sequence rotation (order of preference, updated June 2026)
+// Free-tier Flash models first, heavier Pro models as fallback
 const MODEL_SEQUENCE = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-pro',
-    'gemini-1.5-flash'
+    'gemini-3.5-flash', // Latest, fastest — best free-tier option
+    'gemini-2.5-flash', // Stable, production-ready
+    'gemini-3.1-flash-lite', // High-volume, low-cost fallback
+    'gemini-2.5-pro', // Heavyweight reasoning fallback
 ];
 /**
  * Cleans the generated text to ensure it's a valid JSON string by stripping
@@ -38,9 +39,11 @@ function cleanJsonString(rawText) {
  *
  * @param prompt The main text prompt to analyze
  * @param systemInstruction Optional system directives to enforce role behavior
- * @returns Parsed JSON object of type T
+ * @param schema Optional Zod schema to validate response against
+ * @param temperature Optional temperature for token generation (defaults to 0.2)
+ * @returns Parsed and validated JSON object of type T
  */
-async function generateGenerativeJSON(prompt, systemInstruction) {
+async function generateGenerativeJSON(prompt, systemInstruction, schema, temperature) {
     if (!apiKey) {
         throw new Error('🛑 Google Gemini API Key is missing. Please set GEMINI_API_KEY in your .env file.');
     }
@@ -58,7 +61,7 @@ async function generateGenerativeJSON(prompt, systemInstruction) {
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 generationConfig: {
                     responseMimeType: 'application/json',
-                    temperature: 0.1, // Low temperature for highly consistent, deterministic structure
+                    temperature: temperature !== undefined ? temperature : 0.2, // Default to 0.2 per addendum
                 },
             });
             const response = result.response;
@@ -69,12 +72,21 @@ async function generateGenerativeJSON(prompt, systemInstruction) {
             const cleanedText = cleanJsonString(rawText);
             try {
                 const parsed = JSON.parse(cleanedText);
+                if (schema) {
+                    const zodResult = schema.safeParse(parsed);
+                    if (!zodResult.success) {
+                        console.error(`[Gemini AI] Zod validation failed for model ${modelName}. Error:`, zodResult.error.format());
+                        throw new Error(`Zod validation failed for model ${modelName}: ${zodResult.error.message}`);
+                    }
+                    console.log(`[Gemini AI] Successfully executed and Zod-validated response from: ${modelName}`);
+                    return zodResult.data;
+                }
                 console.log(`[Gemini AI] Successfully executed and parsed response from: ${modelName}`);
                 return parsed;
             }
             catch (parseErr) {
-                console.error(`[Gemini AI] JSON parse failure on text from model ${modelName}. Raw content:`, rawText);
-                throw new Error(`Failed to parse generative response from model ${modelName} as JSON.`);
+                console.error(`[Gemini AI] JSON parse or Zod validation failure on text from model ${modelName}. Raw content:`, rawText);
+                throw new Error(`Failed to parse/validate generative response from model ${modelName} as JSON. Error: ${parseErr.message || parseErr}`);
             }
         }
         catch (err) {

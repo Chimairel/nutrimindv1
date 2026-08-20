@@ -6,16 +6,16 @@ export declare class GroceryService {
     static generateGroceryList(userId: string): Promise<{
         groceryItems: {
             id: string;
-            category: string | null;
             ingredientName: string;
+            category: string | null;
             isChecked: boolean;
             groceryListId: string;
         }[];
     } & {
         id: string;
         userId: string;
-        generatedAt: Date;
         weekLabel: string;
+        generatedAt: Date;
     }>;
     /**
      * Fetches the user's current grocery list.
@@ -23,24 +23,24 @@ export declare class GroceryService {
     static getGroceryList(userId: string): Promise<({
         groceryItems: {
             id: string;
-            category: string | null;
             ingredientName: string;
+            category: string | null;
             isChecked: boolean;
             groceryListId: string;
         }[];
     } & {
         id: string;
         userId: string;
-        generatedAt: Date;
         weekLabel: string;
+        generatedAt: Date;
     }) | null>;
     /**
      * Toggles the checked status of a grocery list item.
      */
     static toggleGroceryItem(userId: string, itemId: string): Promise<{
         id: string;
-        category: string | null;
         ingredientName: string;
+        category: string | null;
         isChecked: boolean;
         groceryListId: string;
     }>;
