@@ -123,13 +123,13 @@ enum AssignmentStatus {
 }
 
 enum ShoppingDayGroup {
-  WEEKEND   // week runs Sunday to Saturday
-  WEEKDAY   // week runs Monday to Sunday
+  WEEKEND // week runs Sunday to Saturday
+  WEEKDAY // week runs Monday to Sunday
 }
 
 enum PlanType {
-  STARTER   // one-time bridge plan until first full cycle
-  WEEKLY    // normal 7-day repeating plan
+  STARTER // one-time bridge plan until first full cycle
+  WEEKLY // normal 7-day repeating plan
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -137,39 +137,39 @@ enum PlanType {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
-  id                       String    @id @default(cuid())
-  name                     String
-  email                    String    @unique
-  passwordHash             String
-  role                     Role      @default(USER)
-  emailVerified            Boolean   @default(false)
-  emailVerificationToken   String?
-  emailVerificationExpiry  DateTime?
-  passwordResetToken       String?
-  passwordResetExpiry      DateTime?
-  tosAccepted              Boolean   @default(false)
-  tosAcceptedAt            DateTime?
-  onboardingDone           Boolean   @default(false)
-  image                    String?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  name                    String
+  email                   String    @unique
+  passwordHash            String
+  role                    Role      @default(USER)
+  emailVerified           Boolean   @default(false)
+  emailVerificationToken  String?
+  emailVerificationExpiry DateTime?
+  passwordResetToken      String?
+  passwordResetExpiry     DateTime?
+  tosAccepted             Boolean   @default(false)
+  tosAcceptedAt           DateTime?
+  onboardingDone          Boolean   @default(false)
+  image                   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   // Relations
-  accounts                 Account[]
-  sessions                 Session[]
-  userProfile              UserProfile?
-  healthConditions         HealthCondition[]
-  allergies                Allergy[]
-  nutritionReport          NutritionReport?
-  nutritionistProfile      NutritionistProfile?  @relation("UserToNutritionistProfile")
+  accounts                  Account[]
+  sessions                  Session[]
+  userProfile               UserProfile?
+  healthConditions          HealthCondition[]
+  allergies                 Allergy[]
+  nutritionReport           NutritionReport?
+  nutritionistProfile       NutritionistProfile?  @relation("UserToNutritionistProfile")
   nutritionistVerifications NutritionistProfile[] @relation("AdminVerifier")
-  mealPlans                MealPlan[]            @relation("UserMealPlans")
-  mealLogs                 MealLog[]
-  weightLogs               WeightLog[]
-  dailyNutritionLogs       DailyNutritionLog[]
-  groceryLists             GroceryList[]
-  notifications            Notification[]
-  planSwapTrackers         PlanSwapTracker[]
+  mealPlans                 MealPlan[]            @relation("UserMealPlans")
+  mealLogs                  MealLog[]
+  weightLogs                WeightLog[]
+  dailyNutritionLogs        DailyNutritionLog[]
+  groceryLists              GroceryList[]
+  notifications             Notification[]
+  planSwapTrackers          PlanSwapTracker[]
 }
 
 model Account {
@@ -197,7 +197,7 @@ model UserProfile {
   userId             String             @unique
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   age                Int?
-  biologicalSex      String?            // "MALE" or "FEMALE"
+  biologicalSex      String? // "MALE" or "FEMALE"
   heightCm           Float?
   weightKg           Float?
   targetWeightKg     Float?
@@ -207,9 +207,9 @@ model UserProfile {
   carbPreference     CarbPreference?
   foodCulture        String?
   dailyCalorieTarget Int?
-  otherConditions    String?            // Free-text custom health conditions (e.g., "Gout, Celiac")
-  otherAllergies     String?            // Free-text custom food allergies (e.g., "Soy, Sesame")
-  shoppingDayGroup   ShoppingDayGroup?  // Determines weekly plan cycle anchor day
+  otherConditions    String? // Free-text custom health conditions (e.g., "Gout, Celiac")
+  otherAllergies     String? // Free-text custom food allergies (e.g., "Soy, Sesame")
+  shoppingDayGroup   ShoppingDayGroup? // Determines weekly plan cycle anchor day
   lastCheckinAt      DateTime?
   checkinStreak      Int                @default(0)
   updatedAt          DateTime           @updatedAt
@@ -264,32 +264,33 @@ model NutritionistProfile {
   verifiedAt        DateTime?
 
   // Relations
-  mealPlansReviewed MealPlan[]
-  verifiedMeals    MealLibrary[]
-  submittedFlags   MealLibraryFlag[] @relation("SubmittedFlags")
-  claimedPlans     MealPlan[]        @relation("ClaimedPlans")
+  mealPlansReviewed   MealPlan[]
+  verifiedMeals       MealLibrary[]
+  safetyReviewedMeals MealLibrary[]     @relation("MealLibrarySafetyReviewer")
+  submittedFlags      MealLibraryFlag[] @relation("SubmittedFlags")
+  claimedPlans        MealPlan[]        @relation("ClaimedPlans")
 }
 
 model FoodItem {
-  id         String      @id @default(cuid())
-  name       String
-  category   String?
-  calories   Float
-  proteinG   Float
-  carbsG     Float
-  fatG       Float
-  fiber      Float?
-  sodium     Float?
-  potassium  Float?
-  calcium    Float?
-  iron       Float?
-  vitaminA   Float?
-  vitaminC   Float?
-  vitaminB1  Float?
-  vitaminB2  Float?
-  niacin     Float?
-  water      Float?
-  source     String      @default("FNRI")
+  id        String  @id @default(cuid())
+  name      String
+  category  String?
+  calories  Float
+  proteinG  Float
+  carbsG    Float
+  fatG      Float
+  fiber     Float?
+  sodium    Float?
+  potassium Float?
+  calcium   Float?
+  iron      Float?
+  vitaminA  Float?
+  vitaminC  Float?
+  vitaminB1 Float?
+  vitaminB2 Float?
+  niacin    Float?
+  water     Float?
+  source    String  @default("FNRI")
 
   // Relations
   aliases         FoodAlias[]
@@ -305,25 +306,25 @@ model FoodAlias {
 }
 
 model MealPlan {
-  id               String           @id @default(cuid())
-  planGroupId      String
-  userId           String
-  user             User             @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
-  nutritionistId   String?
-  nutritionist     NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
-  libraryMealId    String?
-  libraryMeal      MealLibrary?     @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
-  status           MealPlanStatus   @default(PENDING_REVIEW)
-  mealType         MealType
-  mealName         String
-  description      String?          @db.Text
-  calories         Float
-  proteinG         Float
-  carbsG           Float
-  fatG             Float
-  aiConfidenceFlag AIConfidenceFlag @default(SAFE)
-  planType         PlanType         @default(WEEKLY)
-  nutritionistNote String?          @db.Text
+  id                      String               @id @default(cuid())
+  planGroupId             String
+  userId                  String
+  user                    User                 @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
+  nutritionistId          String?
+  nutritionist            NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
+  libraryMealId           String?
+  libraryMeal             MealLibrary?         @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
+  status                  MealPlanStatus       @default(PENDING_REVIEW)
+  mealType                MealType
+  mealName                String
+  description             String?              @db.Text
+  calories                Float
+  proteinG                Float
+  carbsG                  Float
+  fatG                    Float
+  aiConfidenceFlag        AIConfidenceFlag     @default(SAFE)
+  planType                PlanType             @default(WEEKLY)
+  nutritionistNote        String?              @db.Text
   scheduledDate           DateTime
   reviewedAt              DateTime?
   createdAt               DateTime             @default(now())
@@ -332,32 +333,49 @@ model MealPlan {
   claimedAt               DateTime?
 
   // Relations
-  ingredients             MealIngredient[]
-  mealLogs                MealLog[]
-  swapLogs                SwapLog[]
+  ingredients MealIngredient[]
+  mealLogs    MealLog[]
+  swapLogs    SwapLog[]
 }
 
 model MealLibrary {
-  id                       String               @id @default(cuid())
-  verifiedByNutritionistId String?
-  verifiedByNutritionist   NutritionistProfile? @relation(fields: [verifiedByNutritionistId], references: [id])
-  mealName                 String
-  description              String?              @db.Text
-  mealType                 MealType
-  calories                 Float
-  proteinG                 Float
-  carbsG                   Float
-  fatG                     Float
-  suitableConditions       Json?
-  allergenFree             Json?
-  dietaryTags              Json?
-  usageCount               Int                  @default(0)
-  status                   MealLibraryStatus    @default(APPROVED)
-  addedAt                  DateTime             @default(now())
+  id                             String                            @id @default(cuid())
+  verifiedByNutritionistId       String?
+  verifiedByNutritionist         NutritionistProfile?              @relation(fields: [verifiedByNutritionistId], references: [id])
+  safetyReviewedByNutritionistId String?
+  safetyReviewedByNutritionist   NutritionistProfile?              @relation("MealLibrarySafetyReviewer", fields: [safetyReviewedByNutritionistId], references: [id], onDelete: Restrict)
+  mealName                       String
+  description                    String?                           @db.Text
+  mealType                       MealType
+  calories                       Float
+  proteinG                       Float
+  carbsG                         Float
+  fatG                           Float
+  suitableConditions             Json?
+  allergenFree                   Json?
+  dietaryTags                    Json?
+  usageCount                     Int                               @default(0)
+  status                         MealLibraryStatus                 @default(APPROVED)
+  safetyEvidenceStatus           MealLibrarySafetyEvidenceStatus   @default(INCOMPLETE)
+  safetyEvidenceOrigin           MealLibrarySafetyEvidenceOrigin   @default(NUTRITIONIST_DRAFT)
+  conditionDeclarationState      MealLibraryDeclarationState       @default(NOT_REVIEWED)
+  allergenDeclarationState       MealLibraryDeclarationState       @default(NOT_REVIEWED)
+  crossContactAssessment         MealLibraryCrossContactAssessment @default(NOT_ASSESSED)
+  safetyEvidenceRevision         Int                               @default(0)
+  certifiedEvidenceRevision      Int?
+  safetyPolicyVersion            String?                           @db.VarChar(64)
+  safetyReviewedAt               DateTime?
+  safetyInvalidatedAt            DateTime?
+  safetyInvalidationReason       String?                           @db.VarChar(64)
+  addedAt                        DateTime                          @default(now())
+  updatedAt                      DateTime                          @default(now()) @updatedAt
 
   // Relations
-  mealPlans                MealPlan[]           @relation("PlanLibraryMeal")
-  flags                    MealLibraryFlag[]    @relation("MealFlags")
+  mealPlans MealPlan[]        @relation("PlanLibraryMeal")
+  flags     MealLibraryFlag[] @relation("MealFlags")
+
+  @@index([status, safetyEvidenceStatus])
+  @@index([safetyReviewedByNutritionistId])
 }
 
 model MealIngredient {
@@ -372,11 +390,11 @@ model MealIngredient {
 }
 
 model MealLog {
-  id                  String             @id @default(cuid())
+  id                  String            @id @default(cuid())
   userId              String
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   mealPlanId          String?
-  mealPlan            MealPlan?          @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  mealPlan            MealPlan?         @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
   source              MealLogSource
   mealName            String
   calories            Float
@@ -384,12 +402,12 @@ model MealLog {
   carbsG              Float
   fatG                Float
   dataSource          MealLogDataSource
-  status              MealLogStatus      @default(PENDING)
+  status              MealLogStatus     @default(PENDING)
   warningType         String?
-  warningShown        Boolean            @default(false)
-  warningAcknowledged Boolean            @default(false)
-  loggedAt            DateTime           @default(now())
-  notes               String?            @db.Text
+  warningShown        Boolean           @default(false)
+  warningAcknowledged Boolean           @default(false)
+  loggedAt            DateTime          @default(now())
+  notes               String?           @db.Text
 }
 
 model WeightLog {
@@ -450,6 +468,30 @@ enum MealLibraryStatus {
   FLAGGED
 }
 
+enum MealLibrarySafetyEvidenceStatus {
+  INCOMPLETE
+  COMPLETE
+  STALE
+}
+
+enum MealLibrarySafetyEvidenceOrigin {
+  LEGACY_UNREVIEWED
+  NUTRITIONIST_DRAFT
+  NUTRITIONIST_REVIEW
+}
+
+enum MealLibraryDeclarationState {
+  NOT_REVIEWED
+  REVIEWED_NONE_DECLARED
+  REVIEWED_WITH_DECLARATIONS
+}
+
+enum MealLibraryCrossContactAssessment {
+  NOT_ASSESSED
+  ASSESSED_NO_KNOWN_RISK
+  RISK_IDENTIFIED
+}
+
 enum FlagStatus {
   PENDING
   RESOLVED_REMOVED
@@ -469,27 +511,27 @@ model MealLibraryFlag {
 }
 
 model PlanSwapTracker {
-  id          String   @id @default(cuid())
-  planGroupId String   @unique
+  id          String    @id @default(cuid())
+  planGroupId String    @unique
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  swapsUsed   Int      @default(0)
-  updatedAt   DateTime @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swapsUsed   Int       @default(0)
+  updatedAt   DateTime  @updatedAt
   swapLogs    SwapLog[]
 }
 
 model SwapLog {
-  id                  String           @id @default(cuid())
+  id                  String          @id @default(cuid())
   planSwapTrackerId   String
-  planSwapTracker     PlanSwapTracker  @relation(fields: [planSwapTrackerId], references: [id], onDelete: Cascade)
+  planSwapTracker     PlanSwapTracker @relation(fields: [planSwapTrackerId], references: [id], onDelete: Cascade)
   mealPlanId          String
-  mealPlan            MealPlan         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealPlan            MealPlan        @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
   originalMealName    String
   originalCalories    Float
   newMealName         String
   newCalories         Float
   calorieDelta        Float
-  warningShown        Boolean          @default(false)
-  warningAcknowledged Boolean          @default(false)
-  swappedAt           DateTime         @default(now())
+  warningShown        Boolean         @default(false)
+  warningAcknowledged Boolean         @default(false)
+  swappedAt           DateTime        @default(now())
 }
