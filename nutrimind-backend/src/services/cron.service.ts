@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 
 export class CronService {
   /**
@@ -46,6 +47,7 @@ export class CronService {
           where: {
             userId: user.id,
             status: 'DONE',
+            ...getNutritionEligibleMealLogWhere(),
             loggedAt: {
               gte: yesterdayStart,
               lte: yesterdayEnd,

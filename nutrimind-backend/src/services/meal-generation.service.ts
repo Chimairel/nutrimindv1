@@ -6,15 +6,18 @@ import {
   MealPlanStatus, 
   AIConfidenceFlag, 
   HealthConditionType, 
-  AllergenType,
   NotificationType,
   PlanType,
   ShoppingDayGroup,
-  MealLibraryStatus,
   MealIngredientDataSource,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
+import {
+  filterEligibleMealGenerationLibraryCandidates,
+  runMealGenerationFallbackForUnmatchedSlots,
+} from '@/domain/meal-generation-library-compatibility.adapter';
 
 const SYSTEM_CONTEXT = `
 You are generating meal data for a system with this
@@ -142,9 +145,39 @@ export class MealGenerationService {
     const libraryMeals = await prisma.mealLibrary.findMany({
       where: {
         verifiedByNutritionistId: { not: null }, // Only nutritionist-verified meals
-        status: MealLibraryStatus.APPROVED, // Exclude FLAGGED meals per Addendum 4
+        ...getApprovedMealLibraryWhere(), // Exclude FLAGGED meals per Addendum 4
+      },
+      include: {
+        mealPlans: {
+          select: {
+            ingredients: {
+              select: {
+                dataSource: true,
+                foodItemId: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    const eligibleLibraryMeals = filterEligibleMealGenerationLibraryCandidates(
+      libraryMeals,
+      {
+        conditions: userConditions,
+        allergies: userAllergens,
+        customConditions: otherConditions,
+        customAllergies: otherAllergies,
+      },
+      (meal) => ({
+        status: meal.status,
+        suitableConditions: meal.suitableConditions,
+        allergenFree: meal.allergenFree,
+        // The current schema has no explicit safety-completeness/allergen evidence marker.
+        // Omitting safetyEvidence makes the adapter conservatively exclude legacy rows.
+        ingredients: meal.mealPlans.flatMap((plan) => plan.ingredients),
+      })
+    );
 
     const matchedSlots: {
       dayNumber: number;
@@ -168,34 +201,16 @@ export class MealGenerationService {
       const slots = [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER];
       for (const slotType of slots) {
         // Filter in-memory verified library matches
-        const matches = libraryMeals.filter((meal) => {
+        const matches = eligibleLibraryMeals.filter((meal) => {
           if (meal.mealType !== slotType) return false;
 
-          // 1. Check health conditions compatibility
-          if (meal.suitableConditions) {
-            const conditions = meal.suitableConditions as string[];
-            const hasUnsuitableCondition = userConditions.some(
-              (c) => c !== HealthConditionType.NONE && !conditions.includes(c)
-            );
-            if (hasUnsuitableCondition) return false;
-          }
-
-          // 2. Check allergen exclusions
-          if (meal.allergenFree) {
-            const freeFrom = meal.allergenFree as string[];
-            const hasAllergenConflict = userAllergens.some(
-              (a) => a !== AllergenType.NONE && !freeFrom.includes(a)
-            );
-            if (hasAllergenConflict) return false;
-          }
-
-          // 3. Check dietary preferences matching
+          // 1. Check dietary preferences matching
           if (profile.dietaryPreference && meal.dietaryTags) {
             const tags = meal.dietaryTags as string[];
             if (!tags.includes(profile.dietaryPreference)) return false;
           }
 
-          // 4. Check goal matching
+          // 2. Check goal matching
           if (profile.goal && meal.dietaryTags) {
             const tags = meal.dietaryTags as string[];
             if (!tags.includes(profile.goal)) return false;
@@ -226,11 +241,11 @@ export class MealGenerationService {
       }
     }
 
-    let aiMeals: GeneratedMeal[] = [];
-
     // --- STEP 2: Fallback/Generation for unmatched slots ---
-    if (unmatchedSlots.length > 0) {
-      const totalMeals = unmatchedSlots.length;
+    const aiMeals = await runMealGenerationFallbackForUnmatchedSlots(
+      unmatchedSlots,
+      async (fallbackSlots): Promise<GeneratedMeal[]> => {
+      const totalMeals = fallbackSlots.length;
       console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
 
       // Fetch local Filipino foods context subset to inject in context
@@ -244,7 +259,7 @@ export class MealGenerationService {
         `You are a clinical database dietitian specialized in the Philippine Food Composition Table.\n` +
         SYSTEM_CONTEXT;
 
-      const requestedSlotsStr = unmatchedSlots
+      const requestedSlotsStr = fallbackSlots
         .map((s) => `- Day ${s.dayNumber}: ${s.mealType}`)
         .join('\n');
 
@@ -290,12 +305,12 @@ export class MealGenerationService {
             ingredients: z.array(z.string()),
           })
         ).refine((meals) => {
-          if (meals.length !== unmatchedSlots.length) return false;
-          return unmatchedSlots.every((slot) =>
+          if (meals.length !== fallbackSlots.length) return false;
+          return fallbackSlots.every((slot) =>
             meals.some((m) => m.dayNumber === slot.dayNumber && m.mealType === slot.mealType)
           );
         }, {
-          message: `Must generate exactly the requested slots: ${JSON.stringify(unmatchedSlots.map(s => ({ day: s.dayNumber, type: s.mealType })))}`,
+          message: `Must generate exactly the requested slots: ${JSON.stringify(fallbackSlots.map(s => ({ day: s.dayNumber, type: s.mealType })))}`,
         }),
       });
 
@@ -306,8 +321,8 @@ export class MealGenerationService {
         0.2 // Enforce temperature 0.2
       );
 
-      aiMeals = aiResponse.meals;
-    }
+      return aiResponse.meals;
+    });
 
     const newPlanGroupId = randomUUID();
     const userHasConditions = userConditions.length > 0 && !userConditions.includes(HealthConditionType.NONE);

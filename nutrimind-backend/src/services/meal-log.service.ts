@@ -8,6 +8,7 @@ import {
   HealthConditionType, 
   AllergenType 
 } from '@prisma/client';
+import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 
 interface LogOutsideMealInput {
   userId: string;
@@ -158,6 +159,7 @@ export class MealLogService {
     const loggedToday = await prisma.mealLog.findMany({
       where: {
         userId,
+        ...getNutritionEligibleMealLogWhere(),
         loggedAt: {
           gte: startOfDay,
           lte: endOfDay,

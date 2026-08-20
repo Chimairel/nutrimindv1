@@ -17,6 +17,7 @@ import {
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
+import { getApprovedMealLibraryWhere, getApprovedMealPlanStatusWhere } from '@/domain/meal-actionability.policy';
 
 interface ProfileUpdateData {
   age?: number;
@@ -417,7 +418,7 @@ export class UserService {
       const libraryMeals = await prisma.mealLibrary.findMany({
         where: {
           mealType: meal.mealType,
-          status: 'APPROVED',
+          ...getApprovedMealLibraryWhere(),
         },
       });
 
@@ -485,7 +486,7 @@ export class UserService {
           const originalPlan = await tx.mealPlan.findFirst({
             where: {
               libraryMealId: selectedLibraryMeal.id,
-              status: MealPlanStatus.APPROVED,
+              ...getApprovedMealPlanStatusWhere(),
             },
             include: { ingredients: true },
           });

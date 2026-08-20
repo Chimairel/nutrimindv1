@@ -1,4 +1,8 @@
 import prisma from '@/lib/prisma';
+import {
+  filterUserActionableMealPlans,
+  getUserActionableMealPlanWhere,
+} from '@/domain/meal-actionability.policy';
 
 export class GroceryService {
   /**
@@ -6,13 +10,13 @@ export class GroceryService {
    * and creates a fresh grocery list grouped by categories.
    */
   static async generateGroceryList(userId: string) {
-    // 1. Fetch the latest active planGroupId for this user (not cancelled)
+    const now = new Date();
+
+    // 1. Fetch the latest currently actionable planGroupId for this user.
     const latestMeal = await prisma.mealPlan.findFirst({
       where: {
         userId,
-        status: {
-          in: ['APPROVED', 'PENDING_REVIEW'],
-        },
+        ...getUserActionableMealPlanWhere(now),
       },
       orderBy: {
         createdAt: 'desc',
@@ -29,10 +33,11 @@ export class GroceryService {
     const { planGroupId } = latestMeal;
 
     // 2. Fetch all meal plans in this group along with their ingredients
-    const mealPlans = await prisma.mealPlan.findMany({
+    const groupMealPlans = await prisma.mealPlan.findMany({
       where: {
         userId,
         planGroupId,
+        ...getUserActionableMealPlanWhere(now),
       },
       include: {
         ingredients: {
@@ -42,6 +47,7 @@ export class GroceryService {
         },
       },
     });
+    const mealPlans = filterUserActionableMealPlans(groupMealPlans, now);
 
     // 3. Consolidate ingredients case-insensitively
     const itemsMap = new Map<string, { name: string; category: string }>();

@@ -2,11 +2,18 @@ import prisma from '@/lib/prisma';
 import { 
   MealType, 
   HealthConditionType, 
-  AllergenType, 
-  MealPlanStatus, 
-  MealLibraryStatus 
+  AllergenType
 } from '@prisma/client';
 import { GroceryService } from './grocery.service';
+import {
+  assertUserActionableMealPlan,
+  filterUserActionableMealPlans,
+  getApprovedMealLibraryWhere,
+  getApprovedMealPlanStatusWhere,
+  getNutritionEligibleMealLogWhere,
+  getOwnedMealPlanWhere,
+  isApprovedMealLibraryStatus,
+} from '@/domain/meal-actionability.policy';
 
 export class MealSwapService {
   /**
@@ -15,7 +22,7 @@ export class MealSwapService {
   static async getEligibleSwapOptions(userId: string, mealPlanId: string) {
     // 1. Fetch the target meal plan slot
     const mealPlan = await prisma.mealPlan.findFirst({
-      where: { id: mealPlanId, userId },
+      where: getOwnedMealPlanWhere(userId, mealPlanId),
       include: {
         mealLogs: {
           where: { userId },
@@ -26,6 +33,7 @@ export class MealSwapService {
     if (!mealPlan) {
       throw new Error('Meal plan slot not found.');
     }
+    assertUserActionableMealPlan(mealPlan);
 
     // Check if slot has already been logged as DONE or SKIPPED
     const isLogged = mealPlan.mealLogs.some(
@@ -72,7 +80,7 @@ export class MealSwapService {
     const libraryMeals = await prisma.mealLibrary.findMany({
       where: {
         mealType: mealPlan.mealType,
-        status: MealLibraryStatus.APPROVED,
+        ...getApprovedMealLibraryWhere(),
       },
       include: {
         verifiedByNutritionist: {
@@ -144,15 +152,19 @@ export class MealSwapService {
   static async getSwapPreview(userId: string, mealPlanId: string, libraryMealId: string) {
     // 1. Fetch the current meal plan slot
     const mealPlan = await prisma.mealPlan.findFirst({
-      where: { id: mealPlanId, userId },
+      where: getOwnedMealPlanWhere(userId, mealPlanId),
     });
     if (!mealPlan) throw new Error('Meal plan slot not found.');
+    assertUserActionableMealPlan(mealPlan);
 
     // 2. Fetch the proposed replacement library meal
     const libraryMeal = await prisma.mealLibrary.findUnique({
       where: { id: libraryMealId },
     });
     if (!libraryMeal) throw new Error('Library meal not found.');
+    if (!isApprovedMealLibraryStatus(libraryMeal.status)) {
+      throw new Error('Selected replacement meal is not available or approved.');
+    }
 
     // 3. Fetch all meals on the same day in the same planGroup
     const startOfDay = new Date(mealPlan.scheduledDate);
@@ -160,13 +172,15 @@ export class MealSwapService {
     const endOfDay = new Date(mealPlan.scheduledDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const dayMeals = await prisma.mealPlan.findMany({
+    const dayMealRows = await prisma.mealPlan.findMany({
       where: {
         planGroupId: mealPlan.planGroupId,
         userId,
         scheduledDate: { gte: startOfDay, lte: endOfDay },
+        ...getApprovedMealPlanStatusWhere(),
       },
     });
+    const dayMeals = filterUserActionableMealPlans(dayMealRows);
 
     // 4. Calculate projected day total (replace current meal's cals with new)
     let projectedDayTotal = 0;
@@ -212,7 +226,7 @@ export class MealSwapService {
     const swapResult = await prisma.$transaction(async (tx) => {
       // 1. Fetch target meal plan slot
       const mealPlan = await tx.mealPlan.findFirst({
-        where: { id: mealPlanId, userId },
+        where: getOwnedMealPlanWhere(userId, mealPlanId),
         include: {
           mealLogs: {
             where: { userId },
@@ -223,6 +237,7 @@ export class MealSwapService {
       if (!mealPlan) {
         throw new Error('Meal plan slot not found.');
       }
+      assertUserActionableMealPlan(mealPlan);
 
       // Check if slot has already been logged as DONE or SKIPPED
       const isLogged = mealPlan.mealLogs.some(
@@ -275,7 +290,7 @@ export class MealSwapService {
         where: { id: newLibraryMealId },
       });
 
-      if (!libraryMeal || libraryMeal.status !== MealLibraryStatus.APPROVED) {
+      if (!libraryMeal || !isApprovedMealLibraryStatus(libraryMeal.status)) {
         throw new Error('Selected replacement meal is not available or approved.');
       }
 
@@ -341,7 +356,7 @@ export class MealSwapService {
       const originalPlan = await tx.mealPlan.findFirst({
         where: {
           libraryMealId: libraryMeal.id,
-          status: MealPlanStatus.APPROVED,
+          ...getApprovedMealPlanStatusWhere(),
         },
         include: {
           ingredients: true,
@@ -465,6 +480,7 @@ export class MealSwapService {
       where: {
         userId,
         status: 'DONE',
+        ...getNutritionEligibleMealLogWhere(),
         loggedAt: {
           gte: startOfDay,
           lte: endOfDay,
@@ -531,7 +547,7 @@ export class MealSwapService {
     // 2. Query APPROVED library meals matching the optional mealType and search
     const libraryMeals = await prisma.mealLibrary.findMany({
       where: {
-        status: MealLibraryStatus.APPROVED,
+        ...getApprovedMealLibraryWhere(),
         ...(mealType ? { mealType } : {}),
         ...(search ? {
           mealName: {

@@ -1,6 +1,10 @@
 import prisma from '@/lib/prisma';
 import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealLibraryStatus, FlagStatus, MealIngredientDataSource } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
+import {
+  getApprovedMealPlanStatusWhere,
+  getNutritionistReviewableMealPlanWhere,
+} from '@/domain/meal-actionability.policy';
 
 export class NutritionistService {
   /**
@@ -13,7 +17,7 @@ export class NutritionistService {
     // Fetch all PENDING_REVIEW meals that are unclaimed, claim has expired, or claimed by the requesting nutritionist
     const pendingMeals = await prisma.mealPlan.findMany({
       where: {
-        status: MealPlanStatus.PENDING_REVIEW,
+        ...getNutritionistReviewableMealPlanWhere(),
         OR: [
           { claimedByNutritionistId: null },
           { claimedAt: { lt: thirtyMinutesAgo } },
@@ -569,7 +573,7 @@ export class NutritionistService {
   static async getApprovedMeals(nutritionistProfileId: string) {
     return prisma.mealPlan.findMany({
       where: {
-        status: MealPlanStatus.APPROVED,
+        ...getApprovedMealPlanStatusWhere(),
         nutritionistId: nutritionistProfileId,
       },
       select: {

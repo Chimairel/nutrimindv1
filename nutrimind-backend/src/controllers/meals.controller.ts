@@ -4,7 +4,14 @@ import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import prisma from '@/lib/prisma';
-import { MealPlanStatus, MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
+import { MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
+import {
+  assertUserActionableMealPlan,
+  filterUserActionableMealPlans,
+  getOwnedMealPlanWhere,
+  getUserActionableMealPlanWhere,
+  isMealPlanNotActionableError,
+} from '@/domain/meal-actionability.policy';
 
 export class MealsController {
   /**
@@ -22,11 +29,16 @@ export class MealsController {
       const planGroupId = await MealGenerationService.generatePlanForUser(userId);
 
       // Fetch and return the newly generated meals
-      const meals = await prisma.mealPlan.findMany({
-        where: { planGroupId },
+      const generatedMeals = await prisma.mealPlan.findMany({
+        where: {
+          planGroupId,
+          userId,
+          ...getUserActionableMealPlanWhere(),
+        },
         include: { ingredients: true },
         orderBy: { scheduledDate: 'asc' },
       });
+      const meals = filterUserActionableMealPlans(generatedMeals);
 
       return res.status(200).json({
         success: true,
@@ -55,11 +67,13 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      // Find the latest non-cancelled plan group
+      const now = new Date();
+
+      // Find the latest plan group containing a currently actionable row.
       const latestPlan = await prisma.mealPlan.findFirst({
         where: {
           userId,
-          status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
+          ...getUserActionableMealPlanWhere(now),
         },
         orderBy: { createdAt: 'desc' },
         select: { planGroupId: true },
@@ -73,8 +87,12 @@ export class MealsController {
       }
 
       // Fetch meals and ingredients linked to the plan group
-      const meals = await prisma.mealPlan.findMany({
-        where: { planGroupId: latestPlan.planGroupId },
+      const groupMeals = await prisma.mealPlan.findMany({
+        where: {
+          userId,
+          planGroupId: latestPlan.planGroupId,
+          ...getUserActionableMealPlanWhere(now),
+        },
         include: {
           ingredients: true,
           mealLogs: {
@@ -83,22 +101,7 @@ export class MealsController {
         },
         orderBy: { scheduledDate: 'asc' },
       });
-
-      if (meals.length > 0) {
-        const lastMeal = meals[meals.length - 1];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const planEndDate = new Date(lastMeal.scheduledDate);
-        planEndDate.setHours(0, 0, 0, 0);
-
-        if (planEndDate < today) {
-          return res.status(200).json({
-            success: true,
-            data: [],
-          });
-        }
-      }
+      const meals = filterUserActionableMealPlans(groupMeals, now);
 
       return res.status(200).json({
         success: true,
@@ -126,7 +129,7 @@ export class MealsController {
       }
 
       const meal = await prisma.mealPlan.findFirst({
-        where: { id, userId },
+        where: getOwnedMealPlanWhere(userId, id),
         include: {
           ingredients: true,
           mealLogs: {
@@ -303,12 +306,14 @@ export class MealsController {
 
       // Find the MealPlan item to fetch macros
       const mealPlan = await prisma.mealPlan.findFirst({
-        where: { id: mealPlanId, userId },
+        where: getOwnedMealPlanWhere(userId, mealPlanId),
       });
 
       if (!mealPlan) {
         return res.status(404).json({ success: false, error: 'Meal plan item not found.' });
       }
+
+      assertUserActionableMealPlan(mealPlan);
 
       // Check if a MealLog record already exists for this scheduled item
       const existingLog = await prisma.mealLog.findFirst({
@@ -353,6 +358,12 @@ export class MealsController {
       });
     } catch (error: any) {
       console.error('[MealsController] updateMealStatus error:', error);
+      if (isMealPlanNotActionableError(error)) {
+        return res.status(409).json({
+          success: false,
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         success: false,
         error: 'Failed to update scheduled meal status.',
@@ -380,6 +391,9 @@ export class MealsController {
       });
     } catch (error: any) {
       console.error('[MealsController] getSwapOptions error:', error);
+      if (isMealPlanNotActionableError(error)) {
+        return res.status(409).json({ success: false, error: error.message });
+      }
       return res.status(500).json({
         success: false,
         error: error.message || 'Failed to retrieve swap options.',
@@ -419,6 +433,9 @@ export class MealsController {
       });
     } catch (error: any) {
       console.error('[MealsController] executeSwap error:', error);
+      if (isMealPlanNotActionableError(error)) {
+        return res.status(409).json({ success: false, error: error.message });
+      }
       const status = error.message.includes('limit reached') ? 403 : 400;
       return res.status(status).json({
         success: false,
@@ -445,6 +462,9 @@ export class MealsController {
       const preview = await MealSwapService.getSwapPreview(userId, mealPlanId, libraryMealId);
       return res.status(200).json({ success: true, data: preview });
     } catch (error: any) {
+      if (isMealPlanNotActionableError(error)) {
+        return res.status(409).json({ success: false, error: error.message });
+      }
       return res.status(400).json({ success: false, error: error.message });
     }
   }
