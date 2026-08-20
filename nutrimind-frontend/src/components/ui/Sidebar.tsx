@@ -10,11 +10,11 @@ import {
   BookOpen,
   BrainCircuit,
   CheckSquare2,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   ShoppingBasket,
   Sparkles,
   Stethoscope,
@@ -35,6 +35,36 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
 }
+
+interface SidebarTooltipProps {
+  id: string;
+  label: string;
+  placement?: 'side' | 'below';
+}
+
+const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 'side' }) => (
+  <span
+    id={id}
+    role="tooltip"
+    className={`
+      pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-white/10 bg-[#17201d]/95
+      px-3 py-2 font-display text-[11px] font-semibold tracking-tight text-white opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.38)]
+      backdrop-blur-xl transition-all duration-150 group-hover:scale-100 group-hover:opacity-100
+      group-focus-within:scale-100 group-focus-within:opacity-100
+      ${placement === 'side'
+        ? 'left-[calc(100%+12px)] top-1/2 -translate-y-1/2 scale-95 origin-left'
+        : 'left-0 top-[calc(100%+9px)] -translate-y-1 scale-95'}
+    `}
+  >
+    {label}
+    <span
+      aria-hidden="true"
+      className={`absolute h-2 w-2 rotate-45 border border-white/10 bg-[#17201d] ${placement === 'side'
+        ? '-left-1 top-1/2 -translate-y-1/2 border-r-0 border-t-0'
+        : 'left-4 -top-1 border-b-0 border-r-0'}`}
+    />
+  </span>
+);
 
 export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const pathname = usePathname();
@@ -94,54 +124,70 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   return (
     <aside
       className={`
-        relative hidden h-full shrink-0 flex-col overflow-hidden rounded-[30px] border border-white/10
+        relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
         bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white shadow-[0_28px_80px_rgba(1,8,5,0.32)]
         transition-[width,padding] duration-300 ease-out md:flex
         ${collapsed ? 'w-[84px] px-3 py-4' : 'w-[280px] p-4'}
         ${className}
       `}
     >
-      <div className="pointer-events-none absolute -right-20 -top-16 h-52 w-52 rounded-full bg-brand-accent/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-brand-cyan/10 blur-3xl" />
-
-      <div className={`relative flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-1 pb-5`}>
-        <Link href={homeHref} className={`flex min-w-0 items-center ${collapsed ? '' : 'gap-3'}`} aria-label="NutriMind home">
-          <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon">
-            <BrainCircuit className="h-5 w-5" />
-            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
-          </span>
-          {!collapsed && (
-            <span className="min-w-0">
-              <span className="block font-display text-[15px] font-extrabold tracking-[0.16em]">NUTRIMIND</span>
-              <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">{roleLabel}</span>
-            </span>
-          )}
-        </Link>
-
-        {!collapsed && (
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            aria-label="Collapse sidebar"
-            aria-expanded={!collapsed}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/55 outline-none transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white focus:ring-2 focus:ring-brand-accent/40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        )}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[30px]">
+        <div className="absolute -right-20 -top-16 h-52 w-52 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-brand-cyan/10 blur-3xl" />
       </div>
 
-      {collapsed && (
-        <button
-          type="button"
-          onClick={toggleCollapse}
-          aria-label="Expand sidebar"
-          aria-expanded={!collapsed}
-          className="mx-auto mb-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/55 outline-none transition hover:border-brand-accent/30 hover:text-brand-accent focus:ring-2 focus:ring-brand-accent/40"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      )}
+      <div className={`relative flex items-center px-1 pb-5 ${collapsed ? 'justify-center' : 'gap-3'}`}>
+        {collapsed ? (
+          <div className="group relative shrink-0">
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              aria-label="Open sidebar"
+              aria-describedby="sidebar-open-tooltip"
+              aria-controls="nutrimind-sidebar-navigation"
+              aria-expanded={false}
+              className="group/sidebar-toggle relative flex h-11 w-11 cursor-ew-resize items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon outline-none transition-all hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1713]"
+            >
+              <BrainCircuit className="h-5 w-5 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0 group-focus-visible/sidebar-toggle:scale-75 group-focus-visible/sidebar-toggle:opacity-0" />
+              <PanelLeftOpen className="absolute h-5 w-5 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 group-focus-visible/sidebar-toggle:scale-100 group-focus-visible/sidebar-toggle:opacity-100" />
+              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0 group-focus-visible/sidebar-toggle:opacity-0" />
+            </button>
+            <SidebarTooltip id="sidebar-open-tooltip" label="Open sidebar" />
+          </div>
+        ) : (
+          <>
+            <Link
+              href={homeHref}
+              className="flex min-w-0 items-center gap-3 outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-accent/40"
+              aria-label="NutriMind home"
+            >
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon">
+                <BrainCircuit className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-display text-[15px] font-extrabold tracking-[0.16em]">NUTRIMIND</span>
+                <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">{roleLabel}</span>
+              </span>
+            </Link>
+
+            <div className="group relative ml-auto shrink-0">
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                aria-label="Close sidebar"
+                aria-describedby="sidebar-close-tooltip"
+                aria-controls="nutrimind-sidebar-navigation"
+                aria-expanded={true}
+                className="flex h-10 w-10 cursor-ew-resize items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/55 outline-none transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-brand-cyan/70"
+              >
+                <PanelLeftClose className="h-[18px] w-[18px]" />
+              </button>
+              <SidebarTooltip id="sidebar-close-tooltip" label="Close sidebar" placement="below" />
+            </div>
+          </>
+        )}
+      </div>
 
       {!collapsed && (
         <div className="mb-3 flex items-center justify-between px-3">
@@ -150,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         </div>
       )}
 
-      <nav className="relative flex flex-1 flex-col gap-1.5" aria-label={`${user.role.toLowerCase()} navigation`}>
+      <nav id="nutrimind-sidebar-navigation" className="relative flex flex-1 flex-col gap-1.5" aria-label={`${user.role.toLowerCase()} navigation`}>
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -158,7 +204,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             <Link
               key={item.href}
               href={item.href}
-              title={collapsed ? item.label : undefined}
+              aria-label={collapsed ? item.label : undefined}
+              aria-describedby={collapsed ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
               aria-current={active ? 'page' : undefined}
               className={`
                 group relative flex min-h-12 items-center rounded-2xl outline-none transition-all duration-200
@@ -171,6 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
               {!collapsed && <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>}
               {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
+              {collapsed && <SidebarTooltip id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`} label={item.label} />}
             </Link>
           );
         })}
@@ -179,17 +227,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       <div className="relative mt-4 border-t border-white/[0.08] pt-4">
         <Link
           href="/docs"
-          title={collapsed ? 'Product docs' : undefined}
-          className={`mb-3 flex items-center rounded-2xl border border-transparent text-white/45 transition hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-brand-cyan ${collapsed ? 'h-11 justify-center' : 'gap-3 px-3 py-2.5'}`}
+          aria-label={collapsed ? 'Product docs' : undefined}
+          aria-describedby={collapsed ? 'sidebar-docs-tooltip' : undefined}
+          className={`group relative mb-3 flex items-center rounded-2xl border border-transparent text-white/45 transition hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-brand-cyan ${collapsed ? 'h-11 justify-center' : 'gap-3 px-3 py-2.5'}`}
         >
           <Sparkles className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="text-xs font-semibold">Product docs</span>}
+          {collapsed && <SidebarTooltip id="sidebar-docs-tooltip" label="Product docs" />}
         </Link>
 
         <Link
           href={profileHref}
-          className={`flex items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] transition hover:bg-white/[0.065] ${collapsed ? 'justify-center p-1.5' : 'gap-3 p-2'}`}
-          title={collapsed ? user.name : undefined}
+          aria-label={collapsed ? `Profile: ${user.name}` : undefined}
+          aria-describedby={collapsed ? 'sidebar-profile-tooltip' : undefined}
+          className={`group relative flex items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] transition hover:bg-white/[0.065] ${collapsed ? 'justify-center p-1.5' : 'gap-3 p-2'}`}
         >
           <Avatar size="sm" src={user.image} fallbackText={user.name} className="h-9 w-9 rounded-xl" />
           {!collapsed && (
@@ -198,16 +249,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">{user.role}</p>
             </div>
           )}
+          {collapsed && <SidebarTooltip id="sidebar-profile-tooltip" label={`Profile · ${user.name}`} />}
         </Link>
 
         <button
           type="button"
           onClick={() => logout()}
-          className={`mt-2 flex w-full items-center rounded-xl text-red-300/70 outline-none transition hover:bg-red-500/10 hover:text-red-200 focus:ring-2 focus:ring-red-400/30 ${collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2.5'}`}
-          title={collapsed ? 'Log out' : undefined}
+          aria-label={collapsed ? 'Log out' : undefined}
+          aria-describedby={collapsed ? 'sidebar-logout-tooltip' : undefined}
+          className={`group relative mt-2 flex w-full items-center rounded-xl text-red-300/70 outline-none transition hover:bg-red-500/10 hover:text-red-200 focus:ring-2 focus:ring-red-400/30 ${collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2.5'}`}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="text-xs font-semibold">Log out</span>}
+          {collapsed && <SidebarTooltip id="sidebar-logout-tooltip" label="Log out" />}
         </button>
       </div>
     </aside>

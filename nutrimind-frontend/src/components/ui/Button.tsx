@@ -35,6 +35,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      data-button-variant={variant}
       disabled={disabled || isLoading}
       {...props}
     >

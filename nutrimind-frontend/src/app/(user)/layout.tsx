@@ -9,7 +9,7 @@ import Navbar from '@/components/shared/Navbar';
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   return (
     <RouteGuard>
-      <div className="portal-shell flex h-screen w-full overflow-hidden p-0 md:p-4">
+      <div className="portal-shell flex h-screen w-full p-0 md:p-4">
         <Sidebar />
         <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
           <Navbar />

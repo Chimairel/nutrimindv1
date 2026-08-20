@@ -67,7 +67,8 @@ html.dark {
   --brand-bg: #060b09;
   --brand-bg-alt: #0b1411;
   --brand-surface: #0e1814;
-  --brand-border: #21322b;
+  /* Match the portal hero's quiet translucent outline across dark surfaces. */
+  --brand-border: rgba(255, 255, 255, 0.09);
   --brand-green: #62e5b5;
   --brand-green-hover: #8bf1cb;
   --brand-green-light: #103a2d;
@@ -113,6 +114,18 @@ html.dark {
   --sidebar-text: #82948c;
   --sidebar-active: #b8f45f;
   --sidebar-hover: #0c1813;
+}
+
+/*
+ * Tailwind does not emit opacity variants such as border-brand-border/70
+ * for a custom color backed by a complete CSS color value. Without an
+ * emitted border-color rule, bordered dark surfaces inherit their light
+ * text color and render as solid white outlines. Keep every neutral dark
+ * border on the same quiet treatment used by the portal hero.
+ */
+html.dark .border-brand-border,
+html.dark [class*="border-brand-border/"] {
+  border-color: rgba(255, 255, 255, 0.09);
 }
 
 body, .bg-brand-bg {
@@ -253,6 +266,24 @@ body, header, aside, main, footer, button, input, select, textarea, a, tr, td, t
 .portal-page-header > * {
   position: relative;
   z-index: 1;
+}
+
+/* Neutral controls inside this permanently dark surface need inverse colors
+   even while the rest of the application is using the light theme. */
+.portal-page-header [data-button-variant='secondary'],
+.portal-page-header [data-button-variant='ghost'] {
+  --tw-ring-offset-color: #07100d;
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.82);
+  box-shadow: none;
+}
+
+.portal-page-header [data-button-variant='secondary']:hover:not(:disabled),
+.portal-page-header [data-button-variant='ghost']:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(184, 244, 95, 0.3);
+  color: #b8f45f;
 }
 
 .portal-kicker {
