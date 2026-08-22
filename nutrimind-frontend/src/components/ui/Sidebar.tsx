@@ -40,12 +40,14 @@ interface SidebarTooltipProps {
   id: string;
   label: string;
   placement?: 'side' | 'below';
+  suppressed?: boolean;
 }
 
-const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 'side' }) => (
+const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 'side', suppressed = false }) => (
   <span
     id={id}
     role="tooltip"
+    aria-hidden={suppressed || undefined}
     className={`
       pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-white/10 bg-[#17201d]/95
       px-3 py-2 font-display text-[11px] font-semibold tracking-tight text-white opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.38)]
@@ -54,6 +56,7 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 
       ${placement === 'side'
         ? 'left-[calc(100%+12px)] top-1/2 -translate-y-1/2 scale-95 origin-left'
         : 'left-0 top-[calc(100%+9px)] -translate-y-1 scale-95'}
+      ${suppressed ? '!scale-95 !opacity-0' : ''}
     `}
   >
     {label}
@@ -71,6 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [suppressedTooltip, setSuppressedTooltip] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -204,6 +208,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setSuppressedTooltip(item.href)}
+              onBlur={() => setSuppressedTooltip((current) => current === item.href ? null : current)}
+              onMouseLeave={(event) => {
+                if (suppressedTooltip === item.href) event.currentTarget.blur();
+                setSuppressedTooltip((current) => current === item.href ? null : current);
+              }}
               aria-label={collapsed ? item.label : undefined}
               aria-describedby={collapsed ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
               aria-current={active ? 'page' : undefined}
@@ -218,7 +228,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
               {!collapsed && <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>}
               {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
-              {collapsed && <SidebarTooltip id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`} label={item.label} />}
+              {collapsed && (
+                <SidebarTooltip
+                  id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`}
+                  label={item.label}
+                  suppressed={suppressedTooltip === item.href}
+                />
+              )}
             </Link>
           );
         })}

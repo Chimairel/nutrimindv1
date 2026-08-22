@@ -62,14 +62,14 @@ export default function AdminOverviewPage() {
   }
 
   const metrics: Metric[] = [
-    { label: 'Total users', value: data.totalUsers, icon: Users, tone: 'text-blue-500 bg-blue-500/10' },
-    { label: 'Verified RNDs', value: `${data.verifiedNutritionists}/${data.totalNutritionists}`, icon: Stethoscope, tone: 'text-emerald-500 bg-emerald-500/10' },
+    { label: 'Total users', value: data.totalUsers, icon: Users, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
+    { label: 'Verified RNDs', value: `${data.verifiedNutritionists}/${data.totalNutritionists}`, icon: Stethoscope, tone: 'bg-brand-green/10 text-brand-green' },
     { label: 'Pending reviews', value: data.pendingReviews, icon: ClipboardCheck, tone: 'text-amber-500 bg-amber-500/10' },
     { label: 'Active plans', value: data.activeMealPlans, icon: Gauge, tone: 'text-brand-green bg-brand-green/10' },
-    { label: 'Meal library', value: data.libraryCount, icon: BookOpenText, tone: 'text-violet-500 bg-violet-500/10' },
-    { label: 'Meal logs', value: data.totalMealLogs, icon: ScrollText, tone: 'text-cyan-500 bg-cyan-500/10' },
-    { label: 'FNRI foods', value: data.totalFoodItems, icon: Database, tone: 'text-lime-600 bg-lime-500/10' },
-    { label: 'Food aliases', value: data.totalAliases, icon: Tags, tone: 'text-pink-500 bg-pink-500/10' },
+    { label: 'Meal library', value: data.libraryCount, icon: BookOpenText, tone: 'bg-brand-green/10 text-brand-green' },
+    { label: 'Meal logs', value: data.totalMealLogs, icon: ScrollText, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
+    { label: 'FNRI foods', value: data.totalFoodItems, icon: Database, tone: 'bg-brand-accent/20 text-brand-green' },
+    { label: 'Food aliases', value: data.totalAliases, icon: Tags, tone: 'bg-brand-green/10 text-brand-green' },
   ];
 
   return (

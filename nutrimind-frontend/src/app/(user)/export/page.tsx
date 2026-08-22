@@ -326,8 +326,8 @@ export default function ClinicalExportPage() {
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
-              <span className="font-extrabold text-blue-700 uppercase mb-1 flex items-center gap-1.5">
-                <GlassWater className="w-4 h-4 text-blue-700 shrink-0" />
+              <span className="mb-1 flex items-center gap-1.5 font-extrabold uppercase text-brand-green">
+                <GlassWater className="h-4 w-4 shrink-0 text-brand-green" />
                 <span>Drinks & Hydration</span>
               </span>
               <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">

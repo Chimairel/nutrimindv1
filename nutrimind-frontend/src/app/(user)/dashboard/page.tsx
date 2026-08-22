@@ -407,7 +407,7 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Check-In Streak</span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-600 dark:text-orange-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-accent/45 bg-brand-accent/15 text-brand-green">
                     <Flame className="h-4.5 w-4.5" aria-hidden="true" />
                   </div>
                 </div>
@@ -470,12 +470,12 @@ export default function DashboardPage() {
 
               {/* Water Intake Tracker */}
               <Card
-                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-blue-500/25 hover:shadow-card-hover"
+                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-brand-cyan/30 hover:shadow-card-hover"
                 contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Water Intake</span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-green dark:text-brand-cyan">
                     <Droplets className="h-4.5 w-4.5" aria-hidden="true" />
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export default function DashboardPage() {
                   {/* Progress bar */}
                   <div className="w-full bg-brand-bgAlt h-1.5 rounded-full overflow-hidden mt-2">
                     <div 
-                      className="bg-blue-500 h-full rounded-full transition-all duration-300"
+                      className="h-full rounded-full bg-gradient-to-r from-brand-green to-brand-cyan transition-all duration-300"
                       style={{ width: `${Math.min(100, (waterIntake / 2500) * 100)}%` }}
                     />
                   </div>
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                   </button>
                   <button 
                     onClick={() => handleAddWater(250)}
-                    className="flex-1 py-1 px-3 text-xs font-bold rounded-lg border border-transparent bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                    className="flex-1 rounded-lg border border-brand-green bg-brand-green px-3 py-1 text-xs font-bold text-white transition-colors hover:bg-brand-greenHover dark:text-brand-black"
                   >
                     +250mL
                   </button>
@@ -522,7 +522,7 @@ export default function DashboardPage() {
 
               {/* Macros Target Progress Card */}
               <Card
-                className="relative min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-2 !overflow-visible"
+                className="min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-2"
                 contentClassName="flex min-h-[300px] flex-col justify-center gap-6 p-6 md:p-8"
               >
                 <div>
@@ -538,7 +538,7 @@ export default function DashboardPage() {
                     <span className="text-brand-text">{Math.round(proteinConsumed)}g / {Math.round(proteinTarget)}g</span>
                   </div>
                   <div 
-                    className="w-full h-4 rounded-full border-2 border-brand-border overflow-hidden"
+                    className="h-4 w-full overflow-hidden rounded-full border border-brand-border/60"
                     style={{ backgroundColor: 'var(--macro-track-bg)' }}
                   >
                     <div 
@@ -558,7 +558,7 @@ export default function DashboardPage() {
                     <span className="text-brand-text">{Math.round(carbsConsumed)}g / {Math.round(carbsTarget)}g</span>
                   </div>
                   <div 
-                    className="w-full h-4 rounded-full border-2 border-brand-border overflow-hidden"
+                    className="h-4 w-full overflow-hidden rounded-full border border-brand-border/60"
                     style={{ backgroundColor: 'var(--macro-track-bg)' }}
                   >
                     <div 
@@ -578,7 +578,7 @@ export default function DashboardPage() {
                     <span className="text-brand-text">{Math.round(fatConsumed)}g / {Math.round(fatTarget)}g</span>
                   </div>
                   <div 
-                    className="w-full h-4 rounded-full border-2 border-brand-border overflow-hidden"
+                    className="h-4 w-full overflow-hidden rounded-full border border-brand-border/60"
                     style={{ backgroundColor: 'var(--macro-track-bg)' }}
                   >
                     <div 
@@ -591,16 +591,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Floating Log Outside Meal Circular Button */}
-                <div className="absolute bottom-0 translate-y-1/2 right-6 md:right-8 z-10">
-                  <button
-                    onClick={() => setIsLogModalOpen(true)}
-                    className="h-14 w-14 md:h-16 md:w-16 rounded-full border border-brand-border bg-brand-accent text-black shadow-lg shadow-brand-accent/10 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 hover-pulse outline-none"
-                    title="Log Outside Meal"
-                  >
-                    <Plus className="w-8 h-8 stroke-[3px]" />
-                  </button>
-                </div>
               </Card>
             </div>
 
@@ -693,6 +683,17 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+
+      {/* Viewport-fixed action: clears the mobile bottom navigation and stays available while scrolling. */}
+      <button
+        type="button"
+        onClick={() => setIsLogModalOpen(true)}
+        className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-brand-green/30 bg-brand-accent text-brand-black shadow-xl shadow-brand-accent/20 outline-none transition-all duration-200 hover:scale-105 hover:bg-brand-accent/90 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:scale-95 md:bottom-8 md:right-8 md:h-16 md:w-16"
+        aria-label="Log an outside meal"
+        title="Log an outside meal"
+      >
+        <Plus className="h-7 w-7 stroke-[3px] md:h-8 md:w-8" aria-hidden="true" />
+      </button>
 
       {/* --- LOG OUTSIDE MEAL MODAL --- */}
       <Modal isOpen={isLogModalOpen} onClose={() => {

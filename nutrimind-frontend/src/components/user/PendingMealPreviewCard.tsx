@@ -33,26 +33,26 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
     BREAKFAST: {
       label: 'Breakfast',
       icon: Coffee,
-      iconClassName: 'text-amber-700 dark:text-amber-300',
-      iconSurfaceClassName: 'border-amber-500/20 bg-amber-500/10',
+      iconClassName: 'text-brand-green',
+      iconSurfaceClassName: 'border-brand-accent/45 bg-brand-accent/15',
     },
     LUNCH: {
       label: 'Lunch',
       icon: SunMedium,
-      iconClassName: 'text-orange-700 dark:text-orange-300',
-      iconSurfaceClassName: 'border-orange-500/20 bg-orange-500/10',
+      iconClassName: 'text-brand-green',
+      iconSurfaceClassName: 'border-brand-green/20 bg-brand-green/10',
     },
     DINNER: {
       label: 'Dinner',
       icon: MoonStar,
-      iconClassName: 'text-indigo-700 dark:text-indigo-300',
-      iconSurfaceClassName: 'border-indigo-500/20 bg-indigo-500/10',
+      iconClassName: 'text-brand-violet',
+      iconSurfaceClassName: 'border-brand-violet/25 bg-brand-violet/10',
     },
     SNACK: {
       label: 'Snack',
       icon: Apple,
-      iconClassName: 'text-rose-700 dark:text-rose-300',
-      iconSurfaceClassName: 'border-rose-500/20 bg-rose-500/10',
+      iconClassName: 'text-brand-green dark:text-brand-cyan',
+      iconSurfaceClassName: 'border-brand-cyan/25 bg-brand-cyan/10',
     },
   };
 

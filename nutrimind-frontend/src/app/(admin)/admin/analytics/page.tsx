@@ -34,19 +34,19 @@ export default function AdminAnalyticsPage() {
 
   const verificationRate = data.totalNutritionists > 0 ? Math.round((data.verifiedNutritionists / data.totalNutritionists) * 100) : 0;
   const people: Metric[] = [
-    { label: 'Total users', value: data.totalUsers, icon: Users, tone: 'bg-blue-500/10 text-blue-500' },
-    { label: 'Nutritionists', value: data.totalNutritionists, icon: Stethoscope, tone: 'bg-emerald-500/10 text-emerald-500' },
+    { label: 'Total users', value: data.totalUsers, icon: Users, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
+    { label: 'Nutritionists', value: data.totalNutritionists, icon: Stethoscope, tone: 'bg-brand-green/10 text-brand-green' },
     { label: 'Verified RNDs', value: data.verifiedNutritionists, icon: ClipboardCheck, tone: 'bg-brand-green/10 text-brand-green' },
   ];
   const meals: Metric[] = [
     { label: 'Active plans', value: data.activeMealPlans, icon: UtensilsCrossed, tone: 'bg-brand-green/10 text-brand-green' },
     { label: 'Pending reviews', value: data.pendingReviews, icon: ClipboardCheck, tone: 'bg-amber-500/10 text-amber-500' },
-    { label: 'Meal library', value: data.libraryCount, icon: BookOpenText, tone: 'bg-violet-500/10 text-violet-500' },
-    { label: 'Meal logs', value: data.totalMealLogs, icon: ScrollText, tone: 'bg-cyan-500/10 text-cyan-500' },
+    { label: 'Meal library', value: data.libraryCount, icon: BookOpenText, tone: 'bg-brand-green/10 text-brand-green' },
+    { label: 'Meal logs', value: data.totalMealLogs, icon: ScrollText, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
   ];
   const intelligence: Metric[] = [
-    { label: 'FNRI food items', value: data.totalFoodItems, icon: Database, tone: 'bg-lime-500/10 text-lime-600' },
-    { label: 'Food aliases', value: data.totalAliases, icon: Tags, tone: 'bg-pink-500/10 text-pink-500' },
+    { label: 'FNRI food items', value: data.totalFoodItems, icon: Database, tone: 'bg-brand-accent/20 text-brand-green' },
+    { label: 'Food aliases', value: data.totalAliases, icon: Tags, tone: 'bg-brand-green/10 text-brand-green' },
   ];
 
   return (

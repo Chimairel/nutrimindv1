@@ -27,17 +27,17 @@
   --orb-green: rgba(55, 225, 162, 0.12);
   --orb-cyan: rgba(70, 207, 241, 0.11);
 
-  /* ─── Macro Colors (High Legibility Contrast) ─── */
-  --macro-protein: #166534; /* Green-800 */
-  --macro-carbs: #9a3412; /* Orange-800 */
-  --macro-fat: #1e40af; /* Blue-800 */
+  /* ─── Macro Colors (NutriMind green + cyan + violet) ─── */
+  --macro-protein: #08705b;
+  --macro-carbs: #0b7788;
+  --macro-fat: #527a16;
   --macro-track-bg: rgba(0, 0, 0, 0.08);
-  --macro-protein-bg: #e8f5e9;
-  --macro-protein-border: #c8e6c9;
-  --macro-carbs-bg: #fff3e0;
-  --macro-carbs-border: #ffe0b2;
-  --macro-fat-bg: #e3f2fd;
-  --macro-fat-border: #bbdefb;
+  --macro-protein-bg: rgba(8, 112, 91, 0.09);
+  --macro-protein-border: rgba(8, 112, 91, 0.2);
+  --macro-carbs-bg: rgba(24, 185, 210, 0.1);
+  --macro-carbs-border: rgba(24, 185, 210, 0.22);
+  --macro-fat-bg: rgba(184, 244, 95, 0.2);
+  --macro-fat-border: rgba(82, 122, 22, 0.22);
 
   /* ─── Status Colors ─── */
   --status-verified-bg: #d5f5e3;
@@ -48,10 +48,10 @@
   --status-rejected-text: #7f1d1d; /* High contrast red */
   --status-error-bg: #fee2e2;
   --status-error-text: #7f1d1d;
-  --status-ai-bg: #ede9fe;
-  --status-ai-text: #4c1d95;
-  --status-user-bg: #dbeafe;
-  --status-user-text: #1e3a8a;
+  --status-ai-bg: rgba(24, 185, 210, 0.12);
+  --status-ai-text: #08705b;
+  --status-user-bg: rgba(184, 244, 95, 0.24);
+  --status-user-text: #456715;
 
   /* ─── Sidebar (Dark) ─── */
   --sidebar-bg: #07110e;
@@ -85,16 +85,16 @@ html.dark {
   --orb-green: rgba(55, 225, 162, 0.09);
   --orb-cyan: rgba(70, 207, 241, 0.07);
 
-  --macro-protein: #4ade80;
-  --macro-carbs: #f59e0b;
-  --macro-fat: #60a5fa;
+  --macro-protein: #62e5b5;
+  --macro-carbs: #61e6ff;
+  --macro-fat: #b8f45f;
   --macro-track-bg: rgba(255, 255, 255, 0.08);
-  --macro-protein-bg: rgba(74, 222, 128, 0.1);
-  --macro-protein-border: rgba(74, 222, 128, 0.2);
-  --macro-carbs-bg: rgba(245, 158, 11, 0.1);
-  --macro-carbs-border: rgba(245, 158, 11, 0.2);
-  --macro-fat-bg: rgba(96, 165, 250, 0.1);
-  --macro-fat-border: rgba(96, 165, 250, 0.2);
+  --macro-protein-bg: rgba(98, 229, 181, 0.1);
+  --macro-protein-border: rgba(98, 229, 181, 0.2);
+  --macro-carbs-bg: rgba(97, 230, 255, 0.1);
+  --macro-carbs-border: rgba(97, 230, 255, 0.2);
+  --macro-fat-bg: rgba(184, 244, 95, 0.1);
+  --macro-fat-border: rgba(184, 244, 95, 0.2);
 
   /* Status Colors (Warm Dark) */
   --status-verified-bg: rgba(74, 222, 128, 0.15);
@@ -105,10 +105,10 @@ html.dark {
   --status-rejected-text: #f87171;
   --status-error-bg: rgba(239, 68, 68, 0.15);
   --status-error-text: #f87171;
-  --status-ai-bg: rgba(139, 92, 246, 0.15);
-  --status-ai-text: #c084fc;
-  --status-user-bg: rgba(59, 130, 246, 0.15);
-  --status-user-text: #93c5fd;
+  --status-ai-bg: rgba(97, 230, 255, 0.12);
+  --status-ai-text: #61e6ff;
+  --status-user-bg: rgba(184, 244, 95, 0.12);
+  --status-user-text: #b8f45f;
 
   --sidebar-bg: #030806;
   --sidebar-text: #82948c;

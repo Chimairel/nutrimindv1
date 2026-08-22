@@ -22,8 +22,12 @@ import {
   Settings,
   Scale,
   ChevronDown,
-  Check
+  Check,
+  Activity,
+  ClipboardList,
 } from 'lucide-react';
+
+type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 
 interface WeightLog {
   id: string;
@@ -74,6 +78,7 @@ interface ProgressHistory {
 
 export default function ProgressPage() {
   const { user } = useAuth();
+  const [activeSection, setActiveSection] = useState<ProgressSection>('overview');
   const [history, setHistory] = useState<ProgressHistory | null>(null);
   const [profileData, setProfileData] = useState<ProfileDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -443,19 +448,19 @@ export default function ProgressPage() {
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#52B788" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#52B788" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="var(--brand-green)" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="var(--brand-green)" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#52B788" />
-              <stop offset="100%" stopColor="#74C69D" />
+              <stop offset="0%" stopColor="var(--brand-green)" />
+              <stop offset="100%" stopColor="var(--brand-cyan)" />
             </linearGradient>
           </defs>
 
           {/* Dotted Grid lines */}
-          <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255,255,255,0.04)" strokeDasharray="3" />
-          <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255,255,255,0.04)" strokeDasharray="3" />
-          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.08)" />
+          <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="var(--brand-border)" strokeDasharray="3" />
+          <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="var(--brand-border)" strokeDasharray="3" />
+          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="var(--brand-border)" />
 
           {/* Target Weight Baseline */}
           {targetWeight > 0 && targetY > padding && targetY < height - padding && (
@@ -504,15 +509,15 @@ export default function ProgressPage() {
                 cx={p.x} 
                 cy={p.y} 
                 r="5" 
-                fill="#1B4332" 
-                stroke="#52B788" 
+                fill="var(--brand-surface)"
+                stroke="var(--brand-green)"
                 strokeWidth="2.5"
                 className="transition-all duration-200 hover:r-7 cursor-pointer"
               />
               <text 
                 x={p.x} 
                 y={p.y - 9} 
-                fill="rgba(255, 255, 255, 0.9)" 
+                fill="var(--brand-text)"
                 fontSize="8" 
                 fontWeight="extrabold" 
                 textAnchor="middle"
@@ -522,7 +527,7 @@ export default function ProgressPage() {
               <text 
                 x={p.x} 
                 y={height - padding + 13} 
-                fill="rgba(255, 255, 255, 0.3)" 
+                fill="var(--brand-muted)"
                 fontSize="7" 
                 fontWeight="bold" 
                 textAnchor="middle"
@@ -545,11 +550,12 @@ export default function ProgressPage() {
         eyebrow="Health trajectory"
         title="Progress and health context"
         description="Track biometrics, nutrition adherence, safety preferences, and calorie-target changes over time."
-        className="mb-8"
+        className="mb-6"
         actions={<Button
           variant="primary"
           onClick={() => {
-            setIsLogFormOpen(!isLogFormOpen);
+            setIsLogFormOpen(activeSection === 'overview' ? !isLogFormOpen : true);
+            setActiveSection('overview');
             setWeightFormError(null);
             setWeightSuccess(null);
           }}
@@ -560,6 +566,26 @@ export default function ProgressPage() {
         </Button>
         }
       />
+
+      <nav className="mb-6 grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm md:grid-cols-4" aria-label="Progress sections">
+        {([
+          ['overview', 'Overview', TrendingUp],
+          ['profile', 'Body & diet', Settings],
+          ['safety', 'Safety', Heart],
+          ['history', 'Adherence', ClipboardList],
+        ] as const).map(([value, label, Icon]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setActiveSection(value)}
+            aria-current={activeSection === value ? 'page' : undefined}
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${activeSection === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'}`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
 
       {weightSuccess && (
         <div className="p-4 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
@@ -575,6 +601,8 @@ export default function ProgressPage() {
         </div>
       )}
 
+      {activeSection === 'overview' && (
+        <>
       {/* WEIGHT LOGGER COLLAPSIBLE BLOCK */}
       {isLogFormOpen && (
         <Card className="p-5 border-brand-border bg-brand-surface/40 backdrop-blur-md text-left mb-8 shadow-2xl transition-all duration-300">
@@ -628,10 +656,28 @@ export default function ProgressPage() {
         </Card>
       )}
 
+      <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          { label: 'Current weight', value: currentWeight ? `${currentWeight} kg` : '--', icon: Scale },
+          { label: 'Target weight', value: targetWeight ? `${targetWeight} kg` : '--', icon: TrendingUp },
+          { label: 'Distance to goal', value: currentWeight && targetWeight ? `${Math.abs(targetWeight - currentWeight).toFixed(1)} kg` : '--', icon: Activity },
+          { label: 'Daily budget', value: dailyCalorieTarget ? `${dailyCalorieTarget} kcal` : '--', icon: Lightbulb },
+        ].map((metric) => {
+          const MetricIcon = metric.icon;
+          return (
+            <div key={metric.label} className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+              <MetricIcon className="h-4 w-4 text-brand-green" />
+              <p className="mt-4 font-display text-xl font-black text-brand-text">{metric.value}</p>
+              <p className="mt-1 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
+            </div>
+          );
+        })}
+      </section>
+
       {/* GRAPH & SUMMARY BLOCKS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
+      <div className="mb-8 text-left">
         {/* Graph Card */}
-        <Card className="p-5 border-brand-border/60 bg-brand-surface/20 md:col-span-2 shadow-xl">
+        <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide font-display flex items-center gap-1.5">
               <Scale className="w-4 h-4 text-brand-green" />
@@ -711,37 +757,13 @@ export default function ProgressPage() {
           </div>
           {renderWeightGraph()}
         </Card>
-
-        {/* Current Metrics Stats */}
-        <Card className="p-5 border-brand-border/60 bg-brand-surface/20 flex flex-col gap-5 shadow-xl justify-between">
-          <div>
-            <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-4 font-display">
-              Target Baseline
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="bg-brand-background/40 p-4 border border-brand-border/40 rounded-xl flex items-center justify-between">
-                <span className="text-xs font-semibold text-brand-muted">Current Weight</span>
-                <span className="text-lg font-black text-brand-text font-display">{currentWeight || '--'} kg</span>
-              </div>
-              <div className="bg-brand-background/40 p-4 border border-brand-border/40 rounded-xl flex items-center justify-between">
-                <span className="text-xs font-semibold text-brand-muted">Target Weight</span>
-                <span className="text-lg font-black text-brand-text font-display">{targetWeight || '--'} kg</span>
-              </div>
-              <div className="bg-brand-background/40 p-4 border border-brand-border/40 rounded-xl flex items-center justify-between">
-                <span className="text-xs font-semibold text-brand-muted">Calorie Budget</span>
-                <span className="text-lg font-black text-brand-green font-display">{dailyCalorieTarget || '--'} kcal</span>
-              </div>
-            </div>
-          </div>
-          <p className="text-[10px] text-brand-muted leading-relaxed font-semibold uppercase tracking-wider border-t border-brand-border/40 pt-4 mt-2 flex items-center gap-1.5">
-            <Lightbulb className="w-3.5 h-3.5 text-brand-green shrink-0 animate-pulse" />
-            <span>Recalculations occur dynamically as your body changes</span>
-          </p>
-        </Card>
       </div>
+        </>
+      )}
 
       {/* EDITABLE BIOMETRICS & PREFERENCES */}
-      <Card className="p-6 border-brand-border/60 bg-brand-surface/20 shadow-xl text-left mb-8">
+      {activeSection === 'profile' && (
+      <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
         <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
           <Settings className="w-4 h-4 text-brand-green" />
           <span>Biometrics & Dietary Preferences</span>
@@ -894,9 +916,11 @@ export default function ProgressPage() {
           </div>
         </form>
       </Card>
+      )}
 
       {/* HEALTH CONDITIONS & CLINICAL SAFETY */}
-      <Card className="p-6 border-brand-border/60 bg-brand-surface/20 shadow-xl text-left mb-8">
+      {activeSection === 'safety' && (
+      <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
         <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-2 font-display flex items-center gap-1.5">
           <Heart className="w-4 h-4 text-brand-green" />
           <span>Clinical Safety Safeguards</span>
@@ -1016,10 +1040,12 @@ export default function ProgressPage() {
           </div>
         </form>
       </Card>
+      )}
 
       {/* ADHERENCE CALENDAR BLOCK */}
+      {activeSection === 'history' && (
       <div className="text-left">
-        <Card className="p-5 border-brand-border/60 bg-brand-surface/20 shadow-xl">
+        <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
           <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
             <BarChart3 className="w-4 h-4 text-brand-green" />
             <span>Historical Calorie Adherence</span>
@@ -1072,6 +1098,7 @@ export default function ProgressPage() {
           )}
         </Card>
       </div>
+      )}
 
     </div>
   );

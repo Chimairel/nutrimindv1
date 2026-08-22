@@ -611,7 +611,7 @@ export default function ReviewsPage() {
                 </h4>
                 <div className="space-y-2">
                   {detailData.warnings.map((w, idx) => {
-                    let severityStyles = 'text-blue-400 bg-blue-950/20 border-blue-800/20';
+                    let severityStyles = 'border-brand-cyan/20 bg-brand-cyan/10 text-brand-green dark:text-brand-cyan';
                     if (w.severity === 'CRITICAL') {
                       severityStyles = 'text-red-400 bg-red-950/30 border-red-900/30';
                     } else if (w.severity === 'IMPORTANT') {
@@ -624,7 +624,7 @@ export default function ReviewsPage() {
                       >
                         {w.severity === 'CRITICAL' && <ShieldAlert className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />}
                         {w.severity === 'IMPORTANT' && <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />}
-                        {w.severity === 'NOTICE' && <Info className="w-4 h-4 shrink-0 text-blue-400 mt-0.5" />}
+                        {w.severity === 'NOTICE' && <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-green dark:text-brand-cyan" />}
                         <span>{w.message}</span>
                       </div>
                     );

@@ -18,7 +18,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const spinner = (
     <div
       className={`animate-spin rounded-full border-t-brand-green border-r-transparent border-b-brand-green border-l-transparent ${sizeClasses[size]}`}
-      style={{ borderColor: 'rgba(82, 183, 136, 0.2)', borderTopColor: '#52B788', borderBottomColor: '#52B788' }}
+      style={{ borderColor: 'var(--brand-border)', borderTopColor: 'var(--brand-green)', borderBottomColor: 'var(--brand-cyan)' }}
       role="status"
     >
       <span className="sr-only">Loading...</span>

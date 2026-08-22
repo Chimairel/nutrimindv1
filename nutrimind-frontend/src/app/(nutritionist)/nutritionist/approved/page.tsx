@@ -57,9 +57,9 @@ export default function NutritionistApprovedPage() {
 
   const mealTypeLabels: Record<string, { label: string; icon: React.ReactNode }> = {
     BREAKFAST: { label: 'Breakfast', icon: <Coffee className="w-4 h-4 text-brand-green" /> },
-    LUNCH: { label: 'Lunch', icon: <Sun className="w-4 h-4 text-amber-500" /> },
-    DINNER: { label: 'Dinner', icon: <Moon className="w-4 h-4 text-indigo-400" /> },
-    SNACK: { label: 'Snack', icon: <Apple className="w-4 h-4 text-red-500" /> },
+    LUNCH: { label: 'Lunch', icon: <Sun className="w-4 h-4 text-brand-green" /> },
+    DINNER: { label: 'Dinner', icon: <Moon className="w-4 h-4 text-brand-cyan" /> },
+    SNACK: { label: 'Snack', icon: <Apple className="w-4 h-4 text-brand-green" /> },
   };
 
   return (
@@ -94,16 +94,16 @@ export default function NutritionistApprovedPage() {
 
                     {/* Macros */}
                     <div className="flex gap-2 flex-wrap mb-2">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20 font-bold">
+                      <span className="rounded-full border border-brand-border bg-brand-bgAlt px-2 py-0.5 text-[10px] font-bold text-brand-green">
                         {Math.round(meal.calories)} kcal
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-green/10 text-brand-green border border-brand-green/20 font-bold">
+                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--macro-protein-bg)', borderColor: 'var(--macro-protein-border)', color: 'var(--macro-protein)' }}>
                         {Math.round(meal.proteinG)}g P
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-500 border border-amber-500/20 font-bold">
+                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--macro-carbs-bg)', borderColor: 'var(--macro-carbs-border)', color: 'var(--macro-carbs)' }}>
                         {Math.round(meal.carbsG)}g C
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/20 font-bold">
+                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--macro-fat-bg)', borderColor: 'var(--macro-fat-border)', color: 'var(--macro-fat)' }}>
                         {Math.round(meal.fatG)}g F
                       </span>
                     </div>

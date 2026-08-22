@@ -14,7 +14,7 @@ import PendingMealPreviewCard, { PendingMealPreview } from '@/components/user/Pe
 import Modal from '@/components/ui/Modal';
 import { MealPlan } from '@/types';
 import axios from 'axios';
-import { Sprout, Calendar, History, BookOpen, RefreshCw, AlertTriangle, Search, FileText, Salad, Utensils, CheckCircle2, Clock3, ShieldCheck, Sparkles } from 'lucide-react';
+import { Sprout, Calendar, History, BookOpen, RefreshCw, AlertTriangle, Search, FileText, Salad, Utensils, CheckCircle2, Clock3, ShieldCheck, Sparkles, CircleCheckBig, Repeat2, ListChecks } from 'lucide-react';
 
 
 interface SwapOption {
@@ -464,12 +464,15 @@ export default function WeeklyPlanPage() {
     dayAfter.setDate(dayAfter.getDate() + 1);
     return dayAfter.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   })();
+  const displayedMealCount = displayedPlanDays.reduce((sum, day) => sum + day.mealsList.length, 0);
+  const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
+  const remainingSwapCount = Math.max(0, 3 - swapsUsed);
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
 
       {/* Main Container */}
-      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-5">
         
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
@@ -497,6 +500,7 @@ export default function WeeklyPlanPage() {
           eyebrow={activeTab === 'plan' ? 'Personal meal intelligence' : activeTab === 'history' ? 'Nutrition timeline' : 'Verified collection'}
           title={activeTab === 'plan' ? (isStarterPlan ? 'Starter meal plan' : 'Weekly meal plan') : activeTab === 'history' ? 'Meal history' : 'Meal library'}
           description={activeTab === 'plan' ? (isStarterPlan ? `${displayedPlanDays.length}-day kickoff plan. Your full weekly cycle starts ${nextCycleDay}.` : 'Your complete scheduled breakdown, macro targets, and meal review states.') : activeTab === 'history' ? 'Your logged intake history, completion states, and swapped items.' : 'Browse compatible, nutritionist-verified recipes for your profile.'}
+          className="mb-1"
           meta={activeTab === 'plan' && meals.length > 0 ? <span className="font-mono text-[9px] uppercase tracking-wider text-white/45">{swapsUsed} of 3 swaps used</span> : undefined}
           actions={activeTab === 'plan' ? (pendingReview ? <Badge variant="pending" className="px-3 py-2">Pending verification</Badge> : (
               <Button variant="primary" onClick={handleRegeneratePlan} className="flex items-center gap-1.5 bg-red-500 text-xs font-bold text-white hover:bg-red-600">
@@ -507,41 +511,45 @@ export default function WeeklyPlanPage() {
         />
 
         {/* Tab Bar */}
-        <div className="portal-filter-panel flex gap-2 p-2 text-left">
-          <button
-            onClick={() => setActiveTab('plan')}
-            className={`flex items-center gap-2 rounded-2xl border px-5 py-2.5 font-display text-sm font-extrabold outline-none transition-all ${
-              activeTab === 'plan'
-                ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon'
-                : 'border-transparent text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Plan</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 rounded-2xl border px-5 py-2.5 font-display text-sm font-extrabold outline-none transition-all ${
-              activeTab === 'history'
-                ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon'
-                : 'border-transparent text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>History</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('library')}
-            className={`flex items-center gap-2 rounded-2xl border px-5 py-2.5 font-display text-sm font-extrabold outline-none transition-all ${
-              activeTab === 'library'
-                ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon'
-                : 'border-transparent text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Library</span>
-          </button>
-        </div>
+        <nav className="grid grid-cols-3 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 text-left shadow-sm" aria-label="Meal workspace sections">
+          {([
+            ['plan', 'Plan', Calendar, displayedMealCount],
+            ['history', 'History', History, historyLogs.length],
+            ['library', 'Library', BookOpen, libraryMeals.length],
+          ] as const).map(([value, label, Icon, count]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setActiveTab(value)}
+              aria-current={activeTab === value ? 'page' : undefined}
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-all sm:text-sm ${activeTab === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'}`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+              <span className={`hidden rounded-full px-1.5 py-0.5 font-mono text-[8px] sm:inline ${activeTab === value ? 'bg-[#07100d]/10' : 'bg-brand-bgAlt'}`}>{count}</span>
+            </button>
+          ))}
+        </nav>
+
+        {activeTab === 'plan' && displayedMealCount > 0 && (
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
+              { label: 'Plan days', value: displayedPlanDays.length, icon: Calendar },
+              { label: pendingReview ? 'Awaiting review' : 'Completed', value: pendingReview ? displayedMealCount : completedMealCount, icon: pendingReview ? ShieldCheck : CircleCheckBig },
+              { label: 'Swaps available', value: remainingSwapCount, icon: Repeat2 },
+            ].map((metric) => {
+              const MetricIcon = metric.icon;
+              return (
+                <div key={metric.label} className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                  <MetricIcon className="h-4 w-4 text-brand-green" />
+                  <p className="mt-4 font-display text-2xl font-black text-brand-text">{metric.value}</p>
+                  <p className="mt-1 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         {error && (
           <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
@@ -667,12 +675,12 @@ export default function WeeklyPlanPage() {
               </div>
             )
           ) : (
-            <div className="flex flex-col gap-10 text-left">
+            <div className="flex flex-col gap-4 text-left">
               {groupedDays.map((day) => (
-                <div key={day.dateKey} className="flex flex-col gap-4">
+                <section key={day.dateKey} className="overflow-hidden rounded-[26px] border border-brand-border/70 bg-brand-surface shadow-sm">
                   
                   {/* Day Header with sum targets */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-brand-surface/40 p-4 border border-brand-border/60 rounded-2xl">
+                  <div className="flex flex-col justify-between gap-3 border-b border-brand-border/60 bg-brand-bgAlt/35 px-4 py-4 md:flex-row md:items-center sm:px-5">
                     <div>
                       <h3 className="text-base font-extrabold font-display text-brand-green uppercase leading-none">
                         {day.weekday}
@@ -684,23 +692,23 @@ export default function WeeklyPlanPage() {
                     
                     {/* Macros summing indicators */}
                     <div className="flex gap-3 flex-wrap text-[10px] font-bold text-brand-text">
-                      <Badge variant="user" showIcon={false} className="py-0.5 px-2 bg-blue-400/10 text-blue-400 border-blue-400/20">
+                      <span className="rounded-full border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-brand-green">
                         Target: {Math.round(day.dayCalories)} kcal
-                      </Badge>
-                      <Badge variant="verified" showIcon={false} className="py-0.5 px-2 bg-[#52B788]/10 text-brand-green border-brand-green/20">
+                      </span>
+                      <span className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]" style={{ backgroundColor: 'var(--macro-protein-bg)', borderColor: 'var(--macro-protein-border)', color: 'var(--macro-protein)' }}>
                         {Math.round(day.dayProtein)}g Protein
-                      </Badge>
-                      <Badge variant="pending" showIcon={false} className="py-0.5 px-2 bg-amber-400/10 text-amber-500 border-amber-500/20">
+                      </span>
+                      <span className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]" style={{ backgroundColor: 'var(--macro-carbs-bg)', borderColor: 'var(--macro-carbs-border)', color: 'var(--macro-carbs)' }}>
                         {Math.round(day.dayCarbs)}g Carbs
-                      </Badge>
-                      <Badge variant="user" showIcon={false} className="py-0.5 px-2 bg-blue-400/10 text-blue-400 border-blue-400/20">
+                      </span>
+                      <span className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]" style={{ backgroundColor: 'var(--macro-fat-bg)', borderColor: 'var(--macro-fat-border)', color: 'var(--macro-fat)' }}>
                         {Math.round(day.dayFat)}g Fat
-                      </Badge>
+                      </span>
                     </div>
                   </div>
 
                   {/* Day's 3 Meals Column Stack */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-3 sm:p-5">
                     {day.mealsList.map((meal) => (
                       <MealCard
                         key={meal.id}
@@ -723,7 +731,7 @@ export default function WeeklyPlanPage() {
                       />
                     ))}
                   </div>
-                </div>
+                </section>
               ))}
             </div>
           )
@@ -732,25 +740,26 @@ export default function WeeklyPlanPage() {
         {activeTab === 'history' && (
           <div className="space-y-6 text-left">
             {/* Filters block */}
-            <div className="bg-brand-surface/40 border border-brand-border/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
-              <form onSubmit={handleHistorySearchSubmit} className="flex gap-2 w-full md:w-auto">
-                <input
+            <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
+              <form onSubmit={handleHistorySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
+                <label className="relative min-w-0 flex-1">
+                  <span className="sr-only">Search meal history</span>
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                  <input
                   type="text"
                   placeholder="Search history..."
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  className="bg-brand-bg border border-brand-border text-brand-text text-xs rounded-lg px-3 py-2 w-full md:w-64 focus:border-brand-green outline-none"
+                  className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green"
                 />
-                <Button type="submit" variant="secondary" className="text-xs py-2 flex items-center gap-1.5">
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Search</span>
-                </Button>
+                </label>
+                <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">Apply</Button>
               </form>
-              <div className="flex gap-3 w-full md:w-auto justify-end">
+              <div className="grid w-full grid-cols-2 gap-2 md:w-auto">
                 <select
                   value={historySource}
                   onChange={(e) => setHistorySource(e.target.value)}
-                  className="bg-brand-bg border border-brand-border text-brand-text text-xs rounded-lg px-3 py-2 focus:border-brand-green outline-none"
+                  className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green"
                 >
                   <option value="All">All Sources</option>
                   <option value="SYSTEM_GENERATED">NutriMind</option>
@@ -760,7 +769,7 @@ export default function WeeklyPlanPage() {
                 <select
                   value={historyStatus}
                   onChange={(e) => setHistoryStatus(e.target.value)}
-                  className="bg-brand-bg border border-brand-border text-brand-text text-xs rounded-lg px-3 py-2 focus:border-brand-green outline-none"
+                  className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green"
                 >
                   <option value="All">All Statuses</option>
                   <option value="DONE">Done</option>
@@ -788,21 +797,21 @@ export default function WeeklyPlanPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-8">
+              <div className="flex flex-col gap-4">
                 {groupHistoryByDate().map((day) => (
-                  <div key={day.dateKey} className="flex flex-col gap-3">
-                    <div className="bg-brand-surface/20 px-4 py-2 border-b border-brand-border/40">
+                  <section key={day.dateKey} className="overflow-hidden rounded-[22px] border border-brand-border/70 bg-brand-surface shadow-sm">
+                    <div className="border-b border-brand-border/60 bg-brand-bgAlt/35 px-4 py-3">
                       <span className="text-xs font-extrabold text-brand-green font-display uppercase">{day.weekday}</span>
                       <span className="text-[10px] text-brand-muted font-bold ml-2">{day.dateStr}</span>
                     </div>
-                    <div className="flex flex-col gap-3">
+                    <div className="grid gap-2 p-3">
                       {day.logsList.map((log) => {
                         const deltaVal = log.calorieDelta;
                         const hasDelta = deltaVal !== null && deltaVal !== undefined;
                         return (
                           <div
                             key={log.id}
-                            className="p-4 bg-brand-surface/50 border border-brand-border rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 animate-fadeIn"
+                            className="flex flex-col justify-between gap-4 rounded-2xl border border-brand-border/65 bg-brand-surface p-4 transition hover:border-brand-green/20 md:flex-row md:items-center animate-fadeIn"
                           >
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -818,7 +827,7 @@ export default function WeeklyPlanPage() {
                                   </span>
                                 )}
                                 {log.source === 'USER_SWAPPED' && (
-                                  <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 border border-blue-400/20 px-2 py-0.5 rounded uppercase">
+                                  <span className="rounded border border-brand-cyan/25 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-green dark:text-brand-cyan">
                                     Swapped
                                   </span>
                                 )}
@@ -857,7 +866,7 @@ export default function WeeklyPlanPage() {
                         );
                       })}
                     </div>
-                  </div>
+                  </section>
                 ))}
               </div>
             )}
@@ -866,29 +875,30 @@ export default function WeeklyPlanPage() {
 
         {activeTab === 'library' && (
           <div className="space-y-6 text-left">
-            <div className="bg-brand-surface/40 border border-brand-border/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
-              <form onSubmit={handleLibrarySearchSubmit} className="flex gap-2 w-full md:w-auto">
-                <input
+            <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
+              <form onSubmit={handleLibrarySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
+                <label className="relative min-w-0 flex-1">
+                  <span className="sr-only">Search verified recipes</span>
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                  <input
                   type="text"
                   placeholder="Search recipes..."
                   value={librarySearch}
                   onChange={(e) => setLibrarySearch(e.target.value)}
-                  className="bg-brand-bg border border-brand-border text-brand-text text-xs rounded-lg px-3 py-2 w-full md:w-64 focus:border-brand-green outline-none"
+                  className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green"
                 />
-                <Button type="submit" variant="secondary" className="text-xs py-2 flex items-center gap-1.5">
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Search</span>
-                </Button>
+                </label>
+                <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">Apply</Button>
               </form>
-              <div className="flex gap-2 overflow-x-auto select-none py-1 w-full md:w-auto justify-end">
+              <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-brand-bgAlt/60 p-1 select-none md:w-auto">
                 {['All', 'BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setLibraryMealType(type)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
                       libraryMealType === type
-                        ? 'bg-brand-green text-brand-bg border-brand-green'
-                        : 'bg-brand-surface text-brand-muted border-brand-border hover:border-brand-border-hover hover:text-brand-text'
+                        ? 'border-brand-green bg-brand-green text-white shadow-sm'
+                        : 'border-transparent text-brand-muted hover:bg-brand-surface hover:text-brand-text'
                     }`}
                   >
                     {type === 'All' ? 'All Types' : type.charAt(0) + type.slice(1).toLowerCase()}
@@ -916,18 +926,18 @@ export default function WeeklyPlanPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {libraryMeals.map((meal) => (
                   <div
                     key={meal.id}
-                    className="p-5 bg-brand-surface/50 border border-brand-border rounded-2xl flex flex-col gap-3 justify-between hover:border-brand-border-hover transition-colors animate-fadeIn"
+                    className="flex min-h-[220px] flex-col justify-between gap-4 rounded-[22px] border border-brand-border/70 bg-brand-surface p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand-green/25 hover:shadow-card animate-fadeIn"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="text-[9px] font-extrabold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded uppercase font-display tracking-wider">
                           {meal.mealType}
                         </span>
-                        <span className="text-[10px] text-blue-400 font-extrabold">{meal.calories} kcal</span>
+                        <span className="text-[10px] font-extrabold text-brand-green">{meal.calories} kcal</span>
                       </div>
                       <h4 className="text-sm font-bold text-brand-text leading-snug">{meal.mealName}</h4>
                       {meal.description && (
@@ -1082,7 +1092,7 @@ export default function WeeklyPlanPage() {
                       
                       {/* Macros badges */}
                       <div className="flex gap-2 pt-1">
-                        <span className="text-[10px] text-blue-400 font-bold">{option.calories} kcal</span>
+                        <span className="text-[10px] font-bold text-brand-green">{option.calories} kcal</span>
                         <span className="text-[10px] font-bold" style={{ color: 'var(--macro-protein)' }}>{option.proteinG}g P</span>
                         <span className="text-[10px] font-bold" style={{ color: 'var(--macro-carbs)' }}>{option.carbsG}g C</span>
                         <span className="text-[10px] font-bold" style={{ color: 'var(--macro-fat)' }}>{option.fatG}g F</span>
