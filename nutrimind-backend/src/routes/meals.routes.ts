@@ -16,6 +16,12 @@ router.use(requireRole('USER'));
 router.post('/generate', MealsController.generateMealPlan);
 
 /**
+ * Route: POST /api/user/meals/rollover
+ * Description: Promotes an expired starter bridge into the current full cycle.
+ */
+router.post('/rollover', MealsController.ensureCurrentPlanRollover);
+
+/**
  * Route: GET /api/user/meals/current
  * Description: Returns current active meal plan items.
  */

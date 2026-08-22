@@ -7,6 +7,7 @@ import {
   filterUserActionableMealPlans,
   getApprovedMealPlanStatusWhere,
   getApprovedMealLibraryWhere,
+  getCurrentMealPlanScheduleWhere,
   getNutritionEligibleMealLogWhere,
   getNutritionistReviewableMealPlanWhere,
   getOwnedMealPlanWhere,
@@ -119,6 +120,9 @@ test('[TEST-014] current-plan and grocery database filters require approval and 
   const expectedStart = new Date('2026-08-19T16:00:00.000Z');
   assert.deepEqual(getUserActionableMealPlanWhere(now), {
     status: MealPlanStatus.APPROVED,
+    scheduledDate: { gte: expectedStart },
+  });
+  assert.deepEqual(getCurrentMealPlanScheduleWhere(now), {
     scheduledDate: { gte: expectedStart },
   });
   assert.deepEqual(getStartOfManilaBusinessDay(now), expectedStart);

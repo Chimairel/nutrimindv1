@@ -2,6 +2,7 @@ import test from 'node:test';
 import './restriction-policy.test';
 import './meal-generation-library-compatibility.test';
 import './meal-generation-result.test';
+import './meal-plan-cycle.test';
 
 /**
  * Executable specifications for known defects.
@@ -9,10 +10,6 @@ import './meal-generation-result.test';
  * These cases are deliberately TODO, not passing assertions. Activating one
  * requires the corresponding separately approved behavior-change batch.
  */
-
-test.todo(
-  '[TEST-017][REQ-009][ADR-005][DEF-015][RISK-011] Asia/Manila daily and weekly boundaries remain correct regardless of the server timezone'
-);
 
 test.todo(
   '[TEST-018][REQ-005,REQ-006][DEF-018][RISK-004,RISK-006] Outside-meal confirmation persists the exact estimate and warning that the user previewed'

@@ -18,6 +18,7 @@ import CheckinModal from '@/components/user/CheckinModal';
 import { MealPlan, MealType } from '@/types';
 import axios from 'axios';
 import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils, Droplets, Flame, Scale, Clock3, Sparkles } from 'lucide-react';
+import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 
 
 export default function DashboardPage() {
@@ -35,6 +36,7 @@ export default function DashboardPage() {
     meals: PendingMealPreview[];
   } | null>(null);
   const generationRequestInFlight = useRef(false);
+  const currentPlanRequestInFlight = useRef(false);
 
   // Extract unique scheduledDate values in chronological order
   const uniqueDates = React.useMemo(() => {
@@ -43,22 +45,22 @@ export default function DashboardPage() {
       : pendingReview?.meals ?? [];
 
     if (scheduledMeals.length === 0) return [];
-    const dateStrings = Array.from(
-      new Set(scheduledMeals.map((meal) => new Date(meal.scheduledDate).toDateString()))
-    );
-    return dateStrings.map((dStr) => new Date(dStr)).sort((a, b) => a.getTime() - b.getTime());
+    const todayKey = getManilaDateKey();
+    const dateKeys = Array.from(
+      new Set(scheduledMeals.map((meal) => getManilaDateKey(meal.scheduledDate)))
+    ).filter((dateKey) => dateKey && dateKey >= todayKey);
+    return dateKeys
+      .map((dateKey) => new Date(`${dateKey}T00:00:00+08:00`))
+      .sort((a, b) => a.getTime() - b.getTime());
   }, [currentMeals, pendingReview]);
 
   // Sync selected day offset to today if present in the plan
   useEffect(() => {
     if (uniqueDates.length > 0) {
-      const todayStr = new Date().toDateString();
-      const todayIdx = uniqueDates.findIndex((d) => d.toDateString() === todayStr);
-      if (todayIdx !== -1) {
-        setSelectedDayOffset(todayIdx);
-      } else {
-        setSelectedDayOffset(0);
-      }
+      const todayKey = getManilaDateKey();
+      const todayIdx = uniqueDates.findIndex((date) => getManilaDateKey(date) === todayKey);
+      const nextIdx = uniqueDates.findIndex((date) => getManilaDateKey(date) > todayKey);
+      setSelectedDayOffset(todayIdx !== -1 ? todayIdx : Math.max(0, nextIdx));
     }
   }, [uniqueDates]);
 
@@ -115,10 +117,19 @@ export default function DashboardPage() {
 
   // Load active plan meals
   const fetchCurrentPlan = async () => {
+    if (currentPlanRequestInFlight.current) return;
+    currentPlanRequestInFlight.current = true;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.get('/user/meals/current');
+      let res = await api.get('/user/meals/current');
+      const hasCurrentPlan = (res.data?.data?.length ?? 0) > 0 || Boolean(res.data?.meta?.pendingReview);
+      if (!hasCurrentPlan) {
+        const rolloverRes = await api.post('/user/meals/rollover');
+        if (rolloverRes.data?.data?.rolledOver) {
+          res = await api.get('/user/meals/current');
+        }
+      }
       if (res.data && res.data.success) {
         setCurrentMeals(res.data.data);
         setPendingReview(res.data.meta?.pendingReview ?? null);
@@ -130,6 +141,7 @@ export default function DashboardPage() {
         setError('Failed to contact backend API.');
       }
     } finally {
+      currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
   };
@@ -153,6 +165,28 @@ export default function DashboardPage() {
       fetchCurrentPlan();
       checkCheckinStatus();
       fetchProfile();
+
+      let activeDateKey = getManilaDateKey();
+      const refreshForDateRollover = () => {
+        const nextDateKey = getManilaDateKey();
+        if (nextDateKey !== activeDateKey) {
+          activeDateKey = nextDateKey;
+          fetchCurrentPlan();
+        }
+      };
+      const refreshOnFocus = () => fetchCurrentPlan();
+      const refreshOnVisibility = () => {
+        if (document.visibilityState === 'visible') fetchCurrentPlan();
+      };
+      const rolloverInterval = window.setInterval(refreshForDateRollover, 60_000);
+      window.addEventListener('focus', refreshOnFocus);
+      document.addEventListener('visibilitychange', refreshOnVisibility);
+
+      return () => {
+        window.clearInterval(rolloverInterval);
+        window.removeEventListener('focus', refreshOnFocus);
+        document.removeEventListener('visibilitychange', refreshOnVisibility);
+      };
     }
   }, [user]);
 
@@ -240,10 +274,10 @@ export default function DashboardPage() {
   const calculateDailyAverages = () => {
     // Filter scheduled meals matching the selected day offset from uniqueDates
     const activeDate = uniqueDates[selectedDayOffset] || new Date();
-    const dateStr = activeDate.toDateString();
+    const dateStr = getManilaDateKey(activeDate);
 
     const dayMeals = currentMeals.filter(
-      (m) => new Date(m.scheduledDate).toDateString() === dateStr
+      (m) => getManilaDateKey(m.scheduledDate) === dateStr
     );
 
     // Sum calories logged as DONE today
@@ -311,29 +345,24 @@ export default function DashboardPage() {
 
   // Generate selectors from the actual dates in the active plan group
   const daySelectors = uniqueDates.map((d, idx) => {
-    const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
-    const dateLabel = d.getDate();
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dCopy = new Date(d);
-    dCopy.setHours(0, 0, 0, 0);
-    const isPast = dCopy.getTime() < today.getTime();
+    const dayLabel = formatManilaDate(d, { weekday: 'short' });
+    const dateLabel = formatManilaDate(d, { day: 'numeric' });
+    const isPast = getManilaDateKey(d) < getManilaDateKey();
 
-    return { offset: idx, dayLabel, dateLabel, dateStr: d.toDateString(), isPast };
+    return { offset: idx, dayLabel, dateLabel, dateStr: getManilaDateKey(d), isPast };
   });
 
   const activePendingDate = uniqueDates[selectedDayOffset];
   const pendingMealsForSelectedDate = pendingReview?.meals.filter(
     (meal) => activePendingDate
-      && new Date(meal.scheduledDate).toDateString() === activePendingDate.toDateString()
+      && getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activePendingDate)
   ) ?? [];
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
 
       {/* Main Container */}
-      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+      <div className="max-w-6xl mx-auto flex flex-col gap-6">
         
         {/* Welcome Header */}
         <PortalPageHeader
@@ -371,7 +400,7 @@ export default function DashboardPage() {
           <>
             {/* Horizontal Date Switcher */}
             {uniqueDates.length > 0 && (
-              <div className="mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none" aria-label="Meal plan dates">
+              <div className="order-1 mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none" aria-label="Meal plan dates">
                 {daySelectors.map((item) => {
                   const isSelected = selectedDayOffset === item.offset;
                   return (
@@ -397,22 +426,22 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Daily Wellness Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-2">
+            {/* Compact secondary wellness snapshot */}
+            <div className="order-4 grid grid-cols-1 gap-3 text-left md:grid-cols-3" aria-label="Health snapshot">
               
               {/* Check-In Streak Card */}
               <Card
-                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-brand-green/25 hover:shadow-card-hover"
-                contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
+                className="min-h-[118px] border border-brand-border/50 bg-brand-surface/80 hover:border-brand-green/25 hover:shadow-card-hover"
+                contentClassName="flex h-full min-h-[118px] flex-col justify-between p-4"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Check-In Streak</span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-accent/45 bg-brand-accent/15 text-brand-green">
-                    <Flame className="h-4.5 w-4.5" aria-hidden="true" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-accent/45 bg-brand-accent/15 text-brand-green">
+                    <Flame className="h-4 w-4" aria-hidden="true" />
                   </div>
                 </div>
                 <div className="mt-2">
-                  <h4 className="text-2xl font-black font-display text-brand-text">
+                  <h4 className="text-xl font-black font-display text-brand-text">
                     {checkinInfo?.streak ?? 0} {(checkinInfo?.streak ?? 0) === 1 ? 'Week' : 'Weeks'}
                   </h4>
                   <p className="text-xs text-brand-muted mt-1">
@@ -433,18 +462,18 @@ export default function DashboardPage() {
 
               {/* Weight Progress Card */}
               <Card
-                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-brand-green/25 hover:shadow-card-hover"
-                contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
+                className="min-h-[118px] border border-brand-border/50 bg-brand-surface/80 hover:border-brand-green/25 hover:shadow-card-hover"
+                contentClassName="flex h-full min-h-[118px] flex-col justify-between p-4"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Weight Goals</span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-green/20 bg-brand-green/10 text-brand-green">
-                    <Scale className="h-4.5 w-4.5" aria-hidden="true" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-green/20 bg-brand-green/10 text-brand-green">
+                    <Scale className="h-4 w-4" aria-hidden="true" />
                   </div>
                 </div>
                 <div className="mt-2">
                   <div className="flex items-baseline gap-2">
-                    <h4 className="text-2xl font-black font-display text-brand-text">
+                    <h4 className="text-xl font-black font-display text-brand-text">
                       {userProfile?.weightKg ?? '--'} <span className="text-xs font-bold text-brand-muted">kg</span>
                     </h4>
                     {userProfile?.targetWeightKg && (
@@ -470,17 +499,17 @@ export default function DashboardPage() {
 
               {/* Water Intake Tracker */}
               <Card
-                className="min-h-[160px] border border-brand-border/60 bg-brand-surface hover:border-brand-cyan/30 hover:shadow-card-hover"
-                contentClassName="flex h-full min-h-[160px] flex-col justify-between p-5"
+                className="min-h-[118px] border border-brand-border/50 bg-brand-surface/80 hover:border-brand-cyan/30 hover:shadow-card-hover"
+                contentClassName="flex h-full min-h-[118px] flex-col justify-between p-4"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Water Intake</span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-green dark:text-brand-cyan">
-                    <Droplets className="h-4.5 w-4.5" aria-hidden="true" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-green dark:text-brand-cyan">
+                    <Droplets className="h-4 w-4" aria-hidden="true" />
                   </div>
                 </div>
                 <div className="mt-2">
-                  <h4 className="text-2xl font-black font-display text-brand-text">
+                  <h4 className="text-xl font-black font-display text-brand-text">
                     {waterIntake} <span className="text-xs font-bold text-brand-muted">/ 2500 mL</span>
                   </h4>
                   {/* Progress bar */}
@@ -491,7 +520,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="mt-2 flex gap-2">
                   <button 
                     onClick={() => handleAddWater(-250)}
                     className="flex-1 py-1 px-3 text-xs font-bold rounded-lg border border-brand-border bg-brand-surface text-brand-text hover:bg-brand-bgAlt transition-colors"
@@ -510,7 +539,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Analytics Dashboard Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center mt-4">
+            <div className="order-3 grid grid-cols-1 items-center gap-6 md:grid-cols-3">
               
               {/* Calorie Ring Gauge Card */}
               <Card
@@ -595,7 +624,7 @@ export default function DashboardPage() {
             </div>
 
             {pendingReview && currentMeals.length === 0 ? (
-              <section className="mt-4 flex flex-col gap-6" aria-labelledby="pending-plan-heading">
+              <section className="order-2 flex flex-col gap-6" aria-labelledby="pending-plan-heading">
                 <div className="relative overflow-hidden rounded-[28px] border border-brand-green/20 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/10 p-5 text-left shadow-card md:p-6">
                   <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-brand-accent/15 blur-3xl" aria-hidden="true" />
                   <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
@@ -618,7 +647,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-[9px] font-extrabold uppercase tracking-wider text-status-pending-text">Selected day</p>
                         <p className="text-xs font-extrabold text-brand-text">
-                          {activePendingDate?.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                          {activePendingDate && formatManilaDate(activePendingDate, { weekday: 'long', month: 'short', day: 'numeric' })}
                         </p>
                       </div>
                     </div>
@@ -626,7 +655,7 @@ export default function DashboardPage() {
                   <div className="relative mt-4 flex items-start gap-2 border-t border-brand-border/50 pt-4 text-status-pending-text">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                     <p className="text-[11px] font-semibold leading-relaxed">
-                      Pending estimates are preview-only and are not included in the calorie or macronutrient trackers above.
+                      Pending estimates are preview-only and excluded from verified calorie and macronutrient tracking.
                     </p>
                   </div>
                 </div>
@@ -641,11 +670,11 @@ export default function DashboardPage() {
               </section>
             ) : (
               /* Today's Meals Section */
-              <div className="flex flex-col gap-4 mt-4 text-left">
+              <div className="order-2 flex flex-col gap-4 text-left">
                 <h2 className="text-lg font-extrabold tracking-tight font-display text-brand-text uppercase">
                   {(() => {
                     const activeDate = uniqueDates[selectedDayOffset];
-                    const isTodaySelected = activeDate && activeDate.toDateString() === new Date().toDateString();
+                    const isTodaySelected = activeDate && getManilaDateKey(activeDate) === getManilaDateKey();
                     return isTodaySelected ? "Today's" : "Scheduled";
                   })()} Menu
                 </h2>

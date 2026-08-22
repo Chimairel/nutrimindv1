@@ -53,7 +53,7 @@ router.post('/daily-checkin', async (req: Request, res: Response) => {
 
 /**
  * POST /api/cron/weekly-checkin-weekend
- * Fires Saturday night → notifies + optionally regenerates plans for WEEKEND shoppers.
+ * Fires Saturday night → prepares the next Sunday-to-Saturday WEEKLY plan.
  */
 router.post('/weekly-checkin-weekend', async (req: Request, res: Response) => {
   try {
@@ -70,7 +70,7 @@ router.post('/weekly-checkin-weekend', async (req: Request, res: Response) => {
 
 /**
  * POST /api/cron/weekly-checkin-weekday
- * Fires Sunday night → notifies + optionally regenerates plans for WEEKDAY shoppers.
+ * Fires Sunday night → prepares the next Monday-to-Sunday WEEKLY plan.
  */
 router.post('/weekly-checkin-weekday', async (req: Request, res: Response) => {
   try {

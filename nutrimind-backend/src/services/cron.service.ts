@@ -162,7 +162,7 @@ export class CronService {
         // Generate new weekly plan for this user
         console.log(`[CronService] Generating new weekly plan for ${user.email}...`);
         const { MealGenerationService } = await import('@/services/meal-generation.service');
-        await MealGenerationService.generatePlanForUser(user.id);
+        await MealGenerationService.generateNextWeeklyPlan(user.id, group);
 
         // Send weekly check-in notification
         await prisma.notification.create({

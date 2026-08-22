@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -14,7 +14,8 @@ import PendingMealPreviewCard, { PendingMealPreview } from '@/components/user/Pe
 import Modal from '@/components/ui/Modal';
 import { MealPlan } from '@/types';
 import axios from 'axios';
-import { Sprout, Calendar, History, BookOpen, RefreshCw, AlertTriangle, Search, FileText, Salad, Utensils, CheckCircle2, Clock3, ShieldCheck, Sparkles, CircleCheckBig, Repeat2, ListChecks } from 'lucide-react';
+import { Sprout, Calendar, History, BookOpen, RefreshCw, AlertTriangle, Search, FileText, Salad, Utensils, CheckCircle2, Clock3, ShieldCheck, Sparkles, CircleCheckBig, Repeat2, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react';
+import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 
 
 interface SwapOption {
@@ -48,6 +49,8 @@ export default function WeeklyPlanPage() {
     reviewStatus: 'PENDING_REVIEW';
     meals: PendingMealPreview[];
   } | null>(null);
+  const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
+  const currentPlanRequestInFlight = useRef(false);
 
   // Meal swap states
   const [swapsUsed, setSwapsUsed] = useState(0);
@@ -88,10 +91,19 @@ export default function WeeklyPlanPage() {
   const [libraryMealType, setLibraryMealType] = useState('All');
 
   const fetchMeals = async () => {
+    if (currentPlanRequestInFlight.current) return;
+    currentPlanRequestInFlight.current = true;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.get('/user/meals/current');
+      let res = await api.get('/user/meals/current');
+      const hasCurrentPlan = (res.data?.data?.length ?? 0) > 0 || Boolean(res.data?.meta?.pendingReview);
+      if (!hasCurrentPlan) {
+        const rolloverRes = await api.post('/user/meals/rollover');
+        if (rolloverRes.data?.data?.rolledOver) {
+          res = await api.get('/user/meals/current');
+        }
+      }
       if (res.data && res.data.success) {
         setMeals(res.data.data);
         setPendingReview(res.data.meta?.pendingReview ?? null);
@@ -103,6 +115,7 @@ export default function WeeklyPlanPage() {
         setError('Failed to reach backend API.');
       }
     } finally {
+      currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
   };
@@ -157,6 +170,28 @@ export default function WeeklyPlanPage() {
   useEffect(() => {
     if (user) {
       fetchMeals();
+
+      let activeDateKey = getManilaDateKey();
+      const refreshForDateRollover = () => {
+        const nextDateKey = getManilaDateKey();
+        if (nextDateKey !== activeDateKey) {
+          activeDateKey = nextDateKey;
+          fetchMeals();
+        }
+      };
+      const refreshOnFocus = () => fetchMeals();
+      const refreshOnVisibility = () => {
+        if (document.visibilityState === 'visible') fetchMeals();
+      };
+      const rolloverInterval = window.setInterval(refreshForDateRollover, 60_000);
+      window.addEventListener('focus', refreshOnFocus);
+      document.addEventListener('visibilitychange', refreshOnVisibility);
+
+      return () => {
+        window.clearInterval(rolloverInterval);
+        window.removeEventListener('focus', refreshOnFocus);
+        document.removeEventListener('visibilitychange', refreshOnVisibility);
+      };
     }
   }, [user]);
 
@@ -182,6 +217,25 @@ export default function WeeklyPlanPage() {
         .catch((err) => console.error('Failed to pre-fetch swapsUsed:', err));
     }
   }, [meals]);
+
+  useEffect(() => {
+    const sourceMeals = meals.length > 0 ? meals : pendingReview?.meals ?? [];
+    const availableDateKeys = Array.from(
+      new Set(sourceMeals.map((meal) => getManilaDateKey(meal.scheduledDate)))
+    ).filter(Boolean).sort((a, b) => a.localeCompare(b));
+
+    if (availableDateKeys.length === 0) {
+      setSelectedPlanDateKey(null);
+      return;
+    }
+
+    setSelectedPlanDateKey((currentDateKey) => {
+      if (currentDateKey && availableDateKeys.includes(currentDateKey)) return currentDateKey;
+      const todayKey = getManilaDateKey();
+      return availableDateKeys.find((dateKey) => dateKey >= todayKey)
+        ?? availableDateKeys[availableDateKeys.length - 1];
+    });
+  }, [meals, pendingReview]);
 
   // Open Swap options modal and fetch eligible replacement meals
   const handleSwapClick = async (mealId: string) => {
@@ -348,7 +402,7 @@ export default function WeeklyPlanPage() {
     const grouped: Record<string, MealPlan[]> = {};
     
     meals.forEach((meal) => {
-      const dateKey = new Date(meal.scheduledDate).toDateString();
+      const dateKey = getManilaDateKey(meal.scheduledDate);
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -357,12 +411,12 @@ export default function WeeklyPlanPage() {
 
     // Sort the keys chronologically
     return Object.keys(grouped)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+      .sort((a, b) => a.localeCompare(b))
       .map((dateKey) => {
         const dayMeals = grouped[dateKey];
-        const parsedDate = new Date(dateKey);
-        const weekday = parsedDate.toLocaleDateString('en-US', { weekday: 'long' });
-        const dateStr = parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const parsedDate = manilaDateFromKey(dateKey);
+        const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
+        const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric' });
 
         // Sum calories and macros targets for the day
         const dayCalories = dayMeals.reduce((sum, m) => sum + m.calories, 0);
@@ -387,7 +441,7 @@ export default function WeeklyPlanPage() {
     const grouped: Record<string, PendingMealPreview[]> = {};
 
     pendingReview?.meals.forEach((meal) => {
-      const dateKey = new Date(meal.scheduledDate).toDateString();
+      const dateKey = getManilaDateKey(meal.scheduledDate);
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -395,13 +449,13 @@ export default function WeeklyPlanPage() {
     });
 
     return Object.keys(grouped)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+      .sort((a, b) => a.localeCompare(b))
       .map((dateKey) => {
-        const parsedDate = new Date(dateKey);
+        const parsedDate = manilaDateFromKey(dateKey);
         return {
           dateKey,
-          weekday: parsedDate.toLocaleDateString('en-US', { weekday: 'long' }),
-          dateStr: parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          weekday: formatManilaDate(parsedDate, { weekday: 'long' }),
+          dateStr: formatManilaDate(parsedDate, { month: 'short', day: 'numeric' }),
           mealsList: grouped[dateKey],
         };
       });
@@ -410,7 +464,7 @@ export default function WeeklyPlanPage() {
   const groupHistoryByDate = () => {
     const grouped: Record<string, any[]> = {};
     historyLogs.forEach((log) => {
-      const dateKey = new Date(log.loggedAt).toDateString();
+      const dateKey = getManilaDateKey(log.loggedAt);
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -418,12 +472,12 @@ export default function WeeklyPlanPage() {
     });
 
     return Object.keys(grouped)
-      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+      .sort((a, b) => b.localeCompare(a))
       .map((dateKey) => {
         const logsList = grouped[dateKey];
-        const parsedDate = new Date(dateKey);
-        const weekday = parsedDate.toLocaleDateString('en-US', { weekday: 'long' });
-        const dateStr = parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const parsedDate = manilaDateFromKey(dateKey);
+        const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
+        const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric', year: 'numeric' });
         return {
           dateKey,
           weekday,
@@ -449,20 +503,25 @@ export default function WeeklyPlanPage() {
   const groupedDays = groupMealsByDate();
   const groupedPendingDays = groupPendingMealsByDate();
   const displayedPlanDays = groupedDays.length > 0 ? groupedDays : groupedPendingDays;
+  const selectedPlanDayIndex = Math.max(
+    0,
+    displayedPlanDays.findIndex((day) => day.dateKey === selectedPlanDateKey)
+  );
+  const selectedPlanDay = displayedPlanDays[selectedPlanDayIndex] ?? null;
   const isStarterPlan = meals[0]?.planType === 'STARTER' || pendingReview?.planType === 'STARTER';
 
   const starterFirstDate = isStarterPlan && displayedPlanDays.length > 0
-    ? new Date(displayedPlanDays[0].dateKey)
+    ? manilaDateFromKey(displayedPlanDays[0].dateKey)
     : null;
   const starterLastDate = isStarterPlan && displayedPlanDays.length > 0
-    ? new Date(displayedPlanDays[displayedPlanDays.length - 1].dateKey)
+    ? manilaDateFromKey(displayedPlanDays[displayedPlanDays.length - 1].dateKey)
     : null;
 
   const nextCycleDay = (() => {
     if (!isStarterPlan || !starterLastDate) return null;
     const dayAfter = new Date(starterLastDate);
     dayAfter.setDate(dayAfter.getDate() + 1);
-    return dayAfter.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
   })();
   const displayedMealCount = displayedPlanDays.reduce((sum, day) => sum + day.mealsList.length, 0);
   const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
@@ -485,8 +544,8 @@ export default function WeeklyPlanPage() {
             </div>
             <p className="text-xs text-brand-muted">
               {displayedPlanDays.length} day{displayedPlanDays.length !== 1 ? 's' : ''} ·{' '}
-              {starterFirstDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} to{' '}
-              {starterLastDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              {formatManilaDate(starterFirstDate, { weekday: 'short', month: 'short', day: 'numeric' })} to{' '}
+              {formatManilaDate(starterLastDate, { weekday: 'short', month: 'short', day: 'numeric' })}
             </p>
             <p className="text-[11px] text-brand-text/60 leading-relaxed">
               Your full 7-day plan begins on <span className="font-semibold text-brand-text/80">{nextCycleDay}</span>, matching your preferred shopping day.
@@ -548,6 +607,56 @@ export default function WeeklyPlanPage() {
                 </div>
               );
             })}
+          </section>
+        )}
+
+        {activeTab === 'plan' && displayedPlanDays.length > 0 && selectedPlanDay && (
+          <section className="rounded-[26px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card" aria-label="Select a meal-plan day">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedPlanDateKey(displayedPlanDays[selectedPlanDayIndex - 1]?.dateKey ?? selectedPlanDay.dateKey)}
+                disabled={selectedPlanDayIndex === 0}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Previous plan day"
+              >
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+
+              <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+                {displayedPlanDays.map((day, index) => {
+                  const isSelected = day.dateKey === selectedPlanDay.dateKey;
+                  const parsedDate = manilaDateFromKey(day.dateKey);
+                  return (
+                    <button
+                      key={day.dateKey}
+                      type="button"
+                      onClick={() => setSelectedPlanDateKey(day.dateKey)}
+                      aria-current={isSelected ? 'date' : undefined}
+                      className={`flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border px-3 py-2.5 outline-none transition-all focus-visible:ring-2 focus-visible:ring-brand-green ${isSelected ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon' : 'border-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/70 hover:text-brand-text'}`}
+                    >
+                      <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">{formatManilaDate(parsedDate, { weekday: 'short' })}</span>
+                      <span className="mt-0.5 font-display text-lg font-black leading-none">{formatManilaDate(parsedDate, { day: 'numeric' })}</span>
+                      <span className={`mt-1 font-mono text-[8px] font-bold uppercase tracking-wider ${isSelected ? 'text-[#07100d]/60' : 'text-brand-muted/70'}`}>Day {index + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedPlanDateKey(displayedPlanDays[selectedPlanDayIndex + 1]?.dateKey ?? selectedPlanDay.dateKey)}
+                disabled={selectedPlanDayIndex === displayedPlanDays.length - 1}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Next plan day"
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="flex items-center justify-between px-3 pb-1 pt-2 text-[10px] font-bold text-brand-muted">
+              <span>{selectedPlanDay.weekday}, {selectedPlanDay.dateStr}</span>
+              <span className="font-mono uppercase tracking-wider">{selectedPlanDayIndex + 1} of {displayedPlanDays.length}</span>
+            </div>
           </section>
         )}
 
@@ -630,12 +739,12 @@ export default function WeeklyPlanPage() {
                   </div>
                 </div>
 
-                {groupedPendingDays.map((day, dayIndex) => (
+                {groupedPendingDays.slice(selectedPlanDayIndex, selectedPlanDayIndex + 1).map((day, dayIndex) => (
                   <div key={day.dateKey} className="rounded-[30px] border border-brand-border/60 bg-brand-surface/45 p-4 shadow-card md:p-5">
                     <div className="mb-5 flex flex-col gap-3 border-b border-brand-border/50 pb-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 font-display text-sm font-black text-brand-green">
-                          {String(dayIndex + 1).padStart(2, '0')}
+                          {String(selectedPlanDayIndex + dayIndex + 1).padStart(2, '0')}
                         </div>
                         <div>
                           <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-brand-muted">Plan day</p>
@@ -676,7 +785,7 @@ export default function WeeklyPlanPage() {
             )
           ) : (
             <div className="flex flex-col gap-4 text-left">
-              {groupedDays.map((day) => (
+              {groupedDays.slice(selectedPlanDayIndex, selectedPlanDayIndex + 1).map((day) => (
                 <section key={day.dateKey} className="overflow-hidden rounded-[26px] border border-brand-border/70 bg-brand-surface shadow-sm">
                   
                   {/* Day Header with sum targets */}
@@ -987,7 +1096,7 @@ export default function WeeklyPlanPage() {
               </span>{' '}
               on{' '}
               <span className="font-bold text-brand-text">
-                {new Date(activeSwapMeal.scheduledDate).toLocaleDateString('en-US', {
+                {formatManilaDate(activeSwapMeal.scheduledDate, {
                   weekday: 'long',
                   month: 'short',
                   day: 'numeric',

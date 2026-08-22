@@ -18,6 +18,15 @@ import {
   filterEligibleMealGenerationLibraryCandidates,
   runMealGenerationFallbackForUnmatchedSlots,
 } from '@/domain/meal-generation-library-compatibility.adapter';
+import {
+  getCurrentWeeklyCycleWindow,
+  getDayBefore,
+  getManilaDateKey,
+  getNextWeeklyCycleWindow,
+  getOnDemandMealPlanWindow,
+  getScheduledMealDate,
+  type WeeklyCycleWindow,
+} from '@/domain/meal-plan-cycle.policy';
 
 const SYSTEM_CONTEXT = `
 You are generating meal data for a system with this
@@ -70,36 +79,120 @@ interface GeminiMealPlanResponse {
 }
 
 export class MealGenerationService {
+  private static readonly rolloverRequests = new Map<string, Promise<{
+    rolledOver: boolean;
+    planGroupId: string | null;
+  }>>();
+
   /**
    * Determines whether to generate a STARTER plan (partial days until next
    * weekStartDay) or a full WEEKLY plan, based on the user's shoppingDayGroup.
    * Falls back to a 7-day WEEKLY plan for users without a shoppingDayGroup.
    */
-  static async generatePlanForUser(userId: string): Promise<string> {
+  static async generatePlanForUser(userId: string, now: Date = new Date()): Promise<string> {
     const profile = await prisma.userProfile.findUnique({ where: { userId } });
+    const window = getOnDemandMealPlanWindow(profile?.shoppingDayGroup, now);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayDow = today.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+    console.log(
+      `[Meal Generation] Generating ${window.planType} plan: ${window.numDays} day(s) from ${getManilaDateKey(window.startDate)}.`
+    );
+    return MealGenerationService.generate7DayPlan(
+      userId,
+      window.planType,
+      window.numDays,
+      window.startDate
+    );
+  }
 
-    // Determine week start day from shoppingDayGroup (default WEEKLY if not set)
+  private static async findExistingWeeklyPlan(
+    userId: string,
+    window: WeeklyCycleWindow
+  ): Promise<string | null> {
+    const existingPlan = await prisma.mealPlan.findFirst({
+      where: {
+        userId,
+        planType: PlanType.WEEKLY,
+        status: { in: [MealPlanStatus.PENDING_REVIEW, MealPlanStatus.APPROVED] },
+        scheduledDate: { gte: window.startDate, lte: window.endDate },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { planGroupId: true },
+    });
+
+    return existingPlan?.planGroupId ?? null;
+  }
+
+  static async generateNextWeeklyPlan(
+    userId: string,
+    group: ShoppingDayGroup,
+    now: Date = new Date()
+  ): Promise<string> {
+    const window = getNextWeeklyCycleWindow(group, now);
+    const existingPlanGroupId = await MealGenerationService.findExistingWeeklyPlan(userId, window);
+    if (existingPlanGroupId) return existingPlanGroupId;
+
+    return MealGenerationService.generate7DayPlan(
+      userId,
+      PlanType.WEEKLY,
+      7,
+      window.startDate
+    );
+  }
+
+  static async ensureCurrentWeeklyRollover(
+    userId: string,
+    now: Date = new Date()
+  ): Promise<{ rolledOver: boolean; planGroupId: string | null }> {
+    const existingRequest = MealGenerationService.rolloverRequests.get(userId);
+    if (existingRequest) return existingRequest;
+
+    const request = MealGenerationService.performCurrentWeeklyRollover(userId, now);
+    MealGenerationService.rolloverRequests.set(userId, request);
+
+    try {
+      return await request;
+    } finally {
+      MealGenerationService.rolloverRequests.delete(userId);
+    }
+  }
+
+  private static async performCurrentWeeklyRollover(
+    userId: string,
+    now: Date
+  ): Promise<{ rolledOver: boolean; planGroupId: string | null }> {
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+      select: { shoppingDayGroup: true },
+    });
     const group = profile?.shoppingDayGroup;
-    const weekStartDow = group === ShoppingDayGroup.WEEKDAY ? 1 : 0; // WEEKDAY→Mon(1), WEEKEND/default→Sun(0)
+    if (!group) return { rolledOver: false, planGroupId: null };
 
-    if (!group || todayDow === weekStartDow) {
-      // No shopping preference set, OR today is exactly the week start → full WEEKLY plan
-      return MealGenerationService.generate7DayPlan(userId, PlanType.WEEKLY, 7, today);
+    const window = getCurrentWeeklyCycleWindow(group, now);
+    const existingPlanGroupId = await MealGenerationService.findExistingWeeklyPlan(userId, window);
+    if (existingPlanGroupId) {
+      return { rolledOver: false, planGroupId: existingPlanGroupId };
     }
 
-    // Calculate days remaining until next weekStartDay
-    const daysUntilStart = (weekStartDow - todayDow + 7) % 7;
-    if (daysUntilStart === 0) {
-      // Should never reach here due to check above, but safety net
-      return MealGenerationService.generate7DayPlan(userId, PlanType.WEEKLY, 7, today);
+    const latestStarterMeal = await prisma.mealPlan.findFirst({
+      where: { userId, planType: PlanType.STARTER },
+      orderBy: { scheduledDate: 'desc' },
+      select: { scheduledDate: true },
+    });
+    const expectedBridgeEnd = getDayBefore(window.startDate);
+    if (
+      !latestStarterMeal ||
+      getManilaDateKey(latestStarterMeal.scheduledDate) !== getManilaDateKey(expectedBridgeEnd)
+    ) {
+      return { rolledOver: false, planGroupId: null };
     }
 
-    console.log(`[Meal Generation] Generating STARTER plan: ${daysUntilStart} day(s) until next cycle starts.`);
-    return MealGenerationService.generate7DayPlan(userId, PlanType.STARTER, daysUntilStart, today);
+    const planGroupId = await MealGenerationService.generate7DayPlan(
+      userId,
+      PlanType.WEEKLY,
+      7,
+      window.startDate
+    );
+    return { rolledOver: true, planGroupId };
   }
 
   /**
@@ -194,9 +287,7 @@ export class MealGenerationService {
 
     // Evaluate each individual slot independently
     for (let day = 0; day < numDays; day++) {
-      const scheduledDate = new Date(startDate);
-      scheduledDate.setDate(scheduledDate.getDate() + day);
-      scheduledDate.setHours(0, 0, 0, 0);
+      const scheduledDate = getScheduledMealDate(startDate, day);
 
       const slots = [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER];
       for (const slotType of slots) {

@@ -9,6 +9,7 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
   assertUserActionableMealPlan,
   filterUserActionableMealPlans,
+  getCurrentMealPlanScheduleWhere,
   getOwnedMealPlanWhere,
   getUserActionableMealPlanWhere,
   isMealPlanNotActionableError,
@@ -97,6 +98,7 @@ export class MealsController {
           where: {
             userId,
             status: MealPlanStatus.PENDING_REVIEW,
+            ...getCurrentMealPlanScheduleWhere(now),
           },
           orderBy: { createdAt: 'desc' },
           select: { planGroupId: true },
@@ -107,6 +109,7 @@ export class MealsController {
                 userId,
                 planGroupId: latestPendingPlan.planGroupId,
                 status: MealPlanStatus.PENDING_REVIEW,
+                ...getCurrentMealPlanScheduleWhere(now),
               },
               select: {
                 planType: true,
@@ -167,6 +170,33 @@ export class MealsController {
       return res.status(500).json({
         success: false,
         error: 'Failed to retrieve your current meal plan.',
+      });
+    }
+  }
+
+  /**
+   * POST /api/user/meals/rollover
+   * Creates the current full weekly plan only when the user's starter bridge
+   * ended immediately before the current shopping cycle and no weekly group
+   * already exists for that cycle.
+   */
+  static async ensureCurrentPlanRollover(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const result = await MealGenerationService.ensureCurrentWeeklyRollover(userId);
+      return res.status(200).json({ success: true, data: result });
+    } catch (error: unknown) {
+      console.error(
+        '[MealsController] Weekly rollover failed:',
+        sanitizeErrorMessage(error, 'Weekly rollover failure.')
+      );
+      return res.status(500).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Failed to prepare the current weekly meal plan.'),
       });
     }
   }

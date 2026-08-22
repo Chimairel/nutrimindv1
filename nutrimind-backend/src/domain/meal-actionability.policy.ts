@@ -127,14 +127,22 @@ export function getApprovedMealPlanStatusWhere(): Prisma.MealPlanWhereInput {
   };
 }
 
+export function getCurrentMealPlanScheduleWhere(
+  now: Date = new Date()
+): Prisma.MealPlanWhereInput {
+  return {
+    scheduledDate: {
+      gte: getStartOfManilaBusinessDay(now),
+    },
+  };
+}
+
 export function getUserActionableMealPlanWhere(
   now: Date = new Date()
 ): Prisma.MealPlanWhereInput {
   return {
     ...getApprovedMealPlanStatusWhere(),
-    scheduledDate: {
-      gte: getStartOfManilaBusinessDay(now),
-    },
+    ...getCurrentMealPlanScheduleWhere(now),
   };
 }
 

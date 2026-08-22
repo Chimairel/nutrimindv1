@@ -123,6 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     : user.role === 'USER'
       ? '/profile'
       : '/admin/overview';
+  const profileActive = pathname === profileHref || pathname.startsWith(`${profileHref}/`);
   const roleLabel = user.role === 'NUTRITIONIST' ? 'Clinical portal' : user.role === 'ADMIN' ? 'Control center' : 'Personal workspace';
 
   return (
@@ -215,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 setSuppressedTooltip((current) => current === item.href ? null : current);
               }}
               aria-label={collapsed ? item.label : undefined}
-              aria-describedby={collapsed ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
+              aria-describedby={collapsed && !active ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
               aria-current={active ? 'page' : undefined}
               className={`
                 group relative flex min-h-12 items-center rounded-2xl outline-none transition-all duration-200
@@ -232,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 <SidebarTooltip
                   id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`}
                   label={item.label}
-                  suppressed={suppressedTooltip === item.href}
+                  suppressed={active || suppressedTooltip === item.href}
                 />
               )}
             </Link>
@@ -254,8 +255,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
         <Link
           href={profileHref}
+          onClick={() => setSuppressedTooltip('profile')}
+          onBlur={() => setSuppressedTooltip((current) => current === 'profile' ? null : current)}
+          onMouseLeave={(event) => {
+            if (suppressedTooltip === 'profile') event.currentTarget.blur();
+            setSuppressedTooltip((current) => current === 'profile' ? null : current);
+          }}
           aria-label={collapsed ? `Profile: ${user.name}` : undefined}
-          aria-describedby={collapsed ? 'sidebar-profile-tooltip' : undefined}
+          aria-describedby={collapsed && !profileActive ? 'sidebar-profile-tooltip' : undefined}
+          aria-current={profileActive ? 'page' : undefined}
           className={`group relative flex items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] transition hover:bg-white/[0.065] ${collapsed ? 'justify-center p-1.5' : 'gap-3 p-2'}`}
         >
           <Avatar size="sm" src={user.image} fallbackText={user.name} className="h-9 w-9 rounded-xl" />
@@ -265,7 +273,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">{user.role}</p>
             </div>
           )}
-          {collapsed && <SidebarTooltip id="sidebar-profile-tooltip" label={`Profile · ${user.name}`} />}
+          {collapsed && (
+            <SidebarTooltip
+              id="sidebar-profile-tooltip"
+              label={`Profile · ${user.name}`}
+              suppressed={profileActive || suppressedTooltip === 'profile'}
+            />
+          )}
         </Link>
 
         <button
