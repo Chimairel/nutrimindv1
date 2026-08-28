@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 
 interface AutocompleteInputProps {
   id?: string;
@@ -23,6 +23,9 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const generatedId = useId();
+  const inputId = id ?? `autocomplete-${generatedId}`;
+  const listboxId = `${inputId}-listbox`;
 
   // Parse chips from comma-separated value string
   const chips = value ? value.split(',').map((c) => c.trim()).filter(Boolean) : [];
@@ -125,6 +128,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                 type="button"
                 onClick={() => handleRemoveChip(chip)}
                 disabled={disabled}
+                aria-label={`Remove ${chip}`}
                 className="hover:bg-brand-green/20 text-brand-green h-4 w-4 rounded flex items-center justify-center transition-colors text-[9px] font-black cursor-pointer disabled:opacity-50"
               >
                 ✕
@@ -137,7 +141,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       {/* Input textbox */}
       <div className="relative">
         <input
-          id={id}
+          id={inputId}
           type="text"
           value={inputValue}
           onChange={handleInputChange}
@@ -146,6 +150,11 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
           placeholder={disabled ? 'Locked' : placeholder}
           disabled={disabled}
           autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen && !disabled}
+          aria-controls={listboxId}
+          aria-activedescendant={highlightedIndex >= 0 ? `${inputId}-option-${highlightedIndex}` : undefined}
           className={`
             w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/50
             transition-all duration-200 outline-none
@@ -156,13 +165,20 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
 
         {/* Dropdown panel */}
         {isOpen && !disabled && (inputValue.trim() || filteredSuggestions.length > 0) && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-1.5 overflow-hidden rounded-xl border border-brand-border bg-brand-bgAlt/95 backdrop-blur-md shadow-2xl max-h-60 overflow-y-auto">
+          <div
+            id={listboxId}
+            role="listbox"
+            className="absolute top-full left-0 right-0 z-50 mt-1.5 overflow-hidden rounded-xl border border-brand-border bg-brand-bgAlt/95 backdrop-blur-md shadow-2xl max-h-60 overflow-y-auto"
+          >
             {filteredSuggestions.map((item, index) => {
               const isHighlighted = index === highlightedIndex;
               return (
                 <button
                   key={item}
+                  id={`${inputId}-option-${index}`}
                   type="button"
+                  role="option"
+                  aria-selected={isHighlighted}
                   onClick={() => addChip(item)}
                   className={`
                     w-full px-4 py-2.5 text-left text-xs font-semibold transition-colors outline-none cursor-pointer flex items-center justify-between

@@ -93,7 +93,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
     // Check 4: Is Onboarding Done?
     if (!user.onboardingDone && !isOnboardingPage && !isNutritionReportPage) {
-      router.push('/onboarding/stats');
+      router.push(user.onboardingNextPath || '/onboarding/stats');
       return;
     }
 

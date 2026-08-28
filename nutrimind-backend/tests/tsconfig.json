@@ -10,6 +10,9 @@
   },
   "include": [
     "../src/lib/calculations.ts",
+    "../src/domain/onboarding.policy.ts",
+    "../src/domain/email-verification.policy.ts",
+    "../src/validation/onboarding.schemas.ts",
     "./**/*.ts"
   ]
 }

@@ -2,12 +2,14 @@ import { Router } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { MealsController } from '@/controllers/meals.controller';
+import { requireReadyUser } from '@/middleware/userPrerequisites';
 
 const router = Router();
 
 // Apply auth + USER role restrict on all /api/user/meals routes
 router.use(authenticate);
 router.use(requireRole('USER'));
+router.use(requireReadyUser);
 
 /**
  * Route: POST /api/user/meals/generate

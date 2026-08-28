@@ -15,6 +15,28 @@ export const authLimiter = rateLimit({
   },
 });
 
+export const verificationAttemptLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many verification attempts from this connection. Please try again later.',
+  },
+});
+
+export const verificationResendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many verification emails requested. Please try again later.',
+  },
+});
+
 /**
  * Rate limiter for general API endpoints.
  * Moderate: 100 requests per 15-minute window per IP.

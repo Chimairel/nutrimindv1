@@ -2,12 +2,14 @@ import { Router } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { ProgressController } from '@/controllers/progress.controller';
+import { requireReadyUser } from '@/middleware/userPrerequisites';
 
 const router = Router();
 
 // Apply auth + USER role restrict on all /api/user/progress routes
 router.use(authenticate);
 router.use(requireRole('USER'));
+router.use(requireReadyUser);
 
 /**
  * Route: POST /api/user/progress/weight

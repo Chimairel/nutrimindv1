@@ -20,6 +20,13 @@ export default function VerifyEmailPage() {
 
   // Resend cooldown timer
   useEffect(() => {
+    if (sessionStorage.getItem('nutrimind_verification_delivery_pending') === 'true') {
+      setError('We could not deliver the first code. Use Resend Code to request another one.');
+      sessionStorage.removeItem('nutrimind_verification_delivery_pending');
+    }
+  }, []);
+
+  useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(timer);

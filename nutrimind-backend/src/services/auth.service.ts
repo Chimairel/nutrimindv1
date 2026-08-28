@@ -5,6 +5,12 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@/lib/jwt
 import { JWTPayload } from '@/types';
 import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email';
 import { OAuth2Client } from 'google-auth-library';
+import {
+  EMAIL_VERIFICATION_LOCK_MS,
+  EMAIL_VERIFICATION_MAX_ATTEMPTS,
+  getRemainingResendSeconds,
+  isVerificationLocked,
+} from '@/domain/email-verification.policy';
 
 /**
  * Generates a cryptographically secure 6-digit OTP.
@@ -56,14 +62,17 @@ export class AuthService {
         emailVerified: false,
         emailVerificationToken: otpHash,
         emailVerificationExpiry: otpExpiry,
+        emailVerificationLastSentAt: new Date(),
       },
     });
 
     // Send verification email (non-blocking — don't crash registration if email fails)
+    let verificationEmailSent = true;
     try {
       await sendVerificationEmail(sanitizedEmail, otp, name.trim());
     } catch (emailErr) {
-      console.error('[AuthService] Email send failed, but registration continues:', emailErr);
+      verificationEmailSent = false;
+      console.error('[AuthService] Verification email delivery failed; the user may request another code.');
     }
 
     // Create the session payload
@@ -88,6 +97,7 @@ export class AuthService {
       },
       accessToken,
       refreshToken,
+      verificationEmailSent,
     };
   }
 
@@ -210,6 +220,10 @@ export class AuthService {
       return { emailVerified: true, message: 'Email is already verified.' };
     }
 
+    if (isVerificationLocked(user.emailVerificationLockedUntil)) {
+      throw new Error('Too many incorrect codes. Verification is temporarily locked for 15 minutes.');
+    }
+
     if (!user.emailVerificationToken || !user.emailVerificationExpiry) {
       throw new Error('No verification code found. Please request a new one.');
     }
@@ -222,6 +236,20 @@ export class AuthService {
     // Compare OTP hash
     const isValid = await bcrypt.compare(otp, user.emailVerificationToken);
     if (!isValid) {
+      const failedAttempt = await prisma.user.update({
+        where: { id: userId },
+        data: { emailVerificationFailedAttempts: { increment: 1 } },
+        select: { emailVerificationFailedAttempts: true },
+      });
+      if (failedAttempt.emailVerificationFailedAttempts >= EMAIL_VERIFICATION_MAX_ATTEMPTS) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            emailVerificationLockedUntil: new Date(Date.now() + EMAIL_VERIFICATION_LOCK_MS),
+          },
+        });
+        throw new Error('Too many incorrect codes. Verification is temporarily locked for 15 minutes.');
+      }
       throw new Error('Invalid verification code. Please check and try again.');
     }
 
@@ -232,6 +260,8 @@ export class AuthService {
         emailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpiry: null,
+        emailVerificationFailedAttempts: 0,
+        emailVerificationLockedUntil: null,
       },
     });
 
@@ -254,6 +284,15 @@ export class AuthService {
       return { message: 'Email is already verified.' };
     }
 
+    if (isVerificationLocked(user.emailVerificationLockedUntil)) {
+      throw new Error('Verification is temporarily locked. Please try again after 15 minutes.');
+    }
+
+    const remainingSeconds = getRemainingResendSeconds(user.emailVerificationLastSentAt);
+    if (remainingSeconds > 0) {
+      throw new Error(`Please wait ${remainingSeconds} seconds before requesting another code.`);
+    }
+
     // Generate new OTP
     const otp = generateOTP();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -264,6 +303,9 @@ export class AuthService {
       data: {
         emailVerificationToken: otpHash,
         emailVerificationExpiry: otpExpiry,
+        emailVerificationFailedAttempts: 0,
+        emailVerificationLockedUntil: null,
+        emailVerificationLastSentAt: new Date(),
       },
     });
 

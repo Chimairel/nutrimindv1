@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -9,6 +9,8 @@ import Progress from '@/components/ui/Progress';
 import { ShoppingDayGroup } from '@/types';
 import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } from 'lucide-react';
 import axios from 'axios';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 const options: { value: ShoppingDayGroup; icon: React.ReactNode; title: string; desc: string; days: string }[] = [
   {
@@ -29,9 +31,16 @@ const options: { value: ShoppingDayGroup; icon: React.ReactNode; title: string; 
 
 export default function OnboardingShoppingDayPage() {
   const router = useRouter();
+  const { profile, isLoading: isHydrating } = useProfile();
+  const { refreshSession } = useAuth();
   const [selected, setSelected] = useState<ShoppingDayGroup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const saved = profile?.userProfile?.shoppingDayGroup;
+    if (saved === 'WEEKEND' || saved === 'WEEKDAY') setSelected(saved);
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +54,7 @@ export default function OnboardingShoppingDayPage() {
     setIsLoading(true);
     try {
       await api.post('/user/onboarding/shopping-day', { shoppingDayGroup: selected });
+      await refreshSession();
       router.push('/onboarding/tos');
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -107,6 +117,7 @@ export default function OnboardingShoppingDayPage() {
                   <button
                     key={opt.value}
                     type="button"
+                    aria-pressed={isSelected}
                     id={`shopping-day-${opt.value.toLowerCase()}`}
                     onClick={() => setSelected(opt.value)}
                     className={`
@@ -154,6 +165,7 @@ export default function OnboardingShoppingDayPage() {
               variant="primary"
               className="w-full py-3.5 mt-3 text-sm font-bold tracking-wide"
               isLoading={isLoading}
+              disabled={isHydrating}
             >
               Continue to Step 6
             </Button>

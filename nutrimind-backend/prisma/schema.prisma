@@ -145,10 +145,16 @@ model User {
   emailVerified           Boolean   @default(false)
   emailVerificationToken  String?
   emailVerificationExpiry DateTime?
+  emailVerificationFailedAttempts Int       @default(0)
+  emailVerificationLockedUntil    DateTime?
+  emailVerificationLastSentAt     DateTime?
   passwordResetToken      String?
   passwordResetExpiry     DateTime?
   tosAccepted             Boolean   @default(false)
   tosAcceptedAt           DateTime?
+  acceptedTermsVersion    String?
+  acceptedPrivacyVersion  String?
+  healthDataConsentedAt   DateTime?
   onboardingDone          Boolean   @default(false)
   image                   String?
   createdAt               DateTime  @default(now())

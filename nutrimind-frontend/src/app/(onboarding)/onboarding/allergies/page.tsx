@@ -10,9 +10,13 @@ import AutocompleteInput from '@/components/ui/AutocompleteInput';
 import { AllergenType } from '@/types';
 import { Fish, ShieldAlert, Milk, Wheat, Egg, Sparkles, AlertTriangle, ArrowLeft, Check } from 'lucide-react';
 import axios from 'axios';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function OnboardingAllergiesPage() {
   const router = useRouter();
+  const { profile, isLoading: isHydrating } = useProfile();
+  const { refreshSession } = useAuth();
   const [selectedAllergens, setSelectedAllergens] = useState<AllergenType[]>([]);
   const [otherAllergies, setOtherAllergies] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -30,6 +34,12 @@ export default function OnboardingAllergiesPage() {
         console.error('Failed to load suggestions:', err);
       });
   }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    setSelectedAllergens(profile.allergies as AllergenType[]);
+    setOtherAllergies(profile.userProfile?.otherAllergies || '');
+  }, [profile]);
 
   const toggleAllergen = (allergen: AllergenType) => {
     if (allergen === 'NONE') {
@@ -65,6 +75,7 @@ export default function OnboardingAllergiesPage() {
         allergies: selectedAllergens,
         otherAllergies: otherAllergies.trim() || undefined,
       });
+      await refreshSession();
 
       // Advance to step 5: Shopping Day
       router.push('/onboarding/shopping-day');
@@ -100,9 +111,9 @@ export default function OnboardingAllergiesPage() {
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
             <span>Step 4 of 6</span>
-            <span className="text-brand-green">66% Completed</span>
+            <span className="text-brand-green">67% Completed</span>
           </div>
-          <Progress value={66} className="bg-brand-border/40" />
+          <Progress value={67} className="bg-brand-border/40" />
         </div>
 
         <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
@@ -140,6 +151,7 @@ export default function OnboardingAllergiesPage() {
                   <button
                     key={item.value}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => toggleAllergen(item.value)}
                     className={`
                       flex items-center gap-4 px-5 py-4 rounded-xl border-2 text-left transition-all duration-200 outline-none
@@ -191,6 +203,7 @@ export default function OnboardingAllergiesPage() {
               variant="primary"
               className="w-full py-3.5 mt-5 text-sm font-bold tracking-wide"
               isLoading={isLoading}
+              disabled={isHydrating}
             >
               Continue to Step 5
             </Button>

@@ -45,6 +45,7 @@ export class AuthController {
         data: {
           user: result.user,
           accessToken: result.accessToken,
+          verificationEmailSent: result.verificationEmailSent,
         },
       });
     } catch (error: any) {

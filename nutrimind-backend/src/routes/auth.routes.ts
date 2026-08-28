@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import AuthController from '@/controllers/auth.controller';
 import validate from '@/middleware/validate';
 import authenticate from '@/middleware/auth';
-import { authLimiter } from '@/middleware/rateLimiter';
+import { authLimiter, verificationAttemptLimiter, verificationResendLimiter } from '@/middleware/rateLimiter';
 
 const router = Router();
 
@@ -74,6 +74,7 @@ router.post(
  */
 router.post(
   '/verify-email',
+  verificationAttemptLimiter,
   authenticate,
   [
     body('otp')
@@ -91,7 +92,7 @@ router.post(
  * Route: POST /api/auth/resend-verification
  * Description: Resends a new OTP to the user's email. Requires auth token.
  */
-router.post('/resend-verification', authenticate, AuthController.resendVerification);
+router.post('/resend-verification', verificationResendLimiter, authenticate, AuthController.resendVerification);
 
 /**
  * Route: POST /api/auth/forgot-password

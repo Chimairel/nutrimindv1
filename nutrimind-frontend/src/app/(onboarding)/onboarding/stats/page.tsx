@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -10,17 +10,40 @@ import Progress from '@/components/ui/Progress';
 import { Goal, ActivityLevel } from '@/types';
 import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check } from 'lucide-react';
 import axios from 'axios';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function OnboardingStatsPage() {
   const router = useRouter();
+  const { profile, isLoading: isHydrating, error: profileError } = useProfile();
+  const { refreshSession } = useAuth();
   const [goal, setGoal] = useState<Goal>('MAINTAIN');
   const [age, setAge] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('LIGHTLY_ACTIVE');
+  const [biologicalSex, setBiologicalSex] = useState<'MALE' | 'FEMALE' | ''>('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const saved = profile?.userProfile;
+    if (!saved) return;
+    if (saved.goal) setGoal(saved.goal as Goal);
+    if (saved.age) setAge(String(saved.age));
+    if (saved.heightCm) setHeight(String(saved.heightCm));
+    if (saved.weightKg) setWeight(String(saved.weightKg));
+    if (saved.targetWeightKg) setTargetWeight(String(saved.targetWeightKg));
+    if (saved.activityLevel) setActivityLevel(saved.activityLevel as ActivityLevel);
+    if (saved.biologicalSex === 'MALE' || saved.biologicalSex === 'FEMALE') {
+      setBiologicalSex(saved.biologicalSex);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (profileError) setError(profileError);
+  }, [profileError]);
 
   // When goal changes, auto-handle the target weight field
   const handleGoalChange = (newGoal: Goal) => {
@@ -82,8 +105,12 @@ export default function OnboardingStatsPage() {
     const parsedWeight = parseFloat(weight);
     const parsedTargetWeight = parseFloat(targetWeight);
 
-    if (isNaN(parsedAge) || parsedAge < 15 || parsedAge > 100) {
-      setError('Please provide a realistic age (15 to 100 years).');
+    if (isNaN(parsedAge) || parsedAge < 18 || parsedAge > 100) {
+      setError('NutriMind currently supports adults aged 18 to 100.');
+      return;
+    }
+    if (!biologicalSex) {
+      setError('Please select the biological sex used for your energy calculation.');
       return;
     }
     if (isNaN(parsedHeight) || parsedHeight < 100 || parsedHeight > 250) {
@@ -121,9 +148,12 @@ export default function OnboardingStatsPage() {
         heightCm: parsedHeight,
         weightKg: parsedWeight,
         targetWeightKg: parsedTargetWeight,
+        biologicalSex,
         goal,
         activityLevel,
       });
+
+      await refreshSession();
 
       // Advance to step 2: Preferences
       router.push('/onboarding/preferences');
@@ -163,10 +193,10 @@ export default function OnboardingStatsPage() {
         {/* Onboarding progress */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 1 of 5</span>
-            <span className="text-brand-green">20% Completed</span>
+            <span>Step 1 of 6</span>
+            <span className="text-brand-green">17% Completed</span>
           </div>
-          <Progress value={20} className="bg-brand-border/40" />
+          <Progress value={17} className="bg-brand-border/40" />
         </div>
 
         <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
@@ -199,6 +229,7 @@ export default function OnboardingStatsPage() {
                     <button
                       key={item.value}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => handleGoalChange(item.value)}
                       className={`
                         flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 outline-none
@@ -216,12 +247,39 @@ export default function OnboardingStatsPage() {
               </div>
             </div>
 
+            <fieldset className="flex flex-col gap-2.5">
+              <legend className="text-sm font-bold tracking-wide text-brand-text/90">
+                Biological sex used for energy calculation
+              </legend>
+              <p className="text-xs leading-relaxed text-brand-muted">
+                This input is required by the Mifflin–St Jeor equation and is used only for nutrition-target calculations.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {(['MALE', 'FEMALE'] as const).map((value) => {
+                  const selected = biologicalSex === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setBiologicalSex(value)}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-bold transition ${selected ? 'border-brand-border bg-brand-green text-white' : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'}`}
+                    >
+                      {value === 'MALE' ? 'Male' : 'Female'}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
             {/* Inputs Grid */}
             <div className="grid grid-cols-2 gap-4">
               <Input
                 id="age"
                 label="Age (Years)"
                 type="number"
+                min={18}
+                max={100}
                 placeholder="25"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
@@ -231,6 +289,8 @@ export default function OnboardingStatsPage() {
                 id="height"
                 label="Height (cm)"
                 type="number"
+                min={100}
+                max={250}
                 placeholder="170"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
@@ -240,6 +300,9 @@ export default function OnboardingStatsPage() {
                 id="weight"
                 label="Weight (kg)"
                 type="number"
+                min={30}
+                max={300}
+                step="0.1"
                 placeholder="68.5"
                 value={weight}
                 onChange={(e) => {
@@ -263,6 +326,9 @@ export default function OnboardingStatsPage() {
                 <input
                   id="targetWeight"
                   type="number"
+                  min={30}
+                  max={300}
+                  step="0.1"
                   placeholder={goal === 'MAINTAIN' ? 'Same as current weight' : '65.0'}
                   value={targetWeight}
                   onChange={(e) => setTargetWeight(e.target.value)}
@@ -305,6 +371,7 @@ export default function OnboardingStatsPage() {
                     <button
                       key={item.value}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => setActivityLevel(item.value)}
                       className={`
                         flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
@@ -332,6 +399,7 @@ export default function OnboardingStatsPage() {
               variant="primary"
               className="w-full py-3.5 mt-4 text-sm font-bold tracking-wide"
               isLoading={isLoading}
+              disabled={isHydrating}
             >
               Continue to Step 2
             </Button>

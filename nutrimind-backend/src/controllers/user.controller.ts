@@ -6,6 +6,19 @@ import { AuthenticatedRequest } from '@/types';
 import { UserService } from '@/services/user.service';
 import { NutritionReportService } from '@/services/nutrition-report.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import { COMMON_ALLERGIES, COMMON_CONDITIONS } from '@/services/health-validation.service';
+import { sanitizeRestrictionDisplayValue } from '@/domain/restriction-evaluation.policy';
+
+function normalizeCustomEntries(rawValue: string, curatedValues: readonly string[]): string {
+  const normalized = rawValue
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => curatedValues.find((item) => item.toLowerCase() === value.toLowerCase()) ?? value)
+    .map(sanitizeRestrictionDisplayValue);
+
+  return [...new Map(normalized.map((value) => [value.toLowerCase(), value])).values()].join(', ');
+}
 
 export class UserController {
   /**
@@ -45,14 +58,7 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      // Convert number fields to floats/ints if they are passed as strings
-      const data = { ...req.body };
-      if (data.age) data.age = parseInt(data.age);
-      if (data.heightCm) data.heightCm = parseFloat(data.heightCm);
-      if (data.weightKg) data.weightKg = parseFloat(data.weightKg);
-      if (data.targetWeightKg) data.targetWeightKg = parseFloat(data.targetWeightKg);
-
-      const profile = await UserService.updateUserProfile(userId, data);
+      const profile = await UserService.updateUserProfile(userId, req.body);
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user?.onboardingDone) {
@@ -87,47 +93,17 @@ export class UserController {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of conditions.' });
       }
 
-      const savedConditions = await UserService.updateHealthConditions(userId, conditions);
+      // Normalize known spelling/case mechanically. Unknown values are retained
+      // as conservative custom restrictions and are never sent to an AI service.
+      const normalizedOtherConditions = typeof otherConditions === 'string'
+        ? normalizeCustomEntries(otherConditions, COMMON_CONDITIONS)
+        : '';
 
-      // Validate otherConditions free text
-      if (typeof otherConditions === 'string' && otherConditions.trim()) {
-        const rawConditions = otherConditions.split(',').map((c: string) => c.trim()).filter(Boolean);
-        const { COMMON_CONDITIONS, HealthValidationService } = await import('@/services/health-validation.service');
-        const normalizedList: string[] = [];
-
-        for (const rawCond of rawConditions) {
-          const exactMatch = COMMON_CONDITIONS.find(
-            (c) => c.toLowerCase() === rawCond.toLowerCase()
-          );
-
-          if (exactMatch) {
-            normalizedList.push(exactMatch);
-          } else {
-            try {
-              const normalized = await HealthValidationService.normalizeHealthInput(rawCond, 'condition');
-              if (normalized === 'INVALID') {
-                return res.status(400).json({
-                  success: false,
-                  error: `We couldn't recognize "${rawCond}" as a health condition. Please check your spelling, or describe it differently.`,
-                  errorCode: 'UNRECOGNIZED_INPUT',
-                });
-              }
-              normalizedList.push(normalized);
-            } catch (err: any) {
-              console.error('[UserController] Normalization service error:', err);
-              return res.status(503).json({
-                success: false,
-                error: 'The health validation service is temporarily unavailable. Please try again in a few moments.',
-                errorCode: 'VALIDATION_SERVICE_UNAVAILABLE',
-              });
-            }
-          }
-        }
-
-        await UserService.updateOtherConditions(userId, normalizedList.join(', '));
-      } else {
-        await UserService.updateOtherConditions(userId, '');
-      }
+      const savedConditions = await UserService.updateHealthConditionsWithCustom(
+        userId,
+        conditions,
+        normalizedOtherConditions
+      );
 
       await UserService.runSafetyRecheck(userId);
 
@@ -157,47 +133,15 @@ export class UserController {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of allergies.' });
       }
 
-      const savedAllergies = await UserService.updateAllergies(userId, allergies);
+      const normalizedOtherAllergies = typeof otherAllergies === 'string'
+        ? normalizeCustomEntries(otherAllergies, COMMON_ALLERGIES)
+        : '';
 
-      // Validate otherAllergies free text
-      if (typeof otherAllergies === 'string' && otherAllergies.trim()) {
-        const rawAllergies = otherAllergies.split(',').map((a: string) => a.trim()).filter(Boolean);
-        const { COMMON_ALLERGIES, HealthValidationService } = await import('@/services/health-validation.service');
-        const normalizedList: string[] = [];
-
-        for (const rawAller of rawAllergies) {
-          const exactMatch = COMMON_ALLERGIES.find(
-            (a) => a.toLowerCase() === rawAller.toLowerCase()
-          );
-
-          if (exactMatch) {
-            normalizedList.push(exactMatch);
-          } else {
-            try {
-              const normalized = await HealthValidationService.normalizeHealthInput(rawAller, 'allergy');
-              if (normalized === 'INVALID') {
-                return res.status(400).json({
-                  success: false,
-                  error: `We couldn't recognize "${rawAller}" as a food allergen. Please check your spelling, or describe it differently.`,
-                  errorCode: 'UNRECOGNIZED_INPUT',
-                });
-              }
-              normalizedList.push(normalized);
-            } catch (err: any) {
-              console.error('[UserController] Normalization service error:', err);
-              return res.status(503).json({
-                success: false,
-                error: 'The allergy validation service is temporarily unavailable. Please try again in a few moments.',
-                errorCode: 'VALIDATION_SERVICE_UNAVAILABLE',
-              });
-            }
-          }
-        }
-
-        await UserService.updateOtherAllergies(userId, normalizedList.join(', '));
-      } else {
-        await UserService.updateOtherAllergies(userId, '');
-      }
+      const savedAllergies = await UserService.updateAllergiesWithCustom(
+        userId,
+        allergies,
+        normalizedOtherAllergies
+      );
 
       await UserService.runSafetyRecheck(userId);
 
@@ -222,13 +166,17 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const updatedUser = await UserService.acceptTos(userId);
+      const { termsVersion, privacyVersion } = req.body;
+      const updatedUser = await UserService.acceptTos(userId, termsVersion, privacyVersion);
 
       return res.status(200).json({
         success: true,
         data: {
           tosAccepted: updatedUser.tosAccepted,
           tosAcceptedAt: updatedUser.tosAcceptedAt,
+          acceptedTermsVersion: updatedUser.acceptedTermsVersion,
+          acceptedPrivacyVersion: updatedUser.acceptedPrivacyVersion,
+          healthDataConsentedAt: updatedUser.healthDataConsentedAt,
         },
       });
     } catch (error: any) {
@@ -256,7 +204,12 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] completeOnboarding error:', error);
-      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to complete user onboarding.') });
+      const isIncomplete = error instanceof Error && error.message.startsWith('Onboarding is incomplete.');
+      return res.status(isIncomplete ? 409 : 500).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Failed to complete user onboarding.'),
+        ...(isIncomplete ? { errorCode: 'ONBOARDING_INCOMPLETE' } : {}),
+      });
     }
   }
 
@@ -493,7 +446,6 @@ export class UserController {
    */
   static async getSuggestions(req: AuthenticatedRequest, res: Response) {
     try {
-      const { COMMON_CONDITIONS, COMMON_ALLERGIES } = await import('@/services/health-validation.service');
       return res.status(200).json({
         success: true,
         data: {

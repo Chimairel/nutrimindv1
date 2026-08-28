@@ -89,8 +89,9 @@ export class NutritionReportService {
     // 3. Compile prompt constraints
     const clinicalSystemInstruction = 
       NUTRITION_REPORT_SYSTEM_CONTEXT + "\n" +
-      "You are a licensed Registered Nutritionist-Dietitian (RND) and medical advisor in the Philippines. " +
-      "You specialize in custom nutrition plans mapped to the Philippine Food and Nutrition Research Institute (FNRI) standards. " +
+      "You are a nutrition-guidance drafting assistant for a Philippine meal-planning application. " +
+      "Do not claim to be a licensed clinician and do not diagnose, prescribe, or replace a physician or Registered Nutritionist-Dietitian. " +
+      "Use Philippine Food and Nutrition Research Institute (FNRI) references where they are provided. " +
       "Your target demographic is young urban health-conscious Filipinos (18-35). " +
       "Ensure all dietary advice is culturally appropriate, prioritizing native Filipino produce (e.g. malunggay, ampalaya, kangkong, saba, calamansi, bangus) " +
       "over expensive Western imports (e.g. quinoa, salmon, blueberries, asparagus).";
@@ -99,7 +100,6 @@ export class NutritionReportService {
       `Analyze this patient profile and generate a comprehensive clinical nutrition assessment:\n` +
       `\n` +
       `[PATIENT PROFILE]\n` +
-      `- Name: ${user.name}\n` +
       `- Age: ${age} years\n` +
       `- Height: ${heightCm} cm\n` +
       `- Current Weight: ${weightKg} kg\n` +
@@ -122,7 +122,7 @@ export class NutritionReportService {
       `  "foodsToLimit": ["Array of food items to LIMIT or control portions (e.g. white rice, sodium elements, saturated fats). Minimum 3 items."],\n` +
       `  "foodsRecommended": ["Array of nutritious native food recommendations to increase (e.g. malunggay, specific local fish). Minimum 3 items."],\n` +
       `  "drinksGuidance": ["Array of specific hydration instructions (water metrics, buko juice limits, herbal options). Minimum 2 items."],\n` +
-      `  "generalSummary": "A highly premium, custom clinical assessment paragraph (3-4 sentences) outlining the dietary rationale. Explain how their health conditions (e.g. ${conditions.join(', ') || 'none'}) and goals align with the calorie target. Address them by their first name: ${user.name.split(' ')[0]}."\n` +
+      `  "generalSummary": "A clear educational nutrition-guidance paragraph (3-4 sentences) explaining how the listed health conditions (e.g. ${conditions.join(', ') || 'none'}) and goals relate to the calorie target. Do not diagnose, prescribe treatment, or claim clinician review."\n` +
       `}\n` +
       `\n` +
       `Rules for content generation:\n` +
@@ -134,7 +134,7 @@ export class NutritionReportService {
       `- Keep suggestions highly realistic, affordable, and practical for young Filipinos.\n` +
       `- Return ONLY the clean JSON output. Do not wrap in markdown code blocks.`;
 
-    console.log(`[Nutrition Report] Querying Gemini API for user: ${user.name} (${userId})...`);
+    console.log('[Nutrition Report] Querying Gemini API for an authenticated user...');
 
     // Define Zod response schema
     const NutritionReportSchema = z.object({

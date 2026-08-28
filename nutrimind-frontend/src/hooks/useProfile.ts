@@ -8,6 +8,9 @@ export interface UserProfileData {
   role: string;
   emailVerified: boolean;
   tosAccepted: boolean;
+  acceptedTermsVersion?: string;
+  acceptedPrivacyVersion?: string;
+  healthDataConsentedAt?: string;
   onboardingDone: boolean;
   createdAt: string;
   userProfile: {
@@ -22,12 +25,23 @@ export interface UserProfileData {
     carbPreference?: string;
     foodCulture?: string;
     dailyCalorieTarget?: number;
+    otherConditions?: string;
+    otherAllergies?: string;
+    shoppingDayGroup?: string;
     lastCheckinAt?: string;
     checkinStreak?: number;
   } | null;
   healthConditions: string[];
   allergies: string[];
   nutritionReport: { id: string; generatedAt: string; acknowledgedAt?: string } | null;
+  onboardingStatus?: {
+    nextPath: string;
+    readyToComplete: boolean;
+    missingFields: string[];
+    currentTermsVersion: string;
+    currentPrivacyVersion: string;
+    acceptedCurrentConsent: boolean;
+  };
 }
 
 export function useProfile() {

@@ -9,6 +9,17 @@ import { CheckinService } from '@/services/checkin.service';
 import { body } from 'express-validator';
 import validate from '@/middleware/validate';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import validateZodBody from '@/middleware/validateZod';
+import { requireReadyUser, requireUserPrerequisites, requireVerifiedUser } from '@/middleware/userPrerequisites';
+import { geminiLimiter } from '@/middleware/rateLimiter';
+import {
+  consentSchema,
+  emptyBodySchema,
+  onboardingAllergiesSchema,
+  onboardingConditionsSchema,
+  onboardingProfileSchema,
+  shoppingDaySchema,
+} from '@/validation/onboarding.schemas';
 
 const router = Router();
 
@@ -31,16 +42,13 @@ router.use(requireRole('USER'));
 /**
  * Onboarding Flow Endpoints
  */
-router.post('/onboarding/profile', UserController.updateProfile);
-router.get('/onboarding/suggestions', UserController.getSuggestions);
-router.post('/onboarding/conditions', UserController.updateConditions);
-router.post('/onboarding/allergies', UserController.updateAllergies);
-router.post('/onboarding/shopping-day', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/onboarding/profile', requireVerifiedUser, validateZodBody(onboardingProfileSchema), UserController.updateProfile);
+router.get('/onboarding/suggestions', requireVerifiedUser, UserController.getSuggestions);
+router.post('/onboarding/conditions', requireVerifiedUser, validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
+router.post('/onboarding/allergies', requireVerifiedUser, validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
+router.post('/onboarding/shopping-day', requireVerifiedUser, validateZodBody(shoppingDaySchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { shoppingDayGroup } = req.body;
-    if (!shoppingDayGroup || !['WEEKEND', 'WEEKDAY'].includes(shoppingDayGroup)) {
-      return res.status(400).json({ success: false, error: 'shoppingDayGroup must be WEEKEND or WEEKDAY.' });
-    }
     const { UserService } = await import('@/services/user.service');
     const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayGroup);
     return res.status(200).json({ success: true, data: profile });
@@ -48,23 +56,32 @@ router.post('/onboarding/shopping-day', async (req: AuthenticatedRequest, res: R
     return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.') });
   }
 });
-router.post('/onboarding/tos', UserController.acceptTos);
-router.post('/onboarding/complete', UserController.completeOnboarding);
+router.post('/onboarding/tos', requireVerifiedUser, validateZodBody(consentSchema), UserController.acceptTos);
+router.post('/onboarding/complete', requireVerifiedUser, validateZodBody(emptyBodySchema), UserController.completeOnboarding);
 
 /**
  * Nutrition Report Endpoints
  */
-router.get('/nutrition-report', UserController.getNutritionReport);
-router.get('/nutrition-report/pdf', UserController.downloadNutritionReportPdf);
-router.post('/nutrition-report/generate', UserController.generateReport);
-router.post('/nutrition-report/acknowledge', UserController.acknowledgeReport);
+const requireReportEligible = requireUserPrerequisites({
+  emailVerified: true,
+  onboardingDone: true,
+  currentConsent: true,
+});
+router.get('/nutrition-report', requireReportEligible, UserController.getNutritionReport);
+router.get('/nutrition-report/pdf', requireReportEligible, UserController.downloadNutritionReportPdf);
+router.post('/nutrition-report/generate', requireReportEligible, geminiLimiter, validateZodBody(emptyBodySchema), UserController.generateReport);
+router.post('/nutrition-report/acknowledge', requireReportEligible, validateZodBody(emptyBodySchema), UserController.acknowledgeReport);
+
+// Every normal USER feature below this point requires the complete account
+// readiness chain. Frontend guards remain UX only.
+router.use(requireReadyUser);
 
 /**
  * Profile and Account Settings
  */
-router.put('/profile', UserController.updateProfile);
-router.put('/profile/conditions', UserController.updateConditions);
-router.put('/profile/allergies', UserController.updateAllergies);
+router.put('/profile', validateZodBody(onboardingProfileSchema), UserController.updateProfile);
+router.put('/profile/conditions', validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
+router.put('/profile/allergies', validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
 router.put('/profile/settings', UserController.updateAccountSettings);
 
 // ──────────────────────────────────────────

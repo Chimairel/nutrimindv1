@@ -34,6 +34,14 @@ export default function RegisterPage() {
       setError('Password must be at least 8 characters long.');
       return;
     }
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('Password must contain at least one number.');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -44,7 +52,10 @@ export default function RegisterPage() {
       const name = `${firstName.trim()} ${lastName.trim()}`;
       const response = await api.post('/auth/register', { name, email, password });
       if (response.data?.success) {
-        login(response.data.data.accessToken);
+        if (response.data.data.verificationEmailSent === false) {
+          sessionStorage.setItem('nutrimind_verification_delivery_pending', 'true');
+        }
+        await login(response.data.data.accessToken);
       } else {
         setError(response.data.error || 'Failed to complete registration.');
       }
@@ -95,7 +106,7 @@ export default function RegisterPage() {
           <Input id="lastName" label="Last name" type="text" placeholder="Dela Cruz" value={lastName} onChange={(event) => setLastName(event.target.value)} disabled={isLoading} />
         </div>
         <Input id="email" label="Email address" type="email" placeholder="name@example.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={isLoading} autoComplete="email" />
-        <PasswordInput id="password" label="Password" placeholder="Minimum 8 characters" value={password} onChange={(event) => setPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" />
+        <PasswordInput id="password" label="Password" placeholder="8+ characters, uppercase, and number" value={password} onChange={(event) => setPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" helperText="Use at least 8 characters with one uppercase letter and one number." />
         <PasswordInput id="confirmPassword" label="Confirm password" placeholder="Re-enter password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" />
         <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
           Create account

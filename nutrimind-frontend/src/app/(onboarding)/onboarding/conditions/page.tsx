@@ -10,9 +10,13 @@ import AutocompleteInput from '@/components/ui/AutocompleteInput';
 import { HealthConditionType } from '@/types';
 import { Activity, Heart, Dna, Sparkles, CheckCircle, AlertTriangle, ArrowLeft, Check } from 'lucide-react';
 import axios from 'axios';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function OnboardingConditionsPage() {
   const router = useRouter();
+  const { profile, isLoading: isHydrating } = useProfile();
+  const { refreshSession } = useAuth();
   const [selectedConditions, setSelectedConditions] = useState<HealthConditionType[]>([]);
   const [otherConditions, setOtherConditions] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -30,6 +34,12 @@ export default function OnboardingConditionsPage() {
         console.error('Failed to load suggestions:', err);
       });
   }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    setSelectedConditions(profile.healthConditions as HealthConditionType[]);
+    setOtherConditions(profile.userProfile?.otherConditions || '');
+  }, [profile]);
 
   const toggleCondition = (condition: HealthConditionType) => {
     if (condition === 'NONE') {
@@ -65,6 +75,7 @@ export default function OnboardingConditionsPage() {
         conditions: selectedConditions,
         otherConditions: otherConditions.trim() || undefined,
       });
+      await refreshSession();
 
       // Proceed to Step 4: Allergies
       router.push('/onboarding/allergies');
@@ -99,10 +110,10 @@ export default function OnboardingConditionsPage() {
         {/* Onboarding progress bar */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 3 of 5</span>
-            <span className="text-brand-green">60% Completed</span>
+            <span>Step 3 of 6</span>
+            <span className="text-brand-green">50% Completed</span>
           </div>
-          <Progress value={60} className="bg-brand-border/40" />
+          <Progress value={50} className="bg-brand-border/40" />
         </div>
 
         <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
@@ -148,6 +159,7 @@ export default function OnboardingConditionsPage() {
                   <button
                     key={item.value}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => toggleCondition(item.value)}
                     className={`
                       flex items-center gap-4 px-5 py-4.5 rounded-xl border-2 text-left transition-all duration-200 outline-none
@@ -199,6 +211,7 @@ export default function OnboardingConditionsPage() {
               variant="primary"
               className="w-full py-3.5 mt-5 text-sm font-bold tracking-wide"
               isLoading={isLoading}
+              disabled={isHydrating}
             >
               Continue to Step 4
             </Button>

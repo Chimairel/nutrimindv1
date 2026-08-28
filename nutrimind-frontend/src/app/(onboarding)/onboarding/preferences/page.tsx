@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -10,14 +10,26 @@ import Progress from '@/components/ui/Progress';
 import { DietaryPreference, CarbPreference } from '@/types';
 import { Egg, Apple, Wheat, Check, AlertTriangle, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
+  const { profile, isLoading: isHydrating } = useProfile();
+  const { refreshSession } = useAuth();
   const [dietary, setDietary] = useState<DietaryPreference>('OMNIVORE');
   const [carb, setCarb] = useState<CarbPreference>('MODERATE');
   const [culture, setCulture] = useState('Filipino');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const saved = profile?.userProfile;
+    if (!saved) return;
+    if (saved.dietaryPreference) setDietary(saved.dietaryPreference as DietaryPreference);
+    if (saved.carbPreference) setCarb(saved.carbPreference as CarbPreference);
+    if (saved.foodCulture) setCulture(saved.foodCulture);
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +43,7 @@ export default function OnboardingPreferencesPage() {
         carbPreference: carb,
         foodCulture: culture.trim() || 'Filipino',
       });
+      await refreshSession();
 
       // Proceed to Step 3: Conditions
       router.push('/onboarding/conditions');
@@ -69,10 +82,10 @@ export default function OnboardingPreferencesPage() {
         {/* Onboarding progress bar */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 2 of 5</span>
-            <span className="text-brand-green">40% Completed</span>
+            <span>Step 2 of 6</span>
+            <span className="text-brand-green">33% Completed</span>
           </div>
-          <Progress value={40} className="bg-brand-border/40" />
+          <Progress value={33} className="bg-brand-border/40" />
         </div>
 
         <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
@@ -115,6 +128,7 @@ export default function OnboardingPreferencesPage() {
                     <button
                       key={item.value}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => setDietary(item.value)}
                       className={`
                         flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
@@ -149,6 +163,7 @@ export default function OnboardingPreferencesPage() {
                     <button
                       key={item.value}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => setCarb(item.value)}
                       className={`
                         flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all duration-200 outline-none
@@ -175,6 +190,7 @@ export default function OnboardingPreferencesPage() {
               value={culture}
               onChange={(e) => setCulture(e.target.value)}
               disabled={isLoading}
+              maxLength={80}
               helperText="Describe your regional preferences so the AI can prioritize local ingredients (e.g. malunggay, ampalaya, kangkong)."
             />
 
@@ -183,6 +199,7 @@ export default function OnboardingPreferencesPage() {
               variant="primary"
               className="w-full py-3.5 mt-4 text-sm font-bold tracking-wide"
               isLoading={isLoading}
+              disabled={isHydrating}
             >
               Continue to Step 3
             </Button>

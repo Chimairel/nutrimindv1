@@ -15,6 +15,7 @@ export interface UserSession {
   onboardingDone: boolean;
   tosAccepted: boolean;
   reportAcknowledged: boolean;
+  onboardingNextPath?: string;
   image?: string;
 }
 
@@ -42,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get('/user/profile');
       if (response.data && response.data.success) {
-        const { id, name, email, role, emailVerified, onboardingDone, tosAccepted, image, nutritionReport } = response.data.data;
+        const { id, name, email, role, emailVerified, onboardingDone, tosAccepted, image, nutritionReport, onboardingStatus } = response.data.data;
         const refreshedUser: UserSession = {
           userId: id,
           name,
@@ -53,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           reportAcknowledged: !!nutritionReport?.acknowledgedAt,
+          onboardingNextPath: onboardingStatus?.nextPath,
         };
 
         if (requestId !== sessionRequestId.current) return null;
@@ -94,6 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             tosAccepted: false,
             image: undefined,
             reportAcknowledged: false,
+            onboardingNextPath: '/onboarding/stats',
           });
           
           // Pull full profile to get exact onboarding/ToS variables
@@ -127,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         tosAccepted: false,
         image: undefined,
         reportAcknowledged: false,
+        onboardingNextPath: '/onboarding/stats',
       });
       
       // Load the authoritative profile before navigating. The request id inside
@@ -142,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (currentUser.role === 'NUTRITIONIST') {
         router.replace('/nutritionist/reviews');
       } else if (!currentUser.onboardingDone) {
-        router.replace('/onboarding/stats');
+        router.replace(currentUser.onboardingNextPath || '/onboarding/stats');
       } else if (!currentUser.tosAccepted) {
         router.replace('/onboarding/tos');
       } else if (!currentUser.reportAcknowledged) {

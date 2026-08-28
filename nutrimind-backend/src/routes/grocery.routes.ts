@@ -2,12 +2,14 @@ import { Router } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { GroceryController } from '@/controllers/grocery.controller';
+import { requireReadyUser } from '@/middleware/userPrerequisites';
 
 const router = Router();
 
 // Restrict all grocery endpoints to authenticated standard USERs
 router.use(authenticate);
 router.use(requireRole('USER'));
+router.use(requireReadyUser);
 
 /**
  * Route: POST /api/user/grocery/generate

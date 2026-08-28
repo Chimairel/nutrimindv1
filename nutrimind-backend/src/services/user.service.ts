@@ -18,6 +18,7 @@ import {
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
 import { getApprovedMealLibraryWhere, getApprovedMealPlanStatusWhere } from '@/domain/meal-actionability.policy';
+import { evaluateOnboardingStatus } from '@/domain/onboarding.policy';
 
 interface ProfileUpdateData {
   age?: number;
@@ -30,8 +31,6 @@ interface ProfileUpdateData {
   dietaryPreference?: DietaryPreference;
   carbPreference?: CarbPreference;
   foodCulture?: string;
-  otherConditions?: string;
-  otherAllergies?: string;
 }
 
 export class UserService {
@@ -39,14 +38,23 @@ export class UserService {
    * Updates or creates the user's base profile settings.
    */
   static async updateUserProfile(userId: string, data: ProfileUpdateData) {
+    const safeData: ProfileUpdateData = {};
+    const supportedFields: (keyof ProfileUpdateData)[] = [
+      'age', 'biologicalSex', 'heightCm', 'weightKg', 'targetWeightKg',
+      'goal', 'activityLevel', 'dietaryPreference', 'carbPreference', 'foodCulture',
+    ];
+    for (const field of supportedFields) {
+      if (data[field] !== undefined) {
+        (safeData as Record<string, unknown>)[field] = data[field];
+      }
+    }
+
     const profile = await prisma.userProfile.upsert({
       where: { userId },
-      update: {
-        ...data,
-      },
+      update: safeData,
       create: {
         userId,
-        ...data,
+        ...safeData,
       },
     });
     return profile;
@@ -80,6 +88,26 @@ export class UserService {
     });
   }
 
+  static async updateHealthConditionsWithCustom(
+    userId: string,
+    conditions: HealthConditionType[],
+    otherConditions: string
+  ) {
+    await prisma.$transaction(async (tx) => {
+      await tx.healthCondition.deleteMany({ where: { userId } });
+      await tx.healthCondition.createMany({
+        data: conditions.map((condition) => ({ userId, condition })),
+      });
+      await tx.userProfile.upsert({
+        where: { userId },
+        update: { otherConditions },
+        create: { userId, otherConditions },
+      });
+    });
+
+    return prisma.healthCondition.findMany({ where: { userId } });
+  }
+
   /**
    * Updates user allergens atomically within a transaction.
    */
@@ -105,6 +133,26 @@ export class UserService {
     return prisma.allergy.findMany({
       where: { userId },
     });
+  }
+
+  static async updateAllergiesWithCustom(
+    userId: string,
+    allergies: AllergenType[],
+    otherAllergies: string
+  ) {
+    await prisma.$transaction(async (tx) => {
+      await tx.allergy.deleteMany({ where: { userId } });
+      await tx.allergy.createMany({
+        data: allergies.map((allergen) => ({ userId, allergen })),
+      });
+      await tx.userProfile.upsert({
+        where: { userId },
+        update: { otherAllergies },
+        create: { userId, otherAllergies },
+      });
+    });
+
+    return prisma.allergy.findMany({ where: { userId } });
   }
 
   /**
@@ -148,12 +196,16 @@ export class UserService {
    * Accepts the Terms of Service.
 
    */
-  static async acceptTos(userId: string) {
+  static async acceptTos(userId: string, termsVersion: string, privacyVersion: string) {
+    const acceptedAt = new Date();
     return prisma.user.update({
       where: { id: userId },
       data: {
         tosAccepted: true,
-        tosAcceptedAt: new Date(),
+        tosAcceptedAt: acceptedAt,
+        acceptedTermsVersion: termsVersion,
+        acceptedPrivacyVersion: privacyVersion,
+        healthDataConsentedAt: acceptedAt,
       },
     });
   }
@@ -175,26 +227,41 @@ export class UserService {
    * 3. Updating the profile with the calculated target and setting onboardingDone = true.
    */
   static async completeOnboarding(userId: string) {
-    // 1. Fetch User profile and clinical conditions
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userProfile: true,
+        healthConditions: { select: { condition: true } },
+        allergies: { select: { allergen: true } },
+      },
     });
 
-    if (!profile) {
+    if (!user?.userProfile) {
       throw new Error('User profile must be initialized before completing onboarding.');
     }
 
-    // Verify critical statistics exist
-    const { age, heightCm, weightKg, goal, activityLevel, biologicalSex } = profile;
-    if (!age || !heightCm || !weightKg || !goal || !activityLevel) {
-      throw new Error('Onboarding stats (age, height, weight, goal, activityLevel) are incomplete.');
+    const onboardingStatus = evaluateOnboardingStatus({
+      onboardingDone: user.onboardingDone,
+      tosAccepted: user.tosAccepted,
+      acceptedTermsVersion: user.acceptedTermsVersion,
+      acceptedPrivacyVersion: user.acceptedPrivacyVersion,
+      profile: user.userProfile,
+      conditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+    });
+    if (!onboardingStatus.readyToComplete) {
+      throw new Error(`Onboarding is incomplete. Continue at ${onboardingStatus.nextPath}.`);
     }
 
-    const healthConditions = await prisma.healthCondition.findMany({
-      where: { userId },
-    });
+    const profile = user.userProfile;
 
-    const hasPregnantCondition = healthConditions.some(
+    // Verify critical statistics exist
+    const { age, heightCm, weightKg, goal, activityLevel, biologicalSex } = profile;
+    if (!age || !heightCm || !weightKg || !goal || !activityLevel || !biologicalSex) {
+      throw new Error('Onboarding statistics are incomplete.');
+    }
+
+    const hasPregnantCondition = user.healthConditions.some(
       (c) => c.condition === HealthConditionType.PREGNANT
     );
 
@@ -246,6 +313,9 @@ export class UserService {
         emailVerified: true,
         tosAccepted: true,
         tosAcceptedAt: true,
+        acceptedTermsVersion: true,
+        acceptedPrivacyVersion: true,
+        healthDataConsentedAt: true,
         onboardingDone: true,
         image: true,
         createdAt: true,
@@ -275,6 +345,16 @@ export class UserService {
       return null;
     }
 
+    const onboardingStatus = evaluateOnboardingStatus({
+      onboardingDone: user.onboardingDone,
+      tosAccepted: user.tosAccepted,
+      acceptedTermsVersion: user.acceptedTermsVersion,
+      acceptedPrivacyVersion: user.acceptedPrivacyVersion,
+      profile: user.userProfile,
+      conditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+    });
+
     // Transform into clean structure for client
     return {
       id: user.id,
@@ -284,6 +364,9 @@ export class UserService {
       emailVerified: user.emailVerified,
       tosAccepted: user.tosAccepted,
       tosAcceptedAt: user.tosAcceptedAt,
+      acceptedTermsVersion: user.acceptedTermsVersion,
+      acceptedPrivacyVersion: user.acceptedPrivacyVersion,
+      healthDataConsentedAt: user.healthDataConsentedAt,
       onboardingDone: user.onboardingDone,
       image: user.image,
       createdAt: user.createdAt,
@@ -292,6 +375,7 @@ export class UserService {
       healthConditions: user.healthConditions.map((c) => c.condition),
       allergies: user.allergies.map((a) => a.allergen),
       nutritionReport: user.nutritionReport,
+      onboardingStatus,
     };
   }
 
