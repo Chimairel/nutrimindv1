@@ -30,8 +30,8 @@
 7. **Admin Licensing Verification**: Verification workflow requiring PRC license numbers, validity dates, university, and specialization before granting RND portal access.
 
 ### 1.4 State of Development
-* **Backend (`nutrimind-backend`)**: Substantially implemented and statically verified as an Express.js + Prisma ORM + PostgreSQL API. Runtime, integration, deployment, and clinical verification are not established; important safety, authorization, transaction, and data-integrity defects remain open.
-* **Frontend (`nutrimind-frontend`)**: Substantially implemented and statically verified as a Next.js 14 App Router application. Some pages call missing or stale backend endpoints, lint warnings remain, and browser E2E verification is not established.
+* **Backend (`backend`)**: Substantially implemented and statically verified as an Express.js + Prisma ORM + PostgreSQL API. Runtime, integration, deployment, and clinical verification are not established; important safety, authorization, transaction, and data-integrity defects remain open.
+* **Frontend (`frontend`)**: Substantially implemented and statically verified as a Next.js 14 App Router application. Some pages call missing or stale backend endpoints, lint warnings remain, and browser E2E verification is not established.
 * **Historical addendum implementation claims (1 through 7; current behavior must be verified against the engineering record and code):**
   * *Addendum 1*: Shopping-Day Anchored Cycles (`WEEKEND` / `WEEKDAY`) & Starter Bridge Plans.
   * *Addendum 2*: Autocomplete ingredient chips & Zod schema-aware AI prompting.
@@ -45,7 +45,7 @@
 
 ## 2. Technology Stack
 
-### Backend Stack (`nutrimind-backend`)
+### Backend Stack (`backend`)
 | Component | Technology / Library | Version | Purpose |
 |---|---|---|---|
 | Runtime / Framework | Node.js / Express.js | `^4.19.2` | REST API Server |
@@ -62,7 +62,7 @@
 | PDF Engine | `@react-pdf/renderer` + `react` | `^3.4.4` + `^18.3.1` | Server-side PDF document generation & streaming |
 | Dev Tooling | `tsx` / `nodemon` | `^4.10.5` / `^3.1.0` | TypeScript execution & hot reloading |
 
-### Frontend Stack (`nutrimind-frontend`)
+### Frontend Stack (`frontend`)
 | Component | Technology / Library | Version | Purpose |
 |---|---|---|---|
 | Framework | Next.js (App Router) | `14.2.35` | React Server/Client Components, Routing |
@@ -87,7 +87,7 @@ Nutrimind/App2_vibecode/
 ├── NUTRIMIND_MASTER_PROMPT.md               # Original foundational blueprint
 ├── UPDATE_LOG.md                            # Historical changelog of phases and addendums
 ├── fnri_foods.csv                           # Raw FNRI Philippine food composition dataset
-├── nutrimind-backend/                       # Express.js + Prisma API Backend
+├── backend/                                 # Express.js + Prisma API Backend
 │   ├── package.json                         # Backend dependencies & npm scripts
 │   ├── tsconfig.json                        # Backend TypeScript configuration
 │   ├── .env.example                         # Template for backend environment variables
@@ -149,7 +149,7 @@ Nutrimind/App2_vibecode/
 │       │   └── sanitizeError.ts             # Safe error message sanitizer to prevent data leakage
 │       └── types/                           # Shared backend TypeScript type definitions
 │           └── index.ts                     # JWTPayload, ApiResponse, AuthenticatedRequest
-└── nutrimind-frontend/                      # Next.js 14 App Router Frontend
+└── frontend/                                # Next.js 14 App Router Frontend
     ├── package.json                         # Frontend dependencies & scripts
     ├── tsconfig.json                        # Frontend TypeScript configuration
     ├── tailwind.config.ts                   # Custom design system tokens, fonts, and colors
@@ -327,7 +327,7 @@ When generating meal plans:
 
 * **Database Engine**: PostgreSQL (hosted on Neon Serverless).
 * **ORM**: Prisma (`schema.prisma`).
-* **Source of Truth**: `nutrimind-backend/prisma/schema.prisma`.
+* **Source of Truth**: `backend/prisma/schema.prisma`.
 
 > ⚠️ **CRITICAL WARNING**: Do NOT rename tables, columns, relations, or enum values casually. The frontend, backend controllers, and database depend on exact string matching.
 
@@ -520,8 +520,8 @@ erDiagram
 8. **Follow Established Design Tokens**: Adhere to existing Tailwind classes, bold 2px borders, and Badge variants.
 9. **Never Commit Secrets**: Do not write real API keys, database credentials, or private secrets into source code or markdown files.
 10. **Verify Compilation After Changes**: Always execute verification commands before concluding work:
-    * Backend: `npx tsc --noEmit` in `nutrimind-backend` (Must return 0 errors).
-    * Frontend: `npx next build` in `nutrimind-frontend` (Must complete with 0 errors).
+    * Backend: `npx tsc --noEmit` in `backend` (Must return 0 errors).
+    * Frontend: `npx next build` in `frontend` (Must complete with 0 errors).
 
 ---
 
@@ -558,19 +558,19 @@ When modifying this repository, Codex must follow this 9-step execution protocol
 ### 13.1 Installation & Setup
 ```bash
 # Backend Setup
-cd nutrimind-backend
+cd backend
 npm install
 npx prisma generate
 
 # Frontend Setup
-cd ../nutrimind-frontend
+cd ../frontend
 npm install
 ```
 
 ### 13.2 Database Migrations & Seeding
 ```bash
 # Run Prisma Migrations
-cd nutrimind-backend
+cd backend
 npx prisma migrate dev --name <migration_name>
 
 # Seed FNRI Food Database (~1,500 local food items)
@@ -583,22 +583,22 @@ npx tsx prisma/seed-test-accounts.ts
 ### 13.3 Development Servers
 ```bash
 # Start Backend API (runs on http://localhost:5000)
-cd nutrimind-backend
+cd backend
 npm run dev
 
 # Start Frontend Dev Server (runs on http://localhost:3000)
-cd nutrimind-frontend
+cd frontend
 npm run dev
 ```
 
 ### 13.4 Validation & Production Builds
 ```bash
 # Backend Type Check
-cd nutrimind-backend
+cd backend
 npm run build        # runs tsc
 
 # Frontend Production Build Check
-cd nutrimind-frontend
+cd frontend
 npm run build        # runs next build
 npm run lint         # runs next lint
 ```
@@ -607,7 +607,7 @@ npm run lint         # runs next lint
 
 ## 14. Environment and Configuration
 
-### 14.1 Backend Environment (`nutrimind-backend/.env`)
+### 14.1 Backend Environment (`backend/.env`)
 | Variable | Description | Example / Format |
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string with SSL | `postgresql://user:pass@ep-xxx.neon.tech/nutrimind?sslmode=require` |
@@ -625,7 +625,7 @@ npm run lint         # runs next lint
 | `EMAIL_FROM` | Outgoing sender email address | `NutriMind <noreply@nutrimind.app>` |
 | `FRONTEND_URL` | Frontend origin for CORS and email links | `http://localhost:3000` |
 
-### 14.2 Frontend Environment (`nutrimind-frontend/.env.local`)
+### 14.2 Frontend Environment (`frontend/.env.local`)
 | Variable | Description | Value |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | Base URL for backend REST API | `http://localhost:5000/api` |
@@ -648,7 +648,7 @@ npm run lint         # runs next lint
 | Priority | Issue / Risk | Location | Detail & Safe Mitigation |
 |---|---|---|---|
 | **HIGH** | **VPN / Neon Connection Blocker** | Neon PostgreSQL | Neon serverless database connections will fail if a strict VPN or corporate firewall blocks port 5432. Disable VPN if `P1001: Can't reach database server` occurs. |
-| **HIGH** | **SMTP App Password Spacing** | `nutrimind-backend/.env` | Gmail App Passwords contain spaces. If `SMTP_PASS` is not wrapped in quotes, dotenv reads only the first word and email dispatch fails silently. Always use `SMTP_PASS="xxxx xxxx xxxx xxxx"`. |
+| **HIGH** | **SMTP App Password Spacing** | `backend/.env` | Gmail App Passwords contain spaces. If `SMTP_PASS` is not wrapped in quotes, dotenv reads only the first word and email dispatch fails silently. Always use `SMTP_PASS="xxxx xxxx xxxx xxxx"`. |
 | **MEDIUM** | **Google OAuth Port Lock** | Google Cloud Console | Authorized JavaScript Origin is hardcoded to `http://localhost:3000`. If Next.js starts on port 3001, Google OAuth returns `Error 400: origin_mismatch`. Kill any stale processes on port 3000. |
 | **MEDIUM** | **Legacy Catch Blocks (`catch (error: any)`)** | Backend Services | Approximately 40 legacy catch blocks use `any`. All new code must strictly use `catch (error: unknown)` with type guards. |
 | **LOW** | **Gemini Model Deprecation Guard** | `src/lib/gemini.ts` | Gemini 1.5 and 2.0 models are deprecated. The model fallback sequence must remain pinned to current models (`gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-3.1-flash-lite`, `gemini-2.5-pro`). |
@@ -691,15 +691,15 @@ When starting a task, inspect these primary files first:
 
 | Purpose | File Path |
 |---|---|
-| **Database Schema & Enums** | `nutrimind-backend/prisma/schema.prisma` |
-| **Backend App & Route Map** | `nutrimind-backend/src/app.ts` |
-| **AI Generation Engine** | `nutrimind-backend/src/services/meal-generation.service.ts` |
-| **Food Composition Lookup** | `nutrimind-backend/src/lib/fnri.ts` |
-| **Gemini AI Client** | `nutrimind-backend/src/lib/gemini.ts` |
-| **Frontend Root & Auth Provider** | `nutrimind-frontend/src/app/layout.tsx` |
-| **Frontend Route Guard** | `nutrimind-frontend/src/components/shared/RouteGuard.tsx` |
-| **Axios Interceptor** | `nutrimind-frontend/src/lib/axios.ts` |
-| **Tailwind Tokens & Design System** | `nutrimind-frontend/tailwind.config.ts` |
+| **Database Schema & Enums** | `backend/prisma/schema.prisma` |
+| **Backend App & Route Map** | `backend/src/app.ts` |
+| **AI Generation Engine** | `backend/src/services/meal-generation.service.ts` |
+| **Food Composition Lookup** | `backend/src/lib/fnri.ts` |
+| **Gemini AI Client** | `backend/src/lib/gemini.ts` |
+| **Frontend Root & Auth Provider** | `frontend/src/app/layout.tsx` |
+| **Frontend Route Guard** | `frontend/src/components/shared/RouteGuard.tsx` |
+| **Axios Interceptor** | `frontend/src/lib/axios.ts` |
+| **Tailwind Tokens & Design System** | `frontend/tailwind.config.ts` |
 | **Master System Prompt** | `AI_AGENT_PROMPT.md` |
 
 ---

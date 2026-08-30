@@ -31,10 +31,10 @@ Rules:
 | ADR | Architecture/design decision | ADR-011 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-021 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260827-03 |
-| TEST | Test case or verification procedure | TEST-040 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260830-05 |
+| TEST | Test case or verification procedure | TEST-046 |
 | UNC | Unresolved uncertainty | UNC-016 |
-| DOC | Documentation correction or addition | DOC-026 |
+| DOC | Documentation correction or addition | DOC-027 |
 
 ---
 
@@ -44,18 +44,18 @@ Rules:
 
 NutriMind is a partially implemented Filipino-focused nutrition and meal-planning web application. A `USER` can authenticate, complete health and preference onboarding, request a Gemini-assisted nutrition report and meal plan, log meals, generate groceries, track weight/progress, and receive notifications. A `NUTRITIONIST` can access a review queue and meal library. An `ADMIN` can view aggregate information and verify nutritionist records.
 
-The repository contains meaningful implementation for these workflows. Cleanup Batch 3 added a centralized, default-deny approved-meal actionability boundary; the backend now has 28 passing deterministic tests and 7 executable TODO safety specifications. The actionability policy and closest pure/query boundaries are unit-tested, but no API/database integration execution, browser E2E verification, deployment evidence, CI configuration, or clinical review evidence was established. Several frontend callers still do not have backend routes, and other clinical, authorization, concurrency, and data-integrity rules remain incomplete.
+The repository contains meaningful implementation for these workflows. Cleanup work added centralized, default-deny actionability and restriction boundaries; the backend now has 107 passing deterministic tests and 4 executable TODO safety specifications. Pure policy and closest query boundaries are unit-tested, but no API/database integration execution, browser E2E verification, deployment evidence, or clinical review evidence is established. Repository CI is configured but remote execution is not established by this local record. Several frontend callers still do not have backend routes, and other clinical, authorization, concurrency, and data-integrity rules remain incomplete.
 
 ### 3.2 Current architecture
 
 | Area | Current implementation | Evidence | Verification level |
 | --- | --- | --- | --- |
-| Frontend | Next.js 14 App Router, React 18, TypeScript, Tailwind, Radix UI, Axios | `nutrimind-frontend/package.json`, `src/app`, `src/components`, `src/lib/axios.ts` | Statically verified |
-| Backend | Separate Express 4/TypeScript REST API with route/controller/service layers of mixed consistency | `nutrimind-backend/package.json`, `src/app.ts`, `src/routes`, `src/controllers`, `src/services` | Statically verified |
-| Database | Prisma 5 schema targeting PostgreSQL; nine migrations present | `nutrimind-backend/prisma/schema.prisma`, `prisma/migrations` | Schema statically verified; live DB unverified |
+| Frontend | Next.js 14 App Router, React 18, TypeScript, Tailwind, Radix UI, Axios | `frontend/package.json`, `src/app`, `src/components`, `src/lib/axios.ts` | Statically verified |
+| Backend | Separate Express 4/TypeScript REST API with route/controller/service layers of mixed consistency | `backend/package.json`, `src/app.ts`, `src/routes`, `src/controllers`, `src/services` | Statically verified |
+| Database | Prisma 5 schema targeting PostgreSQL; eleven migrations present | `backend/prisma/schema.prisma`, `prisma/migrations` | Schema statically verified; live DB unverified |
 | Authentication | Custom access JWT plus refresh JWT cookie; client auth context and route guard | `src/lib/jwt.ts`, `auth.service.ts`, `auth.controller.ts`, frontend `AuthContext.tsx`, `axios.ts` | Statically verified; runtime unverified |
 | Authorization | Bearer authentication and role-only RBAC on route groups; prerequisite policies mainly client-side | backend `middleware/auth.ts`, `middleware/rbac.ts`; frontend `RouteGuard.tsx` | Partially implemented |
-| AI | Google Gemini JSON generation with four configured fallback model names | `nutrimind-backend/src/lib/gemini.ts` | Implemented but externally unverified |
+| AI | Google Gemini JSON generation with four configured fallback model names | `backend/src/lib/gemini.ts` | Implemented but externally unverified |
 | Food data | FNRI CSV seed, database lookup, aliases, fuzzy matching, and Gemini estimation fallback | `prisma/seed.ts`, `src/lib/fnri.ts`, `prisma/data/fnri.csv` | Implemented but integration unverified |
 | Email/OAuth/PDF | Nodemailer SMTP, Google ID-token verification, React PDF | `src/lib/email.ts`, `auth.service.ts`, `src/lib/pdf.tsx` | Implemented but externally unverified |
 
@@ -1792,3 +1792,76 @@ If TEST-033 passes, select one unrelated feature scope and reconcile only the ex
 | DOC-023 | Record landing-system parity across auth and role pages, shared AuthShell/PortalPageHeader/Card behavior, Google button presentation correction, exact verification boundary, runtime ownership, and owner visual-acceptance requirement | Completed source/static/HTTP evidence; automated browser and final responsive visual judgment remain unclaimed | TEST-037; CHG-20260821-01; cleanup plan |
 | DOC-024 | Record authoritative onboarding policy, strict validation, server prerequisites, atomic health saves, versioned consent, OTP controls, privacy/accessibility corrections, additive migration boundary, and exact verification/deployment limits | Completed source/unit/static evidence; migration deployment and live authenticated/browser acceptance remain pending | REQ-012; ADR-010; RISK-020; DEF-030; TEST-038; CHG-20260827-01 |
 | DOC-025 | Record owner-applied onboarding migration, managed TLS limitation, exact process ownership, new-column/legacy compatibility evidence, strict negative contracts, synthetic account/OTP-lock mutations, retained-account state, and unverified browser boundary | Completed bounded runtime evidence; OTP-success and post-verification browser journey remain owner-assisted | TEST-039; CHG-20260827-02 |
+
+---
+
+## 20. Shared modal theme-surface correction (2026-08-30)
+
+**Change ID:** CHG-20260830-01
+
+**Verification ID:** TEST-040
+
+- Corrected the active shared modal at `frontend/src/components/ui/Modal.tsx` after the owner renamed the application directories to `backend` and `frontend`.
+- Root cause: opacity modifiers on CSS-variable-backed theme utilities such as `bg-brand-surface/95` were not reliably emitted, allowing the dark overlay to show through behind light-theme text.
+- Replaced the translucent modal, close-control, and divider utilities with solid semantic theme tokens (`brand-surface`, `brand-bgAlt`, `brand-border`, and `brand-text`). The correction applies consistently to light and dark themes without hardcoded modal colors.
+- Added a `90vh` height limit with vertical overflow so longer modal forms remain usable on smaller viewports.
+- Verification: frontend no-emit TypeScript passed; frontend lint completed with only pre-existing warnings; the Next.js production build compiled and generated all 35 routes successfully.
+- Browser limitation: an unauthenticated in-app browser remained at the application's loading gate, so the authenticated weekly-check-in modal was not directly browser-accepted in that session. Final visual confirmation remains owner-assisted after reload.
+- No backend, database, environment, dependency, or API behavior was changed.
+
+---
+
+## 21. Meal-plan generation progress experience (2026-08-30)
+
+**Change ID:** CHG-20260830-02
+
+**Verification ID:** TEST-041
+
+- Replaced the dashboard's generation spinner with a dedicated theme-aware progress experience in `frontend/src/components/user/MealPlanGenerationProgress.tsx`, integrated by `frontend/src/app/(user)/dashboard/page.tsx`.
+- Added an animated semantic progress bar, estimated percentage, estimated remaining time, six changing high-level pipeline messages, and a server-confirmed completion state.
+- Progress is explicitly presented as estimated because the current generation endpoint is one synchronous request without server stage events. It advances on an elapsed-time curve, slows and caps at 94% during long requests, and reaches 100% only after a successful API response.
+- The success state remains visible briefly before the completed meal plan replaces it. Errors continue through the dashboard's existing error handling.
+- Styling uses the established `brand-surface`, `brand-bgAlt`, `brand-border`, `brand-green`, `brand-cyan`, `brand-accent`, `brand-text`, and `brand-muted` tokens for light/dark consistency. The progress region exposes live/busy and progressbar semantics.
+- Verification: frontend no-emit TypeScript passed; frontend lint completed with only pre-existing warnings; the Next.js production build compiled and generated all 35 routes successfully.
+- Browser limitation: the available in-app browser had no authenticated application session and remained at the existing loading gate, so starting a live generation request and final visual acceptance remain owner-assisted.
+- No backend, database, environment, dependency, migration, or API contract was changed.
+
+---
+
+## 22. Accessible mixed-cuisine generation policy (2026-08-30)
+
+**Change ID:** CHG-20260830-03
+
+**Verification IDs:** TEST-042, TEST-043, TEST-044
+
+- Reframed NutriMind's meal-generation objective from Filipino-only output to accessible, culturally aware mixed-cuisine planning for users living in the Philippines.
+- Added the pure `backend/src/domain/meal-generation-cuisine.policy.ts` prompt builder and integrated it into `backend/src/services/meal-generation.service.ts`.
+- The policy ranks clinical restrictions, allergies, dietary preference, nutrition targets, affordability, effort, and realistic Philippine availability above cuisine nationality. Food culture is an influence rather than an exclusive boundary.
+- Generated plans may combine Filipino staples, universally familiar meals, locally popular foods originating from other cultures, and suitable ready-to-eat or convenience products. Clinical safety overrides convenience and variety.
+- The FNRI reference remains authoritative nutrient context but is no longer described as an exclusive native-ingredient dictionary. `getFNRISubset()` now returns a balanced sample of up to ten items from each of all thirteen seeded FNRI categories rather than an arbitrary subset of six categories.
+- Nutrition-report guidance and active frontend meal-plan wording were aligned with the mixed-cuisine accessibility goal. The generation prompt no longer transmits the user's name because it was unnecessary for the task.
+- TEST-042 verifies culture-as-influence semantics; TEST-043 verifies explicit support for general/convenience foods and local availability; TEST-044 verifies clinical constraints remain higher priority.
+- Verification: the three focused policy tests pass; backend no-emit TypeScript and production build pass; frontend no-emit TypeScript and the Next.js production build pass with all 35 routes generated. Existing frontend lint warnings remain unrelated.
+- Full `tsx` suite execution remains environmentally blocked in the restricted Codex identity by Node v24 `uv_os_get_passwd` returning `ENOMEM`; the focused tests were compiled to an isolated temporary directory and executed with Node's built-in test runner.
+- No database records, schema, migration, dependencies, environment values, live Gemini request, or persisted meal plan were changed. The policy applies to future generation requests after the backend restarts.
+
+---
+
+## 23. Repository structure and hygiene cleanup (2026-08-30)
+
+**Change ID:** CHG-20260830-04
+
+**Verification ID:** TEST-045
+
+**Documentation ID:** DOC-026
+
+- Renamed the application directories from `nutrimind-backend/` and `nutrimind-frontend/` to the concise `backend/` and `frontend/` paths while preserving source, migrations, lockfiles, assets, and substantive owner edits.
+- Removed the previously tracked backend `dist/**` output from the versioned tree. Current backend `dist`, frontend `.next`, dependency directories, TypeScript generated files, and local environment files remain present only as ignored local artifacts where applicable.
+- Generalized root ignore rules for nested build and environment outputs, retained package-level ignore rules, and added versionable backend/frontend environment templates containing names and placeholders only.
+- Added the root Node 24 pin, package engine constraints, and `.github/workflows/ci.yml` for backend install/generate/test/build and frontend install/lint/build checks.
+- Updated active contributor and agent documentation to use `backend/` and `frontend/`. Explicitly historical prompts and audit snapshots retain their period-accurate names.
+- Corrected the stale frontend meal hook from `GET /api/user/meals` to the implemented `GET /api/user/meals/current` route and made backend credentialed CORS origins environment-configurable with safe development defaults and no implicit production allowlist.
+- Repository audit found ignored `backend/.env`, `frontend/.env.local`, `node_modules`, backend `dist`, frontend `.next`, and `next-env.d.ts`; none are intended for version control. Secret-pattern matches in versionable files were placeholders/examples, not live credentials. No dependency directory, cache, generated build output, or local secret file is part of the intended change set.
+- Verification passed: backend no-emit TypeScript, production build, and Prisma validation; frontend no-emit TypeScript, lint with existing warnings, and production build with all 35 routes generated.
+- The standard backend `npm test` wrapper remains blocked only in the restricted Windows Codex identity by Node 24 `uv_os_get_passwd` returning `ENOMEM`. Compiling the same suite into an isolated temporary directory and executing it with Node's built-in test runner passed 107 tests with 0 failures and 4 TODO specifications.
+- Package-lock metadata was synchronized without installing new dependencies or running package scripts. `npm` reported zero known vulnerabilities for both installed dependency trees during the lockfile-only checks.

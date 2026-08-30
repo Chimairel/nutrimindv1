@@ -2,11 +2,11 @@
 **/node_modules/
 
 # Next.js build outputs
-**/nutrimind-frontend/.next/
-**/nutrimind-frontend/out/
+**/.next/
+**/out/
 
 # Backend build outputs
-**/nutrimind-backend/dist/
+**/dist/
 
 # Local Environment Secrets (CRITICAL)
 **/.env
@@ -23,4 +23,8 @@ yarn-error.log*
 Thumbs.db
 *.tsbuildinfo
 **/next-env.d.ts
-nutrimind-backend/.env.runtime-test.local
+**/.env.runtime-test.local
+
+# Local files that do not belong in the application repository
+codex/Install VALORANT.exe
+codex/toothless.jpg

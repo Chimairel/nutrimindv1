@@ -6,15 +6,15 @@ NutriMind is a Filipino-focused nutrition and meal-planning capstone application
 
 ## Current verification status
 
-The repository contains substantial frontend and backend implementation. As of August 19, 2026:
+The repository contains substantial frontend and backend implementation. As of August 30, 2026:
 
-- Backend TypeScript no-emit check: **passed**
-- Frontend TypeScript no-emit check: **passed**
+- Backend TypeScript no-emit check and production build: **passed**
+- Frontend TypeScript no-emit check and production build: **passed**
 - Prisma schema validation: **passed**
 - Frontend lint: **passed with warnings**
-- Backend deterministic unit/policy baseline: **28 passed, 0 failed; 7 critical-behavior specifications remain TODO**
+- Backend deterministic unit/policy baseline: **107 passed, 0 failed; 4 critical-behavior specifications remain TODO**
 - API/database integration and E2E tests: **not present**
-- Repository CI configuration: **not present**
+- Repository CI configuration: **present; remote execution is not established by local evidence**
 - Runtime, deployment, and external-service verification: **not established by current repository evidence**
 - Clinical review: **not established**
 
@@ -40,18 +40,19 @@ Business-date behavior is intended to use `Asia/Manila`. Existing server-local d
 
 | Path | Responsibility |
 | --- | --- |
-| `nutrimind-frontend/` | Next.js UI for public, onboarding, user, nutritionist, and admin routes |
-| `nutrimind-frontend/src/app/` | Route groups, layouts, and pages |
-| `nutrimind-frontend/src/components/` | Shared, UI, auth, and user-facing React components |
-| `nutrimind-frontend/src/lib/` | Axios, client auth helpers, and React contexts |
-| `nutrimind-backend/` | Express REST API and business services |
-| `nutrimind-backend/src/routes/` | API route definitions and middleware composition |
-| `nutrimind-backend/src/controllers/` | HTTP handlers; some currently contain direct Prisma access |
-| `nutrimind-backend/src/services/` | Auth, plans, logs, groceries, review, progress, notifications, and job logic |
-| `nutrimind-backend/src/lib/` | Prisma, JWT, Gemini, FNRI, email, PDF, and calculation helpers |
-| `nutrimind-backend/prisma/schema.prisma` | Current Prisma data model |
-| `nutrimind-backend/prisma/migrations/` | Database migration history |
-| `nutrimind-backend/prisma/data/fnri.csv` | FNRI data used by the seed script |
+| `frontend/` | Next.js UI for public, onboarding, user, nutritionist, and admin routes |
+| `frontend/src/app/` | Route groups, layouts, and pages |
+| `frontend/src/components/` | Shared, UI, auth, and user-facing React components |
+| `frontend/src/lib/` | Axios, client auth helpers, and React contexts |
+| `backend/` | Express REST API and business services |
+| `backend/src/routes/` | API route definitions and middleware composition |
+| `backend/src/controllers/` | HTTP handlers; some currently contain direct Prisma access |
+| `backend/src/services/` | Auth, plans, logs, groceries, review, progress, notifications, and job logic |
+| `backend/src/lib/` | Prisma, JWT, Gemini, FNRI, email, PDF, and calculation helpers |
+| `backend/prisma/schema.prisma` | Current Prisma data model |
+| `backend/prisma/migrations/` | Database migration history |
+| `backend/prisma/data/fnri.csv` | FNRI data used by the seed script |
+| `.github/workflows/ci.yml` | Backend and frontend verification on pushes and pull requests |
 | `docs/` | Canonical engineering evidence and cleanup planning |
 | `codex/` | Current coding-agent operating and cleanup instructions |
 
@@ -59,7 +60,7 @@ The intended backend layering is route -> validation/policy -> controller -> ser
 
 ## Prerequisites
 
-- Node.js and npm compatible with Next.js 14, Prisma 5, and the installed lockfiles. The repository does not pin a Node version.
+- Node.js 24 and npm, as pinned by the root `.nvmrc` and used by repository CI.
 - A PostgreSQL database for backend persistence.
 - Environment values for the integrations you intend to exercise.
 
@@ -70,7 +71,7 @@ Do not commit `.env` or `.env.local` files. Never put real credentials in docume
 From the repository root:
 
 ```powershell
-Set-Location nutrimind-backend
+Set-Location backend
 npm install
 npx prisma generate
 npm run dev
@@ -78,14 +79,14 @@ npm run dev
 
 The development server defaults to `http://localhost:5000`; `GET /health` is the basic health endpoint.
 
-Before startup, create `nutrimind-backend/.env` from the available example and supply the required values. The example does not contain every currently used variable, so use the name inventory below.
+Before startup, create `backend/.env` from the available example and supply the required values. The example does not contain every currently used variable, so use the name inventory below.
 
 ### Prisma/database workflow
 
 Validate the schema without changing it:
 
 ```powershell
-Set-Location nutrimind-backend
+Set-Location backend
 npx prisma validate
 ```
 
@@ -118,20 +119,20 @@ Migrations and seeds modify database state. Confirm the database target and auth
 In a second terminal:
 
 ```powershell
-Set-Location nutrimind-frontend
+Set-Location frontend
 npm install
 npm run dev
 ```
 
 The frontend defaults to `http://localhost:3000`. Axios defaults to `http://localhost:5000/api` when `NEXT_PUBLIC_API_URL` is absent.
 
-The backend currently permits credentialed CORS requests from `http://localhost:3000` and `http://localhost:3001`. `FRONTEND_URL` is used for email links but is not currently the backend CORS source of truth.
+The backend reads credentialed CORS origins from `CORS_ORIGINS`, falling back to `FRONTEND_URL` when present and to `http://localhost:3000,http://localhost:3001` in development. Production startup has no implicit origin allowlist.
 
 ## Environment-variable reference
 
 Only names and purposes are documented. No real values are included.
 
-### Backend: `nutrimind-backend/.env`
+### Backend: `backend/.env`
 
 | Name | Required when | Purpose |
 | --- | --- | --- |
@@ -143,6 +144,7 @@ Only names and purposes are documented. No real values are included.
 | `PORT` | Optional | Express port; defaults to `5000` |
 | `NODE_ENV` | Optional but important in deployment | Controls cookie security, rate limits, logging, and Prisma singleton behavior |
 | `FRONTEND_URL` | Password-reset email links | Frontend base URL in email; defaults to `http://localhost:3000` |
+| `CORS_ORIGINS` | Browser API access | Comma-separated credentialed browser origins; required explicitly in production |
 | `GOOGLE_CLIENT_ID` | Google sign-in | Expected audience for backend Google ID-token verification |
 | `SMTP_HOST` | Email delivery | SMTP hostname; code defaults to Gmail SMTP |
 | `SMTP_PORT` | Email delivery | SMTP port; code defaults to `587` |
@@ -150,7 +152,7 @@ Only names and purposes are documented. No real values are included.
 | `SMTP_PASS` | Email delivery | SMTP account password or app password |
 | `EMAIL_FROM` | Optional sender override | From address; falls back to `SMTP_USER`, then a placeholder |
 
-### Frontend: `nutrimind-frontend/.env.local`
+### Frontend: `frontend/.env.local`
 
 | Name | Required when | Purpose |
 | --- | --- | --- |
@@ -161,22 +163,23 @@ Values prefixed with `NEXT_PUBLIC_` are exposed to browser code and must never c
 
 ## Available verification commands
 
-These checks passed during the August 19, 2026 baseline:
+These checks passed during the August 30, 2026 verification:
 
 ```powershell
 # Backend
-Set-Location nutrimind-backend
+Set-Location backend
 npm test
 npx tsc --noEmit --incremental false
 npx prisma validate
 
 # Frontend
-Set-Location ..\nutrimind-frontend
+Set-Location ..\frontend
 npx tsc --noEmit --incremental false
 npm run lint
+npm run build
 ```
 
-The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. TEST-013/014 verify approved-meal actionability; TEST-015/016 verify the deterministic restriction policy; TEST-027/028 verify the meal-generation library compatibility adapter and isolated fallback seam. The current result is 91 registered tests: 86 pass, 0 fail, 0 skipped, and 5 TODO. The frontend has no automated test script, and no repository CI workflow was found. Unit/static checks do not establish API/database integration, live generation, E2E, deployment, accessibility, or clinical verification.
+The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. TEST-013/014 verify approved-meal actionability; TEST-015/016 verify the deterministic restriction policy; TEST-027/028 verify the meal-generation library compatibility adapter and isolated fallback seam; TEST-042 through TEST-044 verify the mixed-cuisine generation policy. In the restricted Codex Windows identity, `tsx` is blocked by Node 24 `uv_os_get_passwd` returning `ENOMEM`; compiling the same suite to an isolated temporary directory and running Node's built-in test runner produced 111 registered tests: 107 pass, 0 fail, 0 skipped, and 4 TODO. The frontend has no automated test script. Repository CI installs both packages, runs the backend tests/build, and runs frontend lint/build. Unit/static checks do not establish API/database integration, live generation, E2E, deployment, accessibility, or clinical verification.
 
 ## External integrations
 
@@ -206,7 +209,7 @@ Consult the engineering record for the ranked register. Important limitations in
 - Grocery data lacks actionable quantities/units.
 - Water tracking is local-only and not user/date scoped in backend persistence.
 - The export view is not a complete user-data export.
-- The backend has a deterministic unit/policy baseline; 7 critical specifications remain TODO, and no CI, repository deployment setup, or clinical-review evidence is present.
+- The backend has a deterministic unit/policy baseline; 4 critical specifications remain TODO, and no repository deployment or clinical-review evidence is present.
 
 ## Documentation map
 
