@@ -16,4 +16,5 @@ export interface ApiResponse<T = any> {
 
 export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
+  nutritionistProfileId?: string;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, Search, Users, XCircle } from 'lucide-react';
+import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RotateCcw, Search, Users, XCircle } from 'lucide-react';
 import api from '@/lib/axios';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -14,6 +14,8 @@ interface UserRow {
   emailVerified: boolean;
   onboardingDone: boolean;
   createdAt: string;
+  isSuspended: boolean;
+  suspensionReason?: string | null;
 }
 
 export default function AdminUsersPage() {
@@ -52,6 +54,18 @@ export default function AdminUsersPage() {
     fetchUsers(1, search);
   };
 
+  const toggleSuspension = async (user: UserRow) => {
+    const reason = user.isSuspended
+      ? undefined
+      : window.prompt('Reason for suspension (visible in the audit log):')?.trim();
+    if (!user.isSuspended && !reason) return;
+    await api.patch(`/admin/users/${user.id}/suspension`, {
+      suspended: !user.isSuspended,
+      reason,
+    });
+    await fetchUsers(page, search);
+  };
+
   return (
     <div className="portal-page space-y-7">
       <PortalPageHeader
@@ -78,7 +92,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead className="bg-[#07100d] text-white">
                 <tr className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/45">
-                  <th className="px-5 py-4 text-left">Name</th><th className="px-5 py-4 text-left">Email</th><th className="px-5 py-4 text-center">Role</th><th className="px-5 py-4 text-center">Verified</th><th className="px-5 py-4 text-center">Onboarded</th><th className="px-5 py-4 text-left">Joined</th>
+                  <th className="px-5 py-4 text-left">Name</th><th className="px-5 py-4 text-left">Email</th><th className="px-5 py-4 text-center">Role</th><th className="px-5 py-4 text-center">Verified</th><th className="px-5 py-4 text-center">Onboarded</th><th className="px-5 py-4 text-left">Joined</th><th className="px-5 py-4 text-right">Access</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,6 +104,17 @@ export default function AdminUsersPage() {
                     <td className="px-5 py-4 text-center">{user.emailVerified ? <CheckCircle2 className="mx-auto h-4 w-4 text-brand-green" /> : <XCircle className="mx-auto h-4 w-4 text-red-400" />}</td>
                     <td className="px-5 py-4 text-center">{user.onboardingDone ? <CheckCircle2 className="mx-auto h-4 w-4 text-brand-green" /> : <Clock3 className="mx-auto h-4 w-4 text-amber-500" />}</td>
                     <td className="px-5 py-4 text-xs text-brand-muted">{new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => void toggleSuspension(user)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-bold transition ${user.isSuspended ? 'bg-brand-green/10 text-brand-green hover:bg-brand-green/15' : 'bg-red-500/10 text-red-400 hover:bg-red-500/15'}`}
+                        title={user.suspensionReason || undefined}
+                      >
+                        {user.isSuspended ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                        {user.isSuspended ? 'Reinstate' : 'Suspend'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

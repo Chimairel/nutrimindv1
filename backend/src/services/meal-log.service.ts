@@ -15,6 +15,7 @@ interface LogOutsideMealInput {
   mealName: string;
   mealType: MealType;
   warningAcknowledged?: boolean;
+  confirmationId?: string;
   notes?: string;
 }
 
@@ -41,7 +42,49 @@ export class MealLogService {
    * to the client without saving.
    */
   static async logOutsideMeal(input: LogOutsideMealInput) {
-    const { userId, mealName, mealType, warningAcknowledged = false, notes } = input;
+    const { userId, mealName, mealType, warningAcknowledged = false, confirmationId, notes } = input;
+
+    if (warningAcknowledged) {
+      if (!confirmationId) throw new Error('A valid warning confirmation is required. Please preview the meal again.');
+      return prisma.$transaction(async (tx) => {
+        const preview = await tx.outsideMealPreview.findFirst({
+          where: {
+            id: confirmationId,
+            userId,
+            mealName,
+            mealType,
+            consumedAt: null,
+            expiresAt: { gt: new Date() },
+          },
+        });
+        if (!preview) throw new Error('This warning preview expired or was already used. Please preview the meal again.');
+
+        const estimate = preview.estimate as unknown as AIOutsideMealEstimate;
+        const warnings = Array.isArray(preview.warnings) ? preview.warnings.filter((item): item is string => typeof item === 'string') : [];
+        const savedLog = await tx.mealLog.create({
+          data: {
+            userId,
+            source: MealLogSource.USER_LOGGED,
+            mealName: estimate.name || mealName,
+            calories: estimate.calories,
+            proteinG: estimate.proteinG,
+            carbsG: estimate.carbsG,
+            fatG: estimate.fatG,
+            dataSource: MealLogDataSource.GEMINI_ESTIMATED,
+            status: MealLogStatus.DONE,
+            warningType: warnings.join(',') || null,
+            warningShown: warnings.length > 0,
+            warningAcknowledged: true,
+            notes: preview.notes || notes || `AI Ingredients: ${estimate.ingredients?.join(', ')}`,
+          },
+        });
+        await tx.outsideMealPreview.update({
+          where: { id: preview.id },
+          data: { consumedAt: new Date() },
+        });
+        return { warningRequired: false, log: savedLog };
+      });
+    }
 
     // 1. Fetch user profile, health conditions, and allergies
     const user = await prisma.user.findUnique({
@@ -260,8 +303,21 @@ export class MealLogService {
     // If warnings exist and have NOT been acknowledged, return warnings payload
     if (detectedWarnings.length > 0 && !warningAcknowledged) {
       console.log(`[Meal Log] Clinical warning flagged. Returning pre-check payload to client. Warnings: ${detectedWarnings.join(', ')}`);
+      const preview = await prisma.outsideMealPreview.create({
+        data: {
+          userId,
+          mealName,
+          mealType,
+          estimate: estimate as object,
+          warnings: detectedWarnings,
+          reasons: conflictReasons,
+          notes,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+        },
+      });
       return {
         warningRequired: true,
+        confirmationId: preview.id,
         warnings: detectedWarnings,
         reasons: conflictReasons,
         estimate: {

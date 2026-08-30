@@ -12,6 +12,10 @@ import {
   Stethoscope,
   Tags,
   Users,
+  AlertTriangle,
+  Activity,
+  ShieldAlert,
+  Bot,
 } from 'lucide-react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
@@ -27,6 +31,18 @@ interface Analytics {
   totalMealLogs: number;
   totalFoodItems: number;
   totalAliases: number;
+  overdueReviews: number;
+  activeReviewClaims: number;
+  expiredVerifiedNutritionists: number;
+  completeLibraryEvidence: number;
+  incompleteLibraryEvidence: number;
+  staleLibraryEvidence: number;
+  failedGenerationJobs24h: number;
+  stuckGenerationJobs: number;
+  aiSuccess24h: number;
+  aiFailures24h: number;
+  adaptationReviews30d: number;
+  pendingPlansStartingSoon: number;
 }
 
 interface Metric {
@@ -71,6 +87,14 @@ export default function AdminOverviewPage() {
     { label: 'FNRI foods', value: data.totalFoodItems, icon: Database, tone: 'bg-brand-accent/20 text-brand-green' },
     { label: 'Food aliases', value: data.totalAliases, icon: Tags, tone: 'bg-brand-green/10 text-brand-green' },
   ];
+  const operationalSignals: Metric[] = [
+    { label: 'Reviews overdue >2h', value: data.overdueReviews, icon: AlertTriangle, tone: data.overdueReviews > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-brand-green/10 text-brand-green' },
+    { label: 'Plans starting within 48h still pending', value: data.pendingPlansStartingSoon, icon: ClipboardCheck, tone: data.pendingPlansStartingSoon > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-brand-green/10 text-brand-green' },
+    { label: 'Stuck generation jobs', value: data.stuckGenerationJobs, icon: Activity, tone: data.stuckGenerationJobs > 0 ? 'bg-red-500/10 text-red-400' : 'bg-brand-green/10 text-brand-green' },
+    { label: 'Generation failures · 24h', value: data.failedGenerationJobs24h, icon: AlertTriangle, tone: data.failedGenerationJobs24h > 0 ? 'bg-red-500/10 text-red-400' : 'bg-brand-green/10 text-brand-green' },
+    { label: 'Expired verified RND licenses', value: data.expiredVerifiedNutritionists, icon: ShieldAlert, tone: data.expiredVerifiedNutritionists > 0 ? 'bg-red-500/10 text-red-400' : 'bg-brand-green/10 text-brand-green' },
+    { label: 'Progress reviews recommended · 30d', value: data.adaptationReviews30d, icon: Stethoscope, tone: 'bg-brand-cyan/10 text-brand-cyan' },
+  ];
 
   return (
     <div className="portal-page space-y-7">
@@ -104,6 +128,37 @@ export default function AdminOverviewPage() {
             );
           })}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <p className="portal-section-label">Operations and safety queues</p>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-brand-muted">{data.activeReviewClaims} active review claims</span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {operationalSignals.map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <Card key={metric.label} className="p-5">
+                <div className="flex items-center gap-4">
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${metric.tone}`}><Icon className="h-[18px] w-[18px]" /></span>
+                  <div><p className="font-display text-2xl font-black text-brand-text">{metric.value}</p><p className="text-xs text-brand-muted">{metric.label}</p></div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-6">
+          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green"><BookOpenText className="h-5 w-5" /></span><div><p className="text-sm font-bold text-brand-text">Reusable library evidence</p><p className="text-xs text-brand-muted">Operational approval and reusable certification are tracked separately.</p></div></div>
+          <div className="mt-5 grid grid-cols-3 gap-3 text-center"><div className="rounded-xl bg-brand-green/10 p-3"><strong className="block text-xl text-brand-green">{data.completeLibraryEvidence}</strong><span className="text-[9px] uppercase text-brand-muted">Certified</span></div><div className="rounded-xl bg-brand-bgAlt/60 p-3"><strong className="block text-xl text-brand-text">{data.incompleteLibraryEvidence}</strong><span className="text-[9px] uppercase text-brand-muted">Incomplete</span></div><div className="rounded-xl bg-amber-500/10 p-3"><strong className="block text-xl text-amber-500">{data.staleLibraryEvidence}</strong><span className="text-[9px] uppercase text-brand-muted">Stale</span></div></div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/10 text-brand-cyan"><Bot className="h-5 w-5" /></span><div><p className="text-sm font-bold text-brand-text">Gemini usage pulse · 24h</p><p className="text-xs text-brand-muted">Counts requests only; prompts and health details are never stored in telemetry.</p></div></div>
+          <div className="mt-5 grid grid-cols-2 gap-3 text-center"><div className="rounded-xl bg-brand-green/10 p-3"><strong className="block text-xl text-brand-green">{data.aiSuccess24h}</strong><span className="text-[9px] uppercase text-brand-muted">Succeeded</span></div><div className="rounded-xl bg-red-500/10 p-3"><strong className="block text-xl text-red-400">{data.aiFailures24h}</strong><span className="text-[9px] uppercase text-brand-muted">Failed</span></div></div>
+        </Card>
       </div>
     </div>
   );

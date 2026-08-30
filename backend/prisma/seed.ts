@@ -1,25 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getFNRICategory } from '../src/domain/fnri-category.policy';
 
 const prisma = new PrismaClient();
-
-// Map first letter of food_id to official FNRI food categories
-const categoryMap: Record<string, string> = {
-  'A': 'Cereals & Grains',
-  'B': 'Starchy Roots & Tubers',
-  'C': 'Dry Beans, Peas, Nuts & Seeds',
-  'D': 'Vegetables',
-  'E': 'Fruits',
-  'F': 'Fish & Shellfish',
-  'G': 'Meat & Poultry',
-  'H': 'Eggs',
-  'I': 'Milk & Dairy',
-  'J': 'Fats & Oils',
-  'K': 'Sugars & Sweets',
-  'L': 'Beverages',
-  'M': 'Miscellaneous',
-};
 
 // Character-by-character CSV line parser handling double-quoted cells with internal commas
 function parseCSVLine(line: string): string[] {
@@ -111,8 +95,7 @@ async function main() {
     if (hasDataString.toUpperCase() !== 'TRUE') continue;
 
     // Resolve general category based on the first letter of the food_id
-    const firstChar = foodId.trim().charAt(0).toUpperCase();
-    const category = categoryMap[firstChar] || 'Miscellaneous';
+    const category = getFNRICategory(foodId);
 
     // Parse macro and micro properties
     const water = parseFloatOrNull(cells[6]);

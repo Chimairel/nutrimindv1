@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ZodType } from 'zod';
+import prisma from '@/lib/prisma';
+import { AiUsageStatus } from '@prisma/client';
 
 // Retrieve API Key
 const apiKey = process.env.GEMINI_API_KEY;
@@ -15,6 +17,30 @@ const MODEL_SEQUENCE = [
   'gemini-3.1-flash-lite',  // High-volume, low-cost fallback
   'gemini-2.5-pro',         // Heavyweight reasoning fallback
 ];
+
+async function recordAiUsage(event: {
+  model?: string;
+  status: AiUsageStatus;
+  attempts: number;
+  latencyMs: number;
+  errorCode?: string;
+}) {
+  try {
+    await prisma.aiUsageEvent.create({
+      data: {
+        provider: 'GOOGLE_GEMINI',
+        model: event.model,
+        status: event.status,
+        attempts: Math.max(1, event.attempts),
+        latencyMs: Math.max(0, event.latencyMs),
+        errorCode: event.errorCode,
+      },
+    });
+  } catch {
+    // Telemetry must never turn a successful AI response into a user failure.
+    console.warn('[Gemini AI] Usage telemetry could not be recorded.');
+  }
+}
 
 /**
  * Cleans the generated text to ensure it's a valid JSON string by stripping
@@ -54,15 +80,26 @@ export async function generateGenerativeJSON<T = any>(
   schema?: ZodType<T>,
   temperature?: number
 ): Promise<T> {
+  const startedAt = Date.now();
   if (!apiKey) {
+    await recordAiUsage({
+      status: AiUsageStatus.FAILED,
+      attempts: 1,
+      latencyMs: Date.now() - startedAt,
+      errorCode: 'MISSING_API_KEY',
+    });
     throw new Error('🛑 Google Gemini API Key is missing. Please set GEMINI_API_KEY in your .env file.');
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
   let lastError: any = null;
+  let attempts = 0;
+  let lastModel: string | undefined;
 
   // Try each model sequentially in the cascade sequence
   for (const modelName of MODEL_SEQUENCE) {
+    attempts += 1;
+    lastModel = modelName;
     try {
       console.log(`[Gemini AI] Attempting prompt execution on model: ${modelName}`);
 
@@ -98,10 +135,22 @@ export async function generateGenerativeJSON<T = any>(
             throw new Error(`Response validation failed for model ${modelName}.`);
           }
           console.log(`[Gemini AI] Successfully executed and Zod-validated response from: ${modelName}`);
+          await recordAiUsage({
+            model: modelName,
+            status: AiUsageStatus.SUCCESS,
+            attempts,
+            latencyMs: Date.now() - startedAt,
+          });
           return zodResult.data;
         }
 
         console.log(`[Gemini AI] Successfully executed and parsed response from: ${modelName}`);
+        await recordAiUsage({
+          model: modelName,
+          status: AiUsageStatus.SUCCESS,
+          attempts,
+          latencyMs: Date.now() - startedAt,
+        });
         return parsed as T;
       } catch {
         console.warn(`[Gemini AI] JSON parsing or response validation failed for model ${modelName}.`);
@@ -116,6 +165,13 @@ export async function generateGenerativeJSON<T = any>(
   }
 
   // If all models failed in sequence, throw aggregate error
+  await recordAiUsage({
+    model: lastModel,
+    status: AiUsageStatus.FAILED,
+    attempts,
+    latencyMs: Date.now() - startedAt,
+    errorCode: 'ALL_MODELS_FAILED',
+  });
   throw new Error(
     `🛑 All Gemini fallback models failed to resolve the request. Last error: ${lastError?.message || lastError}`
   );

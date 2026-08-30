@@ -35,14 +35,17 @@ Required response format:
       "proteinG": number,
       "carbsG": number,
       "fatG": number,
-      "ingredients": string[]
+      "ingredients": [
+        { "name": string, "quantity": number, "unit": "g" | "mL" | "piece" | "tbsp" | "tsp" | "cup" | "can" | "pack" }
+      ]
     }
   ]
 }
 
 Rules:
 - mealType must be EXACTLY one of the four values shown above, uppercase, with no variations
-- ingredients must be plain ingredient names only — no quantities, units, measurements, or cooking instructions
+- every ingredient requires a realistic positive quantity for one serving and one supported unit
+- use g or mL whenever practical; use piece, tbsp, tsp, cup, can, or pack only when that is how a shopper normally buys or measures it
 - Return ONLY valid JSON. Do not include markdown, code fences, backticks, a preamble, or explanatory text outside the JSON
 `;
 

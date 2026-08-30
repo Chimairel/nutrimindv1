@@ -25,10 +25,11 @@ export class MealPlanNotActionableError extends Error {
 type MealPlanCandidate = {
   status: unknown;
   scheduledDate: Date | string | number | null | undefined;
+  requiresSafetyRevalidation: unknown;
 };
 
 type MealLogCandidate = {
-  mealPlan: { status: unknown } | null | undefined;
+  mealPlan: { status: unknown; requiresSafetyRevalidation: unknown } | null | undefined;
 };
 
 function toValidDate(value: Date | string | number | null | undefined): Date | null {
@@ -102,6 +103,7 @@ export function isUserActionableMealPlan(
   now: Date = new Date()
 ): boolean {
   return isUserActionableMealPlanStatus(mealPlan.status) &&
+    mealPlan.requiresSafetyRevalidation === false &&
     isMealPlanScheduleCurrent(mealPlan.scheduledDate, now);
 }
 
@@ -124,6 +126,7 @@ export function filterUserActionableMealPlans<T extends MealPlanCandidate>(
 export function getApprovedMealPlanStatusWhere(): Prisma.MealPlanWhereInput {
   return {
     status: MealPlanStatus.APPROVED,
+    requiresSafetyRevalidation: false,
   };
 }
 
@@ -176,14 +179,16 @@ export function getApprovedMealLibraryWhere(): Prisma.MealLibraryWhereInput {
 
 export function isNutritionEligibleMealLog(log: MealLogCandidate): boolean {
   return log.mealPlan === null ||
-    (log.mealPlan !== undefined && isUserActionableMealPlanStatus(log.mealPlan.status));
+    (log.mealPlan !== undefined &&
+      isUserActionableMealPlanStatus(log.mealPlan.status) &&
+      log.mealPlan.requiresSafetyRevalidation === false);
 }
 
 export function getNutritionEligibleMealLogWhere(): Prisma.MealLogWhereInput {
   return {
     OR: [
       { mealPlanId: null },
-      { mealPlan: { status: MealPlanStatus.APPROVED } },
+      { mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } },
     ],
   };
 }

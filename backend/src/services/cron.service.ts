@@ -1,5 +1,10 @@
 import prisma from '@/lib/prisma';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
+import {
+  getManilaDateKey,
+  getNextWeeklyCycleWindow,
+  isWeeklyPlanPreparationDue,
+} from '@/domain/meal-plan-cycle.policy';
 
 export class CronService {
   /**
@@ -79,31 +84,19 @@ export class CronService {
           adherencePct = 0;
         }
 
-        // Find if a log already exists for this user and date to avoid duplicates (safely upsert)
-        const existingLog = await prisma.dailyNutritionLog.findFirst({
+        const savedLog = await prisma.dailyNutritionLog.upsert({
           where: {
-            userId: user.id,
-            logDate: yesterdayStart,
+            userId_logDate: { userId: user.id, logDate: yesterdayStart },
           },
-        });
-
-        let savedLog;
-        if (existingLog) {
-          savedLog = await prisma.dailyNutritionLog.update({
-            where: { id: existingLog.id },
-            data: {
+          update: {
               totalCalories,
               totalProteinG,
               totalCarbsG,
               totalFatG,
               targetCalories,
               adherencePct,
-            },
-          });
-          console.log(`[CronService] Updated yesterday's log for ${user.email}: ${adherencePct.toFixed(1)}% Adherence.`);
-        } else {
-          savedLog = await prisma.dailyNutritionLog.create({
-            data: {
+          },
+          create: {
               userId: user.id,
               logDate: yesterdayStart,
               totalCalories,
@@ -112,10 +105,9 @@ export class CronService {
               totalFatG,
               targetCalories,
               adherencePct,
-            },
-          });
-          console.log(`[CronService] Created yesterday's log for ${user.email}: ${adherencePct.toFixed(1)}% Adherence.`);
-        }
+          },
+        });
+        console.log(`[CronService] Upserted yesterday's log for ${user.email}: ${adherencePct.toFixed(1)}% Adherence.`);
 
         processedLogs.push(savedLog);
       } catch (userErr) {
@@ -131,60 +123,80 @@ export class CronService {
   }
 
   /**
-   * Sends weekly check-in notifications for all users in a shopping day group,
-   * and auto-regenerates plans for users with 3+ consecutive missed check-ins.
-   * Called by two separate cron jobs (one per ShoppingDayGroup).
+   * One daily scheduler prepares plans whose review window is due. Exact
+   * shopping days remove the need for seven cron definitions; the generation
+   * service supplies the durable per-cycle idempotency key.
    */
-  static async runWeeklyCheckin(group: 'WEEKEND' | 'WEEKDAY') {
-    console.log(`[CronService] Running weekly check-in for ${group} group...`);
+  static async runWeeklyPlanPreparation(
+    now: Date = new Date(),
+    legacyGroup?: 'WEEKEND' | 'WEEKDAY'
+  ) {
+    console.log(`[CronService] Running daily weekly-plan preparation for ${getManilaDateKey(now)}...`);
 
     const users = await prisma.user.findMany({
       where: {
         onboardingDone: true,
         role: 'USER',
-        userProfile: {
-          shoppingDayGroup: group,
-        },
+        ...(legacyGroup ? { userProfile: { shoppingDayGroup: legacyGroup } } : {}),
       },
-      include: {
-        userProfile: true,
+      select: {
+        id: true,
+        userProfile: {
+          select: {
+            shoppingDayOfWeek: true,
+            shoppingDayGroup: true,
+            lastCheckinAt: true,
+            checkinStreak: true,
+          },
+        },
       },
     });
 
-    console.log(`[CronService] Found ${users.length} ${group} users to notify.`);
+    console.log(`[CronService] Evaluating ${users.length} onboarded schedules.`);
     const results = [];
 
     for (const user of users) {
       try {
         const profile = user.userProfile;
         if (!profile) continue;
+        const schedule = {
+          shoppingDayOfWeek: profile.shoppingDayOfWeek,
+          shoppingDayGroup: profile.shoppingDayGroup,
+        };
+        if (!isWeeklyPlanPreparationDue(schedule, now)) continue;
 
-        // Generate new weekly plan for this user
-        console.log(`[CronService] Generating new weekly plan for ${user.email}...`);
+        const cycle = getNextWeeklyCycleWindow(schedule, now);
+        const cycleKey = getManilaDateKey(cycle.startDate);
+        console.log(`[CronService] Preparing cycle ${cycleKey} for user ${user.id}.`);
         const { MealGenerationService } = await import('@/services/meal-generation.service');
-        await MealGenerationService.generateNextWeeklyPlan(user.id, group);
+        const planGroupId = await MealGenerationService.generateNextWeeklyPlan(user.id, schedule, now);
 
-        // Send weekly check-in notification
-        await prisma.notification.create({
-          data: {
-            userId: user.id,
-            title: '🛒 Weekly Check-In',
-            message: 'Your new weekly meal plan is ready! Let us know if your health goals or dietary needs have changed.',
-            type: 'WEEKLY_CHECKIN',
-          },
+        const notificationTitle = `Upcoming plan · ${cycleKey}`;
+        const priorNotification = await prisma.notification.findFirst({
+          where: { userId: user.id, type: 'WEEKLY_CHECKIN', title: notificationTitle },
+          select: { id: true },
         });
+        if (!priorNotification) {
+          await prisma.notification.create({
+            data: {
+              userId: user.id,
+              title: notificationTitle,
+              message: 'Your next weekly plan is being prepared before your grocery day. Newly generated meals remain clearly marked until staff review is complete.',
+              type: 'WEEKLY_CHECKIN',
+            },
+          });
+        }
 
         // Handle missed check-in streak degradation
         // If the user's lastCheckinAt is older than 7 days, they missed
         // their weekly check-in window and their streak should be reset.
         const lastCheckin = profile.lastCheckinAt;
-        const now = new Date();
         const missedWindow = lastCheckin
           ? (now.getTime() - lastCheckin.getTime()) / (1000 * 60 * 60 * 24) > 7
           : false; // No lastCheckinAt = first cycle, don't penalise
 
         if (missedWindow && profile.checkinStreak > 0) {
-          console.log(`[CronService] Streak broken for ${user.email} (last check-in: ${lastCheckin?.toISOString()}). Resetting to 0.`);
+          console.log(`[CronService] Resetting a missed check-in streak for user ${user.id}.`);
 
           await prisma.userProfile.update({
             where: { userId: user.id },
@@ -201,18 +213,22 @@ export class CronService {
           });
         }
 
-        results.push({ userId: user.id, email: user.email, notified: true });
+        results.push({ userId: user.id, planGroupId, cycleStart: cycleKey, prepared: true });
       } catch (err) {
-        console.error(`[CronService] Weekly check-in failed for user ${user.email}:`, err);
-        results.push({ userId: user.id, email: user.email, notified: false });
+        console.error(`[CronService] Weekly plan preparation failed for user ${user.id}:`, err);
+        results.push({ userId: user.id, prepared: false });
       }
     }
 
     return {
       success: true,
-      group,
       processedCount: results.length,
       results,
     };
+  }
+
+  /** Backwards-compatible wrapper for the two historical cron endpoints. */
+  static async runWeeklyCheckin(group: 'WEEKEND' | 'WEEKDAY') {
+    return CronService.runWeeklyPlanPreparation(new Date(), group);
   }
 }

@@ -188,12 +188,10 @@ Nutrimind/App2_vibecode/
         │   │   ├── grocery/page.tsx         # Categorized grocery checklist with PDF export
         │   │   ├── progress/page.tsx        # Weight history line charts, macro adherence, clinical settings
         │   │   ├── profile/page.tsx         # Account security, password updates, DiceBear avatar customizer
-        │   │   ├── nutritionists/page.tsx   # Public directory of verified RNDs with consultation triggers
         │   │   └── export/page.tsx          # Centralized data export hub
         │   ├── (nutritionist)/              # Authenticated Nutritionist Portal
         │   │   └── nutritionist/
         │   │       ├── reviews/page.tsx     # Review queue with claim locks, 2-panel inspection, approve/reject
-        │   │       ├── patients/page.tsx    # Directory of assigned patient health profiles
         │   │       ├── library/page.tsx     # Verified MealLibrary CRUD, search, and cross-RND flagging
         │   │       ├── approved/page.tsx    # Archive of meal plans approved by this nutritionist
         │   │       └── profile/page.tsx     # RND credentials, PRC license info, bio, and specialization
@@ -405,8 +403,8 @@ erDiagram
 
 | Role | Accessible Routes / Portals | Key Responsibilities & Capabilities |
 |---|---|---|
-| **`USER`** | `/dashboard`, `/meals`, `/grocery`, `/progress`, `/profile`, `/nutritionists`, `/export`, `/nutrition-report`, `/onboarding/*` | View personalized meal plans, check off eaten meals, log outside meals, swap up to 3 meals/week, download grocery/report PDFs, record weigh-ins, customize pixel-art avatar. |
-| **`NUTRITIONIST`** | `/nutritionist/reviews`, `/nutritionist/patients`, `/nutritionist/library`, `/nutritionist/approved`, `/nutritionist/profile` | Audit pending meal plans in the review queue, approve plans with notes, reject and regenerate flagged meals, manage personal recipes in `MealLibrary`, flag peer recipes for clinical inaccuracy. |
+| **`USER`** | `/dashboard`, `/meals`, `/grocery`, `/progress`, `/profile`, `/export`, `/nutrition-report`, `/onboarding/*` | View personalized meal plans, check off eaten meals, log outside meals, swap up to 3 meals/week, download grocery/report PDFs, record weigh-ins, customize pixel-art avatar. |
+| **`NUTRITIONIST`** | `/nutritionist/reviews`, `/nutritionist/library`, `/nutritionist/approved`, `/nutritionist/profile` | Operate as internal NutriMind staff: audit the shared pending-meal queue, approve plans with notes, reject and regenerate flagged meals, manage verified library recipes, and flag peer-reviewed recipes for clinical inaccuracy. |
 | **`ADMIN`** | `/admin/overview`, `/admin/users`, `/admin/nutritionists`, `/admin/analytics` | Verify nutritionist credentials against PRC license database, view and search all platform users, inspect system analytics and AI usage statistics. |
 
 ### Permission Enforcement
@@ -473,7 +471,7 @@ erDiagram
 3. **Multi-Nutritionist Real-Time Collaboration**: The 30-minute claim lock mechanism is polling-based and stored in PostgreSQL; WebSockets are not implemented.
 
 ### Inferred / Non-Blocking Observations
-* Some frontend views are not wired to functional backend endpoints: `/user/nutritionists` and `/nutritionist/patients` are missing, and `useMeals` contains a stale `GET /user/meals` caller.
+* Consumer nutritionist hiring and assigned-patient views are intentionally absent. Nutritionists are internal staff reviewers working from a shared queue rather than individually assigned providers.
 
 ---
 

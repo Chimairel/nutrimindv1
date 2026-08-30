@@ -3,6 +3,10 @@ import {
   filterUserActionableMealPlans,
   getUserActionableMealPlanWhere,
 } from '@/domain/meal-actionability.policy';
+import {
+  aggregateGroceryIngredients,
+  groceryItemKey,
+} from '@/domain/grocery-quantity.policy';
 
 export class GroceryService {
   /**
@@ -49,38 +53,36 @@ export class GroceryService {
     });
     const mealPlans = filterUserActionableMealPlans(groupMealPlans, now);
 
-    // 3. Consolidate ingredients case-insensitively
-    const itemsMap = new Map<string, { name: string; category: string }>();
-
-    for (const plan of mealPlans) {
-      for (const ing of plan.ingredients) {
-        const cleanName = ing.ingredientName.trim();
-        if (!cleanName) continue;
-
-        const key = cleanName.toLowerCase();
-        
-        // Resolve category from Ingredient, or FoodItem, or fallback to 'Other'
-        let category = ing.category || ing.foodItem?.category || 'Other';
-        category = this.standardizeCategory(category);
-
-        if (!itemsMap.has(key)) {
-          // Capitalize first letters of name for premium output formatting
-          const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-          itemsMap.set(key, {
-            name: formattedName,
-            category,
-          });
-        }
-      }
-    }
-
-    const uniqueIngredients = Array.from(itemsMap.values());
+    // 3. Consolidate normalized quantities while keeping incompatible units
+    // separate rather than inventing conversions.
+    const uniqueIngredients = aggregateGroceryIngredients(
+      mealPlans.flatMap((plan) => plan.ingredients.map((ingredient) => ({
+        ingredientName: ingredient.ingredientName,
+        category: this.standardizeCategory(
+          ingredient.category || ingredient.foodItem?.category || 'Other'
+        ),
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+      })))
+    );
 
     if (uniqueIngredients.length === 0) {
       throw new Error('The active meal plan has no ingredients listed.');
     }
 
     // 4. Atomically delete old lists and insert the new grocery list within a Prisma transaction
+    const previousList = await prisma.groceryList.findFirst({
+      where: { userId },
+      orderBy: { generatedAt: 'desc' },
+      include: { groceryItems: true },
+    });
+    const previousState = new Map(
+      (previousList?.groceryItems || []).map((item) => [
+        groceryItemKey(item.ingredientName, item.unit),
+        { isChecked: item.isChecked, isPantryStaple: item.isPantryStaple },
+      ])
+    );
+
     const groceryList = await prisma.$transaction(async (tx) => {
       // Delete existing grocery lists (cascade deletes items)
       await tx.groceryList.deleteMany({
@@ -94,9 +96,13 @@ export class GroceryService {
           weekLabel: 'Weekly Plan Grocery List',
           groceryItems: {
             create: uniqueIngredients.map((item) => ({
-              ingredientName: item.name,
+              ingredientName: item.ingredientName,
               category: item.category,
-              isChecked: false,
+              quantity: item.quantity,
+              unit: item.unit,
+              sourceMealCount: item.sourceMealCount,
+              isChecked: previousState.get(item.key)?.isChecked ?? false,
+              isPantryStaple: previousState.get(item.key)?.isPantryStaple ?? false,
             })),
           },
         },
@@ -154,6 +160,18 @@ export class GroceryService {
     });
 
     return updated;
+  }
+
+  static async togglePantryStaple(userId: string, itemId: string) {
+    const item = await prisma.groceryItem.findFirst({
+      where: { id: itemId, groceryList: { userId } },
+    });
+    if (!item) throw new Error('Grocery item not found or does not belong to user.');
+
+    return prisma.groceryItem.update({
+      where: { id: itemId },
+      data: { isPantryStaple: !item.isPantryStaple },
+    });
   }
 
   /**

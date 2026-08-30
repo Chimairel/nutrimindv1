@@ -137,28 +137,31 @@ enum PlanType {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
-  id                      String    @id @default(cuid())
-  name                    String
-  email                   String    @unique
-  passwordHash            String
-  role                    Role      @default(USER)
-  emailVerified           Boolean   @default(false)
-  emailVerificationToken  String?
-  emailVerificationExpiry DateTime?
+  id                              String    @id @default(cuid())
+  name                            String
+  email                           String    @unique
+  passwordHash                    String
+  role                            Role      @default(USER)
+  emailVerified                   Boolean   @default(false)
+  emailVerificationToken          String?
+  emailVerificationExpiry         DateTime?
   emailVerificationFailedAttempts Int       @default(0)
   emailVerificationLockedUntil    DateTime?
   emailVerificationLastSentAt     DateTime?
-  passwordResetToken      String?
-  passwordResetExpiry     DateTime?
-  tosAccepted             Boolean   @default(false)
-  tosAcceptedAt           DateTime?
-  acceptedTermsVersion    String?
-  acceptedPrivacyVersion  String?
-  healthDataConsentedAt   DateTime?
-  onboardingDone          Boolean   @default(false)
-  image                   String?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  passwordResetToken              String?
+  passwordResetExpiry             DateTime?
+  tosAccepted                     Boolean   @default(false)
+  tosAcceptedAt                   DateTime?
+  acceptedTermsVersion            String?
+  acceptedPrivacyVersion          String?
+  healthDataConsentedAt           DateTime?
+  onboardingDone                  Boolean   @default(false)
+  image                           String?
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+  isSuspended                     Boolean   @default(false)
+  suspendedAt                     DateTime?
+  suspensionReason                String?   @db.VarChar(240)
 
   // Relations
   accounts                  Account[]
@@ -167,15 +170,21 @@ model User {
   healthConditions          HealthCondition[]
   allergies                 Allergy[]
   nutritionReport           NutritionReport?
-  nutritionistProfile       NutritionistProfile?  @relation("UserToNutritionistProfile")
-  nutritionistVerifications NutritionistProfile[] @relation("AdminVerifier")
-  mealPlans                 MealPlan[]            @relation("UserMealPlans")
+  nutritionistProfile       NutritionistProfile?    @relation("UserToNutritionistProfile")
+  nutritionistVerifications NutritionistProfile[]   @relation("AdminVerifier")
+  mealPlans                 MealPlan[]              @relation("UserMealPlans")
   mealLogs                  MealLog[]
   weightLogs                WeightLog[]
   dailyNutritionLogs        DailyNutritionLog[]
   groceryLists              GroceryList[]
   notifications             Notification[]
   planSwapTrackers          PlanSwapTracker[]
+  mealPlanGenerationJobs    MealPlanGenerationJob[]
+  weeklyCheckins            WeeklyCheckin[]
+  healthProfileRevisions    HealthProfileRevision[]
+  auditEvents               AuditEvent[]
+  outsideMealPreviews       OutsideMealPreview[]
+  waterLogs                 WaterLog[]
 }
 
 model Account {
@@ -216,6 +225,7 @@ model UserProfile {
   otherConditions    String? // Free-text custom health conditions (e.g., "Gout, Celiac")
   otherAllergies     String? // Free-text custom food allergies (e.g., "Soy, Sesame")
   shoppingDayGroup   ShoppingDayGroup? // Determines weekly plan cycle anchor day
+  shoppingDayOfWeek  Int? // 0=Sunday ... 6=Saturday; cycle starts the following day
   lastCheckinAt      DateTime?
   checkinStreak      Int                @default(0)
   updatedAt          DateTime           @updatedAt
@@ -272,9 +282,11 @@ model NutritionistProfile {
   // Relations
   mealPlansReviewed   MealPlan[]
   verifiedMeals       MealLibrary[]
-  safetyReviewedMeals MealLibrary[]     @relation("MealLibrarySafetyReviewer")
-  submittedFlags      MealLibraryFlag[] @relation("SubmittedFlags")
-  claimedPlans        MealPlan[]        @relation("ClaimedPlans")
+  safetyReviewedMeals MealLibrary[]             @relation("MealLibrarySafetyReviewer")
+  safetyReviewEvents  MealLibrarySafetyReview[] @relation("MealLibrarySafetyReviewActor")
+  submittedFlags      MealLibraryFlag[]         @relation("SubmittedFlags")
+  claimedPlans        MealPlan[]                @relation("ClaimedPlans")
+  firstApprovedPlans  MealPlan[]                @relation("FirstMealPlanApproval")
 }
 
 model FoodItem {
@@ -299,8 +311,9 @@ model FoodItem {
   source    String  @default("FNRI")
 
   // Relations
-  aliases         FoodAlias[]
-  mealIngredients MealIngredient[]
+  aliases            FoodAlias[]
+  mealIngredients    MealIngredient[]
+  libraryIngredients MealLibraryIngredient[]
 }
 
 model FoodAlias {
@@ -312,31 +325,38 @@ model FoodAlias {
 }
 
 model MealPlan {
-  id                      String               @id @default(cuid())
-  planGroupId             String
-  userId                  String
-  user                    User                 @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
-  nutritionistId          String?
-  nutritionist            NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
-  libraryMealId           String?
-  libraryMeal             MealLibrary?         @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
-  status                  MealPlanStatus       @default(PENDING_REVIEW)
-  mealType                MealType
-  mealName                String
-  description             String?              @db.Text
-  calories                Float
-  proteinG                Float
-  carbsG                  Float
-  fatG                    Float
-  aiConfidenceFlag        AIConfidenceFlag     @default(SAFE)
-  planType                PlanType             @default(WEEKLY)
-  nutritionistNote        String?              @db.Text
-  scheduledDate           DateTime
-  reviewedAt              DateTime?
-  createdAt               DateTime             @default(now())
-  claimedByNutritionistId String?
-  claimedByNutritionist   NutritionistProfile? @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
-  claimedAt               DateTime?
+  id                            String               @id @default(cuid())
+  planGroupId                   String
+  userId                        String
+  user                          User                 @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
+  nutritionistId                String?
+  nutritionist                  NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
+  libraryMealId                 String?
+  libraryMeal                   MealLibrary?         @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
+  status                        MealPlanStatus       @default(PENDING_REVIEW)
+  mealType                      MealType
+  mealName                      String
+  description                   String?              @db.Text
+  calories                      Float
+  proteinG                      Float
+  carbsG                        Float
+  fatG                          Float
+  aiConfidenceFlag              AIConfidenceFlag     @default(SAFE)
+  planType                      PlanType             @default(WEEKLY)
+  nutritionistNote              String?              @db.Text
+  scheduledDate                 DateTime
+  reviewedAt                    DateTime?
+  createdAt                     DateTime             @default(now())
+  claimedByNutritionistId       String?
+  claimedByNutritionist         NutritionistProfile? @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
+  claimedAt                     DateTime?
+  requiresSafetyRevalidation    Boolean              @default(true)
+  safetyPolicyVersion           String?              @db.VarChar(64)
+  highRiskReviewRequired        Boolean              @default(false)
+  reviewApprovalCount           Int                  @default(0)
+  firstApprovedByNutritionistId String?
+  firstApprovedByNutritionist   NutritionistProfile? @relation("FirstMealPlanApproval", fields: [firstApprovedByNutritionistId], references: [id], onDelete: Restrict)
+  firstApprovedAt               DateTime?
 
   // Relations
   ingredients MealIngredient[]
@@ -377,11 +397,68 @@ model MealLibrary {
   updatedAt                      DateTime                          @default(now()) @updatedAt
 
   // Relations
-  mealPlans MealPlan[]        @relation("PlanLibraryMeal")
-  flags     MealLibraryFlag[] @relation("MealFlags")
+  mealPlans          MealPlan[]                     @relation("PlanLibraryMeal")
+  flags              MealLibraryFlag[]              @relation("MealFlags")
+  ingredients        MealLibraryIngredient[]
+  safetyDeclarations MealLibrarySafetyDeclaration[]
+  safetyReviews      MealLibrarySafetyReview[]
 
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
+}
+
+model MealLibraryIngredient {
+  id             String                         @id @default(cuid())
+  mealLibraryId  String
+  mealLibrary    MealLibrary                    @relation(fields: [mealLibraryId], references: [id], onDelete: Cascade)
+  foodItemId     String?
+  foodItem       FoodItem?                      @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  position       Int
+  ingredientName String                         @db.VarChar(180)
+  category       String?                        @db.VarChar(80)
+  dataSource     MealIngredientDataSource
+  quantity       Float?
+  unit           String?                        @db.VarChar(32)
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @default(now()) @updatedAt
+  declarations   MealLibrarySafetyDeclaration[]
+
+  @@unique([mealLibraryId, position])
+  @@index([mealLibraryId])
+  @@index([foodItemId])
+}
+
+model MealLibrarySafetyDeclaration {
+  id                      String                           @id @default(cuid())
+  mealLibraryId           String
+  mealLibrary             MealLibrary                      @relation(fields: [mealLibraryId], references: [id], onDelete: Cascade)
+  mealLibraryIngredientId String?
+  mealLibraryIngredient   MealLibraryIngredient?           @relation(fields: [mealLibraryIngredientId], references: [id], onDelete: Restrict)
+  declarationType         MealLibrarySafetyDeclarationType
+  canonicalKey            String?                          @db.VarChar(64)
+  customKey               String?                          @db.VarChar(120)
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @default(now()) @updatedAt
+
+  @@index([mealLibraryId])
+  @@index([mealLibraryIngredientId])
+}
+
+model MealLibrarySafetyReview {
+  id                    String                         @id @default(cuid())
+  mealLibraryId         String
+  mealLibrary           MealLibrary                    @relation(fields: [mealLibraryId], references: [id], onDelete: Restrict)
+  nutritionistProfileId String?
+  nutritionistProfile   NutritionistProfile?           @relation("MealLibrarySafetyReviewActor", fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  outcome               MealLibrarySafetyReviewOutcome
+  evidenceRevision      Int
+  policyVersion         String?                        @db.VarChar(64)
+  reasonCode            String?                        @db.VarChar(64)
+  evidenceSnapshot      Json
+  createdAt             DateTime                       @default(now())
+
+  @@index([mealLibraryId, createdAt])
+  @@index([nutritionistProfileId])
 }
 
 model MealIngredient {
@@ -393,13 +470,15 @@ model MealIngredient {
   ingredientName String
   category       String?
   dataSource     MealIngredientDataSource @default(FNRI)
+  quantity       Float?
+  unit           String?                  @db.VarChar(32)
 }
 
 model MealLog {
   id                  String            @id @default(cuid())
   userId              String
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mealPlanId          String?
+  mealPlanId          String?           @unique
   mealPlan            MealPlan?         @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
   source              MealLogSource
   mealName            String
@@ -436,6 +515,8 @@ model DailyNutritionLog {
   totalFatG      Float
   targetCalories Float
   adherencePct   Float
+
+  @@unique([userId, logDate])
 }
 
 model GroceryList {
@@ -450,12 +531,16 @@ model GroceryList {
 }
 
 model GroceryItem {
-  id             String      @id @default(cuid())
-  groceryListId  String
-  groceryList    GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
-  ingredientName String
-  category       String?
-  isChecked      Boolean     @default(false)
+  id              String      @id @default(cuid())
+  groceryListId   String
+  groceryList     GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
+  ingredientName  String
+  category        String?
+  isChecked       Boolean     @default(false)
+  quantity        Float?
+  unit            String?     @db.VarChar(32)
+  sourceMealCount Int         @default(1)
+  isPantryStaple  Boolean     @default(false)
 }
 
 model Notification {
@@ -472,6 +557,7 @@ model Notification {
 enum MealLibraryStatus {
   APPROVED
   FLAGGED
+  ARCHIVED
 }
 
 enum MealLibrarySafetyEvidenceStatus {
@@ -496,6 +582,18 @@ enum MealLibraryCrossContactAssessment {
   NOT_ASSESSED
   ASSESSED_NO_KNOWN_RISK
   RISK_IDENTIFIED
+}
+
+enum MealLibrarySafetyDeclarationType {
+  ALLERGEN_PRESENT
+  ALLERGEN_REVIEWED_ABSENT
+  CONDITION_REVIEWED
+}
+
+enum MealLibrarySafetyReviewOutcome {
+  DRAFT_CREATED
+  CERTIFIED
+  INVALIDATED
 }
 
 enum FlagStatus {
@@ -524,6 +622,138 @@ model PlanSwapTracker {
   swapsUsed   Int       @default(0)
   updatedAt   DateTime  @updatedAt
   swapLogs    SwapLog[]
+}
+
+model MealPlanGenerationJob {
+  id             String                      @id @default(cuid())
+  userId         String
+  user           User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType       PlanType
+  cycleStartDate DateTime
+  status         MealPlanGenerationJobStatus @default(GENERATING)
+  planGroupId    String?
+  attempts       Int                         @default(1)
+  lastErrorCode  String?                     @db.VarChar(64)
+  progressPct    Int                         @default(0)
+  stageCode      String                      @default("QUEUED") @db.VarChar(64)
+  stageMessage   String?                     @db.VarChar(180)
+  startedAt      DateTime                    @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @default(now()) @updatedAt
+
+  @@unique([userId, planType, cycleStartDate])
+  @@index([status, updatedAt])
+}
+
+model WeeklyCheckin {
+  id                     String                @id @default(cuid())
+  userId                 String
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycleStartDate         DateTime
+  changed                Boolean
+  submittedWeightKg      Float?
+  submittedGoal          Goal?
+  submittedActivityLevel ActivityLevel?
+  weightTrendKg          Float?
+  averageAdherencePct    Float?
+  observationDays        Int                   @default(0)
+  adaptationState        WeeklyAdaptationState
+  profileSnapshot        Json
+  createdAt              DateTime              @default(now())
+
+  @@unique([userId, cycleStartDate])
+  @@index([adaptationState, createdAt])
+}
+
+model HealthProfileRevision {
+  id           String                    @id @default(cuid())
+  userId       String
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revisionType HealthProfileRevisionType
+  snapshot     Json
+  createdAt    DateTime                  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AiUsageEvent {
+  id        String        @id @default(cuid())
+  provider  String        @db.VarChar(32)
+  model     String?       @db.VarChar(80)
+  status    AiUsageStatus
+  attempts  Int
+  latencyMs Int
+  errorCode String?       @db.VarChar(64)
+  createdAt DateTime      @default(now())
+
+  @@index([createdAt, status])
+}
+
+enum MealPlanGenerationJobStatus {
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+enum WeeklyAdaptationState {
+  INSUFFICIENT_DATA
+  ON_TRACK
+  LOW_ADHERENCE
+  REVIEW_RECOMMENDED
+}
+
+enum HealthProfileRevisionType {
+  BODY_DIET_UPDATED
+  CONDITIONS_UPDATED
+  ALLERGIES_UPDATED
+}
+
+enum AiUsageStatus {
+  SUCCESS
+  FAILED
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorUser   User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String   @db.VarChar(80)
+  entityType  String   @db.VarChar(80)
+  entityId    String?  @db.VarChar(191)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+}
+
+model OutsideMealPreview {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealName   String    @db.VarChar(180)
+  mealType   MealType
+  estimate   Json
+  warnings   Json
+  reasons    Json
+  notes      String?   @db.Text
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model WaterLog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountMl Int
+  loggedAt DateTime @default(now())
+
+  @@index([userId, loggedAt])
 }
 
 model SwapLog {

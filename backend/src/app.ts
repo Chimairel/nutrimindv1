@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { apiLimiter } from '@/middleware/rateLimiter';
 import { verifyEmailTransporter } from '@/lib/email';
+import prisma from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 // Import Routers
 import authRouter from '@/routes/auth.routes';
@@ -18,6 +20,7 @@ import cronRouter from '@/routes/cron.routes';
 
 // Initialize Express app
 const app = express();
+if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
 
 const configuredCorsOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '')
   .split(',')
@@ -32,6 +35,22 @@ const allowedCorsOrigins = configuredCorsOrigins.length > 0
 
 // Apply security and global middleware
 app.use(helmet());
+app.use((req, res, next) => {
+  const requestId = req.header('x-request-id')?.slice(0, 100) || randomUUID();
+  res.setHeader('x-request-id', requestId);
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    console.log(JSON.stringify({
+      type: 'http_request',
+      requestId,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    }));
+  });
+  next();
+});
 app.use(
   cors({
     origin(origin, callback) {
@@ -46,12 +65,15 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 app.use('/api', apiLimiter); // Global API rate limit
 
-// Verify email transporter on startup (non-blocking)
-verifyEmailTransporter();
+// SMTP verification is an explicit startup check because it opens an external
+// connection. Email delivery remains available even when this check is disabled.
+if (process.env.SMTP_VERIFY_ON_STARTUP === 'true') {
+  void verifyEmailTransporter();
+}
 
 // Mount API Routers
 app.use('/api/auth', authRouter);
@@ -70,6 +92,15 @@ app.get('/health', (req: Request, res: Response) => {
     success: true,
     message: 'NutriMind API is running',
   });
+});
+
+app.get('/ready', async (_req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return res.status(200).json({ success: true, message: 'NutriMind API is ready' });
+  } catch {
+    return res.status(503).json({ success: false, message: 'NutriMind API is not ready' });
+  }
 });
 
 export default app;

@@ -67,4 +67,35 @@ router.patch('/nutritionists/:id/verify', async (req: AuthenticatedRequest, res:
   }
 });
 
+router.patch('/users/:id/suspension', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { suspended, reason } = req.body as { suspended?: unknown; reason?: unknown };
+    if (typeof suspended !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'suspended must be a boolean.' });
+    }
+    if (reason !== undefined && typeof reason !== 'string') {
+      return res.status(400).json({ success: false, error: 'reason must be a string.' });
+    }
+    const result = await AdminService.setUserSuspension(
+      req.user!.userId,
+      req.params.id,
+      suspended,
+      typeof reason === 'string' ? reason.slice(0, 240) : undefined
+    );
+    return res.json({ success: true, data: result });
+  } catch (error: unknown) {
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update account status.') });
+  }
+});
+
+router.get('/audit-events', async (req: AuthenticatedRequest, res: Response) => {
+  const data = await AdminService.getAuditEvents(Number(req.query.page) || 1, Number(req.query.limit) || 50);
+  return res.json({ success: true, data });
+});
+
+router.get('/safety-incidents', async (_req: AuthenticatedRequest, res: Response) => {
+  const data = await AdminService.getSafetyIncidents();
+  return res.json({ success: true, data });
+});
+
 export default router;

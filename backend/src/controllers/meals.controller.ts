@@ -70,6 +70,16 @@ export class MealsController {
     }
   }
 
+  static async getGenerationStatus(req: AuthenticatedRequest, res: Response) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized.' });
+    }
+
+    const job = await MealGenerationService.getLatestGenerationStatus(userId);
+    return res.status(200).json({ success: true, data: job });
+  }
+
   /**
    * GET /api/user/meals/current
    * Returns current active plan meals grouped by date.
@@ -345,7 +355,7 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { mealName, mealType, warningAcknowledged, notes } = req.body;
+      const { mealName, mealType, warningAcknowledged, confirmationId, notes } = req.body;
       if (!mealName || !mealType) {
         return res.status(400).json({ success: false, error: 'Missing mealName or mealType parameters.' });
       }
@@ -355,6 +365,7 @@ export class MealsController {
         mealName,
         mealType,
         warningAcknowledged,
+        confirmationId,
         notes,
       });
 
@@ -400,26 +411,14 @@ export class MealsController {
 
       assertUserActionableMealPlan(mealPlan);
 
-      // Check if a MealLog record already exists for this scheduled item
-      const existingLog = await prisma.mealLog.findFirst({
-        where: { userId, mealPlanId },
-      });
-
-      let updatedLog;
-      if (existingLog) {
-        // Update existing status
-        updatedLog = await prisma.mealLog.update({
-          where: { id: existingLog.id },
-          data: {
-            status: status as MealLogStatus,
-            source: MealLogSource.SYSTEM_GENERATED,
-            loggedAt: new Date(), // Keep timestamps sync with active check mark
-          },
-        });
-      } else {
-        // Create new log linked to this meal plan
-        updatedLog = await prisma.mealLog.create({
-          data: {
+      const updatedLog = await prisma.mealLog.upsert({
+        where: { mealPlanId },
+        update: {
+          status: status as MealLogStatus,
+          source: MealLogSource.SYSTEM_GENERATED,
+          loggedAt: new Date(),
+        },
+        create: {
             userId,
             mealPlanId,
             source: MealLogSource.SYSTEM_GENERATED,
@@ -433,9 +432,8 @@ export class MealsController {
             warningType: null,
             warningShown: false,
             warningAcknowledged: false,
-          },
-        });
-      }
+        },
+      });
 
       return res.status(200).json({
         success: true,

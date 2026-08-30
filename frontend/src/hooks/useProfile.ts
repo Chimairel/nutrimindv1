@@ -28,6 +28,7 @@ export interface UserProfileData {
     otherConditions?: string;
     otherAllergies?: string;
     shoppingDayGroup?: string;
+    shoppingDayOfWeek?: number;
     lastCheckinAt?: string;
     checkinStreak?: number;
   } | null;

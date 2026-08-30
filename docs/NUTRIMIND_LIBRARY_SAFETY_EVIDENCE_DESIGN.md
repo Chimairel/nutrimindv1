@@ -1,6 +1,6 @@
 # NutriMind Meal-Library Safety Evidence and Provenance Design
 
-Status: Cleanup Batch 4B4 lifecycle foundation implemented and migrated; certification writes, APIs, frontend, first-class evidence, review history, and adapter eligibility remain unimplemented
+Status: First-class source implementation and owner-command migration deployment completed on August 30, 2026; runtime integration and clinical acceptance remain pending
 
 Date: August 20, 2026
 
@@ -10,7 +10,7 @@ Related evidence: `docs/NUTRIMIND_RESTRICTION_POLICY_DESIGN.md`, ADR-008/009, RE
 
 ## 1. Purpose and hard boundary
 
-This document defines the minimum authoritative evidence contract a nutritionist-approved `MealLibrary` record would need before the Batch 4B2 generation adapter may consider it automatically eligible. It is a technical provenance and workflow design, not a medical rule set, clinical validation, or certification of any existing meal.
+This document defines the minimum authoritative evidence contract a nutritionist-approved `MealLibrary` record needs before the generation adapter may consider it automatically eligible. It is a technical provenance and workflow design, not a medical rule set, clinical validation, or certification of any existing meal.
 
 Batch 4B3 made documentation changes only. It did not modify production or test source, Prisma schema, migrations, database records, frontend, APIs, dependencies, configuration, credentials, generated output, tracked inventory, historical guidance, branches, or Git history. The Batch 4B2 behavior remains intact: legacy rows lack explicit complete evidence, evaluate to review, and continue through the existing unmatched-slot fallback.
 
@@ -422,3 +422,13 @@ Privacy-safe before/after snapshots matched for 6 users, 1 nutritionist profile,
 Compatibility remains conservative. New required columns have database defaults; reviewer/timestamp/version/invalidation columns are nullable; existing production source and API/frontend files were not changed. Current approval/library creation can continue without supplying certification fields and produces an incomplete nutritionist draft. Batch 4B2 still receives no authoritative `safetyEvidence` mapping, so legacy/incomplete rows remain ineligible and fall back. Prisma client generation was not required by this no-consumer batch and was attempted but could not replace the Windows query-engine binary because of an operating-system `EPERM`; schema validation, deployed-schema diff, backend tests, and both package type checks passed independently. A later API batch must regenerate the client and use explicit response selection before exposing any new field.
 
 Recovery is forward-only by default: keep the additive columns if application checks fail, disable any future consumer, and issue a separately reviewed corrective migration. Do not reset, drop columns/types, rewrite migration history, or delete data without separate authorization. TEST-030, CHG-20260820-02, and DOC-016 contain the execution evidence. UNC-015 is resolved for this bounded migration; first-class evidence persistence, immutable review history, certification authorization/writes, invalidation events, serializers/UI, and adapter eligibility remain future work.
+
+## 14. August 30 first-class implementation update
+
+The owner later authorized the broader production-readiness implementation. Source now includes `MealLibraryIngredient`, `MealLibrarySafetyDeclaration`, and `MealLibrarySafetyReview`, plus soft archival and a strict certification endpoint. Approval creates an incomplete draft with a stable ingredient snapshot; it does not treat one user's restrictions as reusable safety declarations. A currently verified nutritionist with an unexpired license may certify only the current exact revision, only when every stable ingredient is FNRI-linked, both declaration domains are explicitly reviewed, and cross-contact is recorded as assessed with no known risk. Certification and its audit snapshot are transactional.
+
+Material edits and flags stale current evidence. Dismissing a flag does not silently restore certification, and deletion is implemented as archival so review evidence remains auditable. Generation reads only first-class library evidence, verifies the reviewer and supported policy version at use time, applies the deterministic user-specific restriction adapter, and falls back to Gemini for every legacy, incomplete, stale, malformed, unsupported, or conflicting candidate. Known conditions remain review-only because no licensed-RND medical compatibility rules have been approved.
+
+The nutritionist library UI exposes operational status separately from evidence status and provides an explicit evidence-review form with non-universal-safety wording. Strict request schemas bound review, edit, flag, resolution, and certification payloads. Synthetic policy tests cover conservative eligibility and claim/credential behavior.
+
+The additive migration source is `backend/prisma/migrations/20260830110000_add_meal_library_safety_evidence/migration.sql`. On August 30 the owner ran `npx.cmd prisma migrate deploy` from the backend and supplied terminal evidence that Prisma found 12 migrations, applied this exact migration, and reported all migrations successfully applied. The SQL contains no application-row backfill or certification operation, so no existing library row was made complete or certified by deployment. Managed Codex post-deployment queries remain blocked by the previously recorded Windows TLS credential error; runtime/API/database integration and licensed clinical wording/rule review remain mandatory before production acceptance. Sections 2, 10, 12, and 13 above preserve the historical findings and staged plan that led to this implementation; where they say later layers are unimplemented, this section is the superseding current status.

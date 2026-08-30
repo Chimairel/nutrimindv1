@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { FoodItem } from '@prisma/client';
+import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
 
 export interface LookupResult {
   food: Partial<FoodItem>;
@@ -10,9 +11,8 @@ export interface LookupResult {
 /**
  * Executes the 4-step ingredient lookup chain:
  * 1. Exact Match (Case-insensitive check on FoodItem.name)
- * 2. Alias Match (Checks traditional synonyms in FoodAlias)
- * 3. Fuzzy Match (Checks if FoodItem.name contains the search term. 
- *    If found, registers a new FoodAlias to speed up future runs)
+ * 2. Alias Match (accepts only a strong lexical target; legacy auto-aliases are untrusted)
+ * 3. Strong lexical candidate match (never auto-registers an alias)
  * 4. Gemini Estimation (AI fallback estimation per 100g serving)
  * 
  * @param ingredientName The search term typed or requested
@@ -56,7 +56,10 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
     },
   });
 
-  if (aliasMatch && aliasMatch.foodItem) {
+  if (
+    aliasMatch?.foodItem
+    && selectStrongFNRIMatch(cleanName, [aliasMatch.foodItem])
+  ) {
     console.log(`[FNRI Lookup] Alias match resolved to "${aliasMatch.foodItem.name}" for search term: "${cleanName}"`);
     return {
       food: aliasMatch.foodItem,
@@ -64,32 +67,34 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
     };
   }
 
-  // --- Step 3: Fuzzy Match (Contains) ---
-  console.log(`[FNRI Lookup] Step 3: Searching fuzzy matches (contains) for: "${cleanName}"`);
-  const fuzzyMatch = await prisma.foodItem.findFirst({
+  if (aliasMatch?.foodItem) {
+    console.warn(
+      `[FNRI Lookup] Ignoring unsafe alias target "${aliasMatch.foodItem.name}" for "${cleanName}".`,
+    );
+  }
+
+  // --- Step 3: Strong lexical candidate match ---
+  // Search by the longest normalized token, then require every query token and
+  // reject processed/specialty expansions that were not requested.
+  const lookupToken = normalizeFoodName(cleanName)
+    .split(' ')
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length)[0];
+  console.log(`[FNRI Lookup] Step 3: Searching strong lexical candidates for: "${cleanName}"`);
+  const fuzzyCandidates = lookupToken ? await prisma.foodItem.findMany({
     where: {
       name: {
-        contains: cleanName,
+        contains: lookupToken,
         mode: 'insensitive',
       },
     },
-  });
+    take: 50,
+    orderBy: { name: 'asc' },
+  }) : [];
+  const fuzzyMatch = selectStrongFNRIMatch(cleanName, fuzzyCandidates);
 
   if (fuzzyMatch) {
-    console.log(`[FNRI Lookup] Fuzzy match resolved to "${fuzzyMatch.name}". Registering alias mapping...`);
-    
-    // Auto-register search term as an alias so future lookups hit Step 2
-    try {
-      await prisma.foodAlias.create({
-        data: {
-          foodItemId: fuzzyMatch.id,
-          alias: cleanName.toLowerCase(),
-        },
-      });
-    } catch (aliasErr) {
-      console.warn(`[FNRI Lookup] Non-blocking alias registration warning:`, aliasErr);
-    }
-
+    console.log(`[FNRI Lookup] Strong lexical match resolved to "${fuzzyMatch.name}".`);
     return {
       food: fuzzyMatch,
       source: 'FNRI',
@@ -124,20 +129,20 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
     `- Return only the raw JSON object. Do not include markdown code block wraps.`;
 
   try {
-    const estimated = await generateGenerativeJSON<any>(prompt, systemInstruction);
+    const estimated = await generateGenerativeJSON<Record<string, unknown>>(prompt, systemInstruction);
     
     const formattedFood: Partial<FoodItem> = {
-      name: estimated.name || cleanName,
-      calories: parseFloat(estimated.calories || 0),
-      proteinG: parseFloat(estimated.proteinG || 0),
-      carbsG: parseFloat(estimated.carbsG || 0),
-      fatG: parseFloat(estimated.fatG || 0),
-      fiber: estimated.fiber !== null ? parseFloat(estimated.fiber || 0) : null,
-      sodium: estimated.sodium !== null ? parseFloat(estimated.sodium || 0) : null,
-      potassium: estimated.potassium !== null ? parseFloat(estimated.potassium || 0) : null,
-      calcium: estimated.calcium !== null ? parseFloat(estimated.calcium || 0) : null,
-      iron: estimated.iron !== null ? parseFloat(estimated.iron || 0) : null,
-      water: estimated.water !== null ? parseFloat(estimated.water || 0) : null,
+      name: typeof estimated.name === 'string' ? estimated.name : cleanName,
+      calories: Number(estimated.calories || 0),
+      proteinG: Number(estimated.proteinG || 0),
+      carbsG: Number(estimated.carbsG || 0),
+      fatG: Number(estimated.fatG || 0),
+      fiber: estimated.fiber !== null ? Number(estimated.fiber || 0) : null,
+      sodium: estimated.sodium !== null ? Number(estimated.sodium || 0) : null,
+      potassium: estimated.potassium !== null ? Number(estimated.potassium || 0) : null,
+      calcium: estimated.calcium !== null ? Number(estimated.calcium || 0) : null,
+      iron: estimated.iron !== null ? Number(estimated.iron || 0) : null,
+      water: estimated.water !== null ? Number(estimated.water || 0) : null,
       source: 'GEMINI_ESTIMATED',
     };
 
@@ -147,7 +152,7 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
       food: formattedFood,
       source: 'ESTIMATED',
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`[FNRI Lookup] Step 4 Gemini estimation failed:`, err);
     throw new Error(`Failed to resolve food item "${cleanName}" through database or AI estimation.`);
   }

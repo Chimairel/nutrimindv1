@@ -1,9 +1,5 @@
 import prisma from '@/lib/prisma';
-import { 
-  MealType, 
-  HealthConditionType, 
-  AllergenType
-} from '@prisma/client';
+import { MealLibrarySafetyEvidenceStatus, MealType } from '@prisma/client';
 import { GroceryService } from './grocery.service';
 import {
   assertUserActionableMealPlan,
@@ -14,6 +10,69 @@ import {
   getOwnedMealPlanWhere,
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
+import {
+  evaluateMealLibrarySafetyEvidence,
+} from '@/domain/meal-library-safety-evidence.policy';
+import {
+  evaluateMealGenerationLibraryCompatibility,
+} from '@/domain/meal-generation-library-compatibility.adapter';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+
+export const certifiedLibraryMealInclude = {
+  ingredients: { orderBy: { position: 'asc' as const } },
+  safetyDeclarations: true,
+  safetyReviewedByNutritionist: {
+    include: { user: { select: { role: true } } },
+  },
+  verifiedByNutritionist: {
+    include: { user: { select: { name: true } } },
+  },
+} as const;
+
+export type UserCompatibilityProfile = {
+  dietaryPreference: string | null;
+  goal: string | null;
+  otherConditions: string | null;
+  otherAllergies: string | null;
+};
+
+export function isCertifiedLibraryMealCompatible(
+  meal: any,
+  userConditions: readonly string[],
+  userAllergens: readonly string[],
+  profile: UserCompatibilityProfile
+): boolean {
+  const safety = evaluateMealLibrarySafetyEvidence({
+    ...meal,
+    reviewerEligible: meal.safetyReviewedByNutritionist
+      ? isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
+      : false,
+  });
+  if (!safety.complete) return false;
+
+  const compatibility = evaluateMealGenerationLibraryCompatibility({
+    userRestrictions: {
+      conditions: userConditions,
+      allergies: userAllergens,
+      customConditions: profile.otherConditions || '',
+      customAllergies: profile.otherAllergies || '',
+    },
+    candidate: {
+      status: meal.status,
+      suitableConditions: safety.suitableConditions,
+      allergenFree: safety.allergenFree,
+      safetyEvidence: safety.adapterEvidence,
+      ingredients: safety.ingredients,
+    },
+  });
+  if (!compatibility.eligible) return false;
+
+  const tags = Array.isArray(meal.dietaryTags) ? meal.dietaryTags : [];
+  if (profile.dietaryPreference && !tags.includes(profile.dietaryPreference)) return false;
+  if (profile.goal && !tags.includes(profile.goal)) return false;
+  return true;
+}
 
 export class MealSwapService {
   /**
@@ -80,53 +139,16 @@ export class MealSwapService {
     const libraryMeals = await prisma.mealLibrary.findMany({
       where: {
         mealType: mealPlan.mealType,
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
         ...getApprovedMealLibraryWhere(),
       },
-      include: {
-        verifiedByNutritionist: {
-          include: {
-            user: {
-              select: { name: true },
-            },
-          },
-        },
-      },
+      include: certifiedLibraryMealInclude,
     });
 
-    // 5. Filter library meals in-memory to match profile constraints
-    const eligibleMeals = libraryMeals.filter((meal) => {
-      // a. Check health conditions compatibility
-      if (meal.suitableConditions) {
-        const conditions = meal.suitableConditions as string[];
-        const hasUnsuitableCondition = userConditions.some(
-          (c) => c !== HealthConditionType.NONE && !conditions.includes(c)
-        );
-        if (hasUnsuitableCondition) return false;
-      }
-
-      // b. Check allergen exclusions
-      if (meal.allergenFree) {
-        const freeFrom = meal.allergenFree as string[];
-        const hasAllergenConflict = userAllergens.some(
-          (a) => a !== AllergenType.NONE && !freeFrom.includes(a)
-        );
-        if (hasAllergenConflict) return false;
-      }
-
-      // c. Check dietary preferences matching
-      if (userProfile.dietaryPreference && meal.dietaryTags) {
-        const tags = meal.dietaryTags as string[];
-        if (!tags.includes(userProfile.dietaryPreference)) return false;
-      }
-
-      // d. Check goal matching
-      if (userProfile.goal && meal.dietaryTags) {
-        const tags = meal.dietaryTags as string[];
-        if (!tags.includes(userProfile.goal)) return false;
-      }
-
-      return true;
-    });
+    // 5. Only first-class, current, independently reviewed evidence can authorize a swap.
+    const eligibleMeals = libraryMeals.filter((meal) =>
+      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, userProfile)
+    );
 
     return {
       swapOptions: eligibleMeals.map((m) => ({
@@ -160,10 +182,25 @@ export class MealSwapService {
     // 2. Fetch the proposed replacement library meal
     const libraryMeal = await prisma.mealLibrary.findUnique({
       where: { id: libraryMealId },
+      include: certifiedLibraryMealInclude,
     });
     if (!libraryMeal) throw new Error('Library meal not found.');
     if (!isApprovedMealLibraryStatus(libraryMeal.status)) {
       throw new Error('Selected replacement meal is not available or approved.');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { userProfile: true, healthConditions: true, allergies: true },
+    });
+    if (!user?.userProfile) throw new Error('User profile not found.');
+    if (!isCertifiedLibraryMealCompatible(
+      libraryMeal,
+      user.healthConditions.map((item) => item.condition),
+      user.allergies.map((item) => item.allergen),
+      user.userProfile
+    )) {
+      throw new Error('Selected replacement meal is not certified for your current health profile.');
     }
 
     // 3. Fetch all meals on the same day in the same planGroup
@@ -288,6 +325,7 @@ export class MealSwapService {
       // 4. Fetch and verify replacement meal
       const libraryMeal = await tx.mealLibrary.findUnique({
         where: { id: newLibraryMealId },
+        include: certifiedLibraryMealInclude,
       });
 
       if (!libraryMeal || !isApprovedMealLibraryStatus(libraryMeal.status)) {
@@ -298,39 +336,13 @@ export class MealSwapService {
         throw new Error('Selected replacement meal type does not match slot meal type.');
       }
 
-      // Validate compatibility with profile constraints
-      if (libraryMeal.suitableConditions) {
-        const conditions = libraryMeal.suitableConditions as string[];
-        const hasUnsuitableCondition = userConditions.some(
-          (c) => c !== HealthConditionType.NONE && !conditions.includes(c)
-        );
-        if (hasUnsuitableCondition) {
-          throw new Error('Selected meal is incompatible with your health profile.');
-        }
-      }
-
-      if (libraryMeal.allergenFree) {
-        const freeFrom = libraryMeal.allergenFree as string[];
-        const hasAllergenConflict = userAllergens.some(
-          (a) => a !== AllergenType.NONE && !freeFrom.includes(a)
-        );
-        if (hasAllergenConflict) {
-          throw new Error('Selected meal contains ingredients conflicting with your allergies.');
-        }
-      }
-
-      if (userProfile.dietaryPreference && libraryMeal.dietaryTags) {
-        const tags = libraryMeal.dietaryTags as string[];
-        if (!tags.includes(userProfile.dietaryPreference)) {
-          throw new Error('Selected meal does not match your dietary preference.');
-        }
-      }
-
-      if (userProfile.goal && libraryMeal.dietaryTags) {
-        const tags = libraryMeal.dietaryTags as string[];
-        if (!tags.includes(userProfile.goal)) {
-          throw new Error('Selected meal does not match your active fitness goal.');
-        }
+      if (!isCertifiedLibraryMealCompatible(
+        libraryMeal,
+        userConditions,
+        userAllergens,
+        userProfile
+      )) {
+        throw new Error('Selected meal is not certified for your current health profile.');
       }
 
       // 5. Update MealPlan row details
@@ -344,31 +356,29 @@ export class MealSwapService {
           carbsG: libraryMeal.carbsG,
           fatG: libraryMeal.fatG,
           libraryMealId: libraryMeal.id,
+          status: 'APPROVED',
+          requiresSafetyRevalidation: false,
+          safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+          highRiskReviewRequired: false,
+          reviewApprovalCount: 1,
+          nutritionistId: libraryMeal.verifiedByNutritionistId,
+          reviewedAt: new Date(),
         },
       });
 
-      // 6. Delete old ingredients and clone ingredients from an approved historical plan referencing libraryMeal
+      // 6. Copy the certified first-class library ingredients, including quantities.
       await tx.mealIngredient.deleteMany({
         where: { mealPlanId },
       });
 
-      // Find an approved MealPlan with ingredients linked to this libraryMeal
-      const originalPlan = await tx.mealPlan.findFirst({
-        where: {
-          libraryMealId: libraryMeal.id,
-          ...getApprovedMealPlanStatusWhere(),
-        },
-        include: {
-          ingredients: true,
-        },
-      });
-
-      const ingredientsData = originalPlan?.ingredients.map((ing) => ({
+      const ingredientsData = libraryMeal.ingredients.map((ing) => ({
         ingredientName: ing.ingredientName,
         category: ing.category,
         foodItemId: ing.foodItemId,
         dataSource: ing.dataSource,
-      })) || [];
+        quantity: ing.quantity,
+        unit: ing.unit,
+      }));
 
       if (ingredientsData.length > 0) {
         await tx.mealIngredient.createMany({
@@ -378,6 +388,8 @@ export class MealSwapService {
             category: ing.category,
             foodItemId: ing.foodItemId,
             dataSource: ing.dataSource,
+            quantity: ing.quantity,
+            unit: ing.unit,
           })),
         });
       }
@@ -414,8 +426,19 @@ export class MealSwapService {
       });
 
       // 8c. Create MealLog with USER_SWAPPED source
-      await tx.mealLog.create({
-        data: {
+      await tx.mealLog.upsert({
+        where: { mealPlanId },
+        update: {
+          source: 'USER_SWAPPED',
+          mealName: libraryMeal.mealName,
+          calories: libraryMeal.calories,
+          proteinG: libraryMeal.proteinG,
+          carbsG: libraryMeal.carbsG,
+          fatG: libraryMeal.fatG,
+          dataSource: 'FNRI',
+          status: 'PENDING',
+        },
+        create: {
           userId,
           mealPlanId,
           source: 'USER_SWAPPED',
@@ -548,6 +571,7 @@ export class MealSwapService {
     const libraryMeals = await prisma.mealLibrary.findMany({
       where: {
         ...getApprovedMealLibraryWhere(),
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
         ...(mealType ? { mealType } : {}),
         ...(search ? {
           mealName: {
@@ -556,51 +580,13 @@ export class MealSwapService {
           },
         } : {}),
       },
-      include: {
-        verifiedByNutritionist: {
-          include: {
-            user: {
-              select: { name: true },
-            },
-          },
-        },
-      },
+      include: certifiedLibraryMealInclude,
     });
 
-    // 3. Filter in-memory to match profile constraints
-    const eligibleMeals = libraryMeals.filter((meal) => {
-      // a. Check health conditions compatibility
-      if (meal.suitableConditions) {
-        const conditions = meal.suitableConditions as string[];
-        const hasUnsuitableCondition = userConditions.some(
-          (c) => c !== HealthConditionType.NONE && !conditions.includes(c)
-        );
-        if (hasUnsuitableCondition) return false;
-      }
-
-      // b. Check allergen exclusions
-      if (meal.allergenFree) {
-        const freeFrom = meal.allergenFree as string[];
-        const hasAllergenConflict = userAllergens.some(
-          (a) => a !== AllergenType.NONE && !freeFrom.includes(a)
-        );
-        if (hasAllergenConflict) return false;
-      }
-
-      // c. Check dietary preferences matching
-      if (userProfile.dietaryPreference && meal.dietaryTags) {
-        const tags = meal.dietaryTags as string[];
-        if (!tags.includes(userProfile.dietaryPreference)) return false;
-      }
-
-      // d. Check goal matching
-      if (userProfile.goal && meal.dietaryTags) {
-        const tags = meal.dietaryTags as string[];
-        if (!tags.includes(userProfile.goal)) return false;
-      }
-
-      return true;
-    });
+    // 3. Fail closed unless evidence is current, complete, and compatible.
+    const eligibleMeals = libraryMeals.filter((meal) =>
+      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, userProfile)
+    );
 
     return eligibleMeals.map((m) => ({
       id: m.id,

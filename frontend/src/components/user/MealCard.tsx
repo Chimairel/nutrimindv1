@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { MealType, MealPlanStatus, AIConfidenceFlag } from '@/types';
 import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw } from 'lucide-react';
+import type { LucideProps } from 'lucide-react';
 
 interface Ingredient {
   id: string;
@@ -105,7 +106,7 @@ export default function MealCard({
     }
   };
 
-  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<any> }> = {
+  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<LucideProps> }> = {
     BREAKFAST: { label: 'Breakfast', icon: Coffee },
     LUNCH: { label: 'Lunch', icon: Sun },
     DINNER: { label: 'Dinner', icon: Moon },

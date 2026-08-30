@@ -20,6 +20,7 @@ import { MealPlan, MealType } from '@/types';
 import axios from 'axios';
 import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils, Droplets, Flame, Scale, Clock3, Sparkles } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
+import type { UserProfileData } from '@/hooks/useProfile';
 
 
 export default function DashboardPage() {
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationElapsedSeconds, setGenerationElapsedSeconds] = useState(0);
+  const [generationStageMessage, setGenerationStageMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<{
     mealCount: number;
@@ -77,6 +79,7 @@ export default function DashboardPage() {
 
   // Warning Pre-check State
   const [warningData, setWarningData] = useState<{
+    confirmationId: string;
     warnings: string[];
     reasons: string[];
     estimate: { calories: number; proteinG: number; carbsG: number; fatG: number };
@@ -87,7 +90,7 @@ export default function DashboardPage() {
   const [checkinInfo, setCheckinInfo] = useState<{ isDue: boolean; streak: number; lastCheckinAt: string | null } | null>(null);
   
   // User Profile details
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(null);
 
   // Water intake state
   const [waterIntake, setWaterIntake] = useState(0);
@@ -104,18 +107,28 @@ export default function DashboardPage() {
     }
   };
 
-  // Sync water intake from localStorage on client-side mount
+  // Hydration is persisted by the backend using the Manila business day.
   useEffect(() => {
-    const savedWater = localStorage.getItem('nutrimind_water_intake');
-    if (savedWater) {
-      setWaterIntake(parseInt(savedWater, 10));
-    }
-  }, []);
+    if (!user) return;
+    void api.get('/user/water/today').then((response) => {
+      if (response.data?.success) setWaterIntake(response.data.data.totalMl || 0);
+    }).catch(() => undefined);
+  }, [user]);
 
-  const handleAddWater = (amount: number) => {
+  const handleAddWater = async (amount: number) => {
     const nextWater = Math.max(0, waterIntake + amount);
     setWaterIntake(nextWater);
-    localStorage.setItem('nutrimind_water_intake', String(nextWater));
+    try {
+      if (amount > 0) {
+        const response = await api.post('/user/water', { amountMl: amount });
+        setWaterIntake(response.data?.data?.totalMl ?? nextWater);
+      } else {
+        const response = await api.post('/user/water/remove', { amountMl: Math.abs(amount) });
+        setWaterIntake(response.data?.data?.totalMl ?? nextWater);
+      }
+    } catch {
+      setWaterIntake((current) => Math.max(0, current - amount));
+    }
   };
 
   // Load active plan meals
@@ -211,28 +224,29 @@ export default function DashboardPage() {
     if (!isGenerating) return;
 
     const startedAt = Date.now();
-    const updateEstimatedProgress = () => {
+    let pollInFlight = false;
+    const updateServerProgress = async () => {
       const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
       setGenerationElapsedSeconds(elapsedSeconds);
-
-      let estimatedProgress: number;
-      if (elapsedSeconds <= 15) {
-        estimatedProgress = 5 + (elapsedSeconds / 15) * 20;
-      } else if (elapsedSeconds <= 40) {
-        estimatedProgress = 25 + ((elapsedSeconds - 15) / 25) * 30;
-      } else if (elapsedSeconds <= 70) {
-        estimatedProgress = 55 + ((elapsedSeconds - 40) / 30) * 23;
-      } else if (elapsedSeconds <= 100) {
-        estimatedProgress = 78 + ((elapsedSeconds - 70) / 30) * 12;
-      } else {
-        estimatedProgress = Math.min(94, 90 + ((elapsedSeconds - 100) / 60) * 4);
+      if (pollInFlight) return;
+      pollInFlight = true;
+      try {
+        const response = await api.get('/user/meals/generation-status');
+        const job = response.data?.data;
+        if (job) {
+          setGenerationProgress(job.progressPct ?? 0);
+          setGenerationStageMessage(job.stageMessage ?? null);
+        }
+      } catch {
+        // The generation request remains authoritative; a transient status poll
+        // failure must not cancel it or fabricate progress.
+      } finally {
+        pollInFlight = false;
       }
-
-      setGenerationProgress((current) => current >= 100 ? current : Math.round(estimatedProgress));
     };
 
-    updateEstimatedProgress();
-    const interval = window.setInterval(updateEstimatedProgress, 500);
+    void updateServerProgress();
+    const interval = window.setInterval(() => void updateServerProgress(), 1000);
     return () => window.clearInterval(interval);
   }, [isGenerating]);
 
@@ -242,6 +256,7 @@ export default function DashboardPage() {
 
     generationRequestInFlight.current = true;
     setGenerationProgress(5);
+    setGenerationStageMessage('Preparing your nutrition profile.');
     setGenerationElapsedSeconds(0);
     setIsGenerating(true);
     setError(null);
@@ -249,6 +264,7 @@ export default function DashboardPage() {
       const res = await api.post('/user/meals/generate');
       if (res.data && res.data.success) {
         setGenerationProgress(100);
+        setGenerationStageMessage('Your plan is ready for review.');
         await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
         setCurrentMeals(res.data.data.meals);
         setPendingReview(res.data.data.pendingReview ?? null);
@@ -274,6 +290,7 @@ export default function DashboardPage() {
         mealName: logMealName.trim(),
         mealType: logMealType,
         warningAcknowledged: forceAcknowledge,
+        confirmationId: forceAcknowledge ? warningData?.confirmationId : undefined,
         notes: logNotes.trim(),
       });
 
@@ -282,6 +299,7 @@ export default function DashboardPage() {
         if (payload.warningRequired) {
           // Warning detected: trigger conflict view
           setWarningData({
+            confirmationId: payload.confirmationId,
             warnings: payload.warnings,
             reasons: payload.reasons,
             estimate: payload.estimate,
@@ -359,6 +377,7 @@ export default function DashboardPage() {
       <MealPlanGenerationProgress
         progress={generationProgress}
         elapsedSeconds={generationElapsedSeconds}
+        stageMessage={generationStageMessage}
       />
     );
   }

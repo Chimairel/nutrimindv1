@@ -34,5 +34,6 @@ router.get('/pdf', GroceryController.downloadGroceryPdf);
  * Description: Toggles checked status of a grocery item.
  */
 router.patch('/items/:id/toggle', GroceryController.toggleItem);
+router.patch('/items/:id/pantry', GroceryController.togglePantry);
 
 export default router;

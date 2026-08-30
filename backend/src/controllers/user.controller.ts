@@ -272,7 +272,7 @@ export class UserController {
 
   /**
    * POST /api/user/nutrition-report/generate
-   * Generates custom mock report.
+   * Generates the user's persisted nutrition report.
    */
   static async generateReport(req: AuthenticatedRequest, res: Response) {
     try {

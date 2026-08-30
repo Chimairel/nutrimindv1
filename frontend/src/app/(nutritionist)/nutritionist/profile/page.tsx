@@ -113,7 +113,7 @@ export default function NutritionistProfilePage() {
             onChange={(e) => setBio(e.target.value)}
             className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
             rows={4}
-            placeholder="Tell patients about yourself..."
+            placeholder="Summarize your clinical expertise and review focus..."
           />
         </div>
         <Button variant="primary" onClick={handleSave} isLoading={saving} className="text-xs">

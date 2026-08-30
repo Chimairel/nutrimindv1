@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import api from '@/lib/axios';
-import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { 
@@ -16,8 +16,8 @@ import {
   Plus, 
   Eye,
   RefreshCw,
-  Heart,
   ShieldAlert,
+  ShieldCheck,
   Info
 } from 'lucide-react';
 
@@ -32,13 +32,16 @@ interface QueueItem {
   aiConfidenceFlag: string;
   description?: string;
   scheduledDate: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string };
   ingredients: { ingredientName: string; dataSource: string }[];
   claimStatus: {
     claimedByMe: boolean;
     claimedByOther: boolean;
     claimedByName: string | null;
   };
+  highRiskReviewRequired: boolean;
+  reviewApprovalCount: number;
+  requiresIndependentSecondReview: boolean;
 }
 
 interface DetailData {
@@ -83,7 +86,27 @@ interface DetailData {
     claimedByOther: boolean;
     claimedByName: string | null;
   };
+  highRiskReviewRequired: boolean;
+  reviewApprovalCount: number;
+  requiresIndependentSecondReview: boolean;
 }
+
+interface ReviewPayload {
+  action: 'approve';
+  note?: string;
+  updates?: {
+    mealName: string;
+    description: string;
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    ingredients: { name: string; category: string; dataSource: 'FNRI' | 'GEMINI_ESTIMATED' }[];
+  };
+}
+
+const getApiError = (error: unknown, fallback: string) =>
+  axios.isAxiosError(error) ? error.response?.data?.error || fallback : fallback;
 
 export default function ReviewsPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -154,9 +177,9 @@ export default function ReviewsPage() {
       if (res.data?.success) {
         setDetailData(res.data.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch card details:', err);
-      setErrorMsg(err.response?.data?.error || 'Failed to load meal card details.');
+      setErrorMsg(getApiError(err, 'Failed to load meal card details.'));
     } finally {
       setDetailLoading(false);
     }
@@ -168,7 +191,7 @@ export default function ReviewsPage() {
     setErrorMsg(null);
 
     try {
-      const payload: any = {
+      const payload: ReviewPayload = {
         action: 'approve',
         note: generalNote.trim() || undefined,
       };
@@ -190,9 +213,9 @@ export default function ReviewsPage() {
       setSelectedMealId(null);
       setDetailData(null);
       setIsEditing(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Approve failed:', err);
-      setErrorMsg(err.response?.data?.error || 'Approval failed. Please refresh the queue.');
+      setErrorMsg(getApiError(err, 'Approval failed. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }
@@ -213,9 +236,9 @@ export default function ReviewsPage() {
       setDetailData(null);
       setShowRejectForm(false);
       setRejectNote('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reject failed:', err);
-      setErrorMsg(err.response?.data?.error || 'Rejection failed. Please refresh the queue.');
+      setErrorMsg(getApiError(err, 'Rejection failed. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }
@@ -309,8 +332,13 @@ export default function ReviewsPage() {
               return (
                 <div
                   key={meal.id}
-                  onClick={() => handleSelectMeal(meal.id)}
-                  className={`cursor-pointer rounded-2xl border p-4 text-left transition ${
+                  aria-disabled={meal.claimStatus.claimedByOther}
+                  onClick={() => {
+                    if (!meal.claimStatus.claimedByOther) handleSelectMeal(meal.id);
+                  }}
+                  className={`rounded-2xl border p-4 text-left transition ${
+                    meal.claimStatus.claimedByOther ? 'cursor-not-allowed opacity-65' : 'cursor-pointer'
+                  } ${
                     isSelected
                       ? 'border-brand-green/40 bg-brand-green/[0.08] shadow-md'
                       : 'border-brand-border/70 bg-brand-surface/55 hover:-translate-y-0.5 hover:border-brand-green/25'
@@ -323,6 +351,11 @@ export default function ReviewsPage() {
                     </Badge>
                   </div>
                   <h3 className="text-sm font-bold text-brand-text truncate mb-1">{meal.mealName}</h3>
+                  {meal.highRiskReviewRequired && (
+                    <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-amber-500">
+                      {meal.requiresIndependentSecondReview ? 'Independent second review required' : 'Escalated review'}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between text-[11px] text-brand-muted">
                     <span>{meal.user.name}</span>
                     <span>{new Date(meal.scheduledDate).toLocaleDateString()}</span>
@@ -372,12 +405,19 @@ export default function ReviewsPage() {
         ) : detailData ? (
           <div className="space-y-6">
             {/* Header Lock Info Banner */}
-            {detailData.claimStatus.claimedByOther && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-xs flex items-center gap-2">
-                <Eye className="w-4 h-4 shrink-0" />
+            {detailData.claimStatus.claimedByMe && (
+              <div className="flex items-center gap-2 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
+                <ShieldCheck className="h-4 w-4 shrink-0" />
                 <span>
-                  <strong>👁️ {detailData.claimStatus.claimedByName}</strong> is currently reviewing this meal. You may still review it, but they may submit first.
+                  This review is locked to you for 30 minutes. Reopen the card if the claim expires before submission.
                 </span>
+              </div>
+            )}
+            {detailData.highRiskReviewRequired && (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                {detailData.requiresIndependentSecondReview
+                  ? 'This meal has one approval. You are performing the required independent second review.'
+                  : 'This profile requires two independent nutritionist approvals before the meal becomes actionable.'}
               </div>
             )}
 
@@ -654,7 +694,7 @@ export default function ReviewsPage() {
                   <ShieldAlert className="w-4 h-4" /> Reject Meal Plan
                 </h4>
                 <p className="text-xs text-brand-muted">
-                  Rejection triggers an immediate AI replacement query mapped against the patient's conditions and allergens. Please write a specific rejection reason.
+                  Rejection triggers an immediate AI replacement query mapped against the patient&apos;s conditions and allergens. Please write a specific rejection reason.
                 </p>
                 <textarea 
                   value={rejectNote}
@@ -696,7 +736,7 @@ export default function ReviewsPage() {
                       className="text-xs px-8 py-2.5 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                     >
                       <Check className="w-4 h-4" />
-                      <span>Save & Approve</span>
+                      <span>{detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0 ? 'Save first approval' : 'Save & Approve'}</span>
                     </Button>
                     <Button 
                       variant="secondary" 
@@ -715,7 +755,7 @@ export default function ReviewsPage() {
                       className="text-xs px-8 py-2.5 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                     >
                       <Check className="w-4 h-4" />
-                      <span>Approve</span>
+                      <span>{detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0 ? 'Submit first approval' : 'Approve'}</span>
                     </Button>
                     <Button 
                       variant="secondary" 

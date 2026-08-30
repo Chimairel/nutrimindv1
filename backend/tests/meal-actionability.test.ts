@@ -28,7 +28,7 @@ const futureSchedule = new Date('2026-08-20T16:00:00.000Z');
 const expiredSchedule = new Date('2026-08-18T16:00:00.000Z');
 
 function plan(status: unknown, scheduledDate: Date = currentSchedule) {
-  return { status, scheduledDate };
+  return { status, scheduledDate, requiresSafetyRevalidation: false };
 }
 
 test('[TEST-013] only the actual APPROVED meal-plan status is user-actionable', () => {
@@ -102,6 +102,13 @@ test('[TEST-013] planned logging accepts an approved current plan and rejects ot
   }
 });
 
+test('[TEST-058] legacy approved plans fail closed until current-policy safety revalidation', () => {
+  assert.equal(isUserActionableMealPlan({
+    ...plan(MealPlanStatus.APPROVED),
+    requiresSafetyRevalidation: true,
+  }, now), false);
+});
+
 test('[TEST-013] done and skipped mutations share the same actionability guard', () => {
   assert.throws(
     () => assertUserActionableMealPlan(plan(MealPlanStatus.PENDING_REVIEW), now),
@@ -120,6 +127,7 @@ test('[TEST-014] current-plan and grocery database filters require approval and 
   const expectedStart = new Date('2026-08-19T16:00:00.000Z');
   assert.deepEqual(getUserActionableMealPlanWhere(now), {
     status: MealPlanStatus.APPROVED,
+    requiresSafetyRevalidation: false,
     scheduledDate: { gte: expectedStart },
   });
   assert.deepEqual(getCurrentMealPlanScheduleWhere(now), {
@@ -128,6 +136,7 @@ test('[TEST-014] current-plan and grocery database filters require approval and 
   assert.deepEqual(getStartOfManilaBusinessDay(now), expectedStart);
   assert.deepEqual(getApprovedMealPlanStatusWhere(), {
     status: MealPlanStatus.APPROVED,
+    requiresSafetyRevalidation: false,
   });
 });
 
@@ -141,21 +150,21 @@ test('[TEST-013] owner-scoped lookup preserves cross-user not-found behavior', (
 test('[TEST-014] nutrition totals include outside logs and approved-plan logs only', () => {
   assert.equal(isNutritionEligibleMealLog({ mealPlan: null }), true);
   assert.equal(
-    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.APPROVED } }),
+    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } }),
     true
   );
   assert.equal(
-    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.PENDING_REVIEW } }),
+    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.PENDING_REVIEW, requiresSafetyRevalidation: false } }),
     false
   );
   assert.equal(
-    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.REJECTED } }),
+    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.REJECTED, requiresSafetyRevalidation: false } }),
     false
   );
   assert.deepEqual(getNutritionEligibleMealLogWhere(), {
     OR: [
       { mealPlanId: null },
-      { mealPlan: { status: MealPlanStatus.APPROVED } },
+      { mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } },
     ],
   });
 });

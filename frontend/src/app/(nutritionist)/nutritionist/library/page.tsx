@@ -50,27 +50,45 @@ interface LibraryMeal {
   allergenFree?: string[];
   dietaryTags?: string[];
   usageCount: number;
-  status: 'APPROVED' | 'FLAGGED';
+  status: 'APPROVED' | 'FLAGGED' | 'ARCHIVED';
+  safetyEvidenceStatus: 'INCOMPLETE' | 'COMPLETE' | 'STALE';
+  safetyEvidenceRevision: number;
+  certifiedEvidenceRevision?: number | null;
+  safetyPolicyVersion?: string | null;
+  conditionDeclarationState: 'NOT_REVIEWED' | 'REVIEWED_NONE_DECLARED' | 'REVIEWED_WITH_DECLARATIONS';
+  allergenDeclarationState: 'NOT_REVIEWED' | 'REVIEWED_NONE_DECLARED' | 'REVIEWED_WITH_DECLARATIONS';
+  crossContactAssessment: 'NOT_ASSESSED' | 'ASSESSED_NO_KNOWN_RISK' | 'RISK_IDENTIFIED';
+  safetyInvalidationReason?: string | null;
+  safetyReviewedAt?: string | null;
   addedAt: string;
   verifiedByNutritionistId: string;
   verifiedByNutritionist?: Verifier;
   flags?: Flag[];
+  ingredients?: {
+    id: string;
+    ingredientName: string;
+    category?: string | null;
+    foodItemId?: string | null;
+    dataSource: 'FNRI' | 'GEMINI_ESTIMATED';
+    position: number;
+  }[];
+  safetyReviewedByNutritionist?: { user: { name: string } } | null;
 }
 
 const AVAILABLE_CONDITIONS = [
-  { label: 'Diabetic-Safe', value: 'DIABETES' },
-  { label: 'Low-Sodium', value: 'HYPERTENSION' },
-  { label: 'Kidney-Healthy', value: 'KIDNEY_DISEASE' },
-  { label: 'Heart-Healthy', value: 'HEART_CONDITION' },
-  { label: 'Pregnancy-Safe', value: 'PREGNANT' },
+  { label: 'Diabetes reviewed', value: 'DIABETES' },
+  { label: 'Hypertension reviewed', value: 'HYPERTENSION' },
+  { label: 'Kidney disease reviewed', value: 'KIDNEY_DISEASE' },
+  { label: 'Heart condition reviewed', value: 'HEART_CONDITION' },
+  { label: 'Pregnancy reviewed', value: 'PREGNANT' },
 ];
 
 const AVAILABLE_ALLERGENS = [
-  { label: 'Shellfish-Free', value: 'SHELLFISH' },
-  { label: 'Nut-Free', value: 'NUTS' },
-  { label: 'Dairy-Free', value: 'DAIRY' },
-  { label: 'Gluten-Free', value: 'GLUTEN' },
-  { label: 'Egg-Free', value: 'EGGS' },
+  { label: 'Shellfish', value: 'SHELLFISH' },
+  { label: 'Nuts', value: 'NUTS' },
+  { label: 'Dairy', value: 'DAIRY' },
+  { label: 'Gluten', value: 'GLUTEN' },
+  { label: 'Eggs', value: 'EGGS' },
 ];
 
 const AVAILABLE_DIETS = [
@@ -101,7 +119,7 @@ export default function MealLibraryPage() {
   const [verifiedByMe, setVerifiedByMe] = useState(false);
 
   // Modal / Action States
-  const [activeModal, setActiveModal] = useState<'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | null>(null);
+  const [activeModal, setActiveModal] = useState<'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<LibraryMeal | null>(null);
   const [selectedVerifier, setSelectedVerifier] = useState<Verifier | null>(null);
   
@@ -118,6 +136,12 @@ export default function MealLibraryPage() {
     dietaryTags: [] as string[],
   });
   const [flagReason, setFlagReason] = useState('');
+  const [evidenceForm, setEvidenceForm] = useState({
+    suitableConditions: [] as string[],
+    allergensPresent: [] as string[],
+    allergensReviewedAbsent: [] as string[],
+    crossContactAcknowledged: false,
+  });
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -185,6 +209,51 @@ export default function MealLibraryPage() {
     setActiveModal('edit');
   };
 
+  const handleOpenCertification = (meal: LibraryMeal) => {
+    setSelectedMeal(meal);
+    setEvidenceForm({
+      suitableConditions: meal.suitableConditions || [],
+      allergensPresent: [],
+      allergensReviewedAbsent: meal.allergenFree || [],
+      crossContactAcknowledged: meal.crossContactAssessment === 'ASSESSED_NO_KNOWN_RISK',
+    });
+    setActionError(null);
+    setActiveModal('certify');
+  };
+
+  const handleCertificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMeal || !evidenceForm.crossContactAcknowledged) return;
+
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const allergenCount = evidenceForm.allergensPresent.length + evidenceForm.allergensReviewedAbsent.length;
+      const res = await api.post(`/nutritionist/library/${selectedMeal.id}/safety-evidence/certify`, {
+        expectedRevision: selectedMeal.safetyEvidenceRevision,
+        conditionDeclarationState: evidenceForm.suitableConditions.length > 0
+          ? 'REVIEWED_WITH_DECLARATIONS'
+          : 'REVIEWED_NONE_DECLARED',
+        allergenDeclarationState: allergenCount > 0
+          ? 'REVIEWED_WITH_DECLARATIONS'
+          : 'REVIEWED_NONE_DECLARED',
+        crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
+        suitableConditions: evidenceForm.suitableConditions,
+        allergensPresent: evidenceForm.allergensPresent,
+        allergensReviewedAbsent: evidenceForm.allergensReviewedAbsent,
+      });
+      if (res.data?.success) {
+        await fetchLibrary();
+        setActiveModal(null);
+      }
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setActionError(error.response?.data?.error || 'Failed to certify the current evidence revision.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Submit Edit Mutation
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,7 +262,15 @@ export default function MealLibraryPage() {
     setActionLoading(true);
     setActionError(null);
     try {
-      const res = await api.patch(`/nutritionist/library/${selectedMeal.id}`, editForm);
+      const res = await api.patch(`/nutritionist/library/${selectedMeal.id}`, {
+        mealName: editForm.mealName,
+        description: editForm.description,
+        calories: editForm.calories,
+        proteinG: editForm.proteinG,
+        carbsG: editForm.carbsG,
+        fatG: editForm.fatG,
+        dietaryTags: editForm.dietaryTags,
+      });
       if (res.data?.success) {
         fetchLibrary();
         setActiveModal(null);
@@ -257,7 +334,15 @@ export default function MealLibraryPage() {
     try {
       const payload = {
         resolution,
-        updatedFields: resolution === 'edit' ? editForm : undefined,
+        updatedFields: resolution === 'edit' ? {
+          mealName: editForm.mealName,
+          description: editForm.description,
+          calories: editForm.calories,
+          proteinG: editForm.proteinG,
+          carbsG: editForm.carbsG,
+          fatG: editForm.fatG,
+          dietaryTags: editForm.dietaryTags,
+        } : undefined,
       };
       const res = await api.patch(`/nutritionist/library/${selectedMeal.id}/resolve-flag`, payload);
       if (res.data?.success) {
@@ -273,30 +358,33 @@ export default function MealLibraryPage() {
   };
 
   // Helper toggle arrays
-  const handleToggleCondition = (val: string) => {
-    setEditForm(prev => ({
-      ...prev,
-      suitableConditions: prev.suitableConditions.includes(val)
-        ? prev.suitableConditions.filter(c => c !== val)
-        : [...prev.suitableConditions, val]
-    }));
-  };
-
-  const handleToggleAllergen = (val: string) => {
-    setEditForm(prev => ({
-      ...prev,
-      allergenFree: prev.allergenFree.includes(val)
-        ? prev.allergenFree.filter(a => a !== val)
-        : [...prev.allergenFree, val]
-    }));
-  };
-
   const handleToggleDiet = (val: string) => {
     setEditForm(prev => ({
       ...prev,
       dietaryTags: prev.dietaryTags.includes(val)
         ? prev.dietaryTags.filter(d => d !== val)
         : [...prev.dietaryTags, val]
+    }));
+  };
+
+  const toggleEvidenceCondition = (value: string) => {
+    setEvidenceForm((current) => ({
+      ...current,
+      suitableConditions: current.suitableConditions.includes(value)
+        ? current.suitableConditions.filter((item) => item !== value)
+        : [...current.suitableConditions, value],
+    }));
+  };
+
+  const setEvidenceAllergen = (value: string, mode: 'present' | 'absent' | 'clear') => {
+    setEvidenceForm((current) => ({
+      ...current,
+      allergensPresent: mode === 'present'
+        ? [...current.allergensPresent.filter((item) => item !== value), value]
+        : current.allergensPresent.filter((item) => item !== value),
+      allergensReviewedAbsent: mode === 'absent'
+        ? [...current.allergensReviewedAbsent.filter((item) => item !== value), value]
+        : current.allergensReviewedAbsent.filter((item) => item !== value),
     }));
   };
 
@@ -379,6 +467,7 @@ export default function MealLibraryPage() {
                 <option value="All">All Statuses</option>
                 <option value="APPROVED">Approved</option>
                 <option value="FLAGGED">Flagged</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             </div>
           </div>
@@ -417,6 +506,7 @@ export default function MealLibraryPage() {
             {meals.map((meal) => {
               const owned = isOwner(meal);
               const isFlagged = meal.status === 'FLAGGED';
+              const isArchived = meal.status === 'ARCHIVED';
               const activeFlag = meal.flags?.[0];
 
               return (
@@ -435,9 +525,24 @@ export default function MealLibraryPage() {
                       <div className="flex gap-1.5">
                         {isFlagged ? (
                           <Badge variant="pending" showIcon>Flagged</Badge>
+                        ) : isArchived ? (
+                          <Badge variant="pending" showIcon>Archived</Badge>
                         ) : (
                           <Badge variant="verified" showIcon>Approved</Badge>
                         )}
+                        <span className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${
+                          meal.safetyEvidenceStatus === 'COMPLETE'
+                            ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
+                            : meal.safetyEvidenceStatus === 'STALE'
+                              ? 'border-amber-700/50 bg-amber-950/20 text-amber-300'
+                              : 'border-brand-border/60 bg-brand-bg/60 text-brand-muted'
+                        }`}>
+                          {meal.safetyEvidenceStatus === 'COMPLETE'
+                            ? 'Evidence certified'
+                            : meal.safetyEvidenceStatus === 'STALE'
+                              ? 'Evidence stale'
+                              : 'Evidence incomplete'}
+                        </span>
                       </div>
                     </div>
 
@@ -529,7 +634,17 @@ export default function MealLibraryPage() {
                         View
                       </Button>
 
-                      {owned ? (
+                      {!isFlagged && !isArchived && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleOpenCertification(meal)}
+                          className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-brand-green"
+                        >
+                          {meal.safetyEvidenceStatus === 'COMPLETE' ? 'Re-certify' : 'Review evidence'}
+                        </Button>
+                      )}
+
+                      {owned && !isArchived ? (
                         <>
                           <Button
                             variant="secondary"
@@ -546,11 +661,11 @@ export default function MealLibraryPage() {
                             }}
                             className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-red-900/60 hover:text-red-400"
                           >
-                            Delete
+                            Archive
                           </Button>
                         </>
                       ) : (
-                        !isFlagged && (
+                        !isFlagged && !isArchived && (
                           <Button
                             variant="secondary"
                             onClick={() => {
@@ -664,6 +779,40 @@ export default function MealLibraryPage() {
               </div>
             </div>
 
+            <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase text-brand-muted">Reusable evidence</span>
+                <span className="text-xs font-bold text-brand-text">
+                  {selectedMeal.safetyEvidenceStatus} · revision {selectedMeal.safetyEvidenceRevision}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                {selectedMeal.safetyEvidenceStatus === 'COMPLETE'
+                  ? `Certified for deterministic library matching by ${selectedMeal.safetyReviewedByNutritionist?.user.name || 'qualified staff'}. User-specific restrictions are still checked every time.`
+                  : selectedMeal.safetyEvidenceStatus === 'STALE'
+                    ? `Re-review required${selectedMeal.safetyInvalidationReason ? `: ${selectedMeal.safetyInvalidationReason.replaceAll('_', ' ').toLowerCase()}` : ''}.`
+                    : 'This meal is approved for its original user, but its reusable evidence has not yet been certified.'}
+              </p>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-brand-muted uppercase">Stable ingredient evidence</span>
+              <div className="mt-2 space-y-2">
+                {(selectedMeal.ingredients || []).length === 0 ? (
+                  <p className="rounded-xl border border-amber-800/40 bg-amber-950/15 p-3 text-xs text-amber-300">
+                    No library-owned ingredient snapshot is available. This legacy entry cannot be certified automatically.
+                  </p>
+                ) : (selectedMeal.ingredients || []).map((ingredient) => (
+                  <div key={ingredient.id} className="flex items-center justify-between rounded-xl border border-brand-border/50 bg-brand-surface/50 px-3 py-2 text-xs">
+                    <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
+                    <span className={ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'text-brand-green' : 'text-amber-300'}>
+                      {ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'FNRI linked' : 'Unresolved evidence'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {selectedMeal.verifiedByNutritionist && (
               <div className="p-3 bg-brand-bg rounded-xl border border-brand-border/60">
                 <span className="text-xs font-bold text-brand-muted uppercase block mb-1">Signed & Verified By</span>
@@ -721,6 +870,132 @@ export default function MealLibraryPage() {
               </p>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Independent reusable-evidence certification */}
+      {selectedMeal && activeModal === 'certify' && (
+        <Modal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          title="Review reusable meal evidence"
+          size="lg"
+        >
+          <form onSubmit={handleCertificationSubmit} className="space-y-5">
+            {actionError && (
+              <div className="rounded-xl border border-red-900/60 bg-red-950/20 p-3 text-xs text-red-400">
+                {actionError}
+              </div>
+            )}
+
+            <div className="rounded-xl border border-brand-green/25 bg-brand-green/5 p-4 text-xs leading-relaxed text-brand-muted">
+              This review applies only to revision <strong className="text-brand-text">{selectedMeal.safetyEvidenceRevision}</strong> of
+              {' '}<strong className="text-brand-text">{selectedMeal.mealName}</strong>. It does not label the meal universally safe.
+              NutriMind will still compare each user&apos;s current restrictions before reuse.
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-xs font-bold uppercase text-brand-muted">Library-owned ingredients</span>
+                <span className="text-[10px] font-bold uppercase text-brand-muted">
+                  {(selectedMeal.ingredients || []).length} recorded
+                </span>
+              </div>
+              <div className="space-y-2">
+                {(selectedMeal.ingredients || []).length === 0 ? (
+                  <div className="rounded-xl border border-amber-800/50 bg-amber-950/20 p-3 text-xs text-amber-300">
+                    This legacy meal has no stable ingredient snapshot and cannot be certified. Recreate it through a reviewed meal plan first.
+                  </div>
+                ) : (selectedMeal.ingredients || []).map((ingredient) => (
+                  <div key={ingredient.id} className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2 text-xs">
+                    <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
+                    <span className={ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'text-brand-green' : 'text-amber-300'}>
+                      {ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'FNRI linked' : 'Blocks certification'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Condition review scope</span>
+              <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
+                Record only conditions you explicitly considered. Condition-tagged reuse remains professional-review gated until NutriMind has approved condition-specific rules.
+              </p>
+              <div className="grid grid-cols-1 gap-2 rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 sm:grid-cols-2">
+                {AVAILABLE_CONDITIONS.map((condition) => (
+                  <label key={condition.value} className="flex cursor-pointer items-center gap-2 text-xs text-brand-text">
+                    <input
+                      type="checkbox"
+                      checked={evidenceForm.suitableConditions.includes(condition.value)}
+                      onChange={() => toggleEvidenceCondition(condition.value)}
+                      className="rounded border-brand-border bg-brand-bg text-brand-green focus:ring-brand-green"
+                    />
+                    {condition.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Allergen declarations</span>
+              <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
+                Choose Present, Reviewed absent, or Not declared for every canonical allergen. Reviewed absent describes this evidence review only; it is not laboratory or manufacturing certification.
+              </p>
+              <div className="space-y-2">
+                {AVAILABLE_ALLERGENS.map((allergen) => {
+                  const mode = evidenceForm.allergensPresent.includes(allergen.value)
+                    ? 'present'
+                    : evidenceForm.allergensReviewedAbsent.includes(allergen.value)
+                      ? 'absent'
+                      : 'clear';
+                  return (
+                    <div key={allergen.value} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2">
+                      <span className="text-xs font-semibold text-brand-text">{allergen.label}</span>
+                      <select
+                        value={mode}
+                        onChange={(event) => setEvidenceAllergen(allergen.value, event.target.value as 'present' | 'absent' | 'clear')}
+                        className="rounded-lg border border-brand-border bg-brand-surface px-2 py-1.5 text-xs text-brand-text outline-none focus:border-brand-green"
+                      >
+                        <option value="clear">Not declared</option>
+                        <option value="present">Present</option>
+                        <option value="absent">Reviewed absent</option>
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-brand-border/60 bg-brand-surface/60 p-4">
+              <input
+                type="checkbox"
+                checked={evidenceForm.crossContactAcknowledged}
+                onChange={(event) => setEvidenceForm((current) => ({ ...current, crossContactAcknowledged: event.target.checked }))}
+                className="mt-0.5 rounded border-brand-border bg-brand-bg text-brand-green focus:ring-brand-green"
+              />
+              <span className="text-xs leading-relaxed text-brand-muted">
+                I assessed the documented preparation information and found no known cross-contact risk in the evidence reviewed. This is not a guarantee about every kitchen or manufacturer.
+              </span>
+            </label>
+
+            <div className="flex items-center justify-end gap-3 border-t border-brand-border pt-4">
+              <Button variant="secondary" type="button" onClick={() => setActiveModal(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  actionLoading ||
+                  !evidenceForm.crossContactAcknowledged ||
+                  (selectedMeal.ingredients || []).length === 0 ||
+                  (selectedMeal.ingredients || []).some((ingredient) => ingredient.dataSource !== 'FNRI' || !ingredient.foodItemId)
+                }
+              >
+                {actionLoading ? 'Certifying...' : 'Certify this revision'}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
 
@@ -791,38 +1066,8 @@ export default function MealLibraryPage() {
 
             {/* Checkboxes lists */}
             <div className="space-y-3 pt-2">
-              <div>
-                <span className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Suitable Health Conditions</span>
-                <div className="grid grid-cols-2 gap-2 p-3 bg-brand-bg rounded-xl border border-brand-border/60">
-                  {AVAILABLE_CONDITIONS.map(c => (
-                    <label key={c.value} className="flex items-center gap-2 cursor-pointer text-xs text-brand-text">
-                      <input
-                        type="checkbox"
-                        checked={editForm.suitableConditions.includes(c.value)}
-                        onChange={() => handleToggleCondition(c.value)}
-                        className="rounded text-brand-green bg-brand-bg border-brand-border focus:ring-brand-green"
-                      />
-                      {c.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Allergen Exclusions</span>
-                <div className="grid grid-cols-2 gap-2 p-3 bg-brand-bg rounded-xl border border-brand-border/60">
-                  {AVAILABLE_ALLERGENS.map(a => (
-                    <label key={a.value} className="flex items-center gap-2 cursor-pointer text-xs text-brand-text">
-                      <input
-                        type="checkbox"
-                        checked={editForm.allergenFree.includes(a.value)}
-                        onChange={() => handleToggleAllergen(a.value)}
-                        className="rounded text-brand-green bg-brand-bg border-brand-border focus:ring-brand-green"
-                      />
-                      {a.label}
-                    </label>
-                  ))}
-                </div>
+              <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 text-[11px] leading-relaxed text-brand-muted">
+                Condition and allergen declarations are controlled in <strong className="text-brand-text">Review evidence</strong>. Editing meal content invalidates any current certification and never silently changes clinical declarations.
               </div>
 
               <div>
@@ -890,7 +1135,7 @@ export default function MealLibraryPage() {
         <Modal
           isOpen={true}
           onClose={() => setActiveModal(null)}
-          title={selectedMeal.status === 'FLAGGED' ? 'Resolve Flag: Delete Meal' : 'Delete Library Meal'}
+          title={selectedMeal.status === 'FLAGGED' ? 'Resolve Flag: Archive Meal' : 'Archive Library Meal'}
           size="md"
         >
           <div className="space-y-4">
@@ -901,8 +1146,7 @@ export default function MealLibraryPage() {
             )}
 
             <p className="text-sm text-brand-muted leading-relaxed">
-              Are you sure you want to delete the meal <span className="font-bold text-brand-text">&quot;{selectedMeal.mealName}&quot;</span>? 
-              This action is permanent and will completely remove this meal entry from the verified library database.
+              Archive <span className="font-bold text-brand-text">&quot;{selectedMeal.mealName}&quot;</span>? It will immediately stop appearing in user matching while its review history remains available for audit.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-brand-border">
@@ -917,7 +1161,7 @@ export default function MealLibraryPage() {
                 disabled={actionLoading}
                 className="bg-red-900 hover:bg-red-800 text-brand-text border-transparent"
               >
-                {actionLoading ? 'Deleting...' : selectedMeal.status === 'FLAGGED' ? 'Resolve: Remove Meal' : 'Delete Permanently'}
+                {actionLoading ? 'Archiving...' : selectedMeal.status === 'FLAGGED' ? 'Resolve: Archive Meal' : 'Archive Meal'}
               </Button>
             </div>
           </div>

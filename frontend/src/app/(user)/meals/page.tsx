@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -31,10 +30,21 @@ interface SwapOption {
   prcLicenseNumber: string;
 }
 
+interface MealHistoryLog {
+  id: string;
+  loggedAt: string;
+  mealName: string;
+  source: 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED';
+  status: string;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  calorieDelta?: number | null;
+}
+
 export default function WeeklyPlanPage() {
   const { user } = useAuth();
-  const router = useRouter();
-  
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'history' | 'library'>('plan');
 
@@ -76,7 +86,7 @@ export default function WeeklyPlanPage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   // History Tab states
-  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [historyLogs, setHistoryLogs] = useState<MealHistoryLog[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
@@ -120,11 +130,11 @@ export default function WeeklyPlanPage() {
     }
   };
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setIsHistoryLoading(true);
     setHistoryError(null);
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (historySearch) params.search = historySearch;
       if (historySource !== 'All') params.source = historySource;
       if (historyStatus !== 'All') params.status = historyStatus;
@@ -142,13 +152,13 @@ export default function WeeklyPlanPage() {
     } finally {
       setIsHistoryLoading(false);
     }
-  };
+  }, [historySearch, historySource, historyStatus]);
 
-  const fetchLibrary = async () => {
+  const fetchLibrary = useCallback(async () => {
     setIsLibraryLoading(true);
     setLibraryError(null);
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (libraryMealType !== 'All') params.mealType = libraryMealType;
       if (librarySearch) params.search = librarySearch;
 
@@ -165,7 +175,7 @@ export default function WeeklyPlanPage() {
     } finally {
       setIsLibraryLoading(false);
     }
-  };
+  }, [libraryMealType, librarySearch]);
 
   useEffect(() => {
     if (user) {
@@ -203,7 +213,7 @@ export default function WeeklyPlanPage() {
         fetchLibrary();
       }
     }
-  }, [user, activeTab, historySource, historyStatus, libraryMealType]);
+  }, [user, activeTab, fetchHistory, fetchLibrary]);
 
   // Load swaps count once meals are fetched
   useEffect(() => {
@@ -462,7 +472,7 @@ export default function WeeklyPlanPage() {
   };
 
   const groupHistoryByDate = () => {
-    const grouped: Record<string, any[]> = {};
+    const grouped: Record<string, MealHistoryLog[]> = {};
     historyLogs.forEach((log) => {
       const dateKey = getManilaDateKey(log.loggedAt);
       if (!grouped[dateKey]) {
@@ -902,7 +912,7 @@ export default function WeeklyPlanPage() {
                 <FileText className="w-8 h-8 text-brand-green mx-auto mb-2" />
                 <p className="text-sm text-brand-text font-semibold">No Meal Logs Found</p>
                 <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-                  You haven't logged any meals matching the selected filters yet.
+                  You haven&apos;t logged any meals matching the selected filters yet.
                 </p>
               </div>
             ) : (

@@ -25,9 +25,9 @@ export interface MealGenerationLibraryCandidateEvidence {
   suitableConditions?: unknown;
   allergenFree?: unknown;
   /**
-   * Explicit structured completeness/allergen evidence. The current
-   * MealLibrary schema has no equivalent field, so production legacy rows do
-   * not supply it and conservatively evaluate to REVIEW.
+   * Explicit structured completeness/allergen evidence mapped from the
+   * first-class MealLibrary safety models. Legacy and uncertified rows do not
+   * supply complete evidence and conservatively evaluate to REVIEW.
    */
   safetyEvidence?: unknown;
   ingredients?: unknown;

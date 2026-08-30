@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
@@ -17,6 +17,7 @@ import {
   X, 
   AlertCircle 
 } from 'lucide-react';
+import type { LucideProps } from 'lucide-react';
 import axios from 'axios';
 import { MealType, MealPlanStatus } from '@/types';
 
@@ -56,7 +57,7 @@ export default function MealDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMealDetails = async () => {
+  const fetchMealDetails = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -73,13 +74,13 @@ export default function MealDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [mealId]);
 
   useEffect(() => {
     if (mealId) {
       fetchMealDetails();
     }
-  }, [mealId]);
+  }, [mealId, fetchMealDetails]);
 
   const handleUpdateStatus = async (newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
     if (isUpdating || !meal) return;
@@ -148,7 +149,7 @@ export default function MealDetailPage() {
     (!meal.mealLogs.some((l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')) && isPastDate);
   const isLogged = isCompleted || isSkipped;
 
-  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<any> }> = {
+  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<LucideProps> }> = {
     BREAKFAST: { label: 'Breakfast', icon: Coffee },
     LUNCH: { label: 'Lunch', icon: Sun },
     DINNER: { label: 'Dinner', icon: Moon },

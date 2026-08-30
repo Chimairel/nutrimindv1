@@ -1,21 +1,25 @@
 # NutriMind
 
-NutriMind is a Filipino-focused nutrition and meal-planning capstone application with separate user, nutritionist, and administrator experiences.
+NutriMind is a Philippines-focused nutrition and meal-planning capstone application with separate user, internal nutritionist, and administrator experiences. Its plans mix accessible general meals, Filipino food, locally available international food, and appropriate convenience options instead of restricting users to Filipino dishes.
 
 > **Current evidence source:** [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) is the canonical record for implemented behavior, verification level, accepted decisions, known defects, and risks. Older prompts, addenda, handoff notes, and system references are historical or aspirational unless the engineering record confirms their claims.
 
+Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODUCTION_OPERATIONS_RUNBOOK.md). Public production startup remains gated on the qualified sign-off recorded in [`docs/CLINICAL_POLICY_APPROVAL.md`](docs/CLINICAL_POLICY_APPROVAL.md).
+
 ## Current verification status
 
-The repository contains substantial frontend and backend implementation. As of August 30, 2026:
+The repository contains substantial frontend and backend implementation. As of August 31, 2026:
 
 - Backend TypeScript no-emit check and production build: **passed**
 - Frontend TypeScript no-emit check and production build: **passed**
 - Prisma schema validation: **passed**
-- Frontend lint: **passed with warnings**
-- Backend deterministic unit/policy baseline: **107 passed, 0 failed; 4 critical-behavior specifications remain TODO**
-- API/database integration and E2E tests: **not present**
+- Frontend lint: **passed with zero warnings**
+- Backend deterministic unit/policy baseline: **138 pass, 0 fail, 1 external-clinical TODO**
+- Controlled API/database integration smoke suite: **passed against the configured PostgreSQL database**
+- Authenticated browser smoke coverage: **passed for user, nutritionist, and administrator route groups**
 - Repository CI configuration: **present; remote execution is not established by local evidence**
-- Runtime, deployment, and external-service verification: **not established by current repository evidence**
+- All 14 additive database migrations: **deployed; Prisma reports the database schema up to date**
+- Controlled production integration and local readiness/load smokes: **passed**
 - Clinical review: **not established**
 
 Use these status terms: Planned, Designed, Partially implemented, Implemented but unverified, Statically verified, Integration tested, End-to-end tested, Deployed, and Clinically reviewed.
@@ -34,7 +38,7 @@ Next.js 14 frontend
 
 Authentication uses custom short-lived access JWTs and refresh JWT cookies. The project does not use NextAuth, and the Express backend must not be merged into Next.js without a separately approved architecture change.
 
-Business-date behavior is intended to use `Asia/Manila`. Existing server-local date behavior has not yet been fully migrated or tested against that decision.
+Weekly plan-cycle and shopping-day behavior uses `Asia/Manila`. Some older daily logging/aggregation paths still use server-local date operations and remain tracked for hardening.
 
 ## Repository layout
 
@@ -74,10 +78,13 @@ From the repository root:
 Set-Location backend
 npm install
 npx prisma generate
+npx prisma migrate deploy
 npm run dev
 ```
 
 The development server defaults to `http://localhost:5000`; `GET /health` is the basic health endpoint.
+
+Run `npx prisma migrate deploy` whenever the repository contains an unapplied migration. Do not start a source version that queries new models against an older database schema.
 
 Before startup, create `backend/.env` from the available example and supply the required values. The example does not contain every currently used variable, so use the name inventory below.
 
@@ -151,6 +158,7 @@ Only names and purposes are documented. No real values are included.
 | `SMTP_USER` | Email delivery | SMTP account username |
 | `SMTP_PASS` | Email delivery | SMTP account password or app password |
 | `EMAIL_FROM` | Optional sender override | From address; falls back to `SMTP_USER`, then a placeholder |
+| `SMTP_VERIFY_ON_STARTUP` | Optional startup diagnostics | Set to `true` only when API startup should open an SMTP connection; defaults to disabled |
 
 ### Frontend: `frontend/.env.local`
 
@@ -161,6 +169,10 @@ Only names and purposes are documented. No real values are included.
 
 Values prefixed with `NEXT_PUBLIC_` are exposed to browser code and must never contain secrets.
 
+### Scheduled jobs
+
+Call `POST /api/cron/daily-checkin` once per day for daily nutrition aggregates and `POST /api/cron/weekly-plan-preparation` once per day for upcoming meal plans. Both require `Authorization: Bearer <CRON_SECRET>`. The weekly scheduler evaluates each user's exact grocery-shopping day in `Asia/Manila`, prepares the next cycle three days ahead, catches up a missed run within the preparation window, and relies on a durable per-user/per-cycle generation key to prevent duplicate plans. The two older shopping-group weekly endpoints remain compatibility wrappers only and should not be configured for new deployments.
+
 ## Available verification commands
 
 These checks passed during the August 30, 2026 verification:
@@ -169,6 +181,7 @@ These checks passed during the August 30, 2026 verification:
 # Backend
 Set-Location backend
 npm test
+npm run test:integration:production
 npx tsc --noEmit --incremental false
 npx prisma validate
 
@@ -179,7 +192,7 @@ npm run lint
 npm run build
 ```
 
-The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. TEST-013/014 verify approved-meal actionability; TEST-015/016 verify the deterministic restriction policy; TEST-027/028 verify the meal-generation library compatibility adapter and isolated fallback seam; TEST-042 through TEST-044 verify the mixed-cuisine generation policy. In the restricted Codex Windows identity, `tsx` is blocked by Node 24 `uv_os_get_passwd` returning `ENOMEM`; compiling the same suite to an isolated temporary directory and running Node's built-in test runner produced 111 registered tests: 107 pass, 0 fail, 0 skipped, and 4 TODO. The frontend has no automated test script. Repository CI installs both packages, runs the backend tests/build, and runs frontend lint/build. Unit/static checks do not establish API/database integration, live generation, E2E, deployment, accessibility, or clinical verification.
+The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, and fail-closed ingredient matching. `npm run test:integration:production` uses temporary reserved-domain fixtures against the configured PostgreSQL database, verifies refresh-token rotation, evidence certification/invalidation, weekly check-in idempotency, and generation-job contention, then removes its fixtures. The frontend has no automated component test script. Repository CI installs both packages, runs the backend tests/build, and runs frontend lint/build. These checks do not establish live Gemini generation, accessibility, load behavior, deployment monitoring, or clinical verification.
 
 ## External integrations
 
@@ -197,19 +210,18 @@ The backend `npm test` command uses Node's built-in test runner through the exis
 
 Consult the engineering record for the ranked register. Important limitations include:
 
-- Approved-meal actionability is now centralized and unit-verified, but live API/database integration and pre-policy stored grocery/log/aggregate provenance remain unverified.
+- Approved-meal actionability is centralized and unit-verified; controlled API/database integration now passes, while pre-policy stored grocery/log/aggregate provenance remains unverified.
 - Deterministic condition/allergy handling is incomplete, especially for custom entries.
-- Backend prerequisite gates and nutritionist verification/license policies are incomplete.
-- Review claims and related state changes are not fully race-safe or transactional.
+- User prerequisite gates and nutritionist verification/license checks exist in source, but the new production-readiness migration and live expiry/authorization boundaries still require deployment verification.
+- Review claims and approve/reject transitions are guarded and transactional in source; concurrent PostgreSQL integration evidence is still required.
 - Refresh JWTs are not robust rotating/revocable persisted sessions.
 - Meal logs and daily aggregates can duplicate; timestamp/provenance behavior is inconsistent.
-- Frontend pages call missing `/api/user/nutritionists` and `/api/nutritionist/patients` endpoints.
-- `useMeals` calls stale `GET /api/user/meals` instead of the implemented `/current` route.
+- Nutritionists operate as internal NutriMind reviewers through a shared queue; consumer consultation hiring and assigned-patient directories are intentionally outside the product model.
 - The PWA has a manifest and icons but no service worker/offline implementation.
 - Grocery data lacks actionable quantities/units.
 - Water tracking is local-only and not user/date scoped in backend persistence.
 - The export view is not a complete user-data export.
-- The backend has a deterministic unit/policy baseline; 4 critical specifications remain TODO, and no repository deployment or clinical-review evidence is present.
+- The backend has a growing deterministic unit/policy baseline; exact current counts and remaining TODO specifications are recorded in the latest engineering entry. No clinical review of the rules is established.
 
 ## Documentation map
 

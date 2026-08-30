@@ -6,6 +6,8 @@ import {
   getNextWeeklyCycleWindow,
   getOnDemandMealPlanWindow,
   getScheduledMealDate,
+  getWeeklyPlanPreparationDate,
+  isWeeklyPlanPreparationDue,
 } from '../src/domain/meal-plan-cycle.policy';
 
 test('[TEST-017] Thursday generation creates the exact weekend starter bridge', () => {
@@ -71,4 +73,36 @@ test('[TEST-017] the same instant produces the same cycle regardless of server t
   );
 
   assert.deepEqual(second, first);
+});
+
+test('[TEST-051] exact Wednesday shopping anchors a Thursday-to-Wednesday cycle', () => {
+  const thursdayInManila = new Date('2026-09-03T10:00:00+08:00');
+  const cycle = getCurrentWeeklyCycleWindow({ shoppingDayOfWeek: 3 }, thursdayInManila);
+
+  assert.equal(cycle.startDate.toISOString(), '2026-09-02T16:00:00.000Z');
+  assert.equal(cycle.endDate.toISOString(), '2026-09-08T16:00:00.000Z');
+});
+
+test('[TEST-051] a mid-cycle signup receives only the bridge through shopping day', () => {
+  const fridayInManila = new Date('2026-08-28T10:00:00+08:00');
+  const window = getOnDemandMealPlanWindow({ shoppingDayOfWeek: 3 }, fridayInManila);
+
+  assert.equal(window.planType, PlanType.STARTER);
+  assert.equal(window.numDays, 6);
+  assert.equal(window.startDate.toISOString(), '2026-08-27T16:00:00.000Z');
+});
+
+test('[TEST-051] preparation opens three days before the exact grocery day', () => {
+  const sundayInManila = new Date('2026-08-30T10:00:00+08:00');
+  const schedule = { shoppingDayOfWeek: 3 };
+
+  assert.equal(
+    getWeeklyPlanPreparationDate(schedule, sundayInManila).toISOString(),
+    '2026-08-29T16:00:00.000Z'
+  );
+  assert.equal(isWeeklyPlanPreparationDue(schedule, sundayInManila), true);
+  assert.equal(
+    isWeeklyPlanPreparationDue(schedule, new Date('2026-08-29T10:00:00+08:00')),
+    false
+  );
 });

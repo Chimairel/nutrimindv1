@@ -1,4 +1,5 @@
 import { Goal, ActivityLevel } from '@prisma/client';
+import { CLINICAL_NUTRITION_POLICY } from '@/domain/clinical-nutrition.policy';
 
 interface CalorieInput {
   age: number;
@@ -84,16 +85,16 @@ export function calculateDailyTarget(input: CalorieInput): CalorieResult {
   let dailyCalorieTarget = tdee;
   switch (goal) {
     case Goal.LOSE_WEIGHT:
-      dailyCalorieTarget = tdee - 500;
+      dailyCalorieTarget = tdee + CLINICAL_NUTRITION_POLICY.goalAdjustmentsKcal.LOSE_WEIGHT;
       break;
     case Goal.GAIN_WEIGHT:
-      dailyCalorieTarget = tdee + 500;
+      dailyCalorieTarget = tdee + CLINICAL_NUTRITION_POLICY.goalAdjustmentsKcal.GAIN_WEIGHT;
       break;
     case Goal.MAINTAIN:
       dailyCalorieTarget = tdee;
       break;
     case Goal.BUILD_MUSCLE:
-      dailyCalorieTarget = tdee + 300;
+      dailyCalorieTarget = tdee + CLINICAL_NUTRITION_POLICY.goalAdjustmentsKcal.BUILD_MUSCLE;
       break;
     default:
       dailyCalorieTarget = tdee;
@@ -103,6 +104,9 @@ export function calculateDailyTarget(input: CalorieInput): CalorieResult {
   return {
     bmr: Math.round(Math.max(0, bmr)),
     tdee: Math.round(Math.max(0, tdee)),
-    dailyCalorieTarget: Math.round(Math.max(500, dailyCalorieTarget)) // Enforce 500 kcal starvation floor
+    dailyCalorieTarget: Math.round(Math.max(
+      CLINICAL_NUTRITION_POLICY.minimumDailyCalories,
+      dailyCalorieTarget
+    )),
   };
 }

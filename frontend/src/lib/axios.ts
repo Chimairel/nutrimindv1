@@ -21,9 +21,14 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+interface FailedRequest {
+  resolve: (token: string | null) => void;
+  reject: (error: unknown) => void;
+}
 
-const processQueue = (error: any, token: string | null = null) => {
+let failedQueue: FailedRequest[] = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -52,7 +57,7 @@ api.interceptors.response.use(
       if (!isAuthPage && !isRefreshRequest) {
         if (isRefreshing) {
           // Queue this failed request while token is being refreshed
-          return new Promise((resolve, reject) => {
+          return new Promise<string | null>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           })
             .then((token) => {

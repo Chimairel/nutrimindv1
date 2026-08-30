@@ -26,6 +26,24 @@ function generateResetToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+const REFRESH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function hashSessionToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function createRefreshSession(userId: string, payload: JWTPayload): Promise<string> {
+  const refreshToken = signRefreshToken(payload);
+  await prisma.session.create({
+    data: {
+      userId,
+      sessionToken: hashSessionToken(refreshToken),
+      expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
+    },
+  });
+  return refreshToken;
+}
+
 export class AuthService {
   /**
    * Registers a brand-new user into the system.
@@ -84,7 +102,7 @@ export class AuthService {
 
     // Generate tokens (user gets tokens immediately but must verify email to proceed)
     const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
+    const refreshToken = await createRefreshSession(user.id, payload);
 
     return {
       user: {
@@ -140,6 +158,7 @@ export class AuthService {
     });
 
     if (user) {
+      if (user.isSuspended) throw new Error('This account has been suspended.');
       // Existing user — just log them in
       // If they registered with email/password before, upgrade their emailVerified to true
       if (!user.emailVerified) {
@@ -188,7 +207,7 @@ export class AuthService {
     };
 
     const accessToken = signAccessToken(jwtPayload);
-    const refreshToken = signRefreshToken(jwtPayload);
+    const refreshToken = await createRefreshSession(user.id, jwtPayload);
 
     return {
       user: {
@@ -328,6 +347,7 @@ export class AuthService {
     if (!user) {
       throw new Error('Invalid email or password credentials.');
     }
+    if (user.isSuspended) throw new Error('This account has been suspended.');
 
     // Verify hashed password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -344,7 +364,7 @@ export class AuthService {
 
     // Generate tokens
     const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
+    const refreshToken = await createRefreshSession(user.id, payload);
 
     return {
       user: {
@@ -430,14 +450,17 @@ export class AuthService {
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
-    await prisma.user.update({
-      where: { id: matchedUser.id },
-      data: {
-        passwordHash,
-        passwordResetToken: null,
-        passwordResetExpiry: null,
-      },
-    });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: matchedUser.id },
+        data: {
+          passwordHash,
+          passwordResetToken: null,
+          passwordResetExpiry: null,
+        },
+      }),
+      prisma.session.deleteMany({ where: { userId: matchedUser.id } }),
+    ]);
 
     return { message: 'Password has been reset successfully. You can now log in.' };
   }
@@ -449,6 +472,8 @@ export class AuthService {
     // Verify refresh token (throws if invalid or expired)
     const decoded = verifyRefreshToken(token);
 
+    const currentTokenHash = hashSessionToken(token);
+
     // Fetch user to confirm they still exist and check for role updates
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -457,6 +482,10 @@ export class AuthService {
     if (!user) {
       throw new Error('User session not found.');
     }
+    if (user.isSuspended) {
+      await prisma.session.deleteMany({ where: { userId: user.id } });
+      throw new Error('This account has been suspended.');
+    }
 
     const payload: JWTPayload = {
       userId: user.id,
@@ -464,11 +493,37 @@ export class AuthService {
       role: user.role,
     };
 
-    // Issue a fresh access token
+    const session = await prisma.session.findUnique({
+      where: { sessionToken: currentTokenHash },
+    });
+    if (!session || session.userId !== user.id || session.expires <= new Date()) {
+      if (session) await prisma.session.deleteMany({ where: { id: session.id } });
+      throw new Error('Refresh session is expired or has been revoked.');
+    }
+
+    // Rotate both the access token and the persisted refresh session. Replaying
+    // the previous cookie fails after this transaction commits.
     const accessToken = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
+    await prisma.$transaction(async (tx) => {
+      const deleted = await tx.session.deleteMany({
+        where: { id: session.id, sessionToken: currentTokenHash },
+      });
+      if (deleted.count !== 1) {
+        throw new Error('Refresh session was already rotated.');
+      }
+      await tx.session.create({
+        data: {
+          userId: user.id,
+          sessionToken: hashSessionToken(refreshToken),
+          expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
+        },
+      });
+    });
 
     return {
       accessToken,
+      refreshToken,
     };
   }
 

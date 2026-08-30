@@ -29,6 +29,7 @@ export interface OnboardingSnapshot {
     carbPreference?: string | null;
     foodCulture?: string | null;
     shoppingDayGroup?: string | null;
+    shoppingDayOfWeek?: number | null;
   } | null;
   conditions: readonly string[];
   allergies: readonly string[];
@@ -92,8 +93,10 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   const allergiesComplete = snapshot.allergies.length > 0;
   if (!allergiesComplete) missingFields.push('allergies');
 
-  const shoppingDayComplete = Boolean(profile?.shoppingDayGroup);
-  if (!shoppingDayComplete) missingFields.push('shoppingDayGroup');
+  const shoppingDayComplete =
+    (typeof profile?.shoppingDayOfWeek === 'number' && profile.shoppingDayOfWeek >= 0 && profile.shoppingDayOfWeek <= 6) ||
+    Boolean(profile?.shoppingDayGroup);
+  if (!shoppingDayComplete) missingFields.push('shoppingDayOfWeek');
 
   const acceptedCurrentConsent = hasCurrentConsent(snapshot);
   if (!acceptedCurrentConsent) missingFields.push('currentConsent');

@@ -20,6 +20,10 @@ import {
   onboardingProfileSchema,
   shoppingDaySchema,
 } from '@/validation/onboarding.schemas';
+import { weeklyCheckinSchema } from '@/validation/checkin.schemas';
+import { z } from 'zod';
+import { WaterService } from '@/services/water.service';
+import { UserPrivacyService } from '@/services/user-privacy.service';
 
 const router = Router();
 
@@ -48,9 +52,9 @@ router.post('/onboarding/conditions', requireVerifiedUser, validateZodBody(onboa
 router.post('/onboarding/allergies', requireVerifiedUser, validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
 router.post('/onboarding/shopping-day', requireVerifiedUser, validateZodBody(shoppingDaySchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { shoppingDayGroup } = req.body;
+    const { shoppingDayOfWeek } = req.body;
     const { UserService } = await import('@/services/user.service');
-    const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayGroup);
+    const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayOfWeek);
     return res.status(200).json({ success: true, data: profile });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.') });
@@ -83,6 +87,50 @@ router.put('/profile', validateZodBody(onboardingProfileSchema), UserController.
 router.put('/profile/conditions', validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
 router.put('/profile/allergies', validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
 router.put('/profile/settings', UserController.updateAccountSettings);
+
+router.get('/account/export', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const payload = await UserPrivacyService.exportAccount(req.user!.userId);
+    res.setHeader('Content-Disposition', 'attachment; filename=nutrimind-account-export.json');
+    return res.status(200).json(payload);
+  } catch (error: unknown) {
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to export account data.') });
+  }
+});
+
+router.delete('/account', validateZodBody(z.object({
+  password: z.string().min(8).max(128),
+  confirmation: z.literal('DELETE MY NUTRIMIND ACCOUNT'),
+})), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await UserPrivacyService.deleteAccount(req.user!.userId, req.body.password);
+    res.clearCookie('nutrimind_refresh');
+    return res.status(200).json({ success: true });
+  } catch (error: unknown) {
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete account.') });
+  }
+});
+
+router.get('/water/today', async (req: AuthenticatedRequest, res: Response) => {
+  const data = await WaterService.getToday(req.user!.userId);
+  return res.json({ success: true, data });
+});
+router.post('/water', validateZodBody(z.object({
+  amountMl: z.number().int().min(50).max(2000),
+})), async (req: AuthenticatedRequest, res: Response) => {
+  const data = await WaterService.add(req.user!.userId, req.body.amountMl);
+  return res.status(201).json({ success: true, data });
+});
+router.post('/water/remove', validateZodBody(z.object({
+  amountMl: z.number().int().min(50).max(2000),
+})), async (req: AuthenticatedRequest, res: Response) => {
+  const data = await WaterService.remove(req.user!.userId, req.body.amountMl);
+  return res.json({ success: true, data });
+});
+router.delete('/water/today', async (req: AuthenticatedRequest, res: Response) => {
+  const data = await WaterService.resetToday(req.user!.userId);
+  return res.json({ success: true, data });
+});
 
 // ──────────────────────────────────────────
 // Notifications
@@ -174,7 +222,7 @@ router.get('/checkin/status', async (req: AuthenticatedRequest, res: Response) =
  * Submits a weekly check-in.
  * Body: { changed: boolean, updates?: { weightKg?: number, activityLevel?: string, goal?: string } }
  */
-router.post('/checkin/submit', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/checkin/submit', validateZodBody(weeklyCheckinSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { changed, updates } = req.body;
     const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });

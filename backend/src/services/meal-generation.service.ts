@@ -10,6 +10,9 @@ import {
   PlanType,
   ShoppingDayGroup,
   MealIngredientDataSource,
+  MealLibrarySafetyEvidenceStatus,
+  MealPlanGenerationJobStatus,
+  Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
@@ -20,21 +23,30 @@ import {
 } from '@/domain/meal-generation-library-compatibility.adapter';
 import {
   getCurrentWeeklyCycleWindow,
-  getDayBefore,
   getManilaDateKey,
   getNextWeeklyCycleWindow,
   getOnDemandMealPlanWindow,
   getScheduledMealDate,
+  type MealPlanGenerationWindow,
+  type ShoppingSchedule,
   type WeeklyCycleWindow,
 } from '@/domain/meal-plan-cycle.policy';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
+import {
+  evaluateMealLibrarySafetyEvidence,
+} from '@/domain/meal-library-safety-evidence.policy';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import {
+  MEAL_PLAN_SAFETY_POLICY_VERSION,
+  requiresEscalatedMealReview,
+} from '@/domain/meal-plan-production-safety.policy';
 
 interface GeneratedMeal {
   dayNumber: number;
   mealType: MealType;
   mealName: string;
   description: string;
-  ingredients: string[];
+  ingredients: { name: string; quantity?: number; unit?: string }[];
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -46,6 +58,7 @@ interface GeminiMealPlanResponse {
 }
 
 export class MealGenerationService {
+  private static readonly GENERATION_JOB_TTL_MS = 20 * 60 * 1000;
   private static readonly rolloverRequests = new Map<string, Promise<{
     rolledOver: boolean;
     planGroupId: string | null;
@@ -58,27 +71,26 @@ export class MealGenerationService {
    */
   static async generatePlanForUser(userId: string, now: Date = new Date()): Promise<string> {
     const profile = await prisma.userProfile.findUnique({ where: { userId } });
-    const window = getOnDemandMealPlanWindow(profile?.shoppingDayGroup, now);
+    const window = getOnDemandMealPlanWindow({
+      shoppingDayOfWeek: profile?.shoppingDayOfWeek,
+      shoppingDayGroup: profile?.shoppingDayGroup,
+    }, now);
 
     console.log(
       `[Meal Generation] Generating ${window.planType} plan: ${window.numDays} day(s) from ${getManilaDateKey(window.startDate)}.`
     );
-    return MealGenerationService.generate7DayPlan(
-      userId,
-      window.planType,
-      window.numDays,
-      window.startDate
-    );
+    return MealGenerationService.generateWindowOnce(userId, window);
   }
 
-  private static async findExistingWeeklyPlan(
+  private static async findExistingPlan(
     userId: string,
+    planType: PlanType,
     window: WeeklyCycleWindow
   ): Promise<string | null> {
     const existingPlan = await prisma.mealPlan.findFirst({
       where: {
         userId,
-        planType: PlanType.WEEKLY,
+        planType,
         status: { in: [MealPlanStatus.PENDING_REVIEW, MealPlanStatus.APPROVED] },
         scheduledDate: { gte: window.startDate, lte: window.endDate },
       },
@@ -89,21 +101,130 @@ export class MealGenerationService {
     return existingPlan?.planGroupId ?? null;
   }
 
+  private static async generateWindowOnce(
+    userId: string,
+    window: MealPlanGenerationWindow
+  ): Promise<string> {
+    const endDate = getScheduledMealDate(window.startDate, Math.max(0, window.numDays - 1));
+    const existing = await MealGenerationService.findExistingPlan(
+      userId,
+      window.planType,
+      { startDate: window.startDate, endDate }
+    );
+    if (existing) return existing;
+
+    let job = null;
+    let claimedNewJob = false;
+    try {
+      job = await prisma.mealPlanGenerationJob.create({
+        data: {
+          userId,
+          planType: window.planType,
+          cycleStartDate: window.startDate,
+          progressPct: 5,
+          stageCode: 'PROFILE',
+          stageMessage: 'Preparing your nutrition profile.',
+        },
+      });
+      claimedNewJob = true;
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        throw error;
+      }
+      job = await prisma.mealPlanGenerationJob.findUnique({
+        where: {
+          userId_planType_cycleStartDate: {
+            userId,
+            planType: window.planType,
+            cycleStartDate: window.startDate,
+          },
+        },
+      });
+    }
+    if (!job) throw new Error('Unable to establish an idempotent meal-plan generation job.');
+
+    if (!claimedNewJob) {
+      const completedByPeer = await MealGenerationService.findExistingPlan(
+        userId,
+        window.planType,
+        { startDate: window.startDate, endDate }
+      );
+      if (completedByPeer) return completedByPeer;
+
+      const staleCutoff = new Date(Date.now() - MealGenerationService.GENERATION_JOB_TTL_MS);
+      const reclaimed = await prisma.mealPlanGenerationJob.updateMany({
+        where: {
+          id: job.id,
+          OR: [
+            { status: MealPlanGenerationJobStatus.FAILED },
+            { status: MealPlanGenerationJobStatus.COMPLETED },
+            { status: MealPlanGenerationJobStatus.GENERATING, updatedAt: { lt: staleCutoff } },
+          ],
+        },
+        data: {
+          status: MealPlanGenerationJobStatus.GENERATING,
+          attempts: { increment: 1 },
+          planGroupId: null,
+          lastErrorCode: null,
+          progressPct: 5,
+          stageCode: 'PROFILE',
+          stageMessage: 'Preparing your nutrition profile.',
+          startedAt: new Date(),
+          completedAt: null,
+        },
+      });
+      if (reclaimed.count !== 1) {
+        throw new Error('Meal plan generation is already in progress for this cycle.');
+      }
+    }
+
+    try {
+      const planGroupId = await MealGenerationService.generate7DayPlan(
+        userId,
+        window.planType,
+        window.numDays,
+        window.startDate,
+        job.id
+      );
+      await prisma.mealPlanGenerationJob.update({
+        where: { id: job.id },
+        data: {
+          status: MealPlanGenerationJobStatus.COMPLETED,
+          planGroupId,
+          lastErrorCode: null,
+          progressPct: 100,
+          stageCode: 'COMPLETED',
+          stageMessage: 'Your plan is ready for review.',
+          completedAt: new Date(),
+        },
+      });
+      return planGroupId;
+    } catch (error) {
+      await prisma.mealPlanGenerationJob.updateMany({
+        where: { id: job.id, status: MealPlanGenerationJobStatus.GENERATING },
+        data: {
+          status: MealPlanGenerationJobStatus.FAILED,
+          lastErrorCode: 'GENERATION_FAILED',
+          stageCode: 'FAILED',
+          stageMessage: 'Plan generation could not be completed.',
+          completedAt: new Date(),
+        },
+      });
+      throw error;
+    }
+  }
+
   static async generateNextWeeklyPlan(
     userId: string,
-    group: ShoppingDayGroup,
+    schedule: ShoppingSchedule | ShoppingDayGroup | number,
     now: Date = new Date()
   ): Promise<string> {
-    const window = getNextWeeklyCycleWindow(group, now);
-    const existingPlanGroupId = await MealGenerationService.findExistingWeeklyPlan(userId, window);
-    if (existingPlanGroupId) return existingPlanGroupId;
-
-    return MealGenerationService.generate7DayPlan(
-      userId,
-      PlanType.WEEKLY,
-      7,
-      window.startDate
-    );
+    const window = getNextWeeklyCycleWindow(schedule, now);
+    return MealGenerationService.generateWindowOnce(userId, {
+      planType: PlanType.WEEKLY,
+      numDays: 7,
+      startDate: window.startDate,
+    });
   }
 
   static async ensureCurrentWeeklyRollover(
@@ -129,36 +250,23 @@ export class MealGenerationService {
   ): Promise<{ rolledOver: boolean; planGroupId: string | null }> {
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
-      select: { shoppingDayGroup: true },
+      select: { shoppingDayGroup: true, shoppingDayOfWeek: true },
     });
-    const group = profile?.shoppingDayGroup;
-    if (!group) return { rolledOver: false, planGroupId: null };
+    if (!profile || (profile.shoppingDayOfWeek === null && !profile.shoppingDayGroup)) {
+      return { rolledOver: false, planGroupId: null };
+    }
 
-    const window = getCurrentWeeklyCycleWindow(group, now);
-    const existingPlanGroupId = await MealGenerationService.findExistingWeeklyPlan(userId, window);
+    const window = getCurrentWeeklyCycleWindow(profile, now);
+    const existingPlanGroupId = await MealGenerationService.findExistingPlan(userId, PlanType.WEEKLY, window);
     if (existingPlanGroupId) {
       return { rolledOver: false, planGroupId: existingPlanGroupId };
     }
 
-    const latestStarterMeal = await prisma.mealPlan.findFirst({
-      where: { userId, planType: PlanType.STARTER },
-      orderBy: { scheduledDate: 'desc' },
-      select: { scheduledDate: true },
-    });
-    const expectedBridgeEnd = getDayBefore(window.startDate);
-    if (
-      !latestStarterMeal ||
-      getManilaDateKey(latestStarterMeal.scheduledDate) !== getManilaDateKey(expectedBridgeEnd)
-    ) {
-      return { rolledOver: false, planGroupId: null };
-    }
-
-    const planGroupId = await MealGenerationService.generate7DayPlan(
-      userId,
-      PlanType.WEEKLY,
-      7,
-      window.startDate
-    );
+    // Catch-up is schedule-derived and idempotent. If the preparation cron was
+    // missed, create only the remaining bridge to the next fixed cycle rather
+    // than backdating a seven-day plan.
+    const catchUpWindow = getOnDemandMealPlanWindow(profile, now);
+    const planGroupId = await MealGenerationService.generateWindowOnce(userId, catchUpWindow);
     return { rolledOver: true, planGroupId };
   }
 
@@ -174,7 +282,14 @@ export class MealGenerationService {
     planType: PlanType = PlanType.WEEKLY,
     numDays: number = 7,
     startDate: Date = new Date(),
+    generationJobId?: string,
   ): Promise<string> {
+    await MealGenerationService.updateGenerationProgress(
+      generationJobId,
+      10,
+      'PROFILE',
+      'Applying your goals, preferences, and health safeguards.'
+    );
     // 1. Fetch live user details, profile, conditions, and allergies
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -194,6 +309,7 @@ export class MealGenerationService {
     const userAllergens = user.allergies.map((a) => a.allergen);
     const otherConditions = profile.otherConditions || '';
     const otherAllergies = profile.otherAllergies || '';
+    const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
 
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
     if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
@@ -202,42 +318,55 @@ export class MealGenerationService {
 
     // --- STEP 1: Check MealLibrary for pre-verified clinical matches ---
     console.log(`[Meal Generation] Step 1: Checking MealLibrary for pre-verified clinical matches...`);
+    await MealGenerationService.updateGenerationProgress(
+      generationJobId,
+      25,
+      'LIBRARY_MATCH',
+      'Screening nutritionist-certified meals for safe matches.'
+    );
     const libraryMeals = await prisma.mealLibrary.findMany({
       where: {
         verifiedByNutritionistId: { not: null }, // Only nutritionist-verified meals
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
         ...getApprovedMealLibraryWhere(), // Exclude FLAGGED meals per Addendum 4
       },
       include: {
-        mealPlans: {
-          select: {
-            ingredients: {
-              select: {
-                dataSource: true,
-                foodItemId: true,
-              },
-            },
-          },
+        ingredients: {
+          orderBy: { position: 'asc' },
+        },
+        safetyDeclarations: true,
+        safetyReviewedByNutritionist: {
+          include: { user: { select: { role: true } } },
         },
       },
     });
 
+    const evaluatedLibraryMeals = libraryMeals.map((meal) => ({
+      meal,
+      safety: evaluateMealLibrarySafetyEvidence({
+        ...meal,
+        reviewerEligible: meal.safetyReviewedByNutritionist
+          ? isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
+          : false,
+      }),
+    }));
+
     const eligibleLibraryMeals = filterEligibleMealGenerationLibraryCandidates(
-      libraryMeals,
+      evaluatedLibraryMeals,
       {
         conditions: userConditions,
         allergies: userAllergens,
         customConditions: otherConditions,
         customAllergies: otherAllergies,
       },
-      (meal) => ({
+      ({ meal, safety }) => ({
         status: meal.status,
-        suitableConditions: meal.suitableConditions,
-        allergenFree: meal.allergenFree,
-        // The current schema has no explicit safety-completeness/allergen evidence marker.
-        // Omitting safetyEvidence makes the adapter conservatively exclude legacy rows.
-        ingredients: meal.mealPlans.flatMap((plan) => plan.ingredients),
+        suitableConditions: safety.suitableConditions,
+        allergenFree: safety.allergenFree,
+        safetyEvidence: safety.adapterEvidence,
+        ingredients: safety.ingredients,
       })
-    );
+    ).map(({ meal }) => meal);
 
     const matchedSlots: {
       dayNumber: number;
@@ -251,6 +380,7 @@ export class MealGenerationService {
       mealType: MealType;
       scheduledDate: Date;
     }[] = [];
+    const selectedLibraryMealIds = new Set<string>();
 
     // Evaluate each individual slot independently
     for (let day = 0; day < numDays; day++) {
@@ -260,6 +390,7 @@ export class MealGenerationService {
       for (const slotType of slots) {
         // Filter in-memory verified library matches
         const matches = eligibleLibraryMeals.filter((meal) => {
+          if (selectedLibraryMealIds.has(meal.id)) return false;
           if (meal.mealType !== slotType) return false;
 
           // 1. Check dietary preferences matching
@@ -282,6 +413,7 @@ export class MealGenerationService {
           const minUsage = Math.min(...matches.map((m) => m.usageCount));
           const candidates = matches.filter((m) => m.usageCount === minUsage);
           const selected = candidates[Math.floor(Math.random() * candidates.length)];
+          selectedLibraryMealIds.add(selected.id);
           
           matchedSlots.push({
             dayNumber: day + 1,
@@ -303,6 +435,12 @@ export class MealGenerationService {
     const aiMeals = await runMealGenerationFallbackForUnmatchedSlots(
       unmatchedSlots,
       async (fallbackSlots): Promise<GeneratedMeal[]> => {
+      await MealGenerationService.updateGenerationProgress(
+        generationJobId,
+        45,
+        'AI_GENERATION',
+        'Preparing safe options for unmatched meal slots.'
+      );
       const totalMeals = fallbackSlots.length;
       console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
 
@@ -338,7 +476,11 @@ export class MealGenerationService {
             proteinG: z.number(),
             carbsG: z.number(),
             fatG: z.number(),
-            ingredients: z.array(z.string()),
+            ingredients: z.array(z.object({
+              name: z.string().trim().min(1),
+              quantity: z.number().positive().max(10_000),
+              unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
+            })).min(1),
           })
         ).refine((meals) => {
           if (meals.length !== fallbackSlots.length) return false;
@@ -361,6 +503,7 @@ export class MealGenerationService {
     });
 
     const newPlanGroupId = randomUUID();
+    const targetPlanEndDate = getScheduledMealDate(startDate, Math.max(0, numDays - 1));
     const userHasConditions = userConditions.length > 0 && !userConditions.includes(HealthConditionType.NONE);
     const createdPlansList: any[] = [];
 
@@ -379,6 +522,9 @@ export class MealGenerationService {
         ingredientName: string;
         category: string;
         foodItemId: string | null;
+        dataSource: MealIngredientDataSource;
+        quantity?: number;
+        unit?: string;
       }[];
     }[] = [];
 
@@ -394,9 +540,12 @@ export class MealGenerationService {
         category: string;
         foodItemId: string | null;
         dataSource: MealIngredientDataSource;
+        quantity?: number;
+        unit?: string;
       }[] = [];
 
-      for (const ingredientName of rawMeal.ingredients) {
+      for (const ingredient of rawMeal.ingredients) {
+        const ingredientName = ingredient.name;
         try {
           const lookup = await lookupIngredient(ingredientName);
           if (lookup.source === 'ESTIMATED') {
@@ -407,6 +556,8 @@ export class MealGenerationService {
             category: lookup.food.category || 'PANTRY',
             foodItemId: lookup.food.id || null,
             dataSource: lookup.source === 'ESTIMATED' ? MealIngredientDataSource.GEMINI_ESTIMATED : MealIngredientDataSource.FNRI,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
           });
         } catch (lookupErr) {
           console.warn(`Ingredient lookup failed for: ${ingredientName}, using as estimated.`, lookupErr);
@@ -416,6 +567,8 @@ export class MealGenerationService {
             category: 'PANTRY',
             foodItemId: null,
             dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
           });
         }
       }
@@ -443,11 +596,23 @@ export class MealGenerationService {
       });
     }
 
+    await MealGenerationService.updateGenerationProgress(
+      generationJobId,
+      72,
+      'INGREDIENT_VALIDATION',
+      'Validating ingredient evidence and grocery quantities.'
+    );
+
     // Save plans atomically in a Prisma Transaction (with a 30-second timeout to support sequential batch inserts)
     await prisma.$transaction(async (tx) => {
-      // 1. Cancel previous active/pending plan items atomically
+      // 1. Replace only plans that overlap this exact target window. A future
+      // pending plan must never cancel the user's currently active approved week.
       await tx.mealPlan.updateMany({
-        where: { userId, status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] } },
+        where: {
+          userId,
+          status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
+          scheduledDate: { gte: startDate, lte: targetPlanEndDate },
+        },
         data: { status: MealPlanStatus.CANCELLED },
       });
 
@@ -460,29 +625,27 @@ export class MealGenerationService {
         },
       });
 
-      // 2. Create matched library meals copying ingredients from original approved plans
+      // 2. Create matched library meals from the exact certified library snapshot.
       if (matchedSlots.length > 0) {
-        const libraryMealIds = matchedSlots.map((s) => s.libraryMeal.id);
-        const originalPlans = await tx.mealPlan.findMany({
-          where: { libraryMealId: { in: libraryMealIds } },
-          include: { ingredients: true },
-        });
-
         for (const slot of matchedSlots) {
-          const originalPlan = originalPlans.find((p) => p.libraryMealId === slot.libraryMeal.id);
-          const ingredientsData = originalPlan?.ingredients.map((ing) => ({
+          const ingredientsData = slot.libraryMeal.ingredients.map((ing) => ({
             ingredientName: ing.ingredientName,
             category: ing.category,
             foodItemId: ing.foodItemId,
             dataSource: ing.dataSource,
-          })) || [];
+            quantity: ing.quantity,
+            unit: ing.unit,
+          }));
 
-          // Create clone for this user (status: PENDING_REVIEW, libraryMealId omitted to satisfy @unique constraint)
+          // A currently certified library revision is already staff-reviewed,
+          // so this clone is actionable without another queue round-trip.
           const createdPlan = await tx.mealPlan.create({
             data: {
               planGroupId: newPlanGroupId,
               userId,
-              status: MealPlanStatus.PENDING_REVIEW, // Every generated meal goes to nutritionist queue for verification
+              status: MealPlanStatus.APPROVED,
+              libraryMealId: slot.libraryMeal.id,
+              nutritionistId: slot.libraryMeal.safetyReviewedByNutritionistId,
               planType,
               mealType: slot.mealType,
               mealName: slot.libraryMeal.mealName,
@@ -493,6 +656,11 @@ export class MealGenerationService {
               fatG: slot.libraryMeal.fatG,
               aiConfidenceFlag: AIConfidenceFlag.SAFE,
               scheduledDate: slot.scheduledDate,
+            reviewedAt: slot.libraryMeal.safetyReviewedAt,
+            requiresSafetyRevalidation: false,
+            safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+            highRiskReviewRequired,
+            reviewApprovalCount: highRiskReviewRequired ? 2 : 1,
               ingredients: {
                 create: ingredientsData,
               },
@@ -525,6 +693,9 @@ export class MealGenerationService {
             fatG: meal.fatG,
             aiConfidenceFlag: meal.aiConfidenceFlag,
             scheduledDate: meal.scheduledDate,
+            requiresSafetyRevalidation: true,
+            safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+            highRiskReviewRequired,
             ingredients: {
               create: meal.ingredientsData,
             },
@@ -533,6 +704,13 @@ export class MealGenerationService {
         createdPlansList.push(createdPlan);
       }
     }, { timeout: 30000 });
+
+    await MealGenerationService.updateGenerationProgress(
+      generationJobId,
+      92,
+      'SAVING',
+      'Saving the plan and preparing its professional review queue.'
+    );
 
     const needsReview = createdPlansList.some((p) => p.aiConfidenceFlag === AIConfidenceFlag.NEEDS_REVIEW);
     if (needsReview) {
@@ -549,9 +727,36 @@ export class MealGenerationService {
 
     return newPlanGroupId;
   }
-}
 
-// Extend Prisma namespace helper using custom declaration to support transactional bulk creates
-// We can declare a Prisma helper directly or run normal transactional loops. Let's do a transactional loop!
-// Wait! Let's write the transaction logic explicitly inside the class instead of extending the Prisma namespace,
-// since it is extremely reliable and avoids TS declaration merge errors! Let's update that.
+  private static async updateGenerationProgress(
+    jobId: string | undefined,
+    progressPct: number,
+    stageCode: string,
+    stageMessage: string
+  ) {
+    if (!jobId) return;
+    await prisma.mealPlanGenerationJob.updateMany({
+      where: { id: jobId, status: MealPlanGenerationJobStatus.GENERATING },
+      data: { progressPct, stageCode, stageMessage },
+    });
+  }
+
+  static async getLatestGenerationStatus(userId: string) {
+    return prisma.mealPlanGenerationJob.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        progressPct: true,
+        stageCode: true,
+        stageMessage: true,
+        planGroupId: true,
+        lastErrorCode: true,
+        startedAt: true,
+        completedAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+}

@@ -16,6 +16,7 @@ router.use(requireReadyUser);
  * Description: Generates a 7-day, 21-meal plan.
  */
 router.post('/generate', MealsController.generateMealPlan);
+router.get('/generation-status', MealsController.getGenerationStatus);
 
 /**
  * Route: POST /api/user/meals/rollover

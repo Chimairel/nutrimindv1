@@ -7,6 +7,7 @@ import Progress from '@/components/ui/Progress';
 interface MealPlanGenerationProgressProps {
   progress: number;
   elapsedSeconds: number;
+  stageMessage?: string | null;
 }
 
 const GENERATION_PHASES = [
@@ -66,6 +67,7 @@ const getRemainingTimeLabel = (progress: number, elapsedSeconds: number) => {
 export default function MealPlanGenerationProgress({
   progress,
   elapsedSeconds,
+  stageMessage,
 }: MealPlanGenerationProgressProps) {
   const normalizedProgress = Math.min(100, Math.max(0, Math.round(progress)));
   const phase = GENERATION_PHASES.find((item) => normalizedProgress < item.until)
@@ -139,7 +141,7 @@ export default function MealPlanGenerationProgress({
             </div>
             <div>
               <p className="font-display text-sm font-extrabold text-brand-text">
-                {phase.title}
+                {stageMessage || phase.title}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-brand-muted">
                 {phase.detail}
@@ -149,7 +151,7 @@ export default function MealPlanGenerationProgress({
         </div>
 
         <p className="mt-5 text-center text-[11px] leading-relaxed text-brand-muted">
-          Timing is estimated from typical generation runs. The bar reaches 100% only after the server confirms completion.
+          Progress is reported by the server. The bar reaches 100% only after the plan is safely stored.
         </p>
       </div>
     </section>

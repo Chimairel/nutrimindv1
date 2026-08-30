@@ -3,8 +3,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import app from './app';
+import { assertProductionConfig } from '@/domain/production-config.policy';
 
 const PORT = process.env.PORT || 5000;
+
+assertProductionConfig(process.env);
 
 const server = app.listen(PORT, () => {
   console.log(`[Server] NutriMind API server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);

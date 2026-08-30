@@ -69,11 +69,8 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
 
       await api.post('/user/checkin/submit', { changed: true, updates });
       
-      // Checkin service updates the profile, but we also want to trigger regeneration
-      // The requirement says "triggers plan regeneration"
-      // We can do this by calling the generate meal plan API here, or letting the dashboard do it.
-      await api.post('/user/meals/generate');
-      
+      // Refresh the dashboard. The updated profile is applied to the next
+      // schedule-derived plan; the current approved week is not discarded.
       onPlanRegenerated();
       onClose();
     } catch (err) {
@@ -128,7 +125,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
       isOpen={isOpen}
       onClose={() => setStep('PROMPT')}
       title="Update Check-in Details"
-      description="Adjust your current metrics. This will regenerate your active 7-day meal plan."
+      description="Update your current metrics. NutriMind will use them for the next scheduled plan without discarding your active approved week."
     >
       <div className="flex flex-col gap-5 py-2">
         {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}
@@ -183,7 +180,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
             Back
           </Button>
           <Button variant="primary" onClick={handleUpdateSubmit} isLoading={isSubmitting}>
-            Update & Regenerate Plan
+            Save for Next Plan
           </Button>
         </div>
       </div>

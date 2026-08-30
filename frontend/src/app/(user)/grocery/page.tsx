@@ -29,6 +29,10 @@ interface GroceryItem {
   ingredientName: string;
   category: string;
   isChecked: boolean;
+  quantity: number | null;
+  unit: string | null;
+  sourceMealCount: number;
+  isPantryStaple: boolean;
 }
 
 interface GroceryList {
@@ -38,7 +42,7 @@ interface GroceryList {
   groceryItems: GroceryItem[];
 }
 
-type GroceryFilter = 'all' | 'remaining' | 'packed';
+type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
 const normalizeCategory = (category?: string) => category?.trim() || 'Other';
 
@@ -129,6 +133,22 @@ export default function GroceryListPage() {
     }
   };
 
+  const handleTogglePantry = async (itemId: string) => {
+    if (!groceryList) return;
+    const previous = groceryList;
+    setGroceryList({
+      ...groceryList,
+      groceryItems: groceryList.groceryItems.map((item) => item.id === itemId
+        ? { ...item, isPantryStaple: !item.isPantryStaple }
+        : item),
+    });
+    try {
+      await api.patch(`/user/grocery/items/${itemId}/pantry`);
+    } catch {
+      setGroceryList(previous);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     try {
       const response = await api.get('/user/grocery/pdf', {
@@ -173,9 +193,11 @@ export default function GroceryListPage() {
 
   const groupedItems = getGroupedItems();
   const totalItems = groceryList?.groceryItems.length || 0;
-  const checkedItems = groceryList?.groceryItems.filter((i) => i.isChecked).length || 0;
-  const remainingItems = totalItems - checkedItems;
-  const progressPercent = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
+  const shoppingItems = groceryList?.groceryItems.filter((item) => !item.isPantryStaple) || [];
+  const pantryItems = totalItems - shoppingItems.length;
+  const checkedItems = shoppingItems.filter((item) => item.isChecked).length;
+  const remainingItems = shoppingItems.length - checkedItems;
+  const progressPercent = shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 100;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleGroups = Object.entries(groupedItems)
     .sort(([categoryA], [categoryB]) => categoryA.localeCompare(categoryB))
@@ -184,8 +206,9 @@ export default function GroceryListPage() {
         .filter((item) => {
           const matchesSearch = !normalizedQuery || item.ingredientName.toLowerCase().includes(normalizedQuery);
           const matchesFilter = filter === 'all'
-            || (filter === 'remaining' && !item.isChecked)
-            || (filter === 'packed' && item.isChecked);
+            || (filter === 'remaining' && !item.isChecked && !item.isPantryStaple)
+            || (filter === 'packed' && item.isChecked && !item.isPantryStaple)
+            || (filter === 'pantry' && item.isPantryStaple);
           return matchesSearch && matchesFilter;
         })
         .sort((itemA, itemB) => Number(itemA.isChecked) - Number(itemB.isChecked)
@@ -301,10 +324,11 @@ export default function GroceryListPage() {
                 <Progress value={progressPercent} className="mt-4 h-2.5 bg-brand-bgAlt" />
               </div>
 
-              <div className="grid grid-cols-3 gap-2 lg:min-w-[310px]">
+              <div className="grid grid-cols-2 gap-2 lg:min-w-[380px] lg:grid-cols-4">
                 {[
                   { label: 'To buy', value: remainingItems, icon: ShoppingBasket },
                   { label: 'Packed', value: checkedItems, icon: PackageCheck },
+                  { label: 'Pantry', value: pantryItems, icon: ShoppingCart },
                   { label: 'Categories', value: Object.keys(groupedItems).length, icon: ListFilter },
                 ].map((metric) => {
                   const MetricIcon = metric.icon;
@@ -339,6 +363,7 @@ export default function GroceryListPage() {
                   ['all', 'All', totalItems],
                   ['remaining', 'To buy', remainingItems],
                   ['packed', 'Packed', checkedItems],
+                  ['pantry', 'Pantry', pantryItems],
                 ] as const).map(([value, label, count]) => (
                   <button
                     key={value}
@@ -423,29 +448,45 @@ export default function GroceryListPage() {
                       <div className="border-t border-brand-border/60 bg-brand-bgAlt/30 p-3 sm:p-4">
                         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                           {visibleItems.map((item) => (
-                            <button
+                            <div
                               key={item.id}
-                              type="button"
-                              onClick={() => handleToggleItem(item.id)}
-                              aria-pressed={item.isChecked}
                               className={`group flex min-h-12 items-center gap-3 rounded-[14px] border px-3 py-2.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${
                                 item.isChecked
                                   ? 'border-brand-green/15 bg-brand-green/[0.055] text-brand-muted'
                                   : 'border-brand-border/65 bg-brand-surface text-brand-text hover:-translate-y-px hover:border-brand-green/25 hover:shadow-sm'
                               }`}
                             >
-                              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
-                                item.isChecked
-                                  ? 'border-brand-green bg-brand-green text-white'
-                                  : 'border-brand-border bg-brand-bgAlt group-hover:border-brand-green/50'
-                              }`}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleItem(item.id)}
+                                aria-pressed={item.isChecked}
+                                aria-label={`${item.isChecked ? 'Unpack' : 'Pack'} ${item.ingredientName}`}
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                                  item.isChecked
+                                    ? 'border-brand-green bg-brand-green text-white'
+                                    : 'border-brand-border bg-brand-bgAlt group-hover:border-brand-green/50'
+                                }`}
+                              >
                                 {item.isChecked && <Check className="h-3.5 w-3.5 stroke-[3px]" />}
+                              </button>
+                              <span className="min-w-0 flex-1">
+                                <span className={`block text-xs font-semibold leading-snug ${item.isChecked ? 'line-through decoration-brand-green/50' : ''}`}>
+                                  {item.ingredientName}
+                                </span>
+                                <span className="mt-0.5 block text-[9px] font-medium text-brand-muted">
+                                  {item.quantity && item.unit ? `${item.quantity} ${item.unit}` : `Used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}`}
+                                </span>
                               </span>
-                              <span className={`min-w-0 text-xs font-semibold leading-snug ${item.isChecked ? 'line-through decoration-brand-green/50' : ''}`}>
-                                {item.ingredientName}
-                              </span>
-                              {item.isChecked && <CircleCheckBig className="ml-auto h-3.5 w-3.5 shrink-0 text-brand-green" />}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePantry(item.id)}
+                                aria-pressed={item.isPantryStaple}
+                                className={`shrink-0 rounded-lg px-2 py-1 text-[8px] font-bold uppercase tracking-wide transition ${item.isPantryStaple ? 'bg-brand-green text-white' : 'bg-brand-bgAlt text-brand-muted hover:text-brand-green'}`}
+                              >
+                                Pantry
+                              </button>
+                              {item.isChecked && <CircleCheckBig className="h-3.5 w-3.5 shrink-0 text-brand-green" />}
+                            </div>
                           ))}
                         </div>
                       </div>

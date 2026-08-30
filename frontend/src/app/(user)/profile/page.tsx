@@ -19,9 +19,10 @@ import {
   Mail,
   Palette,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 
-type ProfilePanel = 'account' | 'security' | 'avatar';
+type ProfilePanel = 'account' | 'security' | 'avatar' | 'privacy';
 
 export default function ProfilePage() {
   const { logout, user, updateUserSession } = useAuth();
@@ -48,6 +49,31 @@ export default function ProfilePage() {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [deletionPassword, setDeletionPassword] = useState('');
+  const [deletionConfirmation, setDeletionConfirmation] = useState('');
+  const [deletionError, setDeletionError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsDeleting(true);
+    setDeletionError(null);
+    try {
+      await api.delete('/user/account', {
+        data: {
+          password: deletionPassword,
+          confirmation: deletionConfirmation,
+        },
+      });
+      await logout();
+    } catch (error: unknown) {
+      setDeletionError(axios.isAxiosError(error)
+        ? error.response?.data?.error || 'Account deletion failed.'
+        : 'Account deletion failed.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Save Avatar Update
   const handleSaveAvatar = async () => {
@@ -156,11 +182,12 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <nav className="grid grid-cols-3 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/80 p-1.5 shadow-sm" aria-label="Profile settings sections">
+      <nav className="grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/80 p-1.5 shadow-sm sm:grid-cols-4" aria-label="Profile settings sections">
         {([
           ['account', 'Account', User],
           ['security', 'Security', Lock],
           ['avatar', 'Avatar', Palette],
+          ['privacy', 'Privacy', Trash2],
         ] as const).map(([value, label, Icon]) => (
           <button
             key={value}
@@ -250,6 +277,36 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+        </Card>
+      )}
+
+      {activePanel === 'privacy' && (
+        <Card className="overflow-hidden border-red-500/25 bg-brand-surface p-0 shadow-card">
+          <div className="border-b border-red-500/15 p-5 sm:p-6">
+            <h2 className="font-display text-base font-black text-red-500">Delete account and health data</h2>
+            <p className="mt-1 text-xs leading-relaxed text-brand-muted">
+              This permanently removes your profile, restrictions, plans, logs, grocery lists, hydration entries, and sessions. Download your JSON export first if you need a copy.
+            </p>
+          </div>
+          <form onSubmit={handleDeleteAccount} className="space-y-4 p-5 sm:p-6">
+            {deletionError && <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-xs font-bold text-red-500">{deletionError}</div>}
+            <PasswordInput label="Current password" value={deletionPassword} onChange={(event) => setDeletionPassword(event.target.value)} required />
+            <Input
+              label="Type DELETE MY NUTRIMIND ACCOUNT"
+              value={deletionConfirmation}
+              onChange={(event) => setDeletionConfirmation(event.target.value)}
+              required
+            />
+            <div className="flex justify-end border-t border-brand-border/60 pt-4">
+              <Button
+                variant="danger"
+                type="submit"
+                disabled={isDeleting || deletionConfirmation !== 'DELETE MY NUTRIMIND ACCOUNT'}
+              >
+                {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
+              </Button>
+            </div>
+          </form>
         </Card>
       )}
 

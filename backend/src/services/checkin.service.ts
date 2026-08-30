@@ -1,75 +1,197 @@
 import prisma from '@/lib/prisma';
-import { NotificationType } from '@prisma/client';
+import { calculateDailyTarget } from '@/lib/calculations';
+import { getCurrentWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
+import { evaluateWeeklyAdaptation } from '@/domain/weekly-adaptation.policy';
+import type { WeeklyCheckinInput } from '@/validation/checkin.schemas';
+import {
+  ActivityLevel,
+  Goal,
+  HealthConditionType,
+  NotificationType,
+  Prisma,
+  WeeklyAdaptationState,
+} from '@prisma/client';
 
 export class CheckinService {
-  /**
-   * Returns the user's current check-in status.
-   */
   static async getCheckinStatus(userId: string) {
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
-      select: { lastCheckinAt: true, checkinStreak: true },
+      select: {
+        lastCheckinAt: true,
+        checkinStreak: true,
+        shoppingDayOfWeek: true,
+        shoppingDayGroup: true,
+      },
     });
 
-    if (!profile) {
-      return { isDue: false, streak: 0, lastCheckinAt: null };
-    }
+    if (!profile) return { isDue: false, streak: 0, lastCheckinAt: null, latestAdaptation: null };
 
     const now = new Date();
-    const lastCheckin = profile.lastCheckinAt;
-    let isDue = true;
+    const schedule = {
+      shoppingDayOfWeek: profile.shoppingDayOfWeek,
+      shoppingDayGroup: profile.shoppingDayGroup,
+    };
+    const cycle = profile.shoppingDayOfWeek !== null || profile.shoppingDayGroup
+      ? getCurrentWeeklyCycleWindow(schedule, now)
+      : null;
+    const submittedThisCycle = cycle
+      ? await prisma.weeklyCheckin.findUnique({
+          where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
+          select: { adaptationState: true, weightTrendKg: true, averageAdherencePct: true, createdAt: true },
+        })
+      : null;
 
-    if (lastCheckin) {
-      // Check-in is due if more than 7 days since last check-in
-      const daysSince = Math.floor((now.getTime() - lastCheckin.getTime()) / (1000 * 60 * 60 * 24));
-      isDue = daysSince >= 7;
-    }
-
+    const daysSinceLast = profile.lastCheckinAt
+      ? Math.floor((now.getTime() - profile.lastCheckinAt.getTime()) / 86_400_000)
+      : null;
     return {
-      isDue,
+      isDue: !submittedThisCycle && (daysSinceLast === null || daysSinceLast >= 7),
       streak: profile.checkinStreak,
       lastCheckinAt: profile.lastCheckinAt,
+      latestAdaptation: submittedThisCycle,
     };
   }
 
-  /**
-   * Submits a weekly check-in.
-   * If changed=false, just update streak and lastCheckinAt.
-   * If changed=true, update profile with new values and optionally recalculate.
-   */
-  static async submitCheckin(userId: string, data: { changed: boolean; updates?: Record<string, any> }) {
-    const profile = await prisma.userProfile.findUnique({ where: { userId } });
-    if (!profile) {
-      throw new Error('User profile must be initialized first.');
-    }
-
+  static async submitCheckin(userId: string, data: WeeklyCheckinInput) {
     const now = new Date();
-
-    if (data.changed && data.updates) {
-      // Update profile with new values
-      await prisma.userProfile.update({
-        where: { userId },
-        data: {
-          ...data.updates,
-          lastCheckinAt: now,
-          checkinStreak: { increment: 1 },
-        },
-      });
-    } else {
-      // Just update the check-in timestamp and streak
-      await prisma.userProfile.update({
-        where: { userId },
-        data: {
-          lastCheckinAt: now,
-          checkinStreak: { increment: 1 },
-        },
-      });
+    const observationStart = new Date(now.getTime() - 21 * 86_400_000);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userProfile: true,
+        healthConditions: { select: { condition: true } },
+      },
+    });
+    const profile = user?.userProfile;
+    if (!profile) throw new Error('User profile must be initialized first.');
+    if (profile.shoppingDayOfWeek === null && !profile.shoppingDayGroup) {
+      throw new Error('A shopping day is required before weekly check-ins can be recorded.');
     }
 
-    return {
-      success: true,
-      lastCheckinAt: now,
-      streak: profile.checkinStreak + 1,
-    };
+    const cycle = getCurrentWeeklyCycleWindow(profile, now);
+    const existing = await prisma.weeklyCheckin.findUnique({
+      where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
+    });
+    if (existing) return { ...existing, duplicate: true };
+
+    const updates = data.changed ? data.updates : {};
+    const submittedWeightKg = updates.weightKg;
+    const effectiveWeightKg = submittedWeightKg ?? profile.weightKg;
+    const effectiveGoal = (updates.goal as Goal | undefined) ?? profile.goal;
+    const effectiveActivityLevel = (updates.activityLevel as ActivityLevel | undefined) ?? profile.activityLevel;
+
+    const [weightHistory, adherenceHistory] = await Promise.all([
+      prisma.weightLog.findMany({
+        where: { userId, loggedAt: { gte: observationStart } },
+        orderBy: { loggedAt: 'asc' },
+        select: { weightKg: true, loggedAt: true },
+      }),
+      prisma.dailyNutritionLog.findMany({
+        where: { userId, logDate: { gte: observationStart } },
+        orderBy: { logDate: 'asc' },
+        select: { adherencePct: true, logDate: true },
+      }),
+    ]);
+    const projectedWeights = submittedWeightKg
+      ? [...weightHistory, { weightKg: submittedWeightKg, loggedAt: now }]
+      : weightHistory;
+    const adaptation = evaluateWeeklyAdaptation({
+      goal: effectiveGoal,
+      weights: projectedWeights,
+      adherence: adherenceHistory,
+    });
+
+    let dailyCalorieTarget = profile.dailyCalorieTarget;
+    if (profile.age && profile.heightCm && effectiveWeightKg && effectiveGoal && effectiveActivityLevel) {
+      const hasPregnantCondition = user.healthConditions.some(
+        ({ condition }) => condition === HealthConditionType.PREGNANT
+      );
+      dailyCalorieTarget = calculateDailyTarget({
+        age: profile.age,
+        heightCm: profile.heightCm,
+        weightKg: effectiveWeightKg,
+        goal: effectiveGoal,
+        activityLevel: effectiveActivityLevel,
+        biologicalSex: profile.biologicalSex as 'MALE' | 'FEMALE' | undefined,
+        hasPregnantCondition,
+      }).dailyCalorieTarget;
+    }
+
+    const daysSincePreviousCheckin = profile.lastCheckinAt
+      ? (now.getTime() - profile.lastCheckinAt.getTime()) / 86_400_000
+      : null;
+    const nextStreak = daysSincePreviousCheckin !== null && daysSincePreviousCheckin <= 14
+      ? profile.checkinStreak + 1
+      : 1;
+
+    try {
+      const checkin = await prisma.$transaction(async (tx) => {
+        const created = await tx.weeklyCheckin.create({
+          data: {
+            userId,
+            cycleStartDate: cycle.startDate,
+            changed: data.changed,
+            submittedWeightKg,
+            submittedGoal: updates.goal as Goal | undefined,
+            submittedActivityLevel: updates.activityLevel as ActivityLevel | undefined,
+            weightTrendKg: adaptation.weightTrendKg,
+            averageAdherencePct: adaptation.averageAdherencePct,
+            observationDays: adaptation.observationDays,
+            adaptationState: adaptation.state as WeeklyAdaptationState,
+            profileSnapshot: {
+              weightKg: effectiveWeightKg,
+              goal: effectiveGoal,
+              activityLevel: effectiveActivityLevel,
+              dailyCalorieTarget,
+              automaticCalorieAdjustment: adaptation.automaticCalorieAdjustment,
+            },
+          },
+        });
+
+        await tx.userProfile.update({
+          where: { userId },
+          data: {
+            ...(submittedWeightKg !== undefined ? { weightKg: submittedWeightKg } : {}),
+            ...(updates.goal !== undefined ? { goal: updates.goal as Goal } : {}),
+            ...(updates.activityLevel !== undefined ? { activityLevel: updates.activityLevel as ActivityLevel } : {}),
+            dailyCalorieTarget,
+            lastCheckinAt: now,
+            checkinStreak: nextStreak,
+          },
+        });
+
+        if (submittedWeightKg !== undefined) {
+          await tx.weightLog.create({ data: { userId, weightKg: submittedWeightKg, note: 'Weekly check-in' } });
+        }
+
+        if (adaptation.state === 'REVIEW_RECOMMENDED') {
+          await tx.notification.create({
+            data: {
+              userId,
+              title: 'Progress review recommended',
+              message: 'Your recent trend and recorded adherence suggest that a nutritionist should review the next adjustment. NutriMind did not automatically change your calorie target from trend data alone.',
+              type: NotificationType.REVIEW_REQUEST,
+            },
+          });
+        }
+        return created;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+      return {
+        ...checkin,
+        duplicate: false,
+        streak: nextStreak,
+        explanation: adaptation.explanation,
+        automaticCalorieAdjustment: adaptation.automaticCalorieAdjustment,
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const duplicate = await prisma.weeklyCheckin.findUnique({
+          where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
+        });
+        if (duplicate) return { ...duplicate, duplicate: true };
+      }
+      throw error;
+    }
   }
 }

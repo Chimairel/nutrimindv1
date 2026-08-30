@@ -6,54 +6,53 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
-import { ShoppingDayGroup } from '@/types';
+import { ShoppingDayOfWeek } from '@/types';
 import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } from 'lucide-react';
 import axios from 'axios';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 
-const options: { value: ShoppingDayGroup; icon: React.ReactNode; title: string; desc: string; days: string }[] = [
-  {
-    value: 'WEEKEND',
-    icon: <ShoppingCart className="w-6 h-6" />,
-    title: 'Weekend Shopper',
-    desc: 'I do my grocery run on weekends',
-    days: 'Saturday / Sunday',
-  },
-  {
-    value: 'WEEKDAY',
-    icon: <Calendar className="w-6 h-6" />,
-    title: 'Weekday Shopper',
-    desc: 'I prefer shopping on weekdays',
-    days: 'Monday – Friday',
-  },
-];
+const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+const options = dayNames.map((day, index) => ({
+  value: index as ShoppingDayOfWeek,
+  icon: index === 0 || index === 6
+    ? <ShoppingCart className="h-5 w-5" />
+    : <Calendar className="h-5 w-5" />,
+  title: day,
+  desc: `Your 7-day meal cycle starts ${dayNames[(index + 1) % 7]}`,
+}));
 
 export default function OnboardingShoppingDayPage() {
   const router = useRouter();
   const { profile, isLoading: isHydrating } = useProfile();
   const { refreshSession } = useAuth();
-  const [selected, setSelected] = useState<ShoppingDayGroup | null>(null);
+  const [selected, setSelected] = useState<ShoppingDayOfWeek | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const saved = profile?.userProfile?.shoppingDayGroup;
-    if (saved === 'WEEKEND' || saved === 'WEEKDAY') setSelected(saved);
+    const exactDay = profile?.userProfile?.shoppingDayOfWeek;
+    if (typeof exactDay === 'number' && exactDay >= 0 && exactDay <= 6) {
+      setSelected(exactDay as ShoppingDayOfWeek);
+      return;
+    }
+    const legacyGroup = profile?.userProfile?.shoppingDayGroup;
+    if (legacyGroup === 'WEEKEND') setSelected(6);
+    if (legacyGroup === 'WEEKDAY') setSelected(0);
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!selected) {
+    if (selected === null) {
       setError('Please select your preferred shopping day to continue.');
       return;
     }
 
     setIsLoading(true);
     try {
-      await api.post('/user/onboarding/shopping-day', { shoppingDayGroup: selected });
+      await api.post('/user/onboarding/shopping-day', { shoppingDayOfWeek: selected });
       await refreshSession();
       router.push('/onboarding/tos');
     } catch (err) {
@@ -109,8 +108,8 @@ export default function OnboardingShoppingDayPage() {
               <span>Back to Step 4</span>
             </button>
 
-            {/* Option cards */}
-            <div className="flex flex-col gap-3">
+            {/* Exact day cards */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {options.map((opt) => {
                 const isSelected = selected === opt.value;
                 return (
@@ -118,27 +117,24 @@ export default function OnboardingShoppingDayPage() {
                     key={opt.value}
                     type="button"
                     aria-pressed={isSelected}
-                    id={`shopping-day-${opt.value.toLowerCase()}`}
+                    id={`shopping-day-${opt.value}`}
                     onClick={() => setSelected(opt.value)}
                     className={`
-                      flex items-center gap-4 px-5 py-5 rounded-xl border-2 text-left transition-all duration-200 outline-none
+                      flex items-center gap-3 px-4 py-4 rounded-xl border-2 text-left transition-all duration-200 outline-none
                       ${isSelected
                         ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
                         : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                       }
                     `}
                   >
-                    <span className={`p-3 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-brand-border/30 text-brand-green'}`}>
+                    <span className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-brand-border/30 text-brand-green'}`}>
                       {opt.icon}
                     </span>
                     <div className="flex-1">
                       <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}>
                         {opt.title}
                       </h4>
-                      <p className={`text-xs mt-0.5 ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{opt.desc}</p>
-                      <p className={`text-[11px] font-semibold mt-1 ${isSelected ? 'text-white/90' : 'text-brand-border'}`}>
-                        {opt.days}
-                      </p>
+                      <p className={`text-[11px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{opt.desc}</p>
                     </div>
                     {isSelected && (
                       <span className="text-white text-sm font-bold bg-white/20 h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0">
@@ -155,7 +151,7 @@ export default function OnboardingShoppingDayPage() {
               <p className="text-[11px] text-brand-muted leading-relaxed flex items-start gap-1.5">
                 <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  <span className="font-semibold text-brand-text/70">How this works:</span> Your first meal plan will cover the days until your shopping cycle starts. From then on, a fresh 7-day plan is ready every week, perfectly timed with your grocery run.
+                  <span className="font-semibold text-brand-text/70">How this works:</span> Your starter plan bridges the days until your first full cycle. Future plans are prepared three days before your grocery day so staff have time to review any newly generated meals.
                 </span>
               </p>
             </div>

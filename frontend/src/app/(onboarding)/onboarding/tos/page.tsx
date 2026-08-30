@@ -28,6 +28,19 @@ function joinSelections(values: string[], custom?: string) {
   return selections.length > 0 ? selections.join(', ') : 'None declared';
 }
 
+const shoppingDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function formatPlanSchedule(dayOfWeek?: number, legacyGroup?: string) {
+  if (typeof dayOfWeek === 'number' && dayOfWeek >= 0 && dayOfWeek <= 6) {
+    const cycleStart = (dayOfWeek + 1) % 7;
+    const cycleEnd = (cycleStart + 6) % 7;
+    return `${shoppingDays[dayOfWeek]} shopping · ${shoppingDays[cycleStart]} to ${shoppingDays[cycleEnd]} plan`;
+  }
+  if (legacyGroup === 'WEEKEND') return 'Weekend shopping · Sunday to Saturday plan';
+  if (legacyGroup === 'WEEKDAY') return 'Weekday shopping · Monday to Sunday plan';
+  return 'Not provided';
+}
+
 export default function OnboardingTosPage() {
   const router = useRouter();
   const { refreshSession } = useAuth();
@@ -75,11 +88,7 @@ export default function OnboardingTosPage() {
       editPath: '/onboarding/shopping-day',
       items: [[
         'Weekly cycle',
-        userProfile?.shoppingDayGroup === 'WEEKEND'
-          ? 'Sunday to Saturday'
-          : userProfile?.shoppingDayGroup === 'WEEKDAY'
-            ? 'Monday to Sunday'
-            : 'Not provided',
+        formatPlanSchedule(userProfile?.shoppingDayOfWeek, userProfile?.shoppingDayGroup),
       ]],
     },
   ];

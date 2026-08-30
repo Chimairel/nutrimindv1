@@ -44,7 +44,7 @@ Rules:
 
 NutriMind is a partially implemented Filipino-focused nutrition and meal-planning web application. A `USER` can authenticate, complete health and preference onboarding, request a Gemini-assisted nutrition report and meal plan, log meals, generate groceries, track weight/progress, and receive notifications. A `NUTRITIONIST` can access a review queue and meal library. An `ADMIN` can view aggregate information and verify nutritionist records.
 
-The repository contains meaningful implementation for these workflows. Cleanup work added centralized, default-deny actionability and restriction boundaries; the backend now has 107 passing deterministic tests and 4 executable TODO safety specifications. Pure policy and closest query boundaries are unit-tested, but no API/database integration execution, browser E2E verification, deployment evidence, or clinical review evidence is established. Repository CI is configured but remote execution is not established by this local record. Several frontend callers still do not have backend routes, and other clinical, authorization, concurrency, and data-integrity rules remain incomplete.
+The repository contains meaningful implementation for these workflows. Cleanup work added centralized, default-deny actionability and restriction boundaries; the latest compile-first execution registers 128 deterministic tests: 124 pass, 0 fail, and 4 remain explicit TODO specifications. Pure policies and closest query boundaries are unit-tested, but the August 30 production-readiness migration and its new API/database workflows are not deployed or integration-tested, browser E2E evidence is incomplete, and no clinical review is established. Repository CI is configured but remote execution is not established by this local record. Remaining risks are recorded rather than treated as completed behavior.
 
 ### 3.2 Current architecture
 
@@ -201,6 +201,7 @@ The backend `.env.example` omits `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, and SMTP va
 | ADR-008 | Use a pure structured `ALLOW`/`REVIEW`/`BLOCK` restriction contract with existing confidence flags, stable reason codes, mechanical normalization, no fuzzy clinical matching, and most-restrictive precedence | Accepted for isolated Batch 4B1 policy; production integration and medical rules remain pending | 2026-08-19 | Separates technical normalization from semantic/medical approval and makes unknown evidence reviewable; approves only three exact aliases | REQ-003/006/010, DEF-009/023-026, RISK-002/018, TEST-015/016/025/026, UNC-014 |
 | ADR-009 | Model library safety evidence as an independent `INCOMPLETE`, `COMPLETE`, or `STALE` lifecycle with first-class library ingredients, explicit declaration states, cross-contact assessment, evidence revision/version, qualified reviewer, and append-only review history | Accepted; Batch 4B4 lifecycle snapshot implemented, later evidence/workflow layers require separate approval | 2026-08-20 | Conservative defaults now persist without making rows eligible; first-class evidence/history and qualified certification remain deferred; Batch 4B2 fallback stays active | REQ-003/006/010/011, DEF-010/024/027, RISK-002/003/018/019, TEST-029/030 |
 | ADR-010 | Treat backend onboarding state and current consent versions as authoritative; keep frontend guards and hydration as UX only | Accepted; implemented in source | 2026-08-27 | Adds one database prerequisite read to protected USER requests and preserves already-onboarded legacy accounts whose consent version columns are null; new completions must accept exact current versions | REQ-004/006/012, DEF-010/030, RISK-003/020, TEST-038 |
+| ADR-011 | Treat nutritionists as internal NutriMind staff using a pooled review queue rather than a consumer marketplace or assigned-patient model | Accepted; misleading surfaces removed and pooled-review hardening implemented in source | 2026-08-30 | Keeps staff accounts authenticated through the shared `User`/role architecture; removes consultation/assignment promises; requires verified/unexpired eligibility, exclusive expiring claims, and claim-owned decisions | REQ-002/004/011, DEF-005/010/011/013, TEST-046-049 |
 
 ### ADR-001 - Stabilize the observed two-package architecture
 
@@ -344,15 +345,15 @@ The backend `.env.example` omits `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, and SMTP va
 | DEF-002 | Legacy model-count claims conflict with four configured Gemini fallbacks | Medium | Codex cleanup prompt; `backend/src/lib/gemini.ts` | One supported, verified model strategy | Open |
 | DEF-003 | Fresh-start assumptions conflict with existing history and heavily dirty tree | High | `git status`, `git log` | Preserve existing implementation and owner work | Open/monitoring |
 | DEF-004 | Completion claims conflict with missing routes and absent runtime tests | High | frontend callers, backend route inventory, package scripts | Truthful status vocabulary and canonical evidence | Documentation mitigated by accepted ADR-002/003 and CHG-20260819-02; product gaps remain |
-| DEF-005 | Nutritionist patients page expects a removed assignment model and missing endpoint | High | patients page; migration `20260621101745_remove_nutritionist_assignment` | Product decision: reframe, implement consent model, hide, or remove | Open |
+| DEF-005 | Nutritionist patients page expects a removed assignment model and missing endpoint | High | patients page; migration `20260621101745_remove_nutritionist_assignment` | Remove the unsupported assigned-patient surface under ADR-011 | Resolved in source 2026-08-30; route and navigation removed |
 | DEF-006 | PWA claim exceeds manifest/icons implementation | Medium | `public/manifest.json`; no service-worker registration/code | Label installable shell only or implement tested offline behavior | Open |
 | DEF-007 | `Account`, `Session`, and `AssignmentStatus` concepts do not match active use | High | schema; source usage search; logout only deletes sessions | Adopt purposefully or deprecate through approved schema design | Open |
 | DEF-008 | `PENDING_REVIEW` was treated as current/actionable and group fetches omitted status filtering | Critical | Pre-Batch-3 `meals.controller.ts` and `grocery.service.ts`; CHG-20260819-04 | Only approved, schedule-current meals exposed/aggregated or accepted for user actions | Resolved in source; TEST-013/014 and authenticated exclusion/`409` checks in TEST-024 pass; positive approved-current runtime path remains unavailable |
 | DEF-009 | Allergy/condition logic and nutritionist allergen keys are inconsistent with schema/custom values | Critical | schema enums; safety/review services | One schema-aligned deterministic engine | Open |
-| DEF-010 | Backend role checks omit account/profile prerequisite gates and nutritionist verification/expiry | High | route middleware and `RouteGuard.tsx` | Backend policies enforce required states | Open |
-| DEF-011 | Frontend calls missing `/user/nutritionists` and `/nutritionist/patients`; consultation is placeholder | High | nutritionists/patients pages; backend route inventory | Supported endpoint/workflow or hidden/reframed UI | Open |
+| DEF-010 | Backend role checks omit account/profile prerequisite gates and nutritionist verification/expiry | High | route middleware and `RouteGuard.tsx` | Backend policies enforce required states | Partially resolved in source: USER prerequisites and verified/non-expired NUTRITIONIST middleware implemented; live nutritionist expiry boundary pending |
+| DEF-011 | Frontend calls missing `/user/nutritionists` and `/nutritionist/patients`; consultation is placeholder | High | nutritionists/patients pages; backend route inventory | Remove marketplace/assignment surfaces and retain the pooled staff-review workflow | Resolved in source 2026-08-30 under ADR-011 |
 | DEF-012 | `useMeals` calls missing `GET /user/meals` instead of `/user/meals/current` | Medium | `frontend/src/hooks/useMeals.ts:32`; backend meal routes | Synchronized frontend/backend route contract | Open |
-| DEF-013 | Review queue sort converts priority zero to fallback; claims are non-atomic | High | `nutritionist.service.ts:35-38` and claim code | Correct severity order and race-safe claim ownership | Open |
+| DEF-013 | Review queue sort converts priority zero to fallback; claims are non-atomic | High | review priority and claim/decision paths | Correct severity order and race-safe claim ownership | Resolved in source 2026-08-30 with compare-and-set claims and claim-owned serializable decisions; concurrent database integration remains unverified |
 | DEF-014 | Meal/daily logs can duplicate; status updates alter timestamp and provenance | High | schema missing composites; `meals.controller.ts:315-327`; cron find/create | Unique/idempotent logs with correct event/schedule semantics | Open |
 | DEF-015 | Cron and date windows use server-local `Date` operations | High | `cron.service.ts:12-17` | Explicit Asia/Manila business boundaries | Open; direction accepted in ADR-005, implementation deferred |
 | DEF-016 | Profile/check-in code accepts broad request objects via spreading | High | `user.controller.ts:49`; `checkin.service.ts:52-54` | Explicit validated field allow-lists | Open |
@@ -430,8 +431,8 @@ Contradiction resolution details:
 
 | Frontend caller | Backend result | Status |
 | --- | --- | --- |
-| `GET /user/nutritionists` | No route found | Missing; DEF-011 |
-| `GET /nutritionist/patients` | No route found | Missing; DEF-005/011 |
+| `GET /user/nutritionists` | Intentionally not exposed | Consumer hiring/directory concept removed by ADR-011 |
+| `GET /nutritionist/patients` | Intentionally not exposed | Assignment model removed; staff use the shared review queue under ADR-011 |
 | `GET /user/meals` in `useMeals` | No route; `/user/meals/current` exists | Stale caller; DEF-012 |
 
 ---
@@ -1865,3 +1866,193 @@ If TEST-033 passes, select one unrelated feature scope and reconcile only the ex
 - Verification passed: backend no-emit TypeScript, production build, and Prisma validation; frontend no-emit TypeScript, lint with existing warnings, and production build with all 35 routes generated.
 - The standard backend `npm test` wrapper remains blocked only in the restricted Windows Codex identity by Node 24 `uv_os_get_passwd` returning `ENOMEM`. Compiling the same suite into an isolated temporary directory and executing it with Node's built-in test runner passed 107 tests with 0 failures and 4 TODO specifications.
 - Package-lock metadata was synchronized without installing new dependencies or running package scripts. `npm` reported zero known vulnerabilities for both installed dependency trees during the lockfile-only checks.
+
+---
+
+## 24. Internal nutritionist operations and adaptive meal lifecycle (2026-08-30)
+
+**Architecture decision:** ADR-011 — Accepted
+
+**Change ID:** CHG-20260830-05
+
+### Product boundary
+
+- Nutritionists are authenticated internal NutriMind staff accounts with the `NUTRITIONIST` role. They are not consumer marketplace providers, individually hired consultants, or owners of assigned patient lists.
+- Removed the unsupported user nutritionist directory/consultation surface and the nutritionist assigned-patients surface. No replacement assignment endpoint or schema was invented.
+- All eligible nutritionists work from one shared pending-review queue. Claim acquisition is source-hardened as an atomic, time-limited compare-and-set operation that is recoverable after expiry and exclusive to one active reviewer; concurrent database integration remains pending.
+
+### Meal lifecycle
+
+1. Plan generation is library-first. The system should compose meals from currently approved library records that deterministically satisfy the user's restrictions, dietary preference, and nutrition tolerances.
+2. Gemini is a fallback for uncovered meal slots, not the default source for every request. FNRI matches remain the preferred nutrition evidence for ingredients; unmatched values must stay explicitly estimated.
+3. Newly generated AI meals may be visible to the user as `PENDING_REVIEW`/unverified previews, but they must not be described as clinically verified. Existing REQ-002 remains authoritative: non-approved meals do not become actionable grocery, logging, swap, or aggregate inputs.
+4. The shared nutritionist queue receives pending meals independently of any one nutritionist's online state. Verified meals can enter the reusable library only through the qualified review lifecycle and evidence requirements recorded by ADR-009.
+5. Reuse is based on deterministic compatibility, not an exact whole-profile match. Exact matching would fragment the library and waste safe reusable coverage; conditions, allergens, dietary tags, ingredient evidence, and bounded nutrition targets are evaluated separately.
+
+### User choice and adaptation
+
+- The user-facing library is a compatibility-filtered view of approved meals. It may support bounded swaps without exposing unsafe or incompatible options. Subscription-based limits are a future commercial decision and are not part of the current safety model.
+- Weekly check-ins may adapt the next plan, but a single week's scale change is insufficient evidence by itself. Future adaptation must consider adherence, weight trend over multiple observations, goal direction, reported profile changes, and conservative calorie-adjustment bounds with a recorded explanation.
+- Body, dietary, condition, and allergy changes remain user-editable because health context changes. They are user-reported updates, not proof that a condition was medically cured. Changes must trigger a safety recheck, preserve history/effective time, and clearly explain any affected meal replacements.
+- The current Progress page can link to these controls, but long-term information architecture should separate progress measurement from a dedicated Health & Diet profile surface so safety-critical settings are not mistaken for ordinary chart filters.
+
+### Minimum admin responsibility
+
+The production-readiness admin scope is operational rather than clinical treatment: staff credential activation/expiry, review-queue workload and aging, claim conflicts, safety flags and library lifecycle, AI fallback/quota/reuse metrics, account support, and auditable privileged actions. Admins do not certify nutrition content unless they separately hold the required qualified role.
+
+### Acceptance boundary
+
+ADR-011 resolves the misleading marketplace and assignment UI. Source policy and transaction checks now enforce claim ownership and qualified reviewer eligibility, but concurrent database integration, safe library certification writes, weekly adaptation bounds, clinical correctness, and production deployment remain separate verification or implementation batches.
+
+Source verification passed after the surface alignment: backend no-emit TypeScript and production build; frontend no-emit TypeScript, lint with existing warnings, and production build with all 33 remaining routes generated. No schema, migration, dependency, environment value, database record, or external service was changed.
+
+---
+
+## 25. Pooled nutritionist review hardening (2026-08-30)
+
+**Change ID:** CHG-20260830-06
+
+**Verification IDs:** TEST-046, TEST-047, TEST-048, TEST-049
+
+- Added a pure review policy for severity priority, 30-minute claim activity/expiry, ownership, and `Asia/Manila` license-date eligibility. This corrects the previous zero-priority fallback that could demote `NEEDS_REVIEW` behind safer items.
+- Added backend nutritionist-eligibility middleware. Every nutritionist workspace route now requires an existing profile that is admin-verified and whose PRC license date has not expired in the product business timezone.
+- The shared queue now includes peer-claimed items for workload visibility while minimizing user identity fields. The frontend disables peer-owned cards and explains the current reviewer's exclusive 30-minute lock.
+- Review-card opening acquires or renews a claim with one conditional `updateMany` compare-and-set. A simultaneous reviewer cannot overwrite a live claim; unclaimed and expired claims can be acquired by another eligible staff member.
+- Approval and rejection require the caller's live claim at decision time. Their guarded status transition, notification, counter/library writes, edited ingredients, and claim release now execute transactionally at serializable isolation. Replacement generation begins only after a rejection commits.
+- Unit verification passed all four new policy cases with zero failures. Backend test-project TypeScript and production build passed. Frontend no-emit TypeScript, lint with existing warnings, and production build passed with all 33 routes generated.
+- No schema, migration, dependency, environment value, database record, live review, notification, or Gemini request was changed or executed. Concurrent PostgreSQL integration and reviewer-expiry HTTP tests remain required before deployment acceptance.
+
+---
+
+## 26. Production-readiness foundations (2026-08-30)
+
+**Change ID:** CHG-20260830-06
+
+**Verification IDs:** TEST-050, TEST-051, TEST-052
+
+**Decision IDs:** ADR-012, ADR-013, ADR-014
+
+**Documentation ID:** DOC-027
+
+### Implemented source behavior
+
+- Completed the first-class meal-library safety-evidence design. Library meals now own stable ingredient provenance, explicit reviewed declarations, and append-only review snapshots. User-plan approval creates an `INCOMPLETE` draft only; it never converts one user's conditions or allergies into reusable safety authority.
+- Added strict qualified-nutritionist certification for one exact evidence revision. Certification requires an approved, unflagged record, current verified/non-expired reviewer eligibility, every stable ingredient linked to FNRI data, both declaration domains explicitly reviewed, the supported policy version, and a bounded no-known-risk cross-contact acknowledgement. It is a limited technical review statement, not universal or clinical safety certification.
+- Material library edits and flags invalidate current certification. Flag dismissal does not revive stale evidence. Library deletion is now archival so ingredients, declarations, reviews, and actor history remain auditable.
+- Generation is library-first only when the first-class evidence policy returns `ALLOW`; it never reconstructs authority from mutable historical plan ingredients. Legacy, incomplete, stale, revision-mismatched, unsupported, unlinked, estimated, custom, contradictory, or otherwise review-required rows fall back to one Gemini batch for uncovered slots. Known health conditions remain review-only pending approved RND rules.
+- Added exact grocery-shopping day (`0` Sunday through `6` Saturday) while retaining the old group as a compatibility projection. The meal cycle starts the next day; a mid-cycle account receives a clearly bounded starter bridge. A daily scheduler prepares the next cycle three days before grocery day and catches up within the same lead window.
+- Added durable per-user/plan-type/cycle generation jobs. The unique cycle key, guarded retry state, and stale-job timeout prevent duplicate Gemini plan creation and make daily scheduling safe to retry. Generation cancels only plans overlapping the new target dates.
+- Replaced the old check-in side effect with one durable weekly check-in per cycle, bounded input validation, weight/adherence evidence, an adaptation explanation, and a stored profile snapshot. Trend alone never changes calories. Insufficient data and low adherence remain conservative; adequate-adherence stagnation requests professional review. Explicit body/goal/activity changes may recalculate the existing formula for the next plan.
+- Added append-only body/diet, condition, and allergy profile revision snapshots so health-context changes remain traceable. The themed workspace is now split into `/progress` for weight/adherence and `/health-profile` for editable Body & diet and Safety sections, with a dedicated user-sidebar destination and shared form behavior.
+- Added privacy-minimized Gemini operations telemetry containing provider/model, outcome, attempt count, latency, stable error code, and timestamp only. Prompts, names, conditions, allergies, and credentials are not stored. Admin overview now surfaces overdue/claimed reviews, reviewer expiry, library evidence readiness, generation failures/stuck jobs, pending upcoming plans, adaptation-review recommendations, and 24-hour Gemini success/failure counts.
+- Removed consumer nutritionist-shopping and assigned-patient surfaces. Nutritionists are internal staff operating one pooled review queue. Request bodies for review, library edit/flag/resolution/certification, shopping day, and check-in now use strict allow-listed schemas.
+
+### Decisions
+
+- **ADR-012 — Reuse only current first-class evidence:** automatic reuse requires a current exact certification plus a user-specific deterministic `ALLOW`. FNRI linkage proves nutrition provenance, not allergen absence or medical suitability. Missing knowledge fails closed.
+- **ADR-013 — Exact shopping-day cycles with daily idempotent preparation:** one daily scheduler is simpler than per-user cron definitions while still respecting each user's actual shopping day. Durable cycle jobs are the duplication boundary; legacy weekend/weekday endpoints are compatibility wrappers only.
+- **ADR-014 — Conservative weekly adaptation:** a check-in records evidence and explains the next action. Weight trend without sufficient observations/adherence never causes an automatic calorie escalation; professional review is preferred when high-adherence progress is unexpectedly stagnant.
+
+### Schema and deployment boundary
+
+- Prepared additive migration `backend/prisma/migrations/20260830110000_add_meal_library_safety_evidence/migration.sql`. It adds first-class library evidence/history, archival status, exact shopping day, generation jobs, weekly check-ins, health-profile revisions, AI-usage events, indexes, checks, and foreign keys.
+- After the owner stopped the backend, normal `npx prisma generate` succeeded under Codex. Managed `prisma migrate deploy` still stopped at `Schema engine error`; the owner then ran the same command in a normal Command Prompt and supplied terminal evidence that Prisma found 12 migrations, applied `20260830110000_add_meal_library_safety_evidence`, and reported all migrations successfully applied.
+- The migration SQL contains no application-row update, backfill, certification, generation, notification, or external-service call. It adds schema structures and Prisma's migration-history entry; legacy library rows remain conservatively incomplete under their existing lifecycle defaults.
+- A managed post-deployment aggregate query was attempted only after owner-reported success, but Prisma Client could not open the Neon TLS connection because the Codex Windows identity has no credential available in the security package. Therefore table-level integration results are not claimed. The database is schema-deployed by owner evidence; authenticated API/browser smoke tests remain the next acceptance gate.
+
+### Verification evidence
+
+- Prisma format/validation passed. Prisma Client type generation succeeded with `--no-engine`; normal engine replacement remains blocked while the owner-controlled backend holds the Windows DLL.
+- Backend no-emit TypeScript and production build passed. Backend test-project TypeScript passed.
+- The ordinary `tsx` wrapper remained blocked in the restricted Windows Codex identity by Node 24 `uv_os_get_passwd` returning `ENOMEM`. The equivalent full suite was compiled into an isolated ignored workspace and run through `node --test` with a test-only alias resolver: **128 registered, 124 pass, 0 fail, 0 skipped, 4 TODO**.
+- TEST-050 covers current evidence eligibility and conservative failures. TEST-051 covers exact-day cycle, starter bridge, and three-day preparation. TEST-052 covers insufficient data, low adherence, review recommendation, and on-track outcomes with zero automatic trend-based calorie adjustment. TEST-046 through TEST-049 continue to cover review priority, claims, expiry, and reviewer eligibility.
+- Frontend no-emit TypeScript passed. Lint passed with the existing warnings. The Next.js production build compiled and generated all 34 routes, including `/health-profile`. No authenticated browser, API/database integration, concurrency integration, migration deployment, accessibility audit, load test, or clinical validation was performed.
+
+### Remaining production risks
+
+1. Smoke-test the deployed schema through the owner-run backend: certification, invalidation, library reuse/fallback, check-in idempotency, generation-job contention, and admin metrics against PostgreSQL.
+2. Obtain licensed-RND approval for medical compatibility rules, calorie bounds, declaration/cross-contact wording, and the condition-handling policy. Until then known conditions remain review-required.
+3. Complete TEST-018/019/020/021: outside-meal confirmation provenance, database uniqueness for meal/daily logs, PostgreSQL claim concurrency integration, and clinically approved calorie bounds. TEST-020's pure claim policy now passes, but its database-concurrency acceptance remains TODO by design.
+4. Finish older production hardening: refresh-token rotation/revocation, daily aggregate uniqueness and Manila date migration, persisted user/date water tracking, grocery quantities/units, complete data export, browser E2E/accessibility, and deployment monitoring/alerting.
+
+## 27. Runtime, FNRI, export, and session hardening (2026-08-30)
+
+**Change ID:** CHG-20260830-07
+
+**Verification IDs:** TEST-053 through TEST-057; INT-001; E2E-001
+
+**Documentation ID:** DOC-028
+
+### Implemented source behavior
+
+- Fixed the compiled backend startup blocker without adding a runtime package. The backend build now rewrites TypeScript `@/` aliases in emitted JavaScript, fails if any unresolved alias remains, and `npm start` successfully boots through plain Node.
+- Made SMTP startup verification explicit through `SMTP_VERIFY_ON_STARTUP=true`. API startup no longer opens an external SMTP connection by default; actual email delivery remains unchanged.
+- Replaced unsafe first-substring FNRI matching and automatic alias creation with a deterministic fail-closed lexical policy. Legacy aliases are accepted only when their target remains a strong lexical match. Processed or specialty collisions such as chicken-flavored puffs, egg crackers, and beef blood are rejected for generic ingredient queries.
+- Corrected the FNRI ID-prefix category mapping. The prior seed swapped Meat & Poultry with Fish & Shellfish and shifted dairy, fats, and sweets. The idempotent seed reconciled the configured database from the bundled FNRI dataset. Read-only spot checks now resolve chicken and beef to Meat & Poultry, tilapia to Fish & Shellfish, chicken egg to Eggs, cheese to Milk & Dairy, and butter to Fats & Oils.
+- Hardened refresh sessions using the existing `Session` table: refresh cookies now have unique JWT IDs, only hashed refresh tokens are stored, every refresh rotates the persisted token, replay of the old token is rejected, logout revokes sessions, and password reset revokes all existing sessions.
+- Reworked the user export so it no longer claims to be an official clinical record or nutritionist-verified document. It compares the report's recorded condition/allergy context with the current profile, excludes stale AI guidance, labels every pending meal as pending review, uses cuisine-neutral plan wording, and prints a bounded non-medical disclaimer.
+- Removed all frontend lint warnings through explicit request/history/icon/error types and stable hook dependencies; no lint rules were suppressed.
+
+### Database and runtime evidence
+
+- No new schema migration was required. The already deployed additive migration remained unchanged.
+- FNRI reconciliation processed 1,541 source rows with 0 inserts and 1,541 updates. The operation only upserted `FoodItem` values from the repository dataset.
+- `npm run test:integration:production` created reserved-domain synthetic records, verified refresh rotation/replay rejection, positive evidence certification, edit invalidation, concurrent weekly-check-in idempotency, and generation-job uniqueness, then removed all synthetic users and meals. Post-run counts for both fixture prefixes were zero.
+- The compiled backend passed `/health`, ADMIN authentication, and live FNRI lookups: `chicken -> Chicken, whole`, `egg -> Egg, chicken, whole`, and `beef -> Beef lean meat`, all with the corrected categories and FNRI provenance.
+- Authenticated browser smoke testing passed user routes (`/dashboard`, `/meals`, `/grocery`, `/progress`, `/health-profile`, `/profile`, `/export`), nutritionist routes (`/nutritionist/reviews`, `/nutritionist/library`, `/nutritionist/approved`, `/nutritionist/profile`), and administrator routes (`/admin/overview`, `/admin/analytics`, `/admin/users`, `/admin/nutritionists`). The corrected export rendered 21 explicit `PENDING REVIEW` labels and excluded the stale narrative that contradicted the user's current hypertension/dairy profile.
+
+### Verification evidence
+
+- Backend deterministic suite: **133 registered, 129 pass, 0 fail, 4 TODO**.
+- Production database integration smoke: **pass**, with synthetic cleanup verified.
+- Backend production build and plain-Node startup: **pass**.
+- Frontend no-emit TypeScript, lint, and production build: **pass with zero warnings**.
+- Authenticated route browser smoke: **pass** for all three roles and the principal portal pages listed above.
+
+### Residual boundaries
+
+- Existing pending plan rows generated before the FNRI matcher correction retain their historical ingredient links. They remain non-actionable and visibly pending nutritionist review; they were not silently rewritten because doing so would alter audit evidence.
+- A full live Gemini generation/reuse/fallback cycle was not triggered, avoiding quota consumption and new patient-plan mutations. The deterministic selection/fallback tests and the positive database evidence path pass independently.
+- TEST-018 through TEST-021 remain the next implementation targets: exact outside-meal confirmation provenance, database uniqueness for meal/daily logs, full claim-contention acceptance, and clinically approved calorie bounds.
+- Grocery quantities/units, persisted water tracking, complete machine-readable user-data export, accessibility/load testing, deployment monitoring, and licensed clinical review remain outside this batch.
+
+## 28. Production workflow completion and operational gates (2026-08-31)
+
+**Change ID:** CHG-20260831-01
+
+**Verification IDs:** TEST-058 through TEST-066; INT-002; LOAD-001; E2E-002
+
+**Documentation IDs:** DOC-029, DOC-030
+
+### Implemented behavior
+
+- Meal plans now carry explicit safety-revalidation state, policy version, high-risk review state, approval count, and first-reviewer evidence. Approved plans are actionable only when current-policy revalidation is complete. Kidney/renal and pregnancy/lactation contexts require two independent RND approvals; the first approval remains pending and the same reviewer cannot provide the second.
+- Library browsing, swap previews, swap commits, and profile-change safety rechecks now share the strict first-class library evidence rule. Legacy nullable JSON tags cannot authorize reuse. A candidate must have current complete evidence, a current eligible reviewer, certified revision, FNRI-linked ingredients, reviewed declaration domains, cleared cross-contact assessment, and deterministic compatibility with the current user profile.
+- Profile changes reevaluate every remaining active meal. Current compatible certified-library meals remain actionable; other rows become non-actionable before replacement. Certified replacements copy stable ingredients and quantities directly. AI fallbacks remain pending review and high-risk rules are preserved.
+- Generation jobs now expose persisted stage codes, stage messages, percentage, and timing. The dashboard polls this source instead of simulating elapsed progress.
+- Outside-meal warning confirmation persists and consumes the exact previewed estimate once. Planned-meal logs and daily aggregates have database uniqueness boundaries and idempotent writes.
+- Grocery items now aggregate compatible quantities/units, retain an honest unspecified state, show source-meal coverage, preserve checked/pantry state across regeneration, support pantry toggling, and include quantities in the PDF.
+- Water intake is stored as bounded append-only daily events. User export now returns a machine-readable JSON package of the user's application data. Permanent deletion requires current-password verification plus an exact confirmation phrase.
+- Admin operations now include account suspension/reinstatement with session revocation, audit events, pending safety incidents, operational metrics, and a themed `/admin/operations` workspace. Authentication rechecks the current database account role and suspension state.
+- Production config fails closed on missing/placeholder/short secrets, wildcard credentialed CORS, and missing or mismatched clinical-policy approval. Request IDs, structured privacy-conscious HTTP logs, bounded JSON bodies, security headers, `/health`, and database-backed `/ready` are implemented.
+- Added `docs/PRODUCTION_OPERATIONS_RUNBOOK.md`, a repeatable load smoke, and `docs/CLINICAL_POLICY_APPROVAL.md`. The runbook covers release checks, backup/restore drills, alerts, scheduler ownership, secret rotation, incident response, and privacy operations.
+
+### Schema and deployment evidence
+
+- Deployed `20260831090000_production_workflow_hardening`, adding plan safety/review fields, library/plan ingredient quantities, grocery quantities/pantry state, generation progress, audit events, exact outside-meal previews, and uniqueness for planned logs and user/date daily aggregates.
+- Deployed `20260831120000_account_operations_and_hydration`, adding account-suspension state and bounded persisted water logs.
+- `prisma migrate status` reports all 14 repository migrations applied and the database schema up to date.
+- Preflight reported zero duplicate planned-meal groups and zero duplicate daily-aggregate groups before the uniqueness migration. The post-migration legacy-plan remediation found zero current/future approved rows needing requeue and changed zero meal rows.
+
+### Verification evidence
+
+- Backend deterministic suite: **139 registered, 138 pass, 0 fail, 1 TODO**. TEST-058 verifies fail-closed legacy approvals; TEST-059 through TEST-061 cover grocery quantities; TEST-062 through TEST-064 cover production configuration; TEST-065/066 cover exact high-risk review escalation.
+- Controlled PostgreSQL integration INT-002: **pass**. It verified exact preview persistence and one-time consumption, concurrent planned-log and daily-aggregate idempotency, atomic/expiring RND claims, refresh rotation/replay rejection, evidence certification/invalidation, check-in idempotency, and generation-job contention, then removed all reserved-domain fixtures.
+- Backend TypeScript production build, alias rewrite, plain-Node `npm start`, `/health`, and `/ready`: **pass**.
+- LOAD-001: 100 local health/readiness requests at concurrency 10 completed with zero failures; measured average 110.3 ms and p95 989 ms against the configured managed database.
+- Frontend lint: **pass with zero warnings**. Next.js production build: **pass**, generating all 35 routes including `/admin/operations`.
+- E2E-002 browser smoke: the role guard rejected a USER session from `/admin/operations`; the login screen exposed labeled email/password inputs with no console errors; the authenticated user dashboard rendered navigation, persisted hydration controls, pending-review safety messaging, and 18 non-actionable preview meals without console errors.
+
+### Remaining external production boundary
+
+- TEST-021 remains deliberately TODO. NutriMind cannot honestly declare calorie bounds, medical compatibility rules, condition-specific thresholds, or adaptation wording clinically approved without a qualified reviewer. Production startup now enforces this boundary through `CLINICAL_POLICY_APPROVED_VERSION=NUTRIMIND_CLINICAL_DRAFT_V1`; the value must be set only after the approval record is completed. Code, database, workflow, build, integration, and local operations checks pass, but clinical sign-off and production hosting/provider configuration remain external actions.

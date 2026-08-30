@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 import { JWTPayload } from '@/types';
 
 // Load secrets safely from environment variables
@@ -20,7 +21,10 @@ export const signAccessToken = (payload: JWTPayload): string => {
  * Signs a long-lived refresh token valid for 7 days.
  */
 export const signRefreshToken = (payload: JWTPayload): string => {
-  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+    expiresIn: '7d',
+    jwtid: crypto.randomUUID(),
+  });
 };
 
 /**

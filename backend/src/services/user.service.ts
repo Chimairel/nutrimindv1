@@ -13,12 +13,23 @@ import {
   MealLogSource,
   MealLogDataSource,
   MealLogStatus,
-  MealIngredientDataSource
+  MealIngredientDataSource,
+  HealthProfileRevisionType,
+  MealLibrarySafetyEvidenceStatus,
+  Prisma,
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
-import { getApprovedMealLibraryWhere, getApprovedMealPlanStatusWhere } from '@/domain/meal-actionability.policy';
+import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
 import { evaluateOnboardingStatus } from '@/domain/onboarding.policy';
+import {
+  certifiedLibraryMealInclude,
+  isCertifiedLibraryMealCompatible,
+} from './meal-swap.service';
+import {
+  MEAL_PLAN_SAFETY_POLICY_VERSION,
+  requiresEscalatedMealReview,
+} from '@/domain/meal-plan-production-safety.policy';
 
 interface ProfileUpdateData {
   age?: number;
@@ -49,15 +60,24 @@ export class UserService {
       }
     }
 
-    const profile = await prisma.userProfile.upsert({
-      where: { userId },
-      update: safeData,
-      create: {
-        userId,
-        ...safeData,
-      },
+    return prisma.$transaction(async (tx) => {
+      const profile = await tx.userProfile.upsert({
+        where: { userId },
+        update: safeData,
+        create: {
+          userId,
+          ...safeData,
+        },
+      });
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.BODY_DIET_UPDATED,
+          snapshot: safeData as Prisma.InputJsonObject,
+        },
+      });
+      return profile;
     });
-    return profile;
   }
 
   /**
@@ -80,6 +100,13 @@ export class UserService {
           })),
         });
       }
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.CONDITIONS_UPDATED,
+          snapshot: { conditions },
+        },
+      });
     });
 
     // Fetch and return updated conditions
@@ -102,6 +129,13 @@ export class UserService {
         where: { userId },
         update: { otherConditions },
         create: { userId, otherConditions },
+      });
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.CONDITIONS_UPDATED,
+          snapshot: { conditions, otherConditions },
+        },
       });
     });
 
@@ -127,6 +161,13 @@ export class UserService {
           })),
         });
       }
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.ALLERGIES_UPDATED,
+          snapshot: { allergies },
+        },
+      });
     });
 
     // Fetch and return updated allergies
@@ -149,6 +190,13 @@ export class UserService {
         where: { userId },
         update: { otherAllergies },
         create: { userId, otherAllergies },
+      });
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.ALLERGIES_UPDATED,
+          snapshot: { allergies, otherAllergies },
+        },
       });
     });
 
@@ -180,15 +228,21 @@ export class UserService {
   }
 
   /**
-   * Saves the user's preferred shopping day group.
-   * WEEKEND → weekly cycle runs Sunday to Saturday.
-   * WEEKDAY → weekly cycle runs Monday to Sunday.
+   * Saves the user's exact preferred shopping day (0=Sunday ... 6=Saturday).
+   * The weekly meal cycle starts the following day. The legacy group is kept
+   * in sync for backwards-compatible reporting and old clients.
    */
-  static async saveShoppingDay(userId: string, shoppingDayGroup: 'WEEKEND' | 'WEEKDAY') {
+  static async saveShoppingDay(userId: string, shoppingDayOfWeek: number) {
+    if (!Number.isInteger(shoppingDayOfWeek) || shoppingDayOfWeek < 0 || shoppingDayOfWeek > 6) {
+      throw new Error('Shopping day must be an integer from Sunday (0) to Saturday (6).');
+    }
+    const shoppingDayGroup = shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6
+      ? 'WEEKEND'
+      : 'WEEKDAY';
     return prisma.userProfile.upsert({
       where: { userId },
-      update: { shoppingDayGroup },
-      create: { userId, shoppingDayGroup },
+      update: { shoppingDayGroup, shoppingDayOfWeek },
+      create: { userId, shoppingDayGroup, shoppingDayOfWeek },
     });
   }
 
@@ -490,62 +544,69 @@ export class UserService {
       },
     });
 
+    const libraryMeals = await prisma.mealLibrary.findMany({
+      where: {
+        ...getApprovedMealLibraryWhere(),
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+      },
+      include: certifiedLibraryMealInclude,
+    });
+    const eligibleLibraryMeals = libraryMeals.filter((candidate) =>
+      isCertifiedLibraryMealCompatible(candidate, userConditions, userAllergens, userProfile)
+    );
+    const highRiskReviewRequired = requiresEscalatedMealReview(
+      userConditions,
+      userProfile.otherConditions || ''
+    );
     let replacedCount = 0;
 
     for (const meal of remainingMeals) {
-      const hasConflict = UserService.checkSafetyConflict(userConditions, userAllergens, meal);
-      if (!hasConflict) continue;
+      const currentCertifiedMeal = meal.libraryMealId
+        ? eligibleLibraryMeals.find((candidate) => candidate.id === meal.libraryMealId)
+        : null;
 
-      console.log(`[Safety Recheck] Conflict detected for meal "${meal.mealName}" (Type: ${meal.mealType})`);
+      if (currentCertifiedMeal) {
+        await prisma.mealPlan.update({
+          where: { id: meal.id },
+          data: {
+            status: MealPlanStatus.APPROVED,
+            requiresSafetyRevalidation: false,
+            safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+            highRiskReviewRequired: false,
+            reviewApprovalCount: 1,
+            nutritionistId: currentCertifiedMeal.verifiedByNutritionistId,
+            reviewedAt: new Date(),
+          },
+        });
+        continue;
+      }
 
-      // Attempt to find a compatible pre-verified library meal
-      const libraryMeals = await prisma.mealLibrary.findMany({
-        where: {
-          mealType: meal.mealType,
-          ...getApprovedMealLibraryWhere(),
+      // Make the old row non-actionable before any remote generation attempt.
+      await prisma.mealPlan.update({
+        where: { id: meal.id },
+        data: {
+          status: MealPlanStatus.PENDING_REVIEW,
+          requiresSafetyRevalidation: true,
+          safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+          highRiskReviewRequired,
+          reviewApprovalCount: 0,
+          firstApprovedByNutritionistId: null,
+          firstApprovedAt: null,
+          claimedByNutritionistId: null,
+          claimedAt: null,
         },
       });
 
-      const eligibleMatches = libraryMeals.filter((m) => {
-        // Health conditions
-        if (m.suitableConditions) {
-          const conditions = m.suitableConditions as string[];
-          const hasUnsuitable = userConditions.some(
-            (c) => c !== HealthConditionType.NONE && !conditions.includes(c)
-          );
-          if (hasUnsuitable) return false;
-        }
-        // Allergens
-        if (m.allergenFree) {
-          const freeFrom = m.allergenFree as string[];
-          const hasAllergen = userAllergens.some(
-            (a) => a !== AllergenType.NONE && !freeFrom.includes(a)
-          );
-          if (hasAllergen) return false;
-        }
-        // Dietary Preferences
-        if (userProfile.dietaryPreference && m.dietaryTags) {
-          const tags = m.dietaryTags as string[];
-          if (!tags.includes(userProfile.dietaryPreference)) return false;
-        }
-        // Goal
-        if (userProfile.goal && m.dietaryTags) {
-          const tags = m.dietaryTags as string[];
-          if (!tags.includes(userProfile.goal)) return false;
-        }
-        return true;
-      });
+      const eligibleMatches = eligibleLibraryMeals.filter(
+        (candidate) => candidate.mealType === meal.mealType && candidate.id !== meal.libraryMealId
+      );
 
       if (eligibleMatches.length > 0) {
-        // Rotation check based on usageCount
-        const minUsage = Math.min(...eligibleMatches.map((m) => m.usageCount));
-        const candidates = eligibleMatches.filter((m) => m.usageCount === minUsage);
+        const minUsage = Math.min(...eligibleMatches.map((candidate) => candidate.usageCount));
+        const candidates = eligibleMatches.filter((candidate) => candidate.usageCount === minUsage);
         const selectedLibraryMeal = candidates[Math.floor(Math.random() * candidates.length)];
 
-        console.log(`[Safety Recheck] Swapping in verified library meal: "${selectedLibraryMeal.mealName}"`);
-
         await prisma.$transaction(async (tx) => {
-          // Update MealPlan slot
           await tx.mealPlan.update({
             where: { id: meal.id },
             data: {
@@ -557,57 +618,45 @@ export class UserService {
               fatG: selectedLibraryMeal.fatG,
               libraryMealId: selectedLibraryMeal.id,
               aiConfidenceFlag: AIConfidenceFlag.SAFE,
-              status: MealPlanStatus.APPROVED, // Verified library is approved automatically
+              status: MealPlanStatus.APPROVED,
+              requiresSafetyRevalidation: false,
+              safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              highRiskReviewRequired: false,
+              reviewApprovalCount: 1,
+              nutritionistId: selectedLibraryMeal.verifiedByNutritionistId,
+              reviewedAt: new Date(),
             },
           });
 
-          // Delete old ingredients
-          await tx.mealIngredient.deleteMany({
-            where: { mealPlanId: meal.id },
+          await tx.mealIngredient.deleteMany({ where: { mealPlanId: meal.id } });
+          await tx.mealIngredient.createMany({
+            data: selectedLibraryMeal.ingredients.map((ingredient) => ({
+              mealPlanId: meal.id,
+              ingredientName: ingredient.ingredientName,
+              category: ingredient.category,
+              foodItemId: ingredient.foodItemId,
+              dataSource: ingredient.dataSource,
+              quantity: ingredient.quantity,
+              unit: ingredient.unit,
+            })),
           });
-
-          // Clone ingredients from original plan
-          const originalPlan = await tx.mealPlan.findFirst({
-            where: {
-              libraryMealId: selectedLibraryMeal.id,
-              ...getApprovedMealPlanStatusWhere(),
-            },
-            include: { ingredients: true },
-          });
-
-          const ingredientsData = originalPlan?.ingredients.map((ing) => ({
-            ingredientName: ing.ingredientName,
-            category: ing.category,
-            foodItemId: ing.foodItemId,
-            dataSource: ing.dataSource,
-          })) || [];
-
-          if (ingredientsData.length > 0) {
-            await tx.mealIngredient.createMany({
-              data: ingredientsData.map((ing) => ({
-                mealPlanId: meal.id,
-                ingredientName: ing.ingredientName,
-                category: ing.category,
-                foodItemId: ing.foodItemId,
-                dataSource: ing.dataSource,
-              })),
-            });
-          }
-
-          // Increment library usage
           await tx.mealLibrary.update({
             where: { id: selectedLibraryMeal.id },
             data: { usageCount: { increment: 1 } },
           });
-
-          // Delete PENDING logs for this meal
-          await tx.mealLog.deleteMany({
+          await tx.mealLog.upsert({
             where: { mealPlanId: meal.id },
-          });
-
-          // Create new PENDING log
-          await tx.mealLog.create({
-            data: {
+            update: {
+              source: MealLogSource.SAFETY_REPLACED,
+              mealName: selectedLibraryMeal.mealName,
+              calories: selectedLibraryMeal.calories,
+              proteinG: selectedLibraryMeal.proteinG,
+              carbsG: selectedLibraryMeal.carbsG,
+              fatG: selectedLibraryMeal.fatG,
+              dataSource: MealLogDataSource.FNRI,
+              status: MealLogStatus.PENDING,
+            },
+            create: {
               userId,
               mealPlanId: meal.id,
               source: MealLogSource.SAFETY_REPLACED,
@@ -630,12 +679,12 @@ export class UserService {
         const prompt =
           `Generate a single replacement ${meal.mealType} meal for a patient with these constraints:\n` +
           `- Daily Calorie Target: ${userProfile.dailyCalorieTarget || 2000} kcal (Aim for approx: breakfast 30%, lunch 40%, dinner 30%)\n` +
-          `- Health Conditions: ${userConditions.join(', ') || 'NONE'}\n` +
-          `- Allergens to EXCLUDE: ${userAllergens.join(', ') || 'NONE'}\n` +
+          `- Health Conditions: ${[...userConditions, userProfile.otherConditions].filter(Boolean).join(', ') || 'NONE'}\n` +
+          `- Allergens to EXCLUDE: ${[...userAllergens, userProfile.otherAllergies].filter(Boolean).join(', ') || 'NONE'}\n` +
           `- Dietary Preference: ${userProfile.dietaryPreference || 'OMNIVORE'}\n` +
           `- Goal: ${userProfile.goal || 'MAINTAIN'}\n` +
           `Return a strict JSON object:\n` +
-          `{ "mealName": string, "description": string, "calories": number, "proteinG": number, "carbsG": number, "fatG": number, "ingredients": [{"name": string, "category": string}] }`;
+          `{ "mealName": string, "description": string, "calories": number, "proteinG": number, "carbsG": number, "fatG": number, "ingredients": [{"name": string, "category": string, "quantity": number, "unit": string}] }`;
 
         try {
           const replacement = await generateGenerativeJSON<any>(prompt, systemInstruction);
@@ -653,7 +702,13 @@ export class UserService {
                 fatG: parseFloat(replacement.fatG || 0),
                 libraryMealId: null,
                 aiConfidenceFlag: AIConfidenceFlag.CAUTION,
-                status: MealPlanStatus.PENDING_REVIEW, // Saved as PENDING_REVIEW
+                status: MealPlanStatus.PENDING_REVIEW,
+                requiresSafetyRevalidation: true,
+                safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                highRiskReviewRequired,
+                reviewApprovalCount: 0,
+                nutritionistId: null,
+                reviewedAt: null,
               },
             });
 
@@ -670,18 +725,25 @@ export class UserService {
                   ingredientName: ing.name,
                   category: ing.category || 'PANTRY',
                   dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
+                  quantity: Number.isFinite(Number(ing.quantity)) ? Number(ing.quantity) : null,
+                  unit: typeof ing.unit === 'string' ? ing.unit : null,
                 })),
               });
             }
 
-            // Delete PENDING logs
-            await tx.mealLog.deleteMany({
+            await tx.mealLog.upsert({
               where: { mealPlanId: meal.id },
-            });
-
-            // Create new PENDING log
-            await tx.mealLog.create({
-              data: {
+              update: {
+                source: MealLogSource.SAFETY_REPLACED,
+                mealName: replacement.mealName,
+                calories: parseFloat(replacement.calories || 0),
+                proteinG: parseFloat(replacement.proteinG || 0),
+                carbsG: parseFloat(replacement.carbsG || 0),
+                fatG: parseFloat(replacement.fatG || 0),
+                dataSource: MealLogDataSource.GEMINI_ESTIMATED,
+                status: MealLogStatus.PENDING,
+              },
+              create: {
                 userId,
                 mealPlanId: meal.id,
                 source: MealLogSource.SAFETY_REPLACED,
@@ -696,7 +758,7 @@ export class UserService {
             });
           });
         } catch (geminiErr) {
-          console.error(`[Safety Recheck] Gemini regeneration failed for meal ${meal.id}:`, geminiErr);
+          console.error('[Safety Recheck] AI fallback failed; the meal remains pending review.', geminiErr);
           continue;
         }
       }

@@ -113,7 +113,11 @@ export const GroceryListPDF = ({ groceryList }: { groceryList: any }) => {
             {grouped[cat].map((item: any, i: number) => (
               <View key={i} style={styles.checkboxRow}>
                 <View style={styles.checkbox} />
-                <Text style={styles.text}>{item.ingredientName}</Text>
+                <Text style={styles.text}>
+                  {item.ingredientName}
+                  {item.quantity && item.unit ? ` — ${item.quantity} ${item.unit}` : ''}
+                  {item.isPantryStaple ? ' (pantry)' : ''}
+                </Text>
               </View>
             ))}
           </View>

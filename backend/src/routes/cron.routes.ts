@@ -1,7 +1,18 @@
 import { Router, Request, Response } from 'express';
 import { CronService } from '@/services/cron.service';
+import { timingSafeEqual } from 'crypto';
 
 const router = Router();
+
+function hasValidCronCredential(req: Request): boolean {
+  const configuredSecret = process.env.CRON_SECRET;
+  const header = req.headers.authorization;
+  if (!configuredSecret || !header?.startsWith('Bearer ')) return false;
+  const supplied = header.slice('Bearer '.length);
+  const expectedBuffer = Buffer.from(configuredSecret);
+  const suppliedBuffer = Buffer.from(supplied);
+  return expectedBuffer.length === suppliedBuffer.length && timingSafeEqual(expectedBuffer, suppliedBuffer);
+}
 
 /**
  * Route: POST /api/cron/daily-checkin
@@ -10,7 +21,6 @@ const router = Router();
  */
 router.post('/daily-checkin', async (req: Request, res: Response) => {
   try {
-    const authHeader = req.headers.authorization;
     const systemCronSecret = process.env.CRON_SECRET;
 
     // 1. Guardrail: Validate server CRON_SECRET is configured
@@ -23,15 +33,7 @@ router.post('/daily-checkin', async (req: Request, res: Response) => {
     }
 
     // 2. Guardrail: Validate Bearer token format and matching secret values
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized: Authorization Bearer token is required.',
-      });
-    }
-
-    const token = authHeader.split(' ')[1];
-    if (token !== systemCronSecret) {
+    if (!hasValidCronCredential(req)) {
       console.warn('[CronRouter] Unauthorized daily check-in trigger attempt with invalid secret.');
       return res.status(401).json({
         success: false,
@@ -52,13 +54,32 @@ router.post('/daily-checkin', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/cron/weekly-plan-preparation
+ * Run once daily. It selects exact shopping-day schedules whose review lead
+ * window is due and safely catches up missed runs without duplicate plans.
+ */
+router.post('/weekly-plan-preparation', async (req: Request, res: Response) => {
+  try {
+    if (!process.env.CRON_SECRET) {
+      return res.status(500).json({ success: false, error: 'Cron server configuration error.' });
+    }
+    if (!hasValidCronCredential(req)) {
+      return res.status(401).json({ success: false, error: 'Unauthorized.' });
+    }
+    const result = await CronService.runWeeklyPlanPreparation();
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Cron execution failed.' });
+  }
+});
+
+/**
  * POST /api/cron/weekly-checkin-weekend
  * Fires Saturday night → prepares the next Sunday-to-Saturday WEEKLY plan.
  */
 router.post('/weekly-checkin-weekend', async (req: Request, res: Response) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token || token !== process.env.CRON_SECRET) {
+    if (!hasValidCronCredential(req)) {
       return res.status(401).json({ success: false, error: 'Unauthorized.' });
     }
     const result = await CronService.runWeeklyCheckin('WEEKEND');
@@ -74,8 +95,7 @@ router.post('/weekly-checkin-weekend', async (req: Request, res: Response) => {
  */
 router.post('/weekly-checkin-weekday', async (req: Request, res: Response) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token || token !== process.env.CRON_SECRET) {
+    if (!hasValidCronCredential(req)) {
       return res.status(401).json({ success: false, error: 'Unauthorized.' });
     }
     const result = await CronService.runWeeklyCheckin('WEEKDAY');

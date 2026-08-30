@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import Button from '@/components/ui/Button';
 import axios from 'axios';
-import { AlertTriangle, ArrowLeft, Ban, CheckCircle, GlassWater } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Ban, CheckCircle, Download, GlassWater } from 'lucide-react';
 
 
 interface MealPlan {
@@ -20,6 +20,7 @@ interface MealPlan {
   fatG: number;
   scheduledDate: string;
   description: string | null;
+  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
   ingredients: { ingredientName: string }[];
 }
 
@@ -29,6 +30,9 @@ interface NutritionReport {
   foodsRecommended: string[];
   drinksGuidance: string[];
   generalSummary: string;
+  generatedAt: string;
+  basedOnConditions: string[];
+  basedOnAllergies: string[];
 }
 
 interface ProfileDetails {
@@ -49,7 +53,17 @@ interface ProfileDetails {
   allergies?: string[];
 }
 
-export default function ClinicalExportPage() {
+const normalizeContext = (values: string[] | undefined) =>
+  Array.from(new Set((values || []).map((value) => value.trim().toUpperCase()).filter((value) => value && value !== 'NONE'))).sort();
+
+const hasSameContext = (left: string[] | undefined, right: string[] | undefined) => {
+  const normalizedLeft = normalizeContext(left);
+  const normalizedRight = normalizeContext(right);
+  return normalizedLeft.length === normalizedRight.length
+    && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+};
+
+export default function NutritionExportPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [profileData, setProfileData] = useState<ProfileDetails | null>(null);
@@ -57,6 +71,16 @@ export default function ClinicalExportPage() {
   const [meals, setMeals] = useState<MealPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const downloadAccountData = async () => {
+    const response = await api.get('/user/account/export', { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'nutrimind-account-export.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Fetch all E2E datasets concurrently
   const loadClinicalData = async () => {
@@ -76,7 +100,19 @@ export default function ClinicalExportPage() {
         setReportData(reportRes.data.data);
       }
       if (mealsRes.data?.success) {
-        setMeals(mealsRes.data.data);
+        const actionableMeals = Array.isArray(mealsRes.data.data) ? mealsRes.data.data : [];
+        const pendingMeals = mealsRes.data.meta?.pendingReview?.meals;
+        setMeals(
+          actionableMeals.length > 0
+            ? actionableMeals
+            : Array.isArray(pendingMeals)
+              ? pendingMeals.map((meal: Omit<MealPlan, 'id' | 'status'>, index: number) => ({
+                  ...meal,
+                  id: `pending-${meal.scheduledDate}-${meal.mealType}-${index}`,
+                  status: 'PENDING_REVIEW' as const,
+                }))
+              : [],
+        );
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -95,23 +131,13 @@ export default function ClinicalExportPage() {
     }
   }, [user]);
 
-  // Trigger print dialog once load is complete
-  useEffect(() => {
-    if (!isLoading && profileData && meals.length > 0) {
-      const timer = setTimeout(() => {
-        window.print();
-      }, 800); // Small timeout to ensure DOM finishes rendering
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, profileData, meals]);
-
   if (isLoading) {
     return (
       <div className="flex h-[70vh] items-center justify-center bg-[#0d1b15] text-brand-text">
         <div className="flex flex-col items-center gap-3">
           <LoadingSpinner size="lg" />
           <p className="text-xs font-semibold tracking-widest text-brand-green uppercase animate-pulse">
-            Compiling Clinical Chart...
+            Preparing Nutrition Summary...
           </p>
         </div>
       </div>
@@ -123,7 +149,7 @@ export default function ClinicalExportPage() {
       <div className="max-w-md mx-auto my-12 p-6 rounded-2xl bg-status-error-bg/10 border border-status-error-text/30 text-status-error-text text-left">
         <h3 className="text-lg font-bold mb-2 flex items-center gap-1.5">
           <AlertTriangle className="w-5 h-5 text-status-error-text" />
-          <span>Error loading clinical sheet</span>
+          <span>Error loading nutrition summary</span>
         </h3>
         <p className="text-sm mb-6">{error}</p>
         <Button variant="primary" onClick={() => router.back()}>
@@ -162,8 +188,12 @@ export default function ClinicalExportPage() {
 
   const groupedDays = getGroupedDays();
   const profile = profileData?.userProfile || {};
-  const conditions = profileData?.healthConditions || [];
-  const allergies = profileData?.allergies || [];
+  const conditions = normalizeContext(profileData?.healthConditions);
+  const allergies = normalizeContext(profileData?.allergies);
+  const isReportCurrent = reportData
+    ? hasSameContext(reportData.basedOnConditions, conditions)
+      && hasSameContext(reportData.basedOnAllergies, allergies)
+    : false;
 
   return (
     <div className="mx-auto my-4 min-h-screen max-w-4xl overflow-hidden rounded-[30px] bg-white p-8 font-sans leading-relaxed text-slate-900 shadow-card-lg md:p-12 print:m-0 print:rounded-none print:p-0 print:shadow-none">
@@ -178,27 +208,36 @@ export default function ClinicalExportPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>
           </button>
-          <h1 className="mt-2 font-display text-lg font-black tracking-tight text-white">Clinical export preview</h1>
+          <h1 className="mt-2 font-display text-lg font-black tracking-tight text-white">Nutrition summary preview</h1>
         </div>
-        <button 
-          onClick={() => window.print()}
-          className="cursor-pointer rounded-2xl bg-brand-accent px-6 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition-all hover:-translate-y-0.5"
-        >
-          Print / Save PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void downloadAccountData()}
+            className="flex items-center gap-2 rounded-2xl border border-white/20 px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-white/10"
+          >
+            <Download className="h-4 w-4" />
+            Export JSON
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="cursor-pointer rounded-2xl bg-brand-accent px-6 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition-all hover:-translate-y-0.5"
+          >
+            Print / Save PDF
+          </button>
+        </div>
       </div>
 
       {/* ================================================================= */}
-      {/* CLINICAL CHART HEADER (Optimized for printing) */}
+      {/* NUTRITION SUMMARY HEADER (Optimized for printing) */}
       {/* ================================================================= */}
       <div className="border-b-4 border-double border-slate-800 pb-5 mb-8 text-left">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-serif">
-              NUTRIMIND CLINICAL METRICS
+              NUTRIMIND NUTRITION SUMMARY
             </h1>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-              Official Patient Nutritional Assessment & Dietary Plan
+              Personal profile, current meal plan, and review status
             </p>
           </div>
           <div className="text-right text-[10px] text-slate-500 font-mono">
@@ -247,7 +286,7 @@ export default function ClinicalExportPage() {
       </div>
 
       {/* ================================================================= */}
-      {/* SECTION 2: CLINICAL CONDITIONS & ALLERGEN ALERTS */}
+      {/* SECTION 2: REPORTED CONDITIONS & ALLERGEN ALERTS */}
       {/* ================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
         <div>
@@ -287,11 +326,16 @@ export default function ClinicalExportPage() {
       {/* ================================================================= */}
       {/* SECTION 3: DIETARY GUIDANCE & NUTRITION REPORT */}
       {/* ================================================================= */}
-      {reportData && (
+      {reportData && isReportCurrent && (
         <div className="mb-8 text-left page-break-inside-avoid">
           <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-300 pb-1 mb-3">
-            3. AI Dietitian Assessment & Guidelines
+            3. AI-Generated Nutrition Guidance
           </h2>
+
+          <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900">
+            Generated {new Date(reportData.generatedAt).toLocaleDateString()}. This guidance is informational, has not been
+            independently verified by a nutritionist, and is not medical advice.
+          </p>
           
           <p className="text-xs text-slate-600 italic mb-4 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
             &ldquo;{reportData.generalSummary}&rdquo;
@@ -338,12 +382,24 @@ export default function ClinicalExportPage() {
         </div>
       )}
 
+      {reportData && !isReportCurrent && (
+        <div className="mb-8 rounded-lg border border-amber-300 bg-amber-50 p-4 text-left page-break-inside-avoid">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-amber-900">
+            3. Nutrition guidance needs regeneration
+          </h2>
+          <p className="mt-2 text-xs leading-relaxed text-amber-900">
+            The saved AI guidance was generated for an older health profile, so it is intentionally excluded from this
+            export. Regenerate it in NutriMind before relying on its recommendations.
+          </p>
+        </div>
+      )}
+
       {/* ================================================================= */}
       {/* SECTION 4: 7-DAY MEAL PLAN GRID */}
       {/* ================================================================= */}
       <div className="text-left page-break-before-always">
         <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-300 pb-1 mb-4">
-          4. Structured 7-Day Filipino Meal Plan (21 Meals)
+          4. Current Personalized Meal Plan
         </h2>
 
         <div className="flex flex-col gap-6">
@@ -362,6 +418,7 @@ export default function ClinicalExportPage() {
                   <tr className="border-b border-slate-200 bg-slate-50 text-[10px] text-slate-500 font-bold uppercase">
                     <th className="py-2 px-3 text-left w-1/6">Meal</th>
                     <th className="py-2 px-3 text-left w-1/2">Menu Item & Ingredients</th>
+                    <th className="py-2 px-3 text-center w-1/12">Review</th>
                     <th className="py-2 px-3 text-center w-1/12">Calories</th>
                     <th className="py-2 px-3 text-center w-1/4">Macros (P / C / F)</th>
                   </tr>
@@ -381,6 +438,9 @@ export default function ClinicalExportPage() {
                           Ingredients: {meal.ingredients.map((i) => i.ingredientName).join(', ')}
                         </div>
                       </td>
+                      <td className="py-3 px-3 text-center text-[9px] font-black text-slate-600">
+                        {meal.status.replace('_', ' ')}
+                      </td>
                       <td className="py-3 px-3 font-bold text-slate-800 text-center">
                         {Math.round(meal.calories)} kcal
                       </td>
@@ -398,21 +458,14 @@ export default function ClinicalExportPage() {
       </div>
 
       {/* ================================================================= */}
-      {/* SIGNATURE BLOCK */}
+      {/* EXPORT DISCLAIMER */}
       {/* ================================================================= */}
       <div className="mt-12 pt-8 border-t border-slate-200 text-left page-break-inside-avoid">
-        <div className="grid grid-cols-2 gap-8 text-xs text-slate-500">
-          <div>
-            <div className="border-b border-slate-300 w-48 h-8 mb-1"></div>
-            <span className="font-bold">Patient Signature / Consent</span>
-            <div className="text-[9px] mt-0.5">I agree and accept the terms of the nutrition plan outline.</div>
-          </div>
-          <div className="text-right flex flex-col items-end">
-            <div className="border-b border-slate-300 w-48 h-8 mb-1"></div>
-            <span className="font-bold">Dietitian / Nutritionist Verification</span>
-            <div className="text-[9px] mt-0.5">Verified electronically under clinical safety standards.</div>
-          </div>
-        </div>
+        <p className="text-[10px] leading-relaxed text-slate-500">
+          This user-generated export summarizes information stored in NutriMind. It is not a prescription, diagnosis,
+          official medical record, or proof of nutritionist verification. Review labels apply only to the individual
+          meal records shown and should not be interpreted as universal medical suitability.
+        </p>
       </div>
 
       {/* ================================================================= */}

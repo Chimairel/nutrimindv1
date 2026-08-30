@@ -64,7 +64,7 @@ export const onboardingAllergiesSchema = z.object({
 });
 
 export const shoppingDaySchema = z.object({
-  shoppingDayGroup: z.enum(['WEEKEND', 'WEEKDAY']),
+  shoppingDayOfWeek: z.number().int().min(0).max(6),
 }).strict();
 
 export const consentSchema = z.object({

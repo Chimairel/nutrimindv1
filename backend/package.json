@@ -9,10 +9,15 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && node scripts/rewrite-path-aliases.cjs",
     "start": "node dist/server.js",
     "seed": "tsx prisma/seed.ts",
-    "test": "tsc --project tests/tsconfig.json && tsx --test tests/calculations.test.ts tests/fixtures.test.ts tests/meal-actionability.test.ts tests/onboarding-policy.test.ts tests/critical-behavior.todo.test.ts"
+    "test:integration:production": "tsx scripts/production-integration-smoke.ts",
+    "test:load": "tsx scripts/http-load-smoke.ts",
+    "preflight:data-integrity": "tsx scripts/production-data-integrity-preflight.ts",
+    "plans:revalidation:dry-run": "tsx scripts/enqueue-legacy-plan-revalidation.ts",
+    "plans:revalidation:apply": "tsx scripts/enqueue-legacy-plan-revalidation.ts --apply",
+    "test": "tsc --project tests/tsconfig.json && tsx --test tests/calculations.test.ts tests/fixtures.test.ts tests/meal-actionability.test.ts tests/onboarding-policy.test.ts tests/fnri-match-policy.test.ts tests/fnri-category-policy.test.ts tests/critical-behavior.todo.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.0",

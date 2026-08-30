@@ -241,10 +241,11 @@ export class AuthController {
       }
 
       const result = await AuthService.refreshToken(refreshToken);
+      setRefreshCookie(res, result.refreshToken);
 
       return res.status(200).json({
         success: true,
-        data: result,
+        data: { accessToken: result.accessToken },
       });
     } catch (error: any) {
       // If refresh fails, clear the stale cookie

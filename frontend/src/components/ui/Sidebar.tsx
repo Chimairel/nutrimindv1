@@ -16,8 +16,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ShoppingBasket,
+  ShieldCheck,
   Sparkles,
   Stethoscope,
+  HeartPulse,
   TrendingUp,
   UserRound,
   Users,
@@ -95,10 +97,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Meal plan', href: '/meals', icon: UtensilsCrossed },
       { label: 'Grocery', href: '/grocery', icon: ShoppingBasket },
       { label: 'Progress', href: '/progress', icon: TrendingUp },
+      { label: 'Health profile', href: '/health-profile', icon: HeartPulse },
     ],
     NUTRITIONIST: [
       { label: 'Review queue', href: '/nutritionist/reviews', icon: ClipboardList },
-      { label: 'Patients', href: '/nutritionist/patients', icon: Users },
       { label: 'Approved plans', href: '/nutritionist/approved', icon: CheckSquare2 },
       { label: 'Meal library', href: '/nutritionist/library', icon: BookOpen },
       { label: 'My profile', href: '/nutritionist/profile', icon: UserRound },
@@ -108,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Users', href: '/admin/users', icon: Users },
       { label: 'Nutritionists', href: '/admin/nutritionists', icon: Stethoscope },
       { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+      { label: 'Operations', href: '/admin/operations', icon: ShieldCheck },
     ],
   };
 

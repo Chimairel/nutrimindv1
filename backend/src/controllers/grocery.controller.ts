@@ -83,6 +83,20 @@ export class GroceryController {
     }
   }
 
+  static async togglePantry(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized user.' });
+      const item = await GroceryService.togglePantryStaple(userId, req.params.id);
+      return res.status(200).json({ success: true, data: item });
+    } catch (error: unknown) {
+      return res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update pantry status.',
+      });
+    }
+  }
+
   /**
    * GET /api/user/grocery/pdf
    * Streams the grocery list as a PDF
