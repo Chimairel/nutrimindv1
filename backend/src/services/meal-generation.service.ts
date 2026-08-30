@@ -262,6 +262,18 @@ export class MealGenerationService {
       return { rolledOver: false, planGroupId: existingPlanGroupId };
     }
 
+    // A brand-new user has no plan to roll over. Their first STARTER/WEEKLY
+    // plan must be created by the explicit Generate Meal Plan action so the
+    // dashboard can show its progress UI instead of blocking page hydration
+    // on a long-running Gemini request.
+    const previousPlan = await prisma.mealPlan.findFirst({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!previousPlan) {
+      return { rolledOver: false, planGroupId: null };
+    }
+
     // Catch-up is schedule-derived and idempotent. If the preparation cron was
     // missed, create only the remaining bridge to the next fixed cycle rather
     // than backdating a seven-day plan.

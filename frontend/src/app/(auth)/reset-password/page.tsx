@@ -17,6 +17,7 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -68,8 +69,8 @@ function ResetPasswordForm() {
         </div>
       )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <PasswordInput id="new-password" label="New password" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" />
-        <PasswordInput id="confirm-password" label="Confirm password" placeholder="••••••••" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" />
+        <PasswordInput id="new-password" name="newPassword" label="New password" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" />
+        <PasswordInput id="confirm-password" name="confirmPassword" label="Confirm password" placeholder="••••••••" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" error={passwordsMismatch ? 'Passwords do not match.' : undefined} />
         <p className="text-[11px] leading-5 text-brand-muted">Use at least 8 characters with one uppercase letter and one number.</p>
         <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>Reset password</Button>
       </form>

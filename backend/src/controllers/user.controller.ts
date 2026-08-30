@@ -373,11 +373,11 @@ export class UserController {
         }
 
         // Validate new password strength: length >= 8, >= 1 uppercase, >= 1 number
-        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[^\u0000-\u001F\u007F]{8,128}$/u;
         if (!passwordRegex.test(newPassword)) {
           return res.status(400).json({
             success: false,
-            error: 'New password must be at least 8 characters long, contain at least one uppercase letter, and at least one number.',
+            error: 'New password must be 8 to 128 characters long, contain at least one uppercase letter and number, and contain no control characters.',
           });
         }
 

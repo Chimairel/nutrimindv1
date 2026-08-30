@@ -21,6 +21,12 @@ export class CheckinService {
         checkinStreak: true,
         shoppingDayOfWeek: true,
         shoppingDayGroup: true,
+        user: {
+          select: {
+            createdAt: true,
+            nutritionReport: { select: { acknowledgedAt: true } },
+          },
+        },
       },
     });
 
@@ -41,19 +47,29 @@ export class CheckinService {
         })
       : null;
 
-    const daysSinceLast = profile.lastCheckinAt
-      ? Math.floor((now.getTime() - profile.lastCheckinAt.getTime()) / 86_400_000)
-      : null;
+    // The report acknowledgement is the moment onboarding is complete and the
+    // user first enters the product. A first-time user needs a full week of
+    // real activity before NutriMind asks what changed; a null lastCheckinAt
+    // must not mean "due immediately".
+    const firstCheckinAnchor = profile.user.nutritionReport?.acknowledgedAt
+      ?? profile.user.createdAt;
+    const checkinAnchor = profile.lastCheckinAt ?? firstCheckinAnchor;
+    const nextDueAt = new Date(checkinAnchor.getTime() + 7 * 86_400_000);
     return {
-      isDue: !submittedThisCycle && (daysSinceLast === null || daysSinceLast >= 7),
+      isDue: !submittedThisCycle && now.getTime() >= nextDueAt.getTime(),
       streak: profile.checkinStreak,
       lastCheckinAt: profile.lastCheckinAt,
+      nextDueAt,
       latestAdaptation: submittedThisCycle,
     };
   }
 
   static async submitCheckin(userId: string, data: WeeklyCheckinInput) {
     const now = new Date();
+    const status = await CheckinService.getCheckinStatus(userId);
+    if (!status.isDue) {
+      throw new Error('Your next weekly check-in is not due yet.');
+    }
     const observationStart = new Date(now.getTime() - 21 * 86_400_000);
     const user = await prisma.user.findUnique({
       where: { id: userId },

@@ -28,6 +28,7 @@ import {
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '@/domain/meal-library-safety-evidence.policy';
 import type { CertifyMealLibrarySafetyInput } from '@/domain/meal-library-safety-review.schema';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+import { GroceryService } from '@/services/grocery.service';
 
 export class NutritionistService {
   /**
@@ -601,6 +602,17 @@ export class NutritionistService {
         },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    // The grocery list is a derived projection of the user's approved current
+    // plan. Rebuild it immediately after approval so users never have to issue
+    // a second "generate" command. This runs after the approval transaction:
+    // a projection failure must not roll back or misreport a valid clinical
+    // review decision.
+    try {
+      await GroceryService.generateGroceryList(plan.userId);
+    } catch (error) {
+      console.error('[NutritionistService] Grocery projection refresh failed after approval:', error);
+    }
 
     return { success: true };
   }

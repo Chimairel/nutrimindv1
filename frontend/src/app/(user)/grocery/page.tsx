@@ -17,7 +17,6 @@ import {
   Download,
   ListFilter,
   PackageCheck,
-  RefreshCw,
   Search,
   ShoppingBasket,
   ShoppingCart,
@@ -55,7 +54,6 @@ export default function GroceryListPage() {
   const { user } = useAuth();
   const [groceryList, setGroceryList] = useState<GroceryList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroceryFilter>('all');
@@ -68,9 +66,13 @@ export default function GroceryListPage() {
     try {
       const res = await api.get('/user/grocery/current');
       if (res.data && res.data.success) {
-        const nextList = res.data.data as GroceryList;
+        const nextList = (res.data.data ?? null) as GroceryList | null;
         setGroceryList(nextList);
-        setExpandedCategories(new Set([getInitialExpandedCategory(nextList.groceryItems)]));
+        setExpandedCategories(
+          nextList?.groceryItems?.length
+            ? new Set([getInitialExpandedCategory(nextList.groceryItems)])
+            : new Set()
+        );
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -88,28 +90,6 @@ export default function GroceryListPage() {
       fetchGroceryList();
     }
   }, [user]);
-
-  // Generates grocery list from active meal plan
-  const handleGenerateList = async () => {
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const res = await api.post('/user/grocery/generate');
-      if (res.data && res.data.success) {
-        const nextList = res.data.data as GroceryList;
-        setGroceryList(nextList);
-        setExpandedCategories(new Set([getInitialExpandedCategory(nextList.groceryItems)]));
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to generate grocery list from meal plan.');
-      } else {
-        setError('Failed to reach server to compile ingredients.');
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // Toggles grocery item checked status
   const handleToggleItem = async (itemId: string) => {
@@ -260,24 +240,6 @@ export default function GroceryListPage() {
               <Download className="w-4 h-4" />
               <span>Download PDF</span>
             </Button>
-            <Button
-              variant="secondary"
-              onClick={handleGenerateList}
-              disabled={isGenerating}
-              className="text-xs font-bold py-2 bg-brand-surface/80 border-brand-border/80 hover:bg-brand-border hover:text-brand-green transition-all flex items-center gap-1.5"
-            >
-              {isGenerating ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Re-compiling...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Regenerate List</span>
-                </>
-              )}
-            </Button>
           </div> : undefined}
       />
 
@@ -293,10 +255,8 @@ export default function GroceryListPage() {
         <div className="py-12">
           <EmptyState
             icon={<ShoppingCart className="h-8 w-8 text-brand-green" />}
-            title="No Active Grocery Checklist"
-            description="Generate a categorized shopping checklist compiling the ingredients needed for your personalized 7-day meal plan."
-            actionText="Generate Grocery Checklist"
-            onAction={handleGenerateList}
+            title="Grocery Checklist Pending"
+            description="Your checklist will appear automatically as meals in your current plan are approved by a nutritionist."
           />
         </div>
       ) : (

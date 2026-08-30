@@ -141,13 +141,21 @@ export default function DashboardPage() {
       let res = await api.get('/user/meals/current');
       const hasCurrentPlan = (res.data?.data?.length ?? 0) > 0 || Boolean(res.data?.meta?.pendingReview);
       if (!hasCurrentPlan) {
-        const rolloverRes = await api.post('/user/meals/rollover');
-        if (rolloverRes.data?.data?.rolledOver) {
-          res = await api.get('/user/meals/current');
+        setGenerationProgress(5);
+        setGenerationStageMessage('Checking the current meal-plan cycle.');
+        setGenerationElapsedSeconds(0);
+        setIsGenerating(true);
+        try {
+          const rolloverRes = await api.post('/user/meals/rollover');
+          if (rolloverRes.data?.data?.rolledOver) {
+            res = await api.get('/user/meals/current');
+          }
+        } finally {
+          setIsGenerating(false);
         }
       }
       if (res.data && res.data.success) {
-        setCurrentMeals(res.data.data);
+        setCurrentMeals(Array.isArray(res.data.data) ? res.data.data : []);
         setPendingReview(res.data.meta?.pendingReview ?? null);
       }
     } catch (err: unknown) {
@@ -167,9 +175,7 @@ export default function DashboardPage() {
       const res = await api.get('/user/checkin/status');
       if (res.data?.success) {
         setCheckinInfo(res.data.data);
-        if (res.data.data?.isDue) {
-          setIsCheckinDue(true);
-        }
+        setIsCheckinDue(Boolean(res.data.data?.isDue));
       }
     } catch (err) {
       console.error('[Dashboard] Failed to fetch checkin status', err);

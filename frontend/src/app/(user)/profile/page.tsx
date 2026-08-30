@@ -53,6 +53,7 @@ export default function ProfilePage() {
   const [deletionConfirmation, setDeletionConfirmation] = useState('');
   const [deletionError, setDeletionError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const passwordsMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
 
   const handleDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -236,10 +237,10 @@ export default function ProfilePage() {
               {passwordSuccess && <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3.5 text-xs font-bold text-status-verified-text"><CheckCircle className="h-4 w-4 shrink-0" />{passwordSuccess}</div>}
               {passwordError && <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3.5 text-xs font-bold text-status-error-text"><AlertTriangle className="h-4 w-4 shrink-0" />{passwordError}</div>}
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <PasswordInput label="Current Password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                <PasswordInput id="current-password" name="currentPassword" label="Current Password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" required />
                 <div className="grid gap-4 md:grid-cols-2">
-                  <PasswordInput label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-                  <PasswordInput label="Confirm New Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                  <PasswordInput id="new-password" name="newPassword" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" required />
+                  <PasswordInput id="confirm-new-password" name="confirmPassword" label="Confirm New Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" error={passwordsMismatch ? 'New passwords do not match.' : undefined} required />
                 </div>
                 <div className="flex justify-end border-t border-brand-border/60 pt-4">
                   <Button variant="primary" type="submit" disabled={isUpdatingPassword} className="px-6 py-2.5 text-xs font-bold shadow-md">{isUpdatingPassword ? 'Updating Password...' : 'Update Password'}</Button>

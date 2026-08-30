@@ -11,6 +11,11 @@ import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import AuthShell from '@/components/auth/AuthShell';
+import {
+  getRegistrationFieldErrors,
+  type RegistrationField,
+  type RegistrationFieldErrors,
+} from '@/validation/auth.schemas';
 
 export default function RegisterPage() {
   const { login } = useAuth();
@@ -20,37 +25,37 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
+  const clearFieldError = (field: RegistrationField) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      setError('Please fill in all registration fields.');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setError('Password must contain at least one uppercase letter.');
-      return;
-    }
-    if (!/[0-9]/.test(password)) {
-      setError('Password must contain at least one number.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+    const validation = getRegistrationFieldErrors({ firstName, lastName, email, password, confirmPassword });
+    setFieldErrors(validation.errors);
+    if (!validation.data) {
+      setError('Please correct the highlighted fields before creating your account.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const name = `${firstName.trim()} ${lastName.trim()}`;
-      const response = await api.post('/auth/register', { name, email, password });
+      const name = `${validation.data.firstName} ${validation.data.lastName}`;
+      const response = await api.post('/auth/register', {
+        name,
+        email: validation.data.email,
+        password: validation.data.password,
+      });
       if (response.data?.success) {
         if (response.data.data.verificationEmailSent === false) {
           sessionStorage.setItem('nutrimind_verification_delivery_pending', 'true');
@@ -100,14 +105,14 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input id="firstName" label="First name" type="text" placeholder="Juan" value={firstName} onChange={(event) => setFirstName(event.target.value)} disabled={isLoading} />
-          <Input id="lastName" label="Last name" type="text" placeholder="Dela Cruz" value={lastName} onChange={(event) => setLastName(event.target.value)} disabled={isLoading} />
+          <Input id="firstName" name="firstName" label="First name" type="text" placeholder="Juan" value={firstName} onChange={(event) => { setFirstName(event.target.value); clearFieldError('firstName'); }} disabled={isLoading} autoComplete="given-name" maxLength={80} error={fieldErrors.firstName} />
+          <Input id="lastName" name="lastName" label="Last name" type="text" placeholder="Dela Cruz" value={lastName} onChange={(event) => { setLastName(event.target.value); clearFieldError('lastName'); }} disabled={isLoading} autoComplete="family-name" maxLength={80} error={fieldErrors.lastName} />
         </div>
-        <Input id="email" label="Email address" type="email" placeholder="name@example.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={isLoading} autoComplete="email" />
-        <PasswordInput id="password" label="Password" placeholder="8+ characters, uppercase, and number" value={password} onChange={(event) => setPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" helperText="Use at least 8 characters with one uppercase letter and one number." />
-        <PasswordInput id="confirmPassword" label="Confirm password" placeholder="Re-enter password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isLoading} autoComplete="new-password" />
+        <Input id="email" name="email" label="Email address" type="email" placeholder="name@example.com" value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); }} disabled={isLoading} autoComplete="email" maxLength={254} error={fieldErrors.email} />
+        <PasswordInput id="password" name="password" label="Password" placeholder="8+ characters, uppercase, and number" value={password} onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); }} disabled={isLoading} autoComplete="new-password" maxLength={128} error={fieldErrors.password} helperText="Use at least 8 characters with one uppercase letter and one number. Spaces are allowed in passphrases." />
+        <PasswordInput id="confirmPassword" name="confirmPassword" label="Confirm password" placeholder="Re-enter password" value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); clearFieldError('confirmPassword'); }} disabled={isLoading} autoComplete="new-password" maxLength={128} error={fieldErrors.confirmPassword || (passwordsMismatch ? 'Passwords do not match.' : undefined)} />
         <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
           Create account
         </Button>

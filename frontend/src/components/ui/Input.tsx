@@ -8,7 +8,19 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, className = '', id, ...props }, ref) => {
+  ({
+    label,
+    error,
+    helperText,
+    className = '',
+    id,
+    'aria-describedby': ariaDescribedBy,
+    'aria-invalid': ariaInvalid,
+    ...props
+  }, ref) => {
+    const messageId = id && (error || helperText) ? `${id}-${error ? 'error' : 'help'}` : undefined;
+    const describedBy = [ariaDescribedBy, messageId].filter(Boolean).join(' ') || undefined;
+
     return (
       <div className="flex w-full flex-col gap-2">
         {label && (
@@ -22,6 +34,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           id={id}
           ref={ref}
+          aria-describedby={describedBy}
+          aria-invalid={error ? true : ariaInvalid}
           className={`
             w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text shadow-sm outline-none backdrop-blur-md placeholder:text-brand-muted/60
             transition-all duration-200
@@ -33,12 +47,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error ? (
-          <span className="text-xs font-semibold text-status-error-text animate-pulse inline-flex items-center gap-1">
+          <span id={messageId} role="alert" className="text-xs font-semibold text-status-error-text inline-flex items-center gap-1">
             <AlertCircle className="w-3.5 h-3.5" />
             <span>{error}</span>
           </span>
         ) : helperText ? (
-          <span className="text-xs text-brand-muted">
+          <span id={messageId} className="text-xs text-brand-muted">
             {helperText}
           </span>
         ) : null}

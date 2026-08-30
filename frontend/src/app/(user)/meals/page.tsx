@@ -106,16 +106,9 @@ export default function WeeklyPlanPage() {
     setIsLoading(true);
     setError(null);
     try {
-      let res = await api.get('/user/meals/current');
-      const hasCurrentPlan = (res.data?.data?.length ?? 0) > 0 || Boolean(res.data?.meta?.pendingReview);
-      if (!hasCurrentPlan) {
-        const rolloverRes = await api.post('/user/meals/rollover');
-        if (rolloverRes.data?.data?.rolledOver) {
-          res = await api.get('/user/meals/current');
-        }
-      }
+      const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
-        setMeals(res.data.data);
+        setMeals(Array.isArray(res.data.data) ? res.data.data : []);
         setPendingReview(res.data.meta?.pendingReview ?? null);
       }
     } catch (err: unknown) {

@@ -21,18 +21,30 @@ router.post(
     body('name')
       .trim()
       .notEmpty()
-      .withMessage('Name is required.'),
+      .withMessage('Name is required.')
+      .isLength({ max: 161 })
+      .withMessage('Name is too long.')
+      .matches(/[\p{L}]/u)
+      .withMessage('Name must contain at least one letter.')
+      .matches(/^[\p{L}\p{M}'’ .-]+$/u)
+      .withMessage('Name contains unsupported characters.'),
     body('email')
       .trim()
+      .isLength({ max: 254 })
+      .withMessage('Email address is too long.')
       .isEmail()
       .withMessage('Please provide a valid email address.'),
     body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters long.')
+      .isLength({ min: 8, max: 128 })
+      .withMessage('Password must be between 8 and 128 characters long.')
+      .matches(/\S/)
+      .withMessage('Password cannot consist only of spaces.')
       .matches(/[A-Z]/)
       .withMessage('Password must contain at least one uppercase letter.')
       .matches(/[0-9]/)
-      .withMessage('Password must contain at least one number.'),
+      .withMessage('Password must contain at least one number.')
+      .matches(/^[^\u0000-\u001F\u007F]+$/u)
+      .withMessage('Password cannot contain control characters.'),
     validate,
   ],
   AuthController.register
@@ -122,12 +134,16 @@ router.post(
       .notEmpty()
       .withMessage('Reset token is required.'),
     body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters long.')
+      .isLength({ min: 8, max: 128 })
+      .withMessage('Password must be between 8 and 128 characters long.')
+      .matches(/\S/)
+      .withMessage('Password cannot consist only of spaces.')
       .matches(/[A-Z]/)
       .withMessage('Password must contain at least one uppercase letter.')
       .matches(/[0-9]/)
-      .withMessage('Password must contain at least one number.'),
+      .withMessage('Password must contain at least one number.')
+      .matches(/^[^\u0000-\u001F\u007F]+$/u)
+      .withMessage('Password cannot contain control characters.'),
     validate,
   ],
   AuthController.resetPassword

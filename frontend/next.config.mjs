@@ -7,19 +7,21 @@ const apiOrigin = (() => {
   }
 })();
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' https://accounts.google.com",
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''} https://accounts.google.com`,
   "style-src 'self' 'unsafe-inline' https://accounts.google.com",
   "img-src 'self' data: blob: https://api.dicebear.com https://lh3.googleusercontent.com",
-  `connect-src 'self' ${apiOrigin} https://accounts.google.com`,
+  `connect-src 'self' ${apiOrigin} https://accounts.google.com${isDevelopment ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
   "frame-src https://accounts.google.com",
   "font-src 'self' data:",
-  "upgrade-insecure-requests",
+  ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
 ].join('; ');
 
 const nextConfig = {
