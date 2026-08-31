@@ -4,12 +4,23 @@ import React from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+
+const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
+  if (role === 'ADMIN') return '/admin/overview';
+  if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
+  return '/dashboard';
+};
 
 /**
  * Unauthorized Page — shown when a user tries to access a route
  * their role doesn't have permission for (e.g., USER trying /admin).
  */
 export default function UnauthorizedPage() {
+  const { user } = useAuth();
+  const primaryHref = user ? getRoleHome(user.role) : '/login';
+  const primaryLabel = user ? 'Return to Workspace' : 'Go to Login';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-bg px-4">
       <div className="text-center max-w-md">
@@ -30,9 +41,9 @@ export default function UnauthorizedPage() {
 
         {/* Actions */}
         <div className="flex flex-col gap-3 items-center">
-          <Link href="/login" className="w-full max-w-[200px]">
+          <Link href={primaryHref} className="w-full max-w-[220px]">
             <Button variant="primary" className="w-full">
-              Go to Login
+              {primaryLabel}
             </Button>
           </Link>
           <button

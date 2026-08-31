@@ -146,8 +146,10 @@ export default function VerifyEmailPage() {
               key={index}
               ref={(el) => { inputRefs.current[index] = el; }}
               id={`otp-${index}`}
+              aria-label={`Verification code digit ${index + 1}`}
               type="text"
               inputMode="numeric"
+              autoComplete={index === 0 ? 'one-time-code' : 'off'}
               maxLength={1}
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}

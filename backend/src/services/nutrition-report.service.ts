@@ -25,7 +25,12 @@ Rules:
   text before or after the JSON
 `;
 
+type StoredNutritionReport = NonNullable<
+  Awaited<ReturnType<typeof prisma.nutritionReport.findUnique>>
+>;
+
 export class NutritionReportService {
+  private static readonly generationInFlight = new Map<string, Promise<StoredNutritionReport>>();
   /**
    * Fetches the current nutrition report for the user.
    */
@@ -52,7 +57,20 @@ export class NutritionReportService {
    * Contextualizes the prompt with seeded FNRI foods to prioritize accessible,
    * locally obtainable choices without restricting recommendations to one cuisine.
    */
-  static async generateReport(userId: string) {
+  static async generateReport(userId: string): Promise<StoredNutritionReport> {
+    const existingRequest = this.generationInFlight.get(userId);
+    if (existingRequest) return existingRequest;
+
+    const request = this.generateReportOnce(userId).finally(() => {
+      if (this.generationInFlight.get(userId) === request) {
+        this.generationInFlight.delete(userId);
+      }
+    });
+    this.generationInFlight.set(userId, request);
+    return request;
+  }
+
+  private static async generateReportOnce(userId: string): Promise<StoredNutritionReport> {
     // 1. Fetch live user details, profile, conditions, and allergies
     const user = await prisma.user.findUnique({
       where: { id: userId },

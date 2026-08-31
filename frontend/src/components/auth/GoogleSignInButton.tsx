@@ -28,11 +28,47 @@ interface GoogleSignInButtonProps {
   label?: string;
 }
 
+type GoogleCredentialResponse = { credential: string };
+
+const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+let googleScriptPromise: Promise<void> | null = null;
+let initializedClientId: string | null = null;
+let activeCredentialHandler: ((response: GoogleCredentialResponse) => void) | null = null;
+
+function loadGoogleIdentityServices(): Promise<void> {
+  if (window.google) return Promise.resolve();
+  if (googleScriptPromise) return googleScriptPromise;
+
+  googleScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
+    const script = existingScript ?? document.createElement('script');
+
+    const handleLoad = () => resolve();
+    const handleError = () => {
+      googleScriptPromise = null;
+      reject(new Error('Google Identity Services failed to load.'));
+    };
+
+    script.addEventListener('load', handleLoad, { once: true });
+    script.addEventListener('error', handleError, { once: true });
+
+    if (!existingScript) {
+      script.src = GOOGLE_SCRIPT_SRC;
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+  });
+
+  return googleScriptPromise;
+}
+
 export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSignInButtonProps) {
   const { login } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -40,19 +76,23 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
       return; // Google OAuth not configured — hide button silently
     }
 
-    // Load the Google Identity Services script
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      if (window.google && buttonRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleCallback,
-          auto_select: false,
-        });
+    let cancelled = false;
+    activeCredentialHandler = handleGoogleCallback;
 
+    void loadGoogleIdentityServices()
+      .then(() => {
+        if (cancelled || !window.google || !buttonRef.current) return;
+
+        if (initializedClientId !== clientId) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response: GoogleCredentialResponse) => activeCredentialHandler?.(response),
+            auto_select: false,
+          });
+          initializedClientId = clientId;
+        }
+
+        buttonRef.current.replaceChildren();
         window.google.accounts.id.renderButton(buttonRef.current, {
           theme: 'outline',
           size: 'large',
@@ -61,21 +101,20 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
           shape: 'rectangular',
           logo_alignment: 'left',
         });
-      }
-    };
-    document.body.appendChild(script);
+        setIsReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
+      });
 
     return () => {
-      // Cleanup script on unmount
-      const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
+      cancelled = true;
+      if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleGoogleCallback = async (response: { credential: string }) => {
+  const handleGoogleCallback = async (response: GoogleCredentialResponse) => {
     setError(null);
     setIsLoading(true);
     try {
@@ -110,10 +149,15 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
           <span>{error}</span>
         </div>
       )}
-      <div className="w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm">
+      <div className="relative min-h-[52px] w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm">
+        {!isReady && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-[#61706b]">
+            Loading Google sign-in…
+          </span>
+        )}
         <div
           ref={buttonRef}
-          className={`flex w-full justify-center transition-opacity ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+          className={`flex w-full justify-center transition-opacity ${isReady ? 'opacity-100' : 'opacity-0'} ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
         />
       </div>
     </div>

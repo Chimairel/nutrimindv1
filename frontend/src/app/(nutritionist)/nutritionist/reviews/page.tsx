@@ -18,7 +18,8 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Info
+  Info,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface QueueItem {
@@ -296,9 +297,9 @@ export default function ReviewsPage() {
   };
 
   return (
-    <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface/65 text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)]">
+    <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface/65 text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
       {/* Master Queue List Panel */}
-      <div className="flex h-full w-[38%] min-w-[280px] flex-col space-y-4 overflow-y-auto border-r border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar">
+      <div className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}>
         <div className="rounded-[24px] bg-[#07100d] p-5 text-white shadow-card">
           <p className="portal-kicker">Clinical workflow</p>
           <div className="mt-3 flex items-center justify-between">
@@ -330,13 +331,15 @@ export default function ReviewsPage() {
             {queue.map((meal) => {
               const isSelected = selectedMealId === meal.id;
               return (
-                <div
+                <button
+                  type="button"
                   key={meal.id}
-                  aria-disabled={meal.claimStatus.claimedByOther}
+                  disabled={meal.claimStatus.claimedByOther}
+                  aria-pressed={isSelected}
                   onClick={() => {
                     if (!meal.claimStatus.claimedByOther) handleSelectMeal(meal.id);
                   }}
-                  className={`rounded-2xl border p-4 text-left transition ${
+                  className={`w-full rounded-2xl border p-4 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/40 ${
                     meal.claimStatus.claimedByOther ? 'cursor-not-allowed opacity-65' : 'cursor-pointer'
                   } ${
                     isSelected
@@ -366,7 +369,7 @@ export default function ReviewsPage() {
                       <span>Being reviewed</span>
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -374,7 +377,17 @@ export default function ReviewsPage() {
       </div>
 
       {/* Details View Panel */}
-      <div className="flex h-full flex-1 flex-col overflow-y-auto bg-transparent p-6 custom-scrollbar">
+      <div className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}>
+        {selectedMealId !== null && (
+          <button
+            type="button"
+            onClick={() => setSelectedMealId(null)}
+            className="mb-4 inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-xs font-bold text-brand-text outline-none transition hover:border-brand-green/35 focus-visible:ring-2 focus-visible:ring-brand-green/40 md:hidden"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to review queue
+          </button>
+        )}
         {selectedMealId === null ? (
           <div className="flex-grow flex flex-col items-center justify-center text-center p-12 space-y-4">
             <div className="flex h-20 w-20 items-center justify-center rounded-[24px] border border-brand-green/20 bg-brand-green/10">

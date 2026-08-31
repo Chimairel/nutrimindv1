@@ -41,6 +41,13 @@ interface GroceryList {
   groceryItems: GroceryItem[];
 }
 
+interface CurrentMealPlanResponse {
+  data?: unknown[];
+  meta?: {
+    pendingReview?: { mealCount?: number } | null;
+  };
+}
+
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
 const normalizeCategory = (category?: string) => category?.trim() || 'Other';
@@ -58,15 +65,29 @@ export default function GroceryListPage() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroceryFilter>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [pendingMealCount, setPendingMealCount] = useState(0);
 
   // Fetches current user grocery list
   const fetchGroceryList = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.get('/user/grocery/current');
-      if (res.data && res.data.success) {
-        const nextList = (res.data.data ?? null) as GroceryList | null;
+      const [groceryRes, mealsRes] = await Promise.all([
+        api.get('/user/grocery/current'),
+        api.get('/user/meals/current'),
+      ]);
+      const mealPlan = (mealsRes.data ?? {}) as { success?: boolean } & CurrentMealPlanResponse;
+      const approvedMeals = Array.isArray(mealPlan.data) ? mealPlan.data : [];
+      const nextPendingMealCount = mealPlan.meta?.pendingReview?.mealCount ?? 0;
+      setPendingMealCount(nextPendingMealCount);
+
+      if (groceryRes.data && groceryRes.data.success) {
+        // A grocery list is only actionable when at least one current meal has
+        // completed nutritionist approval. Suppress any stale projection left
+        // behind after a safety recheck moves the plan back into review.
+        const nextList = approvedMeals.length > 0
+          ? (groceryRes.data.data ?? null) as GroceryList | null
+          : null;
         setGroceryList(nextList);
         setExpandedCategories(
           nextList?.groceryItems?.length
@@ -256,11 +277,21 @@ export default function GroceryListPage() {
           <EmptyState
             icon={<ShoppingCart className="h-8 w-8 text-brand-green" />}
             title="Grocery Checklist Pending"
-            description="Your checklist will appear automatically as meals in your current plan are approved by a nutritionist."
+            description={pendingMealCount > 0
+              ? `Your ${pendingMealCount} planned meals are still being reviewed. Approved ingredients will appear here automatically—there is nothing else to generate.`
+              : 'Your checklist will appear automatically as meals in your current plan are approved by a nutritionist.'}
           />
         </div>
       ) : (
         <div className="flex flex-col gap-5 text-left">
+          {pendingMealCount > 0 && (
+            <div className="flex items-start gap-3 rounded-2xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-xs text-status-pending-text">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="leading-5">
+                This checklist currently includes approved meals only. It updates automatically as the remaining {pendingMealCount} meal{pendingMealCount === 1 ? '' : 's'} complete review.
+              </p>
+            </div>
+          )}
           <section className="overflow-hidden rounded-[28px] border border-brand-border/70 bg-brand-surface shadow-card">
             <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
               <div className="min-w-0">

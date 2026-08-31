@@ -18,6 +18,7 @@ import {
   onboardingAllergiesSchema,
   onboardingConditionsSchema,
   onboardingProfileSchema,
+  profileSafetySchema,
   shoppingDaySchema,
 } from '@/validation/onboarding.schemas';
 import { weeklyCheckinSchema } from '@/validation/checkin.schemas';
@@ -86,6 +87,7 @@ router.use(requireReadyUser);
 router.put('/profile', validateZodBody(onboardingProfileSchema), UserController.updateProfile);
 router.put('/profile/conditions', validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
 router.put('/profile/allergies', validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
+router.put('/profile/safety', validateZodBody(profileSafetySchema), UserController.updateSafetyProfile);
 router.put('/profile/settings', UserController.updateAccountSettings);
 
 router.get('/account/export', async (req: AuthenticatedRequest, res: Response) => {

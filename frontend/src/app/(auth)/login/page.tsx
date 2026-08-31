@@ -11,26 +11,43 @@ import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import AuthShell from '@/components/auth/AuthShell';
+import {
+  getLoginFieldErrors,
+  type LoginField,
+  type LoginFieldErrors,
+} from '@/validation/auth.schemas';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const clearFieldError = (field: LoginField) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
-    if (!email || !password) {
-      setError('Please fill in all credentials fields.');
+    const validation = getLoginFieldErrors({ email, password });
+    setFieldErrors(validation.errors);
+    if (!validation.data) {
+      setError('Please correct the highlighted fields before signing in.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', validation.data);
       if (response.data?.success) {
         await login(response.data.data.accessToken);
       } else {
@@ -76,25 +93,29 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <Input
           id="email"
           label="Email address"
           type="email"
           placeholder="name@example.com"
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); }}
           disabled={isLoading}
           autoComplete="email"
+          maxLength={254}
+          error={fieldErrors.email}
         />
         <PasswordInput
           id="password"
           label="Password"
           placeholder="••••••••"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); }}
           disabled={isLoading}
           autoComplete="current-password"
+          maxLength={128}
+          error={fieldErrors.password}
         />
         <div className="flex justify-end">
           <Link href="/forgot-password" className="text-xs font-semibold text-brand-muted transition hover:text-brand-green">Forgot your password?</Link>

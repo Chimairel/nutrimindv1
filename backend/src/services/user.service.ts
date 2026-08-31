@@ -204,6 +204,67 @@ export class UserService {
   }
 
   /**
+   * Saves the complete clinical restriction profile in one transaction. The
+   * caller can then run exactly one safety scan against a coherent snapshot.
+   */
+  static async updateSafetyProfile(
+    userId: string,
+    conditions: HealthConditionType[],
+    otherConditions: string,
+    allergies: AllergenType[],
+    otherAllergies: string
+  ) {
+    await prisma.$transaction(async (tx) => {
+      await tx.healthCondition.deleteMany({ where: { userId } });
+      await tx.allergy.deleteMany({ where: { userId } });
+
+      if (conditions.length > 0) {
+        await tx.healthCondition.createMany({
+          data: conditions.map((condition) => ({ userId, condition })),
+        });
+      }
+      if (allergies.length > 0) {
+        await tx.allergy.createMany({
+          data: allergies.map((allergen) => ({ userId, allergen })),
+        });
+      }
+
+      await tx.userProfile.upsert({
+        where: { userId },
+        update: { otherConditions, otherAllergies },
+        create: { userId, otherConditions, otherAllergies },
+      });
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.CONDITIONS_UPDATED,
+          snapshot: { conditions, otherConditions },
+        },
+      });
+      await tx.healthProfileRevision.create({
+        data: {
+          userId,
+          revisionType: HealthProfileRevisionType.ALLERGIES_UPDATED,
+          snapshot: { allergies, otherAllergies },
+        },
+      });
+
+      // A report based on the previous restrictions must be acknowledged only
+      // after it is regenerated for the new clinical context.
+      await tx.nutritionReport.updateMany({
+        where: { userId },
+        data: { acknowledgedAt: null },
+      });
+    });
+
+    const [savedConditions, savedAllergies] = await Promise.all([
+      prisma.healthCondition.findMany({ where: { userId } }),
+      prisma.allergy.findMany({ where: { userId } }),
+    ]);
+    return { conditions: savedConditions, allergies: savedAllergies };
+  }
+
+  /**
    * Saves custom free-text health conditions to the user's profile.
    * This is separate from the enum-based healthConditions table.
    */
@@ -768,6 +829,10 @@ export class UserService {
 
     if (replacedCount > 0) {
       console.log(`[Safety Recheck] Successfully replaced ${replacedCount} meal(s) for user ${userId}`);
+
+      // A previously generated checklist no longer represents the safe plan.
+      // Remove it before attempting to project the newly approved subset.
+      await prisma.groceryList.deleteMany({ where: { userId } });
 
       // 1. Regenerate Grocery List
       try {

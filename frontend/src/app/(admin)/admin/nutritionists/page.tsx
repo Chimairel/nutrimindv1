@@ -92,7 +92,7 @@ export default function AdminNutritionistsPage() {
                 <div className="flex items-center gap-4">
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green"><BadgeCheck className="h-5 w-5" /></span>
                   <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-bold text-brand-text">{nutritionist.user.name}</h3><p className="truncate text-xs text-brand-muted">{nutritionist.user.email}</p><p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">PRC {nutritionist.prcLicenseNumber}</p></div>
-                  <div className="text-right"><p className="font-display text-xl font-black text-brand-green">{nutritionist.totalVerified}</p><p className="text-[9px] uppercase tracking-wider text-brand-muted">meals verified</p>{nutritionist.verifiedAt && <p className="mt-2 flex items-center justify-end gap-1 text-[9px] text-brand-muted"><CalendarDays className="h-3 w-3" />{new Date(nutritionist.verifiedAt).toLocaleDateString()}</p>}</div>
+                  <div className="text-right"><p className="font-display text-xl font-black text-brand-green">{nutritionist.totalVerified}</p><p className="text-[9px] uppercase tracking-wider text-brand-muted">meals verified</p>{nutritionist.verifiedAt && <p className="mt-2 flex items-center justify-end gap-1 text-[9px] text-brand-muted"><CalendarDays className="h-3 w-3" /><span>Verified {new Date(nutritionist.verifiedAt).toLocaleDateString()}</span></p>}</div>
                 </div>
               </Card>
             ))}

@@ -12,6 +12,7 @@ import { Egg, Apple, Wheat, Check, AlertTriangle, ArrowLeft } from 'lucide-react
 import axios from 'axios';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { normalizeFoodCulture } from '@/lib/profile-normalization';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function OnboardingPreferencesPage() {
     if (!saved) return;
     if (saved.dietaryPreference) setDietary(saved.dietaryPreference as DietaryPreference);
     if (saved.carbPreference) setCarb(saved.carbPreference as CarbPreference);
-    if (saved.foodCulture) setCulture(saved.foodCulture);
+    if (saved.foodCulture) setCulture(normalizeFoodCulture(saved.foodCulture));
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,7 +42,7 @@ export default function OnboardingPreferencesPage() {
       await api.post('/user/onboarding/profile', {
         dietaryPreference: dietary,
         carbPreference: carb,
-        foodCulture: culture.trim() || 'Filipino',
+        foodCulture: normalizeFoodCulture(culture),
       });
       await refreshSession();
 

@@ -214,8 +214,8 @@ export default function ProfilePage() {
             {accountError && <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3.5 text-xs font-bold text-status-error-text"><AlertTriangle className="h-4 w-4 shrink-0" />{accountError}</div>}
             <form onSubmit={handleAccountSubmit} className="space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
-                <Input label="Display Name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-                <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input id="account-name" name="name" autoComplete="name" label="Display Name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                <Input id="account-email" name="email" autoComplete="email" label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="flex justify-end border-t border-brand-border/60 pt-4">
                 <Button variant="primary" type="submit" disabled={isSavingAccount} className="px-6 py-2.5 text-xs font-bold shadow-md">{isSavingAccount ? 'Saving Settings...' : 'Save Changes'}</Button>
@@ -265,9 +265,9 @@ export default function ProfilePage() {
               </div>
               {avatarMsg && <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3.5 text-xs font-bold text-status-verified-text"><CheckCircle className="h-4 w-4 shrink-0" />{avatarMsg}</div>}
               {avatarError && <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3.5 text-xs font-bold text-status-error-text"><AlertTriangle className="h-4 w-4 shrink-0" />{avatarError}</div>}
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-muted">Avatar seed</label>
+              <label htmlFor="avatar-seed" className="block text-[10px] font-bold uppercase tracking-wider text-brand-muted">Avatar seed</label>
               <div className="mt-2 flex gap-2">
-                <input type="text" placeholder="Type any word..." value={avatarSeed} onChange={(e) => setAvatarSeed(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-brand-border bg-brand-bgAlt px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/25" />
+                <input id="avatar-seed" name="avatarSeed" type="text" placeholder="Type any word..." value={avatarSeed} onChange={(e) => setAvatarSeed(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-brand-border bg-brand-bgAlt px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/25" />
                 <Button variant="primary" onClick={handleSaveAvatar} isLoading={isSavingAvatar} className="px-5 py-2.5 text-xs font-bold shadow-md">Save</Button>
               </div>
               <span className="mt-5 block text-[10px] font-bold uppercase tracking-wider text-brand-muted">Quick presets</span>
@@ -291,8 +291,10 @@ export default function ProfilePage() {
           </div>
           <form onSubmit={handleDeleteAccount} className="space-y-4 p-5 sm:p-6">
             {deletionError && <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-xs font-bold text-red-500">{deletionError}</div>}
-            <PasswordInput label="Current password" value={deletionPassword} onChange={(event) => setDeletionPassword(event.target.value)} required />
+            <PasswordInput id="delete-account-password" name="currentPassword" autoComplete="current-password" label="Current password" value={deletionPassword} onChange={(event) => setDeletionPassword(event.target.value)} required />
             <Input
+              id="delete-account-confirmation"
+              name="confirmation"
               label="Type DELETE MY NUTRIMIND ACCOUNT"
               value={deletionConfirmation}
               onChange={(event) => setDeletionConfirmation(event.target.value)}

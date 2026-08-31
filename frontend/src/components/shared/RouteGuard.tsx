@@ -32,87 +32,58 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  const publicRoutes = ['/login', '/register', '/unauthorized', '/forgot-password', '/reset-password'];
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isVerifyPage = pathname.startsWith('/verify-email');
+  const isOnboardingPage = pathname.startsWith('/onboarding');
+  const isNutritionReportPage = pathname.startsWith('/nutrition-report');
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isNutritionistRoute = pathname.startsWith('/nutritionist');
+  const isUserRoute = [
+    '/dashboard',
+    '/meals',
+    '/grocery',
+    '/profile',
+    '/progress',
+    '/health-profile',
+    '/export',
+    '/onboarding',
+    '/nutrition-report',
+  ].some((route) => pathname.startsWith(route));
+
+  let redirectTarget: string | null = null;
+  if (!isLoading) {
+    if (!user && !isPublicRoute) {
+      redirectTarget = '/login';
+    } else if (user) {
+      if (!user.emailVerified && !isVerifyPage && !isPublicRoute) {
+        redirectTarget = '/verify-email';
+      } else if (isVerifyPage && user.emailVerified) {
+        redirectTarget = getRoleHome(user.role);
+      } else if (isAdminRoute && user.role !== 'ADMIN') {
+        redirectTarget = '/unauthorized';
+      } else if (isNutritionistRoute && user.role !== 'NUTRITIONIST') {
+        redirectTarget = '/unauthorized';
+      } else if (isUserRoute && user.role !== 'USER') {
+        redirectTarget = '/unauthorized';
+      } else if (user.role === 'USER') {
+        if (!user.onboardingDone && !isOnboardingPage && !isNutritionReportPage) {
+          redirectTarget = user.onboardingNextPath || '/onboarding/stats';
+        } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isNutritionReportPage) {
+          redirectTarget = '/onboarding/tos';
+        } else if (user.onboardingDone && user.tosAccepted && !user.reportAcknowledged && !isNutritionReportPage) {
+          redirectTarget = '/nutrition-report';
+        }
+      }
+    }
+  }
+
   useEffect(() => {
-    // If the authentication context is loading, wait before running guards
-    if (isLoading) return;
-
-    const publicRoutes = ['/login', '/register', '/unauthorized', '/forgot-password', '/reset-password'];
-    const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
-
-    // 1. Is user logged in? No -> Redirect to Login
-    if (!user) {
-      if (!isPublicRoute) {
-        router.push('/login');
-      }
-      return;
-    }
-
-    // 2. Is email verified? No -> Redirect to verify-email
-    const isVerifyPage = pathname.startsWith('/verify-email');
-    if (!user.emailVerified) {
-      if (!isVerifyPage && !isPublicRoute) {
-        router.push('/verify-email');
-      }
-      return;
-    }
-
-    // If already on verify-email but verified, redirect away
-    if (isVerifyPage && user.emailVerified) {
-      router.replace(getRoleHome(user.role));
-      return;
-    }
-
-    // 3. Does role match route prefixes?
-    const isAdminRoute = pathname.startsWith('/admin');
-    const isNutritionistRoute = pathname.startsWith('/nutritionist');
-    const isUserRoute = pathname.startsWith('/dashboard') || 
-                        pathname.startsWith('/meals') || 
-                        pathname.startsWith('/grocery') || 
-                        pathname.startsWith('/profile') || 
-                        pathname.startsWith('/progress');
-
-    if (isAdminRoute && user.role !== 'ADMIN') {
-      router.push('/unauthorized');
-      return;
-    }
-    if (isNutritionistRoute && user.role !== 'NUTRITIONIST') {
-      router.push('/unauthorized');
-      return;
-    }
-    if (isUserRoute && user.role !== 'USER') {
-      router.push('/unauthorized');
-      return;
-    }
-
-    // 4. Skip internal checklists for non-USER accounts
-    if (user.role !== 'USER') return;
-
-    // We define paths matching specific steps of onboarding & reporting
-    const isOnboardingPage = pathname.startsWith('/onboarding');
-    const isNutritionReportPage = pathname.startsWith('/nutrition-report');
-
-    // Check 4: Is Onboarding Done?
-    if (!user.onboardingDone && !isOnboardingPage && !isNutritionReportPage) {
-      router.push(user.onboardingNextPath || '/onboarding/stats');
-      return;
-    }
-
-    // Check 5: Is ToS Accepted?
-    if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isNutritionReportPage) {
-      router.push('/onboarding/tos');
-      return;
-    }
-
-    // Check 6: Is Report Acknowledged?
-    if (user.onboardingDone && user.tosAccepted && !user.reportAcknowledged && !isNutritionReportPage) {
-      router.push('/nutrition-report');
-      return;
-    }
-
-  }, [user, isLoading, pathname, router]);
+    if (redirectTarget) router.replace(redirectTarget);
+  }, [redirectTarget, router]);
 
   // Render a full-screen loading spinner while the status is being resolved
-  if (isLoading) {
+  if (isLoading || redirectTarget) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-brand-bg">
         <LoadingSpinner />
@@ -121,7 +92,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   }
 
   // Double-check authorization matching before rendering sensitive components
-  const isProtectedPath = !['/login', '/register', '/unauthorized', '/forgot-password', '/reset-password'].some((route) => pathname.startsWith(route));
+  const isProtectedPath = !isPublicRoute;
   
   if (isProtectedPath && !user) {
     return (

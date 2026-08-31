@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -154,7 +155,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
           setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
           setCarbPreference(data.userProfile.carbPreference || 'MODERATE');
-          setFoodCulture(data.userProfile.foodCulture || 'Filipino');
+          setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
           setShoppingDayOfWeek(
             typeof data.userProfile.shoppingDayOfWeek === 'number'
               ? data.userProfile.shoppingDayOfWeek
@@ -165,8 +166,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         }
 
         // Pre-populate health enums
-        setSelectedConditions(data.healthConditions || []);
-        setSelectedAllergies(data.allergies || []);
+        setSelectedConditions(normalizeExclusiveNone(data.healthConditions));
+        setSelectedAllergies(normalizeExclusiveNone(data.allergies));
       }
       if (suggestionsRes.data && suggestionsRes.data.success) {
         setConditionSuggestions(suggestionsRes.data.data.conditions || []);
@@ -239,18 +240,14 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setHealthSuccess(null);
 
     try {
-      const [condRes, allerRes] = await Promise.all([
-        api.put('/user/profile/conditions', {
-          conditions: selectedConditions,
-          otherConditions,
-        }),
-        api.put('/user/profile/allergies', {
-          allergies: selectedAllergies,
-          otherAllergies,
-        }),
-      ]);
+      const safetyRes = await api.put('/user/profile/safety', {
+        conditions: selectedConditions,
+        otherConditions,
+        allergies: selectedAllergies,
+        otherAllergies,
+      });
 
-      if (condRes.data.success && allerRes.data.success) {
+      if (safetyRes.data.success) {
         setHealthSuccess('Clinical safety settings saved! Remaining active plan meals scanned and updated for safety.');
         
         // Refresh page details to pull new calorie calculations or status adjustments
@@ -791,6 +788,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         <form onSubmit={handleBiometricsSubmit} className="flex flex-col gap-5">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Input
+              id="profile-age"
               label="Age (Years)"
               type="number"
               value={age}
@@ -798,6 +796,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               required
             />
             <Input
+              id="profile-height"
               label="Height (cm)"
               type="number"
               step="0.1"
@@ -806,6 +805,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               required
             />
             <Input
+              id="profile-weight"
               label="Weight (kg)"
               type="number"
               step="0.1"
@@ -814,6 +814,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               required
             />
             <Input
+              id="profile-target-weight"
               label="Target Weight (kg)"
               type="number"
               step="0.1"
@@ -825,8 +826,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Biological Sex</label>
+              <label htmlFor="profile-biological-sex" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Biological Sex</label>
               <select
+                id="profile-biological-sex"
                 value={biologicalSex}
                 onChange={(e) => setBiologicalSex(e.target.value)}
                 className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
@@ -836,8 +838,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Primary Goal</label>
+              <label htmlFor="profile-goal" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Primary Goal</label>
               <select
+                id="profile-goal"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
                 className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
@@ -849,8 +852,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Activity Level</label>
+              <label htmlFor="profile-activity" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Activity Level</label>
               <select
+                id="profile-activity"
                 value={activityLevel}
                 onChange={(e) => setActivityLevel(e.target.value)}
                 className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
@@ -865,8 +869,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Dietary Preference</label>
+              <label htmlFor="profile-diet" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Dietary Preference</label>
               <select
+                id="profile-diet"
                 value={dietaryPreference}
                 onChange={(e) => setDietaryPreference(e.target.value)}
                 className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
@@ -878,8 +883,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Carb Preference</label>
+              <label htmlFor="profile-carb" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Carb Preference</label>
               <select
+                id="profile-carb"
                 value={carbPreference}
                 onChange={(e) => setCarbPreference(e.target.value)}
                 className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
@@ -890,6 +896,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               </select>
             </div>
             <Input
+              id="profile-food-culture"
               label="Cooking/Food Culture"
               type="text"
               value={foodCulture}
@@ -897,8 +904,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               placeholder="e.g. Filipino, Asian"
             />
             <div>
-              <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Grocery Shopping Day</label>
+              <label htmlFor="profile-shopping-day" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Grocery Shopping Day</label>
               <select
+                id="profile-shopping-day"
                 value={shoppingDayOfWeek}
                 onChange={(e) => setShoppingDayOfWeek(Number(e.target.value))}
                 className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
@@ -970,6 +978,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                   <button
                     key={cond.id}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => toggleCondition(cond.id)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer outline-none ${
                       isSelected
@@ -986,9 +995,10 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
           {/* Autocomplete for Other Conditions */}
           <div className="grid grid-cols-1 gap-1">
-            <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase">Additional Medical Conditions</label>
+            <label htmlFor="profile-other-conditions" className="block text-xs font-bold tracking-wider text-brand-muted uppercase">Additional Medical Conditions</label>
             <span className="text-[10px] text-brand-muted mb-2 font-medium">Type custom conditions (e.g. Gout, Celiac, GERD) and hit enter</span>
             <AutocompleteInput
+              id="profile-other-conditions"
               value={otherConditions}
               onChange={setOtherConditions}
               suggestions={conditionSuggestions}
@@ -1012,6 +1022,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                   <button
                     key={aller.id}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => toggleAllergy(aller.id)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer outline-none ${
                       isSelected
@@ -1028,9 +1039,10 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
           {/* Autocomplete for Other Allergies */}
           <div className="grid grid-cols-1 gap-1">
-            <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase">Additional Food Allergies</label>
+            <label htmlFor="profile-other-allergies" className="block text-xs font-bold tracking-wider text-brand-muted uppercase">Additional Food Allergies</label>
             <span className="text-[10px] text-brand-muted mb-2 font-medium">Type custom allergens (e.g. Soy, Sesame, Mustard, Sulfites) and hit enter</span>
             <AutocompleteInput
+              id="profile-other-allergies"
               value={otherAllergies}
               onChange={setOtherAllergies}
               suggestions={allergenSuggestions}

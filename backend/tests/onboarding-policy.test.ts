@@ -16,6 +16,7 @@ import {
   onboardingAllergiesSchema,
   onboardingConditionsSchema,
   onboardingProfileSchema,
+  profileSafetySchema,
   shoppingDaySchema,
 } from '../src/validation/onboarding.schemas';
 
@@ -91,6 +92,26 @@ test('condition and allergy schemas reject NONE contradictions', () => {
   assert.equal(onboardingConditionsSchema.safeParse({ conditions: ['NONE'], otherConditions: 'asthma' }).success, false);
   assert.equal(onboardingAllergiesSchema.safeParse({ allergies: ['NONE', 'DAIRY'] }).success, false);
   assert.equal(onboardingAllergiesSchema.safeParse({ allergies: ['NONE'], otherAllergies: 'banana' }).success, false);
+});
+
+test('combined safety schema validates one coherent conditions-and-allergies update', () => {
+  assert.equal(profileSafetySchema.safeParse({
+    conditions: ['HYPERTENSION'],
+    otherConditions: '',
+    allergies: ['DAIRY'],
+    otherAllergies: '',
+  }).success, true);
+  assert.equal(profileSafetySchema.safeParse({
+    conditions: ['NONE'],
+    otherConditions: '',
+    allergies: ['NONE', 'DAIRY'],
+    otherAllergies: '',
+  }).success, false);
+  assert.equal(profileSafetySchema.safeParse({
+    conditions: ['NONE'],
+    allergies: ['NONE'],
+    unexpected: true,
+  }).success, false);
 });
 
 test('[TEST-051] shopping day requires one exact Sunday-through-Saturday index', () => {

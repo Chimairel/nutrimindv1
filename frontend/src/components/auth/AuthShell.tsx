@@ -100,12 +100,12 @@ export default function AuthShell({
 
         <section className="relative flex items-center justify-center px-5 py-10 sm:px-10 lg:px-12 xl:px-16">
           <div className={`w-full ${wide ? 'max-w-[540px]' : 'max-w-[470px]'}`}>
-            <div className="mb-8 flex items-center justify-between lg:hidden">
-              <Link href="/" className="flex items-center gap-2 font-display text-xs font-black tracking-[0.15em]">
+            <div className="mb-8 flex min-w-0 items-center justify-between gap-3 lg:hidden">
+              <Link href="/" className="flex min-w-0 items-center gap-2 font-display text-xs font-black tracking-[0.15em]">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-accent text-[#07100d]"><BrainCircuit className="h-4 w-4" /></span>
                 NUTRIMIND
               </Link>
-              <Link href="/docs" className="text-xs font-semibold text-brand-muted transition hover:text-brand-green">Docs</Link>
+              <Link href="/docs" className="shrink-0 pl-2 text-xs font-semibold text-brand-muted transition hover:text-brand-green">Docs</Link>
             </div>
 
             <div className="surface-panel rounded-[30px] p-6 sm:p-8">

@@ -78,7 +78,7 @@ export default function AdminOverviewPage() {
   }
 
   const metrics: Metric[] = [
-    { label: 'Total users', value: data.totalUsers, icon: Users, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
+    { label: 'Patient accounts', value: data.totalUsers, icon: Users, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
     { label: 'Verified RNDs', value: `${data.verifiedNutritionists}/${data.totalNutritionists}`, icon: Stethoscope, tone: 'bg-brand-green/10 text-brand-green' },
     { label: 'Pending reviews', value: data.pendingReviews, icon: ClipboardCheck, tone: 'text-amber-500 bg-amber-500/10' },
     { label: 'Active plans', value: data.activeMealPlans, icon: Gauge, tone: 'text-brand-green bg-brand-green/10' },

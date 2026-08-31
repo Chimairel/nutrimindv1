@@ -6,13 +6,14 @@ import { usePathname } from 'next/navigation';
 import RouteGuard from '@/components/shared/RouteGuard';
 import Sidebar from '@/components/ui/Sidebar';
 import Navbar from '@/components/shared/Navbar';
-import { BarChart3, LayoutDashboard, Users, Stethoscope } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, Stethoscope, ShieldCheck } from 'lucide-react';
 
 const navItems = [
   { href: '/admin/overview', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/nutritionists', label: 'Nutritionists', icon: Stethoscope },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/admin/operations', label: 'Operations', icon: ShieldCheck },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

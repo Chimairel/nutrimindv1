@@ -119,7 +119,9 @@ export default function MealCard({
   return (
     <>
       {/* Simplified Meal Card inside Grid */}
-      <div
+      <button
+        type="button"
+        aria-label={`Open ${mealName} details`}
         onClick={() => {
           if (onCardClick) {
             onCardClick();
@@ -127,7 +129,7 @@ export default function MealCard({
             setIsOpen(true);
           }
         }}
-        className="block outline-none select-none h-full cursor-pointer"
+        className="block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
       >
         <Card
           interactive
@@ -184,7 +186,7 @@ export default function MealCard({
             </div>
           </div>
         </Card>
-      </div>
+      </button>
 
       {/* Detailed Info Dialog Popup Modal */}
       <Modal

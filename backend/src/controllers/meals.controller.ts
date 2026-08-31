@@ -113,8 +113,8 @@ export class MealsController {
           orderBy: { createdAt: 'desc' },
           select: { planGroupId: true },
         });
-        const pendingPlanRows = latestPendingPlan
-          ? await prisma.mealPlan.findMany({
+        const [pendingPlanRows, pendingSwapTracker] = latestPendingPlan
+          ? await Promise.all([prisma.mealPlan.findMany({
               where: {
                 userId,
                 planGroupId: latestPendingPlan.planGroupId,
@@ -139,24 +139,32 @@ export class MealsController {
                   },
                 },
               },
-            })
-          : [];
+            }), prisma.planSwapTracker.findUnique({
+              where: { planGroupId: latestPendingPlan.planGroupId },
+              select: { swapsUsed: true },
+            })])
+          : [[], null] as const;
 
         return res.status(200).json({
           success: true,
           data: [],
           meta: {
             pendingReview: buildPendingMealPlanPreview(pendingPlanRows),
+            swapsUsed: pendingSwapTracker?.swapsUsed ?? 0,
+            swapCap: 3,
           },
         });
       }
 
-      // Fetch meals and ingredients linked to the plan group
-      const groupMeals = await prisma.mealPlan.findMany({
+      // Fetch the complete current group. Approved rows are actionable while
+      // the remaining pending rows stay visible as a non-actionable preview.
+      // A plan is reviewed meal-by-meal, so returning only approved rows would
+      // make the rest of the user's schedule appear to disappear.
+      const [groupMeals, swapTracker] = await Promise.all([prisma.mealPlan.findMany({
         where: {
           userId,
           planGroupId: latestPlan.planGroupId,
-          ...getUserActionableMealPlanWhere(now),
+          ...getCurrentMealPlanScheduleWhere(now),
         },
         include: {
           ingredients: true,
@@ -165,14 +173,19 @@ export class MealsController {
           },
         },
         orderBy: { scheduledDate: 'asc' },
-      });
+      }), prisma.planSwapTracker.findUnique({
+        where: { planGroupId: latestPlan.planGroupId },
+        select: { swapsUsed: true },
+      })]);
       const meals = filterUserActionableMealPlans(groupMeals, now);
 
       return res.status(200).json({
         success: true,
         data: meals,
         meta: {
-          pendingReview: null,
+          pendingReview: buildPendingMealPlanPreview(groupMeals),
+          swapsUsed: swapTracker?.swapsUsed ?? 0,
+          swapCap: 3,
         },
       });
     } catch (error: any) {

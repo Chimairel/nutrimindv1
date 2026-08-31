@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -19,6 +21,13 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
+import { useAuth } from '@/hooks/useAuth';
+
+const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
+  if (role === 'ADMIN') return '/admin/overview';
+  if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
+  return '/dashboard';
+};
 
 const mealRows = [
   { meal: 'Tortang talong bowl', meta: '412 kcal · high protein', state: 'Verified', color: 'bg-brand-accent' },
@@ -58,6 +67,9 @@ const capabilities = [
 ];
 
 export default function Home() {
+  const { user } = useAuth();
+  const workspaceHref = user ? getRoleHome(user.role) : '/register';
+
   return (
     <div className="min-h-screen overflow-hidden text-brand-text">
       <PublicHeader />
@@ -87,8 +99,8 @@ export default function Home() {
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link href="/register" className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-1 hover:brightness-105">
-                  Build my nutrition profile
+                <Link href={workspaceHref} className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-1 hover:brightness-105">
+                  {user ? 'Open my workspace' : 'Build my nutrition profile'}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href="/docs" className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-brand-border/80 bg-brand-surface/65 px-6 text-sm font-bold text-brand-text backdrop-blur-xl transition hover:-translate-y-1 hover:border-brand-green/35">
@@ -315,8 +327,8 @@ export default function Home() {
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] opacity-55">Your next meal can be intentional</p>
               <h2 className="mt-3 max-w-2xl font-display text-3xl font-black tracking-[-0.04em] sm:text-4xl">A smarter weekly plan starts with understanding you.</h2>
             </div>
-            <Link href="/register" className="relative mt-7 inline-flex min-h-[52px] items-center gap-3 rounded-2xl bg-[#07100d] px-6 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 lg:mt-0">
-              Start onboarding
+            <Link href={workspaceHref} className="relative mt-7 inline-flex min-h-[52px] items-center gap-3 rounded-2xl bg-[#07100d] px-6 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 lg:mt-0">
+              {user ? 'Return to workspace' : 'Start onboarding'}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

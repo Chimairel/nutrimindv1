@@ -63,6 +63,22 @@ export const onboardingAllergiesSchema = z.object({
   }
 });
 
+export const profileSafetySchema = z.object({
+  conditions: z.array(conditionSchema).min(1).max(6),
+  otherConditions: z.string().trim().max(500).optional(),
+  allergies: z.array(allergySchema).min(1).max(6),
+  otherAllergies: z.string().trim().max(500).optional(),
+}).strict().superRefine((data, ctx) => {
+  rejectNoneContradictions(data.conditions, ctx);
+  rejectNoneContradictions(data.allergies, ctx);
+  if (data.conditions.includes('NONE') && data.otherConditions) {
+    ctx.addIssue({ code: 'custom', path: ['otherConditions'], message: 'Custom conditions cannot be combined with NONE.' });
+  }
+  if (data.allergies.includes('NONE') && data.otherAllergies) {
+    ctx.addIssue({ code: 'custom', path: ['otherAllergies'], message: 'Custom allergies cannot be combined with NONE.' });
+  }
+});
+
 export const shoppingDaySchema = z.object({
   shoppingDayOfWeek: z.number().int().min(0).max(6),
 }).strict();
@@ -80,4 +96,5 @@ export const emptyBodySchema = z.object({}).strict();
 export type OnboardingProfileInput = z.infer<typeof onboardingProfileSchema>;
 export type OnboardingConditionsInput = z.infer<typeof onboardingConditionsSchema>;
 export type OnboardingAllergiesInput = z.infer<typeof onboardingAllergiesSchema>;
+export type ProfileSafetyInput = z.infer<typeof profileSafetySchema>;
 export type ConsentInput = z.infer<typeof consentSchema>;

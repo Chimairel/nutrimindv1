@@ -12,6 +12,7 @@ import { Activity, Heart, Dna, Sparkles, CheckCircle, AlertTriangle, ArrowLeft, 
 import axios from 'axios';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 
 export default function OnboardingConditionsPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function OnboardingConditionsPage() {
 
   useEffect(() => {
     if (!profile) return;
-    setSelectedConditions(profile.healthConditions as HealthConditionType[]);
+    setSelectedConditions(normalizeExclusiveNone(profile.healthConditions as HealthConditionType[]));
     setOtherConditions(profile.userProfile?.otherConditions || '');
   }, [profile]);
 
@@ -190,7 +191,7 @@ export default function OnboardingConditionsPage() {
 
             {/* Other / Custom Conditions — always visible, disabled only when NONE selected */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold tracking-wide text-brand-muted uppercase">
+              <label htmlFor="other-conditions" className="text-xs font-bold tracking-wide text-brand-muted uppercase">
                 Other Conditions <span className="text-brand-border font-normal normal-case">(optional)</span>
               </label>
               <AutocompleteInput

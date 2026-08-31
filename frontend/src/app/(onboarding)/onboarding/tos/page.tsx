@@ -11,6 +11,7 @@ import Checkbox from '@/components/ui/Checkbox';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
 import axios from 'axios';
 import { useProfile } from '@/hooks/useProfile';
+import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
 
 function formatOnboardingValue(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return 'Not provided';
@@ -23,7 +24,7 @@ function formatOnboardingValue(value?: string | number | null) {
 }
 
 function joinSelections(values: string[], custom?: string) {
-  const selections = values.filter((value) => value !== 'NONE').map(formatOnboardingValue);
+  const selections = normalizeExclusiveNone(values).filter((value) => value !== 'NONE').map(formatOnboardingValue);
   if (custom) selections.push(custom);
   return selections.length > 0 ? selections.join(', ') : 'None declared';
 }
@@ -72,7 +73,7 @@ export default function OnboardingTosPage() {
       items: [
         ['Diet', formatOnboardingValue(userProfile?.dietaryPreference)],
         ['Carbohydrate preference', formatOnboardingValue(userProfile?.carbPreference)],
-        ['Food culture', formatOnboardingValue(userProfile?.foodCulture)],
+        ['Food culture', normalizeFoodCulture(userProfile?.foodCulture)],
       ],
     },
     {

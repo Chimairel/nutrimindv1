@@ -110,6 +110,7 @@ export default function WeeklyPlanPage() {
       if (res.data && res.data.success) {
         setMeals(Array.isArray(res.data.data) ? res.data.data : []);
         setPendingReview(res.data.meta?.pendingReview ?? null);
+        setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -208,21 +209,8 @@ export default function WeeklyPlanPage() {
     }
   }, [user, activeTab, fetchHistory, fetchLibrary]);
 
-  // Load swaps count once meals are fetched
   useEffect(() => {
-    if (meals.length > 0) {
-      api.get(`/user/meals/${meals[0].id}/swap-options`)
-        .then((res) => {
-          if (res.data?.success) {
-            setSwapsUsed(res.data.data.swapsUsed);
-          }
-        })
-        .catch((err) => console.error('Failed to pre-fetch swapsUsed:', err));
-    }
-  }, [meals]);
-
-  useEffect(() => {
-    const sourceMeals = meals.length > 0 ? meals : pendingReview?.meals ?? [];
+    const sourceMeals = [...meals, ...(pendingReview?.meals ?? [])];
     const availableDateKeys = Array.from(
       new Set(sourceMeals.map((meal) => getManilaDateKey(meal.scheduledDate)))
     ).filter(Boolean).sort((a, b) => a.localeCompare(b));
@@ -356,7 +344,9 @@ export default function WeeklyPlanPage() {
       // Reload current meals to update checkboxes and macro sums
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
-        setMeals(res.data.data);
+        setMeals(Array.isArray(res.data.data) ? res.data.data : []);
+        setPendingReview(res.data.meta?.pendingReview ?? null);
+        setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
       }
     } catch (err) {
       console.error('[WeeklyPlan] Status toggle failed:', err);
@@ -505,7 +495,20 @@ export default function WeeklyPlanPage() {
 
   const groupedDays = groupMealsByDate();
   const groupedPendingDays = groupPendingMealsByDate();
-  const displayedPlanDays = groupedDays.length > 0 ? groupedDays : groupedPendingDays;
+  const displayedPlanDays = Array.from(new Set([
+    ...groupedDays.map((day) => day.dateKey),
+    ...groupedPendingDays.map((day) => day.dateKey),
+  ])).sort((a, b) => a.localeCompare(b)).map((dateKey) => {
+    const approvedDay = groupedDays.find((day) => day.dateKey === dateKey);
+    const pendingDay = groupedPendingDays.find((day) => day.dateKey === dateKey);
+    const parsedDate = manilaDateFromKey(dateKey);
+    return {
+      dateKey,
+      weekday: approvedDay?.weekday ?? pendingDay?.weekday ?? formatManilaDate(parsedDate, { weekday: 'long' }),
+      dateStr: approvedDay?.dateStr ?? pendingDay?.dateStr ?? formatManilaDate(parsedDate, { month: 'short', day: 'numeric' }),
+      mealsList: [...(approvedDay?.mealsList ?? []), ...(pendingDay?.mealsList ?? [])],
+    };
+  });
   const selectedPlanDayIndex = Math.max(
     0,
     displayedPlanDays.findIndex((day) => day.dateKey === selectedPlanDateKey)
@@ -526,7 +529,7 @@ export default function WeeklyPlanPage() {
     dayAfter.setDate(dayAfter.getDate() + 1);
     return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
   })();
-  const displayedMealCount = displayedPlanDays.reduce((sum, day) => sum + day.mealsList.length, 0);
+  const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
   const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
   const remainingSwapCount = Math.max(0, 3 - swapsUsed);
 
@@ -598,7 +601,7 @@ export default function WeeklyPlanPage() {
             {[
               { label: 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
               { label: 'Plan days', value: displayedPlanDays.length, icon: Calendar },
-              { label: pendingReview ? 'Awaiting review' : 'Completed', value: pendingReview ? displayedMealCount : completedMealCount, icon: pendingReview ? ShieldCheck : CircleCheckBig },
+              { label: pendingReview ? 'Awaiting review' : 'Completed', value: pendingReview ? pendingReview.mealCount : completedMealCount, icon: pendingReview ? ShieldCheck : CircleCheckBig },
               { label: 'Swaps available', value: remainingSwapCount, icon: Repeat2 },
             ].map((metric) => {
               const MetricIcon = metric.icon;
@@ -742,7 +745,7 @@ export default function WeeklyPlanPage() {
                   </div>
                 </div>
 
-                {groupedPendingDays.slice(selectedPlanDayIndex, selectedPlanDayIndex + 1).map((day, dayIndex) => (
+                {groupedPendingDays.filter((day) => day.dateKey === selectedPlanDay?.dateKey).map((day, dayIndex) => (
                   <div key={day.dateKey} className="rounded-[30px] border border-brand-border/60 bg-brand-surface/45 p-4 shadow-card md:p-5">
                     <div className="mb-5 flex flex-col gap-3 border-b border-brand-border/50 pb-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-3">
@@ -788,7 +791,7 @@ export default function WeeklyPlanPage() {
             )
           ) : (
             <div className="flex flex-col gap-4 text-left">
-              {groupedDays.slice(selectedPlanDayIndex, selectedPlanDayIndex + 1).map((day) => (
+              {groupedDays.filter((day) => day.dateKey === selectedPlanDay?.dateKey).map((day) => (
                 <section key={day.dateKey} className="overflow-hidden rounded-[26px] border border-brand-border/70 bg-brand-surface shadow-sm">
                   
                   {/* Day Header with sum targets */}
@@ -805,7 +808,7 @@ export default function WeeklyPlanPage() {
                     {/* Macros summing indicators */}
                     <div className="flex gap-3 flex-wrap text-[10px] font-bold text-brand-text">
                       <span className="rounded-full border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-brand-green">
-                        Target: {Math.round(day.dayCalories)} kcal
+                        {pendingReview ? 'Approved subtotal' : 'Target'}: {Math.round(day.dayCalories)} kcal
                       </span>
                       <span className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]" style={{ backgroundColor: 'var(--macro-protein-bg)', borderColor: 'var(--macro-protein-border)', color: 'var(--macro-protein)' }}>
                         {Math.round(day.dayProtein)}g Protein
@@ -845,6 +848,29 @@ export default function WeeklyPlanPage() {
                   </div>
                 </section>
               ))}
+              {pendingReview && groupedPendingDays
+                .filter((day) => day.dateKey === selectedPlanDay?.dateKey)
+                .map((day) => (
+                  <section key={`pending-${day.dateKey}`} className="rounded-[26px] border border-status-pending-text/25 bg-status-pending-bg/20 p-4 shadow-sm sm:p-5">
+                    <div className="mb-4 flex flex-col gap-2 border-b border-brand-border/50 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="font-display text-base font-extrabold text-brand-text">Awaiting nutritionist review</h3>
+                        <p className="mt-1 text-xs text-brand-muted">These meals remain visible as previews and cannot be logged or swapped until approved.</p>
+                      </div>
+                      <Badge variant="pending" className="self-start px-3 py-1.5 text-[10px] sm:self-auto">
+                        {day.mealsList.length} pending
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      {day.mealsList.map((meal, index) => (
+                        <PendingMealPreviewCard
+                          key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
+                          meal={meal}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
             </div>
           )
         )}

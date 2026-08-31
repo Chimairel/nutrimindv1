@@ -12,6 +12,7 @@ import { Fish, ShieldAlert, Milk, Wheat, Egg, Sparkles, AlertTriangle, ArrowLeft
 import axios from 'axios';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 
 export default function OnboardingAllergiesPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function OnboardingAllergiesPage() {
 
   useEffect(() => {
     if (!profile) return;
-    setSelectedAllergens(profile.allergies as AllergenType[]);
+    setSelectedAllergens(normalizeExclusiveNone(profile.allergies as AllergenType[]));
     setOtherAllergies(profile.userProfile?.otherAllergies || '');
   }, [profile]);
 
@@ -182,7 +183,7 @@ export default function OnboardingAllergiesPage() {
 
             {/* Other / Custom Allergies — always visible, disabled when NONE selected */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold tracking-wide text-brand-muted uppercase">
+              <label htmlFor="other-allergies" className="text-xs font-bold tracking-wide text-brand-muted uppercase">
                 Other Allergies <span className="text-brand-border font-normal normal-case">(optional)</span>
               </label>
               <AutocompleteInput

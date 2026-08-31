@@ -156,6 +156,37 @@ export class UserController {
   }
 
   /**
+   * PUT /api/user/profile/safety
+   * Saves conditions and allergies together, then performs one safety scan.
+   */
+  static async updateSafetyProfile(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const { conditions, otherConditions, allergies, otherAllergies } = req.body;
+      const normalizedOtherConditions = normalizeCustomEntries(otherConditions || '', COMMON_CONDITIONS);
+      const normalizedOtherAllergies = normalizeCustomEntries(otherAllergies || '', COMMON_ALLERGIES);
+
+      const saved = await UserService.updateSafetyProfile(
+        userId,
+        conditions,
+        normalizedOtherConditions,
+        allergies,
+        normalizedOtherAllergies
+      );
+      await UserService.runSafetyRecheck(userId);
+
+      return res.status(200).json({ success: true, data: saved });
+    } catch (error: unknown) {
+      console.error('[UserController] updateSafetyProfile error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to update clinical safety settings.' });
+    }
+  }
+
+  /**
    * POST /api/user/onboarding/tos
    * Sets tosAccepted=true.
    */

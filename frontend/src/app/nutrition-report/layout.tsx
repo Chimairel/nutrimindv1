@@ -1,0 +1,8 @@
+'use client';
+
+import React from 'react';
+import RouteGuard from '@/components/shared/RouteGuard';
+
+export default function NutritionReportLayout({ children }: { children: React.ReactNode }) {
+  return <RouteGuard>{children}</RouteGuard>;
+}

@@ -28,10 +28,13 @@ export default function NutritionistProfilePage() {
   const [bio, setBio] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
       try {
+        setError(null);
         const res = await api.get('/nutritionist/profile');
         if (res.data?.success && res.data.data) {
           setProfile(res.data.data);
@@ -40,6 +43,7 @@ export default function NutritionistProfilePage() {
         }
       } catch (err) {
         console.error('Failed to fetch profile:', err);
+        setError('Your professional profile could not be loaded. Please refresh and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -49,10 +53,14 @@ export default function NutritionistProfilePage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
+    setSuccess(null);
     try {
       await api.patch('/nutritionist/profile', { bio, specialization });
+      setSuccess('Professional profile updated.');
     } catch (err) {
       console.error('Save failed:', err);
+      setError('Your professional profile could not be saved. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -97,9 +105,13 @@ export default function NutritionistProfilePage() {
 
       <Card className="space-y-5 p-6">
         <p className="portal-section-label">Edit profile</p>
+        {error && <p role="alert" className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text">{error}</p>}
+        {success && <p role="status" className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text">{success}</p>}
         <div>
-          <label className="mb-2 block text-xs font-bold text-brand-text">Specialization</label>
+          <label htmlFor="nutritionist-specialization" className="mb-2 block text-xs font-bold text-brand-text">Specialization</label>
           <input
+            id="nutritionist-specialization"
+            name="specialization"
             value={specialization}
             onChange={(e) => setSpecialization(e.target.value)}
             className="w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
@@ -107,8 +119,10 @@ export default function NutritionistProfilePage() {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-bold text-brand-text">Bio</label>
+          <label htmlFor="nutritionist-bio" className="mb-2 block text-xs font-bold text-brand-text">Bio</label>
           <textarea
+            id="nutritionist-bio"
+            name="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"

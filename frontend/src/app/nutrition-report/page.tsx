@@ -23,10 +23,40 @@ export default function NutritionReportPage() {
     goal: string;
     dailyCalorieTarget: number;
     conditions: string[];
+    allergies: string[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const extractRestrictionKeys = (values: unknown, objectKey: 'condition' | 'allergen') => {
+    if (!Array.isArray(values)) return [];
+    return values
+      .map((value) => {
+        if (typeof value === 'string') return value;
+        if (value && typeof value === 'object' && objectKey in value) {
+          const candidate = (value as Record<string, unknown>)[objectKey];
+          return typeof candidate === 'string' ? candidate : '';
+        }
+        return '';
+      })
+      .filter((value) => value && value !== 'NONE');
+  };
+
+  const normalizeContext = (values: unknown) => Array.from(new Set(
+    (Array.isArray(values) ? values : [])
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => value && value !== 'NONE')
+  )).sort();
+
+  const hasSameContext = (left: unknown, right: unknown) => {
+    const normalizedLeft = normalizeContext(left);
+    const normalizedRight = normalizeContext(right);
+    return normalizedLeft.length === normalizedRight.length
+      && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+  };
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -40,9 +70,8 @@ export default function NutritionReportPage() {
             name: p.name || 'User',
             goal: p.userProfile?.goal || 'MAINTAIN',
             dailyCalorieTarget: p.userProfile?.dailyCalorieTarget || 0,
-            conditions: (p.healthConditions || [])
-              .map((c: { condition: string }) => c.condition)
-              .filter((c: string) => c !== 'NONE'),
+            conditions: extractRestrictionKeys(p.healthConditions, 'condition'),
+            allergies: extractRestrictionKeys(p.allergies, 'allergen'),
           });
         }
 
@@ -102,6 +131,26 @@ export default function NutritionReportPage() {
     }
   };
 
+  const handleRegenerate = async () => {
+    setError(null);
+    setIsRegenerating(true);
+    try {
+      const response = await api.post('/user/nutrition-report/generate');
+      if (!response.data?.success || !response.data.data) {
+        throw new Error('The updated report was not returned.');
+      }
+      setReport(response.data.data);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || 'Unable to regenerate your report. Please try again.');
+      } else {
+        setError('Unable to regenerate your report. Please try again.');
+      }
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     try {
       // Stream PDF directly from backend PDF endpoint
@@ -135,7 +184,7 @@ export default function NutritionReportPage() {
     );
   }
 
-  if (error || !report) {
+  if (!report) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6 text-center">
         <Card className="max-w-md p-8 border-brand-border/60 bg-brand-surface/30">
@@ -150,16 +199,46 @@ export default function NutritionReportPage() {
     );
   }
 
+  const reportMatchesCurrentProfile = profileData
+    ? hasSameContext(report.basedOnConditions, profileData.conditions)
+      && hasSameContext(report.basedOnAllergies, profileData.allergies)
+    : false;
+
+  if (!reportMatchesCurrentProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-center text-brand-text">
+        <Card className="max-w-lg border-status-pending-text/30 bg-brand-surface/90 p-8 shadow-card-lg">
+          <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-status-pending-text" />
+          <p className="portal-kicker !text-status-pending-text">Health context changed</p>
+          <h1 className="mt-3 font-display text-2xl font-black">Your nutrition report needs an update</h1>
+          <p className="mt-3 text-sm leading-6 text-brand-muted">
+            Your conditions or allergies changed after this report was created. The older guidance is hidden so it cannot conflict with your current health profile.
+          </p>
+          {error && <p role="alert" className="mt-4 text-xs font-semibold text-status-error-text">{error}</p>}
+          <Button variant="primary" onClick={handleRegenerate} isLoading={isRegenerating} className="mt-6 w-full">
+            Generate updated report
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   // Format array elements cleanly
   const renderList = (items: unknown) => {
-    const arr = Array.isArray(items) 
-      ? items 
-      : typeof items === 'string' 
-        ? JSON.parse(items) 
-        : [];
+    let arr: unknown[] = [];
+    if (Array.isArray(items)) {
+      arr = items;
+    } else if (typeof items === 'string') {
+      try {
+        const parsed = JSON.parse(items);
+        arr = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        arr = [];
+      }
+    }
     return (
       <ul className="flex flex-col gap-2.5">
-        {arr.map((item: string, idx: number) => (
+        {arr.filter((item): item is string => typeof item === 'string').map((item, idx) => (
           <li key={idx} className="text-xs leading-relaxed text-brand-text flex items-start gap-2 bg-brand-bgAlt/50 p-2.5 rounded-xl border border-brand-border/40">
             <span className="text-brand-green text-sm leading-none">•</span>
             <span>{item}</span>
@@ -195,6 +274,12 @@ export default function NutritionReportPage() {
 
       {/* Main layout container */}
       <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
+        {error && (
+          <div role="alert" className="flex items-start gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
         
         {/* Core Summary card */}
         <Card className="p-6 border-brand-border/60 bg-gradient-to-br from-brand-surface to-brand-bgAlt relative overflow-hidden">
@@ -219,10 +304,10 @@ export default function NutritionReportPage() {
             <div>
               <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Health Restrictions</span>
               <div className="flex gap-1.5 flex-wrap">
-                {profileData?.conditions && profileData.conditions.length > 0 ? (
-                  profileData.conditions.map((condition, idx) => condition ? (
+                {profileData && (profileData.conditions.length > 0 || profileData.allergies.length > 0) ? (
+                  [...profileData.conditions, ...profileData.allergies].map((restriction, idx) => restriction ? (
                     <Badge key={idx} variant="rejected">
-                      {String(condition).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                      {String(restriction).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                     </Badge>
                   ) : null)
                 ) : (

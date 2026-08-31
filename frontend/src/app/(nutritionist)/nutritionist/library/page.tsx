@@ -10,6 +10,7 @@ import Modal from '@/components/ui/Modal';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, Utensils, Stethoscope, ShieldAlert, Flag, Salad } from 'lucide-react';
+import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 
 
 interface Flag {
@@ -109,6 +110,7 @@ export default function MealLibraryPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Filter States
   const [searchVal, setSearchVal] = useState('');
@@ -156,6 +158,7 @@ export default function MealLibraryPage() {
 
   const fetchLibrary = async () => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       const res = await api.get('/nutritionist/library', {
         params: {
@@ -175,6 +178,7 @@ export default function MealLibraryPage() {
       }
     } catch (err) {
       console.error('Failed to fetch library:', err);
+      setFetchError('The verified meal library could not be loaded. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -201,8 +205,8 @@ export default function MealLibraryPage() {
       proteinG: meal.proteinG,
       carbsG: meal.carbsG,
       fatG: meal.fatG,
-      suitableConditions: (meal.suitableConditions || []) as string[],
-      allergenFree: (meal.allergenFree || []) as string[],
+      suitableConditions: normalizeExclusiveNone(meal.suitableConditions),
+      allergenFree: normalizeExclusiveNone(meal.allergenFree),
       dietaryTags: (meal.dietaryTags || []) as string[],
     });
     setActionError(null);
@@ -212,9 +216,9 @@ export default function MealLibraryPage() {
   const handleOpenCertification = (meal: LibraryMeal) => {
     setSelectedMeal(meal);
     setEvidenceForm({
-      suitableConditions: meal.suitableConditions || [],
+      suitableConditions: normalizeExclusiveNone(meal.suitableConditions),
       allergensPresent: [],
-      allergensReviewedAbsent: meal.allergenFree || [],
+      allergensReviewedAbsent: normalizeExclusiveNone(meal.allergenFree),
       crossContactAcknowledged: meal.crossContactAssessment === 'ASSESSED_NO_KNOWN_RISK',
     });
     setActionError(null);
@@ -400,9 +404,11 @@ export default function MealLibraryPage() {
           
           {/* Search bar */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Search meal name</label>
+            <label htmlFor="library-search" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Search meal name</label>
             <div className="relative">
               <input
+                id="library-search"
+                name="search"
                 type="text"
                 placeholder="Search e.g. Tinola..."
                 value={searchVal}
@@ -410,7 +416,9 @@ export default function MealLibraryPage() {
                 className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10 placeholder:text-brand-muted/60"
               />
               {searchVal && (
-                <button 
+                <button
+                  type="button"
+                  aria-label="Clear meal search"
                   onClick={() => setSearchVal('')} 
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text text-xs"
                 >
@@ -422,8 +430,9 @@ export default function MealLibraryPage() {
 
           {/* Meal Type */}
           <div>
-            <label className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Meal Type</label>
+            <label htmlFor="library-meal-type" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Meal Type</label>
             <select
+              id="library-meal-type"
               value={mealType}
               onChange={(e) => { setMealType(e.target.value); setPage(1); }}
               className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
@@ -438,8 +447,9 @@ export default function MealLibraryPage() {
 
           {/* Condition Tag */}
           <div>
-            <label className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Condition Tag</label>
+            <label htmlFor="library-condition" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Condition Tag</label>
             <select
+              id="library-condition"
               value={conditionTag}
               onChange={(e) => { setConditionTag(e.target.value); setPage(1); }}
               className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
@@ -458,8 +468,9 @@ export default function MealLibraryPage() {
           <div className="flex gap-4">
             {/* Status Filter */}
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-brand-muted uppercase">Status:</span>
+              <label htmlFor="library-status" className="text-xs font-bold text-brand-muted uppercase">Status:</label>
               <select
+                id="library-status"
                 value={status}
                 onChange={(e) => { setStatus(e.target.value); setPage(1); }}
                 className="bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-brand-text focus:outline-none focus:border-brand-green/80"
@@ -473,8 +484,9 @@ export default function MealLibraryPage() {
           </div>
 
           {/* Owner filter */}
-          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+          <label htmlFor="library-verified-by-me" className="flex items-center gap-2.5 cursor-pointer select-none py-1">
             <input
+              id="library-verified-by-me"
               type="checkbox"
               checked={verifiedByMe}
               onChange={(e) => { setVerifiedByMe(e.target.checked); setPage(1); }}
@@ -485,6 +497,13 @@ export default function MealLibraryPage() {
           
         </div>
       </Card>
+
+      {fetchError && (
+        <div role="alert" className="flex items-center gap-2 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
+          <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{fetchError}</span>
+        </div>
+      )}
 
       {/* Main Meal Grid / Table */}
       {isLoading ? (
@@ -576,12 +595,12 @@ export default function MealLibraryPage() {
 
                     {/* Suitability details */}
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      {meal.suitableConditions && (meal.suitableConditions as string[]).map(cond => (
+                      {normalizeExclusiveNone(meal.suitableConditions).map(cond => (
                         <span key={cond} className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1">
                           <Stethoscope className="w-3 h-3 text-brand-green" /> {AVAILABLE_CONDITIONS.find(c => c.value === cond)?.label || cond}
                         </span>
                       ))}
-                      {meal.allergenFree && (meal.allergenFree as string[]).map(alg => (
+                      {normalizeExclusiveNone(meal.allergenFree).map(alg => (
                         <span key={alg} className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1">
                           <ShieldAlert className="w-3 h-3 text-brand-green" /> {AVAILABLE_ALLERGENS.find(a => a.value === alg)?.label || alg}
                         </span>
@@ -761,12 +780,12 @@ export default function MealLibraryPage() {
             <div>
               <span className="text-xs font-bold text-brand-muted uppercase">Pre-Verified Tags</span>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {selectedMeal.suitableConditions && (selectedMeal.suitableConditions as string[]).map(cond => (
+                {normalizeExclusiveNone(selectedMeal.suitableConditions).map(cond => (
                   <Badge key={cond} variant="verified" className="flex items-center gap-1">
                     <Stethoscope className="w-3 h-3" /> {AVAILABLE_CONDITIONS.find(c => c.value === cond)?.label || cond}
                   </Badge>
                 ))}
-                {selectedMeal.allergenFree && (selectedMeal.allergenFree as string[]).map(alg => (
+                {normalizeExclusiveNone(selectedMeal.allergenFree).map(alg => (
                   <Badge key={alg} variant="user" className="flex items-center gap-1">
                     <ShieldAlert className="w-3 h-3" /> {AVAILABLE_ALLERGENS.find(a => a.value === alg)?.label || alg}
                   </Badge>

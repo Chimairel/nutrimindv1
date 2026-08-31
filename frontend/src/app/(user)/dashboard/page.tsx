@@ -22,6 +22,14 @@ import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils, Droplets, Flame, 
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 
+interface OutsideMealLog {
+  loggedAt: string;
+  status: string;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -45,9 +53,7 @@ export default function DashboardPage() {
 
   // Extract unique scheduledDate values in chronological order
   const uniqueDates = React.useMemo(() => {
-    const scheduledMeals = currentMeals.length > 0
-      ? currentMeals
-      : pendingReview?.meals ?? [];
+    const scheduledMeals = [...currentMeals, ...(pendingReview?.meals ?? [])];
 
     if (scheduledMeals.length === 0) return [];
     const todayKey = getManilaDateKey();
@@ -91,6 +97,7 @@ export default function DashboardPage() {
   
   // User Profile details
   const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(null);
+  const [outsideMealLogs, setOutsideMealLogs] = useState<OutsideMealLog[]>([]);
 
   // Water intake state
   const [waterIntake, setWaterIntake] = useState(0);
@@ -128,6 +135,19 @@ export default function DashboardPage() {
       }
     } catch {
       setWaterIntake((current) => Math.max(0, current - amount));
+    }
+  };
+
+  const fetchOutsideMealLogs = async () => {
+    try {
+      const res = await api.get('/user/meals/history', {
+        params: { source: 'USER_LOGGED', status: 'DONE' },
+      });
+      if (res.data?.success) {
+        setOutsideMealLogs(Array.isArray(res.data.data) ? res.data.data : []);
+      }
+    } catch (err) {
+      console.error('[Dashboard] Failed to fetch outside-meal history', err);
     }
   };
 
@@ -187,6 +207,7 @@ export default function DashboardPage() {
       fetchCurrentPlan();
       checkCheckinStatus();
       fetchProfile();
+      fetchOutsideMealLogs();
 
       let activeDateKey = getManilaDateKey();
       const refreshForDateRollover = () => {
@@ -219,7 +240,8 @@ export default function DashboardPage() {
       // Fetch plan again to sync local UI check marks and total calories
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
-        setCurrentMeals(res.data.data);
+        setCurrentMeals(Array.isArray(res.data.data) ? res.data.data : []);
+        setPendingReview(res.data.meta?.pendingReview ?? null);
       }
     } catch (err) {
       console.error('[Dashboard] Status toggle failed:', err);
@@ -316,7 +338,7 @@ export default function DashboardPage() {
           setLogMealName('');
           setLogNotes('');
           setWarningData(null);
-          fetchCurrentPlan();
+          await Promise.all([fetchCurrentPlan(), fetchOutsideMealLogs()]);
         }
       }
     } catch (err: unknown) {
@@ -339,31 +361,42 @@ export default function DashboardPage() {
     const dayMeals = currentMeals.filter(
       (m) => getManilaDateKey(m.scheduledDate) === dateStr
     );
+    const dayPendingMeals = pendingReview?.meals.filter(
+      (m) => getManilaDateKey(m.scheduledDate) === dateStr
+    ) ?? [];
+    const dayOutsideMeals = outsideMealLogs.filter(
+      (log) => log.status === 'DONE' && getManilaDateKey(log.loggedAt) === dateStr
+    );
 
     // Sum calories logged as DONE today
     const caloriesConsumed = dayMeals
       .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.calories, 0);
+      .reduce((sum, m) => sum + m.calories, 0)
+      + dayOutsideMeals.reduce((sum, meal) => sum + meal.calories, 0);
 
     const proteinConsumed = dayMeals
       .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.proteinG, 0);
+      .reduce((sum, m) => sum + m.proteinG, 0)
+      + dayOutsideMeals.reduce((sum, meal) => sum + meal.proteinG, 0);
 
     const carbsConsumed = dayMeals
       .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.carbsG, 0);
+      .reduce((sum, m) => sum + m.carbsG, 0)
+      + dayOutsideMeals.reduce((sum, meal) => sum + meal.carbsG, 0);
 
     const fatConsumed = dayMeals
       .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.fatG, 0);
+      .reduce((sum, m) => sum + m.fatG, 0)
+      + dayOutsideMeals.reduce((sum, meal) => sum + meal.fatG, 0);
 
     // Targets
-    const caloriesTarget = dayMeals.reduce((sum, m) => sum + m.calories, 0)
-      || userProfile?.dailyCalorieTarget
+    const scheduledDayMeals = [...dayMeals, ...dayPendingMeals];
+    const caloriesTarget = userProfile?.dailyCalorieTarget
+      || scheduledDayMeals.reduce((sum, m) => sum + m.calories, 0)
       || 2000;
-    const proteinTarget = dayMeals.reduce((sum, m) => sum + m.proteinG, 0) || 120;
-    const carbsTarget = dayMeals.reduce((sum, m) => sum + m.carbsG, 0) || 220;
-    const fatTarget = dayMeals.reduce((sum, m) => sum + m.fatG, 0) || 60;
+    const proteinTarget = scheduledDayMeals.reduce((sum, m) => sum + m.proteinG, 0) || 120;
+    const carbsTarget = scheduledDayMeals.reduce((sum, m) => sum + m.carbsG, 0) || 220;
+    const fatTarget = scheduledDayMeals.reduce((sum, m) => sum + m.fatG, 0) || 60;
 
     return {
       mealsList: dayMeals,
@@ -693,7 +726,7 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {pendingReview && currentMeals.length === 0 ? (
+            {pendingReview ? (
               <section className="order-2 flex flex-col gap-6" aria-labelledby="pending-plan-heading">
                 <div className="relative overflow-hidden rounded-[28px] border border-brand-green/20 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/10 p-5 text-left shadow-card md:p-6">
                   <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-brand-accent/15 blur-3xl" aria-hidden="true" />
@@ -707,7 +740,7 @@ export default function DashboardPage() {
                         Review in progress
                       </h2>
                       <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                        Preview the {pendingMealsForSelectedDate.length} meals scheduled for this date while a nutritionist reviews your full {pendingReview.mealCount}-meal {pendingReview.planType === 'STARTER' ? 'starter' : 'weekly'} plan.
+                        Preview the {pendingMealsForSelectedDate.length} meals scheduled for this date while a nutritionist reviews the remaining {pendingReview.mealCount} meal{pendingReview.mealCount === 1 ? '' : 's'} in your {pendingReview.planType === 'STARTER' ? 'starter' : 'weekly'} plan.
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/40 px-4 py-3">
@@ -737,6 +770,35 @@ export default function DashboardPage() {
                     />
                   ))}
                 </div>
+                {mealsList.length > 0 && (
+                  <div className="flex flex-col gap-4 text-left">
+                    <h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-brand-text">
+                      Nutritionist-approved meals
+                    </h2>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                      {mealsList.map((meal) => (
+                        <MealCard
+                          key={meal.id}
+                          id={meal.id}
+                          mealName={meal.mealName}
+                          mealType={meal.mealType}
+                          description={meal.description || undefined}
+                          calories={meal.calories}
+                          proteinG={meal.proteinG}
+                          carbsG={meal.carbsG}
+                          fatG={meal.fatG}
+                          status={meal.status}
+                          aiConfidenceFlag={meal.aiConfidenceFlag}
+                          ingredients={meal.ingredients}
+                          mealLogs={meal.mealLogs}
+                          onStatusToggle={handleMealStatusToggle}
+                          scheduledDate={meal.scheduledDate}
+                          onCardClick={() => router.push(`/dashboard/${meal.id}`)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             ) : (
               /* Today's Meals Section */

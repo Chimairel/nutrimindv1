@@ -4,10 +4,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowUpRight, BrainCircuit, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/lib/context/ThemeContext';
+import { useAuth } from '@/hooks/useAuth';
+
+const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
+  if (role === 'ADMIN') return '/admin/overview';
+  if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
+  return '/dashboard';
+};
 
 export default function PublicHeader() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { user, isLoading } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-border/60 bg-brand-bg/75 backdrop-blur-2xl">
@@ -44,11 +52,24 @@ export default function PublicHeader() {
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <Link href="/login" className="hidden rounded-2xl px-4 py-2.5 text-xs font-bold text-brand-text transition hover:bg-brand-surface/70 sm:block">Log in</Link>
-          <Link href="/register" className="flex items-center gap-2 rounded-2xl bg-brand-accent px-4 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-0.5 hover:brightness-105">
-            Get started
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
+          {!isLoading && user ? (
+            <Link href={getRoleHome(user.role)} className="flex items-center gap-1.5 rounded-xl bg-brand-accent px-3 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-0.5 hover:brightness-105 sm:rounded-2xl sm:px-4">
+              <span className="sm:hidden">Open</span>
+              <span className="hidden sm:inline">Open workspace</span>
+              <ArrowUpRight className="hidden h-3.5 w-3.5 sm:block" />
+            </Link>
+          ) : !isLoading ? (
+            <>
+              <Link href="/login" className="rounded-xl px-2 py-2.5 text-xs font-bold text-brand-text transition hover:bg-brand-surface/70 sm:rounded-2xl sm:px-4">Log in</Link>
+              <Link href="/register" className="flex items-center gap-1.5 rounded-xl bg-brand-accent px-3 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-0.5 hover:brightness-105 sm:rounded-2xl sm:px-4">
+                <span className="sm:hidden">Join</span>
+                <span className="hidden sm:inline">Get started</span>
+                <ArrowUpRight className="hidden h-3.5 w-3.5 sm:block" />
+              </Link>
+            </>
+          ) : (
+            <span className="h-10 w-24 animate-pulse rounded-xl bg-brand-surface/70" aria-hidden="true" />
+          )}
         </div>
       </div>
     </header>

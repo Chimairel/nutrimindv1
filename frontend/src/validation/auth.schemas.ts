@@ -38,6 +38,41 @@ export const registrationSchema = z.object({
   }
 });
 
+export const loginSchema = z.object({
+  email: z.string()
+    .trim()
+    .min(1, 'Email address is required.')
+    .max(254, 'Email address is too long.')
+    .email('Please enter a valid email address.'),
+  password: z.string()
+    .min(1, 'Password is required.')
+    .max(128, 'Password must be 128 characters or fewer.')
+    .refine((value) => /\S/.test(value), 'Password cannot consist only of spaces.'),
+});
+
+export type LoginInput = z.input<typeof loginSchema>;
+export type LoginOutput = z.output<typeof loginSchema>;
+export type LoginField = keyof LoginInput;
+export type LoginFieldErrors = Partial<Record<LoginField, string>>;
+
+export function getLoginFieldErrors(input: LoginInput): {
+  data?: LoginOutput;
+  errors: LoginFieldErrors;
+} {
+  const result = loginSchema.safeParse(input);
+  if (result.success) return { data: result.data, errors: {} };
+
+  const errors: LoginFieldErrors = {};
+  for (const issue of result.error.issues) {
+    const field = issue.path[0];
+    if (typeof field === 'string' && field in input && !errors[field as LoginField]) {
+      errors[field as LoginField] = issue.message;
+    }
+  }
+
+  return { errors };
+}
+
 export type RegistrationInput = z.input<typeof registrationSchema>;
 export type RegistrationOutput = z.output<typeof registrationSchema>;
 export type RegistrationField = keyof RegistrationInput;

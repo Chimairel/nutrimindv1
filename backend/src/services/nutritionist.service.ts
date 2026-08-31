@@ -641,6 +641,12 @@ export class NutritionistService {
       throw new Error('You must hold an active claim before rejecting this meal. Please reopen it from the queue.');
     }
 
+    const reviewer = await prisma.nutritionistProfile.findUnique({
+      where: { id: nutritionistProfileId },
+      select: { userId: true },
+    });
+    if (!reviewer) throw new Error('Nutritionist profile not found.');
+
     await prisma.$transaction(async (tx) => {
       const decision = await tx.mealPlan.updateMany({
         where: {
@@ -667,8 +673,17 @@ export class NutritionistService {
         data: {
           userId: plan.userId,
           title: 'Meal Plan Needs Changes ⚠️',
-          message: `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason}. A replacement is being generated.`,
+          message: `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason.trim().replace(/[.!?]+$/, '')}. A replacement is being generated.`,
           type: NotificationType.PLAN_REJECTED,
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: reviewer.userId,
+          action: 'MEAL_PLAN_REJECTED',
+          entityType: 'MealPlan',
+          entityId: mealPlanId,
+          metadata: { reason: reason.trim().slice(0, 240) },
         },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

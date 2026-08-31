@@ -34,7 +34,7 @@ export default function AdminAnalyticsPage() {
 
   const verificationRate = data.totalNutritionists > 0 ? Math.round((data.verifiedNutritionists / data.totalNutritionists) * 100) : 0;
   const people: Metric[] = [
-    { label: 'Total users', value: data.totalUsers, icon: Users, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
+    { label: 'Patient accounts', value: data.totalUsers, icon: Users, tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan' },
     { label: 'Nutritionists', value: data.totalNutritionists, icon: Stethoscope, tone: 'bg-brand-green/10 text-brand-green' },
     { label: 'Verified RNDs', value: data.verifiedNutritionists, icon: ClipboardCheck, tone: 'bg-brand-green/10 text-brand-green' },
   ];
