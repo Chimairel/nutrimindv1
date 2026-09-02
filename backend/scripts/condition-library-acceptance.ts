@@ -26,7 +26,7 @@ type ProfileCase = {
   expectFullWeek: boolean;
 };
 
-const cases: ProfileCase[] = [
+const baseCases: ProfileCase[] = [
   { label: 'diabetes', diet: DietaryPreference.OMNIVORE, condition: HealthConditionType.DIABETES, allergy: AllergenType.NONE, expectFullWeek: true },
   { label: 'hypertension', diet: DietaryPreference.OMNIVORE, condition: HealthConditionType.HYPERTENSION, allergy: AllergenType.NONE, expectFullWeek: true },
   { label: 'vegetarian', diet: DietaryPreference.VEGETARIAN, condition: HealthConditionType.NONE, allergy: AllergenType.NONE, expectFullWeek: true },
@@ -34,6 +34,30 @@ const cases: ProfileCase[] = [
   { label: 'egg-allergy', diet: DietaryPreference.OMNIVORE, condition: HealthConditionType.NONE, allergy: AllergenType.EGGS, expectFullWeek: true },
   { label: 'kidney-fail-closed', diet: DietaryPreference.OMNIVORE, condition: HealthConditionType.KIDNEY_DISEASE, allergy: AllergenType.NONE, expectFullWeek: false },
 ];
+
+const combinationDimensions = [
+  { label: 'omnivore', diet: DietaryPreference.OMNIVORE, allergy: AllergenType.NONE },
+  { label: 'vegetarian', diet: DietaryPreference.VEGETARIAN, allergy: AllergenType.NONE },
+  { label: 'pescatarian', diet: DietaryPreference.PESCATARIAN, allergy: AllergenType.NONE },
+  { label: 'egg-free', diet: DietaryPreference.OMNIVORE, allergy: AllergenType.EGGS },
+  { label: 'dairy-free', diet: DietaryPreference.OMNIVORE, allergy: AllergenType.DAIRY },
+  { label: 'gluten-free', diet: DietaryPreference.OMNIVORE, allergy: AllergenType.GLUTEN },
+  { label: 'nut-free', diet: DietaryPreference.OMNIVORE, allergy: AllergenType.NUTS },
+  { label: 'shellfish-free', diet: DietaryPreference.OMNIVORE, allergy: AllergenType.SHELLFISH },
+] as const;
+
+const combinationCases: ProfileCase[] = [
+  { label: 'diabetes', condition: HealthConditionType.DIABETES },
+  { label: 'hypertension', condition: HealthConditionType.HYPERTENSION },
+].flatMap((condition) => combinationDimensions.map((dimension) => ({
+  label: `matrix-${condition.label}-${dimension.label}`,
+  diet: dimension.diet,
+  condition: condition.condition,
+  allergy: dimension.allergy,
+  expectFullWeek: true,
+})));
+
+const cases = [...baseCases, ...combinationCases];
 
 async function cleanup() {
   await prisma.user.deleteMany({ where: { email: { startsWith: FIXTURE_PREFIX } } });
@@ -106,11 +130,16 @@ async function main() {
 
     const coverage = await NutritionistService.getMealLibraryCoverage();
     assert.ok(coverage.profiles.every((profile) => profile.weekReady), 'The nutritionist coverage monitor reported a supported-profile gap.');
+    assert.ok(
+      coverage.combinationMatrix.every((row) => row.cells.every((cell) => cell.weekReady)),
+      'The nutritionist combination matrix reported a supported-profile gap.'
+    );
     console.log(JSON.stringify({
       passed: true,
       catalogueMeals: catalogueNames.size,
       profiles: results,
       coverageMonitor: coverage.profiles,
+      combinationMatrix: coverage.combinationMatrix,
     }, null, 2));
   } finally {
     await cleanup();

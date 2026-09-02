@@ -66,9 +66,10 @@ const ingredient = (
 ): CommonMealIngredient => ({ foodName, grams, category });
 
 /**
- * A starter catalogue of familiar, practical meals for healthy-profile users.
+ * A managed catalogue of familiar, practical meals for supported profiles.
  * Quantities are edible cooked weights where the FNRI item is a cooked food.
- * Nutrients are calculated from the linked FNRI rows by the population script.
+ * Nutrients and bounded condition suitability are calculated from the linked
+ * FNRI rows by the population script.
  */
 export const COMMON_MEAL_CATALOGUE: CommonMealDefinition[] = [
   {
@@ -330,6 +331,42 @@ export const COMMON_MEAL_CATALOGUE: CommonMealDefinition[] = [
     description: 'A light bowl of soft tofu, rice, pechay, carrot, and onion.',
     mealType: 'DINNER', diets: vegan, allergensPresent: [],
     ingredients: [ingredient('Rice, well-milled, boiled', 120, 'GRAINS'), ingredient('Soybean cheese, soft curd', 160, 'PROTEIN'), ingredient('Pechay lvs, boiled', 100, 'VEGETABLES'), ingredient('Carrot, boiled', 50, 'VEGETABLES'), ingredient('Onion, Bombay bulb, boiled', 20, 'VEGETABLES')],
+  },
+  {
+    mealName: 'Tofu Papaya and Sweet Potato Breakfast',
+    description: 'Soft tofu with ripe papaya and boiled purple sweet potato.',
+    mealType: 'BREAKFAST', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Soybean cheese, soft curd', 170, 'PROTEIN'), ingredient('Papaya fruit, ripe', 140, 'FRUITS'), ingredient('Sweet potato, purple, boiled', 100, 'GRAINS')],
+  },
+  {
+    mealName: 'Munggo Sweet Potato Breakfast Bowl',
+    description: 'Boiled mung beans and purple sweet potato with fresh tomato.',
+    mealType: 'BREAKFAST', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Mung bean seed, green, dried, boiled', 100, 'PROTEIN'), ingredient('Sweet potato, purple, boiled', 100, 'GRAINS'), ingredient('Tomato', 60, 'VEGETABLES')],
+  },
+  {
+    mealName: 'Tofu Squash Potato Lunch Plate',
+    description: 'Soft tofu with boiled potato, squash, and tomato.',
+    mealType: 'LUNCH', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Soybean cheese, soft curd', 180, 'PROTEIN'), ingredient('Potato, boiled', 180, 'GRAINS'), ingredient('Squash fruit, boiled', 120, 'VEGETABLES'), ingredient('Tomato', 60, 'VEGETABLES')],
+  },
+  {
+    mealName: 'Munggo Pechay Sweet Potato Bowl',
+    description: 'Boiled mung beans with pechay, purple sweet potato, and tomato.',
+    mealType: 'LUNCH', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Mung bean seed, green, dried, boiled', 90, 'PROTEIN'), ingredient('Sweet potato, purple, boiled', 80, 'GRAINS'), ingredient('Pechay lvs, boiled', 110, 'VEGETABLES'), ingredient('Tomato', 60, 'VEGETABLES')],
+  },
+  {
+    mealName: 'Tofu Kangkong Potato Dinner Bowl',
+    description: 'Soft tofu with boiled potato, kangkong, and tomato.',
+    mealType: 'DINNER', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Soybean cheese, soft curd', 180, 'PROTEIN'), ingredient('Potato, boiled', 180, 'GRAINS'), ingredient('Swamp cabbage lvs, boiled', 110, 'VEGETABLES'), ingredient('Tomato', 60, 'VEGETABLES')],
+  },
+  {
+    mealName: 'Munggo Squash Sweet Potato Dinner Bowl',
+    description: 'Boiled mung beans with squash, purple sweet potato, and pechay.',
+    mealType: 'DINNER', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Mung bean seed, green, dried, boiled', 90, 'PROTEIN'), ingredient('Sweet potato, purple, boiled', 65, 'GRAINS'), ingredient('Squash fruit, boiled', 120, 'VEGETABLES'), ingredient('Pechay lvs, boiled', 100, 'VEGETABLES')],
   },
 ];
 

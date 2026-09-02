@@ -20,7 +20,7 @@ const ingredientAllergens: Record<string, SupportedLibraryAllergen[]> = {
 
 test('common library catalogue has enough complete, unique meals per main slot', () => {
   assert.doesNotThrow(assertCommonMealCatalogue);
-  const expected = { BREAKFAST: 13, LUNCH: 15, DINNER: 15 } as const;
+  const expected = { BREAKFAST: 15, LUNCH: 17, DINNER: 17 } as const;
   for (const mealType of ['BREAKFAST', 'LUNCH', 'DINNER'] as const) {
     assert.equal(COMMON_MEAL_CATALOGUE.filter((meal) => meal.mealType === mealType).length, expected[mealType]);
   }

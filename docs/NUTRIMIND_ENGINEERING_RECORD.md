@@ -2193,3 +2193,30 @@ Source verification passed after the surface alignment: backend no-emit TypeScri
 ### Scope boundary
 
 - The carbohydrate and sodium limits are conservative project rules used to make catalogue evidence measurable and testable; they are not a claim of licensed clinical approval. The existing clinical-policy approval TODO remains open, and deployment must not present the software as independently clinically certified until that external review is recorded.
+
+## 33. Combined-restriction coverage matrix and full-plan acceptance (2026-09-03)
+
+**Requirement ID:** REQ-017
+
+**Change ID:** CHG-20260903-03
+
+**Verification IDs:** INT-007; INT-008; E2E-006
+
+### Implemented behavior
+
+- The nutritionist coverage calculation now runs every profile through the same certified-evidence compatibility evaluator used by plan generation and swaps. It no longer estimates readiness from one tag in isolation.
+- Added a two-dimensional coverage matrix for diabetes and hypertension crossed with omnivore, vegetarian, pescatarian, egg-free, dairy-free, gluten-free, nut-free, and shellfish-free constraints. Every cell reports the lowest breakfast/lunch/dinner count and is week-ready only at seven or more.
+- Expanded the managed catalogue from 43 to 49 meals by adding exactly six plant-based FNRI-backed recipes: two breakfasts, two lunches, and two dinners. They close the measured diabetes-plus-vegetarian gap and also raise diabetes-plus-pescatarian dinner coverage without loosening the 60 g carbohydrate or 600 mg sodium project rules.
+- The population workflow is versioned as `NUTRIMIND_COMMON_LIBRARY_V3`. V1 and V2 records remain recognized as managed rows, while current definition signatures prevent unnecessary writes on repeat execution.
+
+### Verification evidence
+
+- INT-007 tested all 16 condition/constraint combinations through live user fixtures and the production compatibility evaluator. Minimum per-slot coverage is now diabetes: omnivore 10, vegetarian 7, pescatarian 8, egg-free 9, dairy-free 10, gluten-free 9, nut-free 10, shellfish-free 10; hypertension: 14, 9, 10, 10, 13, 10, 12, and 14 respectively. All fixtures were removed in `finally` cleanup.
+- INT-008 generated complete weekly plans for the tightest supported combination (diabetes plus vegetarian) and a condition/allergen combination (hypertension plus egg-free). Each received 21 approved, distinct, library-backed meals and a non-empty automatic grocery projection. The AI-usage count did not change, proving zero Gemini calls. Fixture users were deleted and catalogue usage counters restored afterward.
+- The configured database contains **49 current managed catalogue meals** and 53 total library records. A repeat V3 population run reports **0 created, 0 certified, 49 already current**.
+- The full deterministic backend suite remains **250 registered, 249 pass, 0 fail, 1 clinical-policy TODO**. Backend production build, frontend lint, and frontend production build pass; the frontend generates all 37 routes.
+- E2E-006 signed in through the browser as the nutritionist test actor and rendered the matrix with 53 total records, 49 current certified managed meals, all 16 cells at or above 7, accessible cell summaries, horizontal overflow for narrow content areas, and no browser console errors.
+
+### Scope boundary
+
+- The matrix covers two explicitly bounded conditions crossed with one diet or one modeled allergy at a time. It does not claim coverage for arbitrary multi-allergy combinations, custom free-text restrictions, kidney disease, heart conditions, or pregnancy/lactation; those cases continue to fail closed into individual review or generation.

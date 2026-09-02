@@ -28,9 +28,12 @@ import { evaluateMealLibrarySafetyEvidence } from '../src/domain/meal-library-sa
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
 
 const APPLY = process.argv.includes('--apply');
-const LEGACY_SEED_REVIEW_REASON = 'NUTRIMIND_COMMON_LIBRARY_V1';
-const SEED_REVIEW_REASON = 'NUTRIMIND_COMMON_LIBRARY_V2';
-const MANAGED_REVIEW_REASONS = [LEGACY_SEED_REVIEW_REASON, SEED_REVIEW_REASON];
+const LEGACY_SEED_REVIEW_REASONS = [
+  'NUTRIMIND_COMMON_LIBRARY_V1',
+  'NUTRIMIND_COMMON_LIBRARY_V2',
+] as const;
+const SEED_REVIEW_REASON = 'NUTRIMIND_COMMON_LIBRARY_V3';
+const MANAGED_REVIEW_REASONS = [...LEGACY_SEED_REVIEW_REASONS, SEED_REVIEW_REASON];
 const NUTRITIONIST_EMAIL = 'nutritionist@gmail.com';
 
 type FnriFood = {

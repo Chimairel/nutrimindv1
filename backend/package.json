@@ -17,6 +17,7 @@
     "test:integration:production": "tsx scripts/production-integration-smoke.ts",
     "test:acceptance:library-reuse": "tsx scripts/library-reuse-acceptance.ts",
     "test:acceptance:condition-library": "tsx scripts/condition-library-acceptance.ts",
+    "test:acceptance:combined-library-flow": "tsx scripts/combined-library-flow-acceptance.ts",
     "test:load": "tsx scripts/http-load-smoke.ts",
     "preflight:data-integrity": "tsx scripts/production-data-integrity-preflight.ts",
     "plans:revalidation:dry-run": "tsx scripts/enqueue-legacy-plan-revalidation.ts",

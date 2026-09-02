@@ -12,6 +12,10 @@ import {
   MealLibrarySafetyReviewOutcome,
   FlagStatus,
   MealIngredientDataSource,
+  AllergenType,
+  DietaryPreference,
+  Goal,
+  HealthConditionType,
   Prisma,
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
@@ -29,6 +33,36 @@ import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '@/domain/meal-library-safety
 import type { CertifyMealLibrarySafetyInput } from '@/domain/meal-library-safety-review.schema';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
+import {
+  certifiedLibraryMealInclude,
+  isCertifiedLibraryMealCompatible,
+} from '@/services/meal-swap.service';
+
+const COVERAGE_MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
+
+const BASE_LIBRARY_COVERAGE_PROFILES = [
+  { key: 'DIABETES', label: 'Diabetes', dietaryPreference: DietaryPreference.OMNIVORE, conditions: [HealthConditionType.DIABETES], allergens: [AllergenType.NONE] },
+  { key: 'HYPERTENSION', label: 'Hypertension', dietaryPreference: DietaryPreference.OMNIVORE, conditions: [HealthConditionType.HYPERTENSION], allergens: [AllergenType.NONE] },
+  { key: 'VEGETARIAN', label: 'Vegetarian', dietaryPreference: DietaryPreference.VEGETARIAN, conditions: [HealthConditionType.NONE], allergens: [AllergenType.NONE] },
+  { key: 'PESCATARIAN', label: 'Pescatarian', dietaryPreference: DietaryPreference.PESCATARIAN, conditions: [HealthConditionType.NONE], allergens: [AllergenType.NONE] },
+  { key: 'EGG_FREE', label: 'Egg-free', dietaryPreference: DietaryPreference.OMNIVORE, conditions: [HealthConditionType.NONE], allergens: [AllergenType.EGGS] },
+] as const;
+
+const COMBINATION_CONSTRAINTS = [
+  { key: 'OMNIVORE', label: 'Omnivore', dietaryPreference: DietaryPreference.OMNIVORE, allergen: AllergenType.NONE },
+  { key: 'VEGETARIAN', label: 'Vegetarian', dietaryPreference: DietaryPreference.VEGETARIAN, allergen: AllergenType.NONE },
+  { key: 'PESCATARIAN', label: 'Pescatarian', dietaryPreference: DietaryPreference.PESCATARIAN, allergen: AllergenType.NONE },
+  { key: 'EGG_FREE', label: 'Egg-free', dietaryPreference: DietaryPreference.OMNIVORE, allergen: AllergenType.EGGS },
+  { key: 'DAIRY_FREE', label: 'Dairy-free', dietaryPreference: DietaryPreference.OMNIVORE, allergen: AllergenType.DAIRY },
+  { key: 'GLUTEN_FREE', label: 'Gluten-free', dietaryPreference: DietaryPreference.OMNIVORE, allergen: AllergenType.GLUTEN },
+  { key: 'NUT_FREE', label: 'Nut-free', dietaryPreference: DietaryPreference.OMNIVORE, allergen: AllergenType.NUTS },
+  { key: 'SHELLFISH_FREE', label: 'Shellfish-free', dietaryPreference: DietaryPreference.OMNIVORE, allergen: AllergenType.SHELLFISH },
+] as const;
+
+const COMBINATION_CONDITIONS = [
+  { key: 'DIABETES', label: 'Diabetes', condition: HealthConditionType.DIABETES },
+  { key: 'HYPERTENSION', label: 'Hypertension', condition: HealthConditionType.HYPERTENSION },
+] as const;
 
 export class NutritionistService {
   /**
@@ -931,56 +965,72 @@ export class NutritionistService {
         safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
         flags: { none: { status: FlagStatus.PENDING } },
       },
-      select: {
-        mealType: true,
-        suitableConditions: true,
-        allergenFree: true,
-        dietaryTags: true,
-        safetyEvidenceRevision: true,
-        certifiedEvidenceRevision: true,
-        safetyReviewedByNutritionist: {
-          include: { user: { select: { role: true } } },
-        },
-      },
+      include: certifiedLibraryMealInclude,
     });
-    const current = meals.filter((meal) =>
-      meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
-      meal.safetyReviewedByNutritionist &&
-      isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
-    );
-    const definitions = [
-      { key: 'DIABETES', label: 'Diabetes', field: 'suitableConditions' as const },
-      { key: 'HYPERTENSION', label: 'Hypertension', field: 'suitableConditions' as const },
-      { key: 'VEGETARIAN', label: 'Vegetarian', field: 'dietaryTags' as const },
-      { key: 'PESCATARIAN', label: 'Pescatarian', field: 'dietaryTags' as const },
-      { key: 'EGGS', label: 'Egg-free', field: 'allergenFree' as const },
-    ];
-    const mainMealTypes = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
-
-    const profiles = definitions.map((definition) => {
-      const matching = current.filter((meal) => {
-        const values = meal[definition.field];
-        return Array.isArray(values) && values.includes(definition.key);
-      });
-      const counts = Object.fromEntries(mainMealTypes.map((mealType) => [
+    const countProfile = (definition: {
+      dietaryPreference: DietaryPreference;
+      conditions: readonly HealthConditionType[];
+      allergens: readonly AllergenType[];
+    }) => {
+      const matching = meals.filter((meal) => isCertifiedLibraryMealCompatible(
+        meal,
+        definition.conditions,
+        definition.allergens,
+        {
+          dietaryPreference: definition.dietaryPreference,
+          goal: Goal.MAINTAIN,
+          otherConditions: null,
+          otherAllergies: null,
+        }
+      ));
+      const counts = Object.fromEntries(COVERAGE_MEAL_TYPES.map((mealType) => [
         mealType,
         matching.filter((meal) => meal.mealType === mealType).length,
-      ])) as Record<typeof mainMealTypes[number], number>;
+      ])) as Record<typeof COVERAGE_MEAL_TYPES[number], number>;
       const minimumPerSlot = Math.min(...Object.values(counts));
       return {
-        key: definition.key,
-        label: definition.label,
         counts,
         total: matching.length,
         minimumPerSlot,
         weekReady: minimumPerSlot >= 7,
       };
-    });
+    };
+
+    const profiles = BASE_LIBRARY_COVERAGE_PROFILES.map((definition) => ({
+      key: definition.key,
+      label: definition.label,
+      ...countProfile(definition),
+    }));
+
+    const combinationMatrix = COMBINATION_CONDITIONS.map((condition) => ({
+      key: condition.key,
+      label: condition.label,
+      cells: COMBINATION_CONSTRAINTS.map((constraint) => ({
+        key: constraint.key,
+        label: constraint.label,
+        ...countProfile({
+          dietaryPreference: constraint.dietaryPreference,
+          conditions: [condition.condition],
+          allergens: [constraint.allergen],
+        }),
+      })),
+    }));
+
+    const combinationColumns = COMBINATION_CONSTRAINTS.map(({ key, label }) => ({
+      key,
+      label,
+    }));
 
     return {
-      certifiedMeals: current.length,
+      certifiedMeals: meals.filter((meal) =>
+        meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
+        meal.safetyReviewedByNutritionist &&
+        isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
+      ).length,
       requiredPerSlot: 7,
       profiles,
+      combinationColumns,
+      combinationMatrix,
     };
   }
 

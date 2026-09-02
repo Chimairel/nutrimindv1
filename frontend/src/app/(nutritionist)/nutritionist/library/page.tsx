@@ -87,6 +87,19 @@ interface LibraryCoverage {
     minimumPerSlot: number;
     weekReady: boolean;
   }>;
+  combinationColumns: Array<{ key: string; label: string }>;
+  combinationMatrix: Array<{
+    key: string;
+    label: string;
+    cells: Array<{
+      key: string;
+      label: string;
+      counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+      total: number;
+      minimumPerSlot: number;
+      weekReady: boolean;
+    }>;
+  }>;
 }
 
 const AVAILABLE_CONDITIONS = [
@@ -457,6 +470,47 @@ export default function MealLibraryPage() {
               </Card>
             ))}
           </div>
+          <Card className="overflow-hidden border-brand-border/60 bg-brand-surface/65 p-0">
+            <div className="border-b border-brand-border/60 px-4 py-3">
+              <h3 className="text-sm font-extrabold text-brand-text">Combined restriction matrix</h3>
+              <p className="mt-1 text-[11px] text-brand-muted">Each cell shows the lowest available main-meal slot. Hover or focus a cell for breakfast, lunch, and dinner counts.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-brand-bg/45">
+                    <th scope="col" className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-bg px-4 py-3 font-mono text-[9px] uppercase tracking-wider text-brand-muted">Condition</th>
+                    {coverage.combinationColumns.map((column) => (
+                      <th key={column.key} scope="col" className="px-3 py-3 text-center text-[10px] font-extrabold text-brand-muted">{column.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {coverage.combinationMatrix.map((row) => (
+                    <tr key={row.key} className="border-t border-brand-border/50">
+                      <th scope="row" className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-surface px-4 py-3 text-xs font-extrabold text-brand-text">{row.label}</th>
+                      {row.cells.map((cell) => {
+                        const detail = `Breakfast ${cell.counts.BREAKFAST}, lunch ${cell.counts.LUNCH}, dinner ${cell.counts.DINNER}`;
+                        return (
+                          <td key={cell.key} className="px-2 py-2 text-center">
+                            <span
+                              tabIndex={0}
+                              title={detail}
+                              aria-label={`${row.label} and ${cell.label}: ${cell.minimumPerSlot} lowest-slot meals. ${detail}. ${cell.weekReady ? 'Week ready' : 'Coverage gap'}.`}
+                              className={`inline-flex min-w-16 items-center justify-center gap-1 rounded-xl border px-2 py-2 font-mono text-[10px] font-black outline-none transition focus:ring-2 focus:ring-brand-cyan/40 ${cell.weekReady ? 'border-brand-green/35 bg-brand-green/10 text-brand-green' : 'border-status-warning-text/35 bg-status-warning-bg/15 text-status-warning-text'}`}
+                            >
+                              {cell.minimumPerSlot}
+                              <span aria-hidden="true">/7</span>
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </section>
       )}
 
