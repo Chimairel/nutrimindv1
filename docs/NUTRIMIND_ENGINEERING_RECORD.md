@@ -2220,3 +2220,28 @@ Source verification passed after the surface alignment: backend no-emit TypeScri
 ### Scope boundary
 
 - The matrix covers two explicitly bounded conditions crossed with one diet or one modeled allergy at a time. It does not claim coverage for arbitrary multi-allergy combinations, custom free-text restrictions, kidney disease, heart conditions, or pregnancy/lactation; those cases continue to fail closed into individual review or generation.
+
+## 34. Owner-approved product roadmap — not yet implemented (2026-09-03)
+
+This section is a continuity record for agreed future work. Every item below is **planned only** unless a later dated engineering-record section supplies implementation and verification evidence. These entries must not be presented in the UI, documentation, or capstone defense as completed functionality.
+
+### Structured multi-value health and food-safety intake
+
+- Replace the single custom-text behavior for conditions, allergies, intolerances, and foods/ingredients to avoid with one reusable autocomplete-and-chip interaction.
+- Predefined selections and custom entries must feed the same structured collection. The interface must allow mixed input, multiple removable chips, review before saving, and an instructional note explaining accepted separators such as commas, semicolons, slashes, or line breaks.
+- Never split on ordinary spaces because recognized medical and food terms can contain spaces. Normalize surrounding whitespace, ignore empty segments, deduplicate case-insensitively, and collapse approved aliases to one canonical entry.
+- Back the autocomplete with separate controlled catalogues for conditions and allergens/food exclusions. Each entry should carry a stable code, display name, approved aliases, support state, and policy/evidence linkage. Frontend suggestions are convenience only; the backend remains authoritative.
+- Preserve the user's original wording and classify each normalized entry as supported, recognized-but-unsupported, needs clarification, pending review, or invalid. Vague text, symptoms, nonsense, and unknown entries must never become an implicitly supported diagnosis or allergy.
+- Automatic verified-library matching may proceed only when the complete combined restriction set has current supported policy evidence. Ambiguous, unsupported, custom-unmapped, or unsafe combinations remain fail-closed and require clarification or nutritionist review.
+- A later phase may move the version-controlled catalogue into PostgreSQL and add an admin/nutritionist curation workflow. That migration is not required for the first autocomplete implementation.
+
+### Payments, nutritionist compensation, and user subscriptions
+
+- Integrate a Philippine-capable payment provider, with PayMongo retained as the leading candidate subject to a fresh provider/API, fee, account-verification, payout, privacy, security, and legal review at implementation time.
+- Keep user subscription collection and nutritionist compensation as separate accounting domains. A successful subscription payment must not directly trigger an uncontrolled payout.
+- Subscription work must include server-created checkout/payment intents, authenticated webhooks with signature verification, idempotent event processing, an append-only payment-event audit trail, subscription state transitions, refunds/failures/cancellations, receipts, and admin reconciliation. Secret keys must remain backend-only.
+- Nutritionist compensation must not be a raw per-approval bounty because that rewards review volume over quality. The planned design is an admin-approved compensation ledger based on an agreed contract or period, with auditable review-quality/workload metrics informing administration but not autonomously calculating salary.
+- If provider-supported payouts are adopted, payout recipients, identity/account verification, approval controls, payout batches, retry/idempotency behavior, reversals, and reconciliation must be modeled independently from user billing. Manual/off-platform payout recording remains an acceptable capstone-first boundary.
+- Initial realistic subscription candidates are convenience and planning features—not removal of safety controls—including expanded library choice/swap allowance, longer progress/history insights and exports, household or advanced planning options, and budget-oriented tools where coverage is transparent. Core restriction enforcement and essential safety information must remain available to free users.
+- Budget estimates require a separately sourced, dated, location-aware price catalogue with provenance and freshness metadata. PSA/OpenSTAT or other authoritative data may seed coverage, but missing prices must be labeled unavailable or estimated; Gemini must not invent authoritative prices. Meal availability and safety cannot depend on complete price coverage.
+- Before coding payments, record an ADR covering provider choice, sandbox-versus-live demo strategy, fees, data ownership, threat model, webhook trust boundary, subscription entitlements, refund policy, compensation policy, and the exact capstone scope. No live-money demonstration should occur until that gate is approved.
