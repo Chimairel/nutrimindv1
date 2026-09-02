@@ -214,6 +214,33 @@ export class UserService {
     allergies: AllergenType[],
     otherAllergies: string
   ) {
+    const current = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        healthConditions: { select: { condition: true } },
+        allergies: { select: { allergen: true } },
+        userProfile: { select: { otherConditions: true, otherAllergies: true } },
+      },
+    });
+    if (!current) throw new Error('User not found.');
+
+    const normalized = (values: readonly string[]) => [...new Set(values)].sort();
+    const conditionsChanged = JSON.stringify(normalized(current.healthConditions.map((item) => item.condition)))
+      !== JSON.stringify(normalized(conditions))
+      || (current.userProfile?.otherConditions || '') !== otherConditions;
+    const allergiesChanged = JSON.stringify(normalized(current.allergies.map((item) => item.allergen)))
+      !== JSON.stringify(normalized(allergies))
+      || (current.userProfile?.otherAllergies || '') !== otherAllergies;
+    const changed = conditionsChanged || allergiesChanged;
+
+    if (!changed) {
+      return {
+        conditions: current.healthConditions,
+        allergies: current.allergies,
+        changed: false,
+      };
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.healthCondition.deleteMany({ where: { userId } });
       await tx.allergy.deleteMany({ where: { userId } });
@@ -234,20 +261,24 @@ export class UserService {
         update: { otherConditions, otherAllergies },
         create: { userId, otherConditions, otherAllergies },
       });
-      await tx.healthProfileRevision.create({
-        data: {
-          userId,
-          revisionType: HealthProfileRevisionType.CONDITIONS_UPDATED,
-          snapshot: { conditions, otherConditions },
-        },
-      });
-      await tx.healthProfileRevision.create({
-        data: {
-          userId,
-          revisionType: HealthProfileRevisionType.ALLERGIES_UPDATED,
-          snapshot: { allergies, otherAllergies },
-        },
-      });
+      if (conditionsChanged) {
+        await tx.healthProfileRevision.create({
+          data: {
+            userId,
+            revisionType: HealthProfileRevisionType.CONDITIONS_UPDATED,
+            snapshot: { conditions, otherConditions },
+          },
+        });
+      }
+      if (allergiesChanged) {
+        await tx.healthProfileRevision.create({
+          data: {
+            userId,
+            revisionType: HealthProfileRevisionType.ALLERGIES_UPDATED,
+            snapshot: { allergies, otherAllergies },
+          },
+        });
+      }
 
       // A report based on the previous restrictions must be acknowledged only
       // after it is regenerated for the new clinical context.
@@ -261,7 +292,7 @@ export class UserService {
       prisma.healthCondition.findMany({ where: { userId } }),
       prisma.allergy.findMany({ where: { userId } }),
     ]);
-    return { conditions: savedConditions, allergies: savedAllergies };
+    return { conditions: savedConditions, allergies: savedAllergies, changed: true };
   }
 
   /**
@@ -603,6 +634,7 @@ export class UserService {
       include: {
         ingredients: true,
       },
+      orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
     });
 
     const libraryMeals = await prisma.mealLibrary.findMany({
@@ -620,6 +652,11 @@ export class UserService {
       userProfile.otherConditions || ''
     );
     let replacedCount = 0;
+    const assignedLibraryMeals = remainingMeals.map((meal) => ({
+      mealPlanId: meal.id,
+      libraryMealId: meal.libraryMealId,
+      scheduledDate: meal.scheduledDate,
+    }));
 
     for (const meal of remainingMeals) {
       const currentCertifiedMeal = meal.libraryMealId
@@ -658,13 +695,24 @@ export class UserService {
         },
       });
 
-      const eligibleMatches = eligibleLibraryMeals.filter(
-        (candidate) => candidate.mealType === meal.mealType && candidate.id !== meal.libraryMealId
-      );
+      const eligibleMatches = eligibleLibraryMeals.filter((candidate) => {
+        if (candidate.mealType !== meal.mealType || candidate.id === meal.libraryMealId) return false;
+        return !assignedLibraryMeals.some((assignment) =>
+          assignment.mealPlanId !== meal.id
+          && assignment.libraryMealId === candidate.id
+          && Math.abs(assignment.scheduledDate.getTime() - meal.scheduledDate.getTime()) < 3 * 86_400_000
+        );
+      });
 
       if (eligibleMatches.length > 0) {
-        const minUsage = Math.min(...eligibleMatches.map((candidate) => candidate.usageCount));
-        const candidates = eligibleMatches.filter((candidate) => candidate.usageCount === minUsage);
+        const unusedMatches = eligibleMatches.filter((candidate) =>
+          !assignedLibraryMeals.some((assignment) =>
+            assignment.mealPlanId !== meal.id && assignment.libraryMealId === candidate.id
+          )
+        );
+        const rotationPool = unusedMatches.length > 0 ? unusedMatches : eligibleMatches;
+        const minUsage = Math.min(...rotationPool.map((candidate) => candidate.usageCount));
+        const candidates = rotationPool.filter((candidate) => candidate.usageCount === minUsage);
         const selectedLibraryMeal = candidates[Math.floor(Math.random() * candidates.length)];
 
         await prisma.$transaction(async (tx) => {
@@ -731,6 +779,8 @@ export class UserService {
             },
           });
         });
+        const assignment = assignedLibraryMeals.find((item) => item.mealPlanId === meal.id);
+        if (assignment) assignment.libraryMealId = selectedLibraryMeal.id;
       } else {
         // Fallback: call Gemini AI to generate a single replacement
         console.log(`[Safety Recheck] No library matches. Generating single replacement via Gemini...`);

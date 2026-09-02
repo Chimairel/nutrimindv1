@@ -150,6 +150,17 @@ export interface MealPlan {
   createdAt: string;
   ingredients?: MealIngredient[];
   mealLogs?: MealLog[];
+  verifier?: PublicVerifier | null;
+}
+
+export interface PublicVerifier {
+  name: string;
+  prcLicenseNumber: string;
+  prcLicenseExpiry: string;
+  specialization?: string | null;
+  yearsOfExperience?: number | null;
+  university?: string | null;
+  bio?: string | null;
 }
 
 export interface MealIngredient {

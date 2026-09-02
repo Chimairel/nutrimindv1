@@ -10,6 +10,7 @@ import './weekly-adaptation-policy.test';
 import './grocery-quantity-policy.test';
 import './production-config-policy.test';
 import './meal-plan-production-safety.test';
+import './nutritionist-application-policy.test';
 
 /**
  * Executable specifications for known defects.

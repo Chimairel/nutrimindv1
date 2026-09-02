@@ -89,10 +89,21 @@ test('[TEST-027] resolved approved alias with complete non-conflicting evidence 
   assert.equal(result.evaluation.normalizedRestrictions[0]?.aliasInput, 'EGG');
 });
 
-test('[TEST-027] known health condition remains review-required and ineligible', () => {
+test('[TEST-027] a complete certified diabetes or hypertension match is eligible', () => {
   const result = evaluate(
     { conditions: ['HYPERTENSION'] },
     completeCandidate({ suitableConditions: ['HYPERTENSION'] })
+  );
+
+  assert.equal(result.eligible, true);
+  assert.equal(result.evaluation.decision, 'ALLOW');
+  assert.ok(result.reasonCodes.includes('CERTIFIED_CONDITION_MATCH'));
+});
+
+test('[TEST-027] high-risk condition matches remain review-required', () => {
+  const result = evaluate(
+    { conditions: ['KIDNEY_DISEASE'] },
+    completeCandidate({ suitableConditions: ['KIDNEY_DISEASE'] })
   );
 
   assert.equal(result.eligible, false);

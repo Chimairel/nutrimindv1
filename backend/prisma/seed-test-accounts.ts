@@ -5,7 +5,7 @@
  * 
  * Accounts created:
  *   - admin@gmail.com / Admin123 (ADMIN role)
- *   - nutritionist@gmail.com / Nutritionist123 (NUTRITIONIST role, with NutritionistProfile)
+ *   - nutritionist@gmail.com / Nutritionist123 (NUTRITIONIST role, with a complete fictional professional profile)
  * 
  * Both accounts skip email verification and onboarding so you can log in directly.
  */
@@ -40,9 +40,15 @@ async function main() {
   const nutriPassword = await bcrypt.hash('Nutritionist123', 12);
   const nutritionist = await prisma.user.upsert({
     where: { email: 'nutritionist@gmail.com' },
-    update: {},
+    update: {
+      name: 'Andrea Reyes, RND',
+      role: Role.NUTRITIONIST,
+      emailVerified: true,
+      onboardingDone: true,
+      tosAccepted: true,
+    },
     create: {
-      name: 'Test Nutritionist',
+      name: 'Andrea Reyes, RND',
       email: 'nutritionist@gmail.com',
       passwordHash: nutriPassword,
       role: Role.NUTRITIONIST,
@@ -57,21 +63,31 @@ async function main() {
   // Create NutritionistProfile (required for the nutritionist portal to work)
   await prisma.nutritionistProfile.upsert({
     where: { userId: nutritionist.id },
-    update: {},
+    update: {
+      verifiedByAdminId: admin.id,
+      prcLicenseNumber: 'PRC-RND-NM-0001',
+      prcLicenseExpiry: new Date('2028-12-31'),
+      specialization: 'Clinical and Community Nutrition',
+      yearsOfExperience: 6,
+      university: 'University of San Carlos',
+      bio: 'Registered nutritionist-dietitian focused on practical meal planning, food accessibility, and evidence-informed nutrition education for Filipino adults.',
+      isVerified: true,
+      verifiedAt: new Date(),
+    },
     create: {
       userId: nutritionist.id,
-      prcLicenseNumber: 'PRC-TEST-001',
+      prcLicenseNumber: 'PRC-RND-NM-0001',
       prcLicenseExpiry: new Date('2028-12-31'),
-      specialization: 'Clinical Nutrition',
-      yearsOfExperience: 5,
-      university: 'University of the Philippines',
-      bio: 'Test nutritionist account for development and QA testing.',
+      specialization: 'Clinical and Community Nutrition',
+      yearsOfExperience: 6,
+      university: 'University of San Carlos',
+      bio: 'Registered nutritionist-dietitian focused on practical meal planning, food accessibility, and evidence-informed nutrition education for Filipino adults.',
       isVerified: true,
       verifiedAt: new Date(),
       verifiedByAdminId: admin.id,
     },
   });
-  console.log('   └─ NutritionistProfile created (verified, PRC-TEST-001)\n');
+  console.log('   └─ NutritionistProfile ready (verified, PRC-RND-NM-0001)\n');
 
   console.log('🎉 Done! You can now log in with:');
   console.log('   ADMIN:        admin@gmail.com / Admin123');

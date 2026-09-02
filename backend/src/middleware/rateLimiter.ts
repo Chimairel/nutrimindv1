@@ -37,6 +37,28 @@ export const verificationResendLimiter = rateLimit({
   },
 });
 
+export const professionalApplicationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many professional applications from this connection. Please try again later.',
+  },
+});
+
+export const applicationStatusLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many application status attempts. Please try again later.',
+  },
+});
+
 /**
  * Rate limiter for general API endpoints.
  * Moderate: 100 requests per 15-minute window per IP.

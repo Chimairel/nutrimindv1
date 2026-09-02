@@ -4,6 +4,13 @@ import requireRole from '@/middleware/rbac';
 import { AuthenticatedRequest } from '@/types';
 import { AdminService } from '@/services/admin.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import { validateZodBody } from '@/middleware/validateZod';
+import NutritionistApplicationService from '@/services/nutritionist-application.service';
+import {
+  applicationDecisionSchema,
+  applicationScheduleSchema,
+  applicationStageSchema,
+} from '@/validation/nutritionist-application.schemas';
 
 const router = Router();
 
@@ -64,6 +71,68 @@ router.patch('/nutritionists/:id/verify', async (req: AuthenticatedRequest, res:
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
     return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to verify nutritionist.') });
+  }
+});
+
+router.get('/nutritionist-applications', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await NutritionistApplicationService.listForAdmin();
+    return res.json({ success: true, data });
+  } catch (error: unknown) {
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist applications.') });
+  }
+});
+
+router.patch(
+  '/nutritionist-applications/:id/stage',
+  validateZodBody(applicationStageSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await NutritionistApplicationService.setStage(
+        req.user!.userId,
+        req.params.id,
+        req.body.status,
+        req.body.adminNotes
+      );
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to advance application.') });
+    }
+  }
+);
+
+router.patch(
+  '/nutritionist-applications/:id/schedule',
+  validateZodBody(applicationScheduleSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await NutritionistApplicationService.scheduleCall(req.user!.userId, req.params.id, req.body);
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to schedule verification call.') });
+    }
+  }
+);
+
+router.patch(
+  '/nutritionist-applications/:id/decision',
+  validateZodBody(applicationDecisionSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await NutritionistApplicationService.decide(req.user!.userId, req.params.id, req.body);
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to record application decision.') });
+    }
+  }
+);
+
+router.post('/nutritionist-applications/:id/resend-invitation', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await NutritionistApplicationService.resendInvitation(req.user!.userId, req.params.id);
+    return res.json({ success: true, data });
+  } catch (error: unknown) {
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to resend invitation.') });
   }
 });
 

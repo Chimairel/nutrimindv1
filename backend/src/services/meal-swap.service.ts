@@ -145,8 +145,25 @@ export class MealSwapService {
       include: certifiedLibraryMealInclude,
     });
 
+    const usedLibraryMeals = await prisma.mealPlan.findMany({
+      where: {
+        userId,
+        planGroupId: mealPlan.planGroupId,
+        id: { not: mealPlan.id },
+        libraryMealId: { not: null },
+      },
+      select: { libraryMealId: true },
+    });
+    const usedLibraryMealIds = new Set(
+      usedLibraryMeals
+        .map((item) => item.libraryMealId)
+        .filter((id): id is string => Boolean(id))
+    );
+
     // 5. Only first-class, current, independently reviewed evidence can authorize a swap.
     const eligibleMeals = libraryMeals.filter((meal) =>
+      meal.id !== mealPlan.libraryMealId &&
+      !usedLibraryMealIds.has(meal.id) &&
       isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, userProfile)
     );
 
@@ -162,6 +179,15 @@ export class MealSwapService {
         fatG: m.fatG,
         verifiedBy: m.verifiedByNutritionist?.user.name || 'System',
         prcLicenseNumber: m.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
+        verifier: m.verifiedByNutritionist ? {
+          name: m.verifiedByNutritionist.user.name,
+          prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
+          prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
+          specialization: m.verifiedByNutritionist.specialization,
+          yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
+          university: m.verifiedByNutritionist.university,
+          bio: m.verifiedByNutritionist.bio,
+        } : null,
       })),
       swapsUsed: swapTracker.swapsUsed,
       swapCap: 3,
@@ -334,6 +360,19 @@ export class MealSwapService {
 
       if (libraryMeal.mealType !== mealPlan.mealType) {
         throw new Error('Selected replacement meal type does not match slot meal type.');
+      }
+
+      const alreadyUsedInPlan = await tx.mealPlan.findFirst({
+        where: {
+          userId,
+          planGroupId: mealPlan.planGroupId,
+          id: { not: mealPlan.id },
+          libraryMealId: libraryMeal.id,
+        },
+        select: { id: true },
+      });
+      if (alreadyUsedInPlan) {
+        throw new Error('Selected replacement meal is already used in this plan.');
       }
 
       if (!isCertifiedLibraryMealCompatible(
@@ -599,6 +638,15 @@ export class MealSwapService {
       fatG: m.fatG,
       verifiedBy: m.verifiedByNutritionist?.user.name || 'System',
       prcLicenseNumber: m.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
+      verifier: m.verifiedByNutritionist ? {
+        name: m.verifiedByNutritionist.user.name,
+        prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
+        prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
+        specialization: m.verifiedByNutritionist.specialization,
+        yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
+        university: m.verifiedByNutritionist.university,
+        bio: m.verifiedByNutritionist.bio,
+      } : null,
     }));
   }
 }

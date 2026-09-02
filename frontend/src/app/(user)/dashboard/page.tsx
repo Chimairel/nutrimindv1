@@ -793,6 +793,7 @@ export default function DashboardPage() {
                           mealLogs={meal.mealLogs}
                           onStatusToggle={handleMealStatusToggle}
                           scheduledDate={meal.scheduledDate}
+                          verifier={meal.verifier}
                           onCardClick={() => router.push(`/dashboard/${meal.id}`)}
                         />
                       ))}
@@ -834,6 +835,7 @@ export default function DashboardPage() {
                         mealLogs={meal.mealLogs}
                         onStatusToggle={handleMealStatusToggle}
                         scheduledDate={meal.scheduledDate}
+                        verifier={meal.verifier}
                         onCardClick={() => router.push(`/dashboard/${meal.id}`)}
                       />
                     ))}

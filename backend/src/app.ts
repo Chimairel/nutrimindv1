@@ -17,6 +17,7 @@ import mealsRouter from '@/routes/meals.routes';
 import groceryRouter from '@/routes/grocery.routes';
 import progressRouter from '@/routes/progress.routes';
 import cronRouter from '@/routes/cron.routes';
+import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
 
 // Initialize Express app
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/user/meals', mealsRouter);
 app.use('/api/user/grocery', groceryRouter);
 app.use('/api/user/progress', progressRouter);
 app.use('/api/cron', cronRouter);
+app.use('/api/nutritionist-applications', nutritionistApplicationRouter);
 
 // Base health check endpoint
 app.get('/health', (req: Request, res: Response) => {

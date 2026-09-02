@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -80,6 +81,7 @@ interface ProgressHistory {
 }
 
 export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorkspaceMode }) {
+  const router = useRouter();
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<ProgressSection>(mode === 'health' ? 'profile' : 'overview');
   const [history, setHistory] = useState<ProgressHistory | null>(null);
@@ -248,9 +250,18 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       });
 
       if (safetyRes.data.success) {
-        setHealthSuccess('Clinical safety settings saved! Remaining active plan meals scanned and updated for safety.');
+        const changed = safetyRes.data.data?.changed === true;
+        setHealthSuccess(changed
+          ? 'Clinical safety settings saved. Your active plan was scanned; refresh your nutrition report to continue.'
+          : 'Your clinical safety settings are already up to date.');
+
+        if (changed) {
+          router.push('/nutrition-report');
+          return;
+        }
         
-        // Refresh page details to pull new calorie calculations or status adjustments
+        // An unchanged save keeps the existing report valid and can safely
+        // refresh the local profile view.
         const profileRes = await api.get('/user/profile');
         if (profileRes.data && profileRes.data.success) {
           setProfileData(profileRes.data.data);
@@ -316,15 +327,23 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
   };
 
   const toggleCondition = (cond: string) => {
-    setSelectedConditions((prev) =>
-      prev.includes(cond) ? prev.filter((c) => c !== cond) : [...prev, cond]
-    );
+    setSelectedConditions((prev) => {
+      if (prev.includes(cond)) {
+        const remaining = prev.filter((value) => value !== cond && value !== 'NONE');
+        return remaining.length > 0 ? remaining : ['NONE'];
+      }
+      return [...prev.filter((value) => value !== 'NONE'), cond];
+    });
   };
 
   const toggleAllergy = (aller: string) => {
-    setSelectedAllergies((prev) =>
-      prev.includes(aller) ? prev.filter((a) => a !== aller) : [...prev, aller]
-    );
+    setSelectedAllergies((prev) => {
+      if (prev.includes(aller)) {
+        const remaining = prev.filter((value) => value !== aller && value !== 'NONE');
+        return remaining.length > 0 ? remaining : ['NONE'];
+      }
+      return [...prev.filter((value) => value !== 'NONE'), aller];
+    });
   };
 
   const groupedLogs = React.useMemo(() => {
@@ -1000,7 +1019,11 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             <AutocompleteInput
               id="profile-other-conditions"
               value={otherConditions}
-              onChange={setOtherConditions}
+              onChange={(value) => {
+                setOtherConditions(value);
+                if (value.trim()) setSelectedConditions((current) => current.filter((item) => item !== 'NONE'));
+                else setSelectedConditions((current) => current.length > 0 ? current : ['NONE']);
+              }}
               suggestions={conditionSuggestions}
               placeholder="Search or add additional clinical conditions..."
             />
@@ -1044,7 +1067,11 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             <AutocompleteInput
               id="profile-other-allergies"
               value={otherAllergies}
-              onChange={setOtherAllergies}
+              onChange={(value) => {
+                setOtherAllergies(value);
+                if (value.trim()) setSelectedAllergies((current) => current.filter((item) => item !== 'NONE'));
+                else setSelectedAllergies((current) => current.length > 0 ? current : ['NONE']);
+              }}
               suggestions={allergenSuggestions}
               placeholder="Search or add additional food allergies..."
             />

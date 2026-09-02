@@ -148,6 +148,7 @@ function adaptSafetyMetadata(
     ...suppliedEvidence,
     complete: suppliedEvidence.complete === true && declaredAllergiesCovered,
     conditionRuleMatches: suitableConditions,
+    conditionRulesReviewed: suppliedEvidence.complete === true,
     ...(unknownCompatibilityKey ? { unknownCompatibilityKey: true } : {}),
   };
 }

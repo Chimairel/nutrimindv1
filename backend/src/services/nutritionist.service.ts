@@ -919,6 +919,72 @@ export class NutritionistService {
   }
 
   /**
+   * Operational coverage for profiles the reusable library currently supports.
+   * A profile is week-ready only when every main slot has at least seven
+   * current, unflagged, reviewer-eligible meals.
+   */
+  static async getMealLibraryCoverage() {
+    const meals = await prisma.mealLibrary.findMany({
+      where: {
+        status: MealLibraryStatus.APPROVED,
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+        safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+        flags: { none: { status: FlagStatus.PENDING } },
+      },
+      select: {
+        mealType: true,
+        suitableConditions: true,
+        allergenFree: true,
+        dietaryTags: true,
+        safetyEvidenceRevision: true,
+        certifiedEvidenceRevision: true,
+        safetyReviewedByNutritionist: {
+          include: { user: { select: { role: true } } },
+        },
+      },
+    });
+    const current = meals.filter((meal) =>
+      meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
+      meal.safetyReviewedByNutritionist &&
+      isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
+    );
+    const definitions = [
+      { key: 'DIABETES', label: 'Diabetes', field: 'suitableConditions' as const },
+      { key: 'HYPERTENSION', label: 'Hypertension', field: 'suitableConditions' as const },
+      { key: 'VEGETARIAN', label: 'Vegetarian', field: 'dietaryTags' as const },
+      { key: 'PESCATARIAN', label: 'Pescatarian', field: 'dietaryTags' as const },
+      { key: 'EGGS', label: 'Egg-free', field: 'allergenFree' as const },
+    ];
+    const mainMealTypes = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
+
+    const profiles = definitions.map((definition) => {
+      const matching = current.filter((meal) => {
+        const values = meal[definition.field];
+        return Array.isArray(values) && values.includes(definition.key);
+      });
+      const counts = Object.fromEntries(mainMealTypes.map((mealType) => [
+        mealType,
+        matching.filter((meal) => meal.mealType === mealType).length,
+      ])) as Record<typeof mainMealTypes[number], number>;
+      const minimumPerSlot = Math.min(...Object.values(counts));
+      return {
+        key: definition.key,
+        label: definition.label,
+        counts,
+        total: matching.length,
+        minimumPerSlot,
+        weekReady: minimumPerSlot >= 7,
+      };
+    });
+
+    return {
+      certifiedMeals: current.length,
+      requiredPerSlot: 7,
+      profiles,
+    };
+  }
+
+  /**
    * Get single library meal details
    */
   static async getLibraryMeal(mealId: string) {
@@ -1105,7 +1171,11 @@ export class NutritionistService {
           },
         },
       });
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 15_000,
+    });
   }
 
   /**

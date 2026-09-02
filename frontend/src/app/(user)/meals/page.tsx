@@ -28,6 +28,17 @@ interface SwapOption {
   fatG: number;
   verifiedBy: string;
   prcLicenseNumber: string;
+  verifier?: PublicVerifier | null;
+}
+
+interface PublicVerifier {
+  name: string;
+  prcLicenseNumber: string;
+  prcLicenseExpiry: string;
+  specialization?: string | null;
+  yearsOfExperience?: number | null;
+  university?: string | null;
+  bio?: string | null;
 }
 
 interface MealHistoryLog {
@@ -98,6 +109,7 @@ export default function WeeklyPlanPage() {
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [librarySearch, setLibrarySearch] = useState('');
+  const [selectedVerifier, setSelectedVerifier] = useState<PublicVerifier | null>(null);
   const [libraryMealType, setLibraryMealType] = useState('All');
 
   const fetchMeals = async () => {
@@ -843,6 +855,7 @@ export default function WeeklyPlanPage() {
                         onSwapClick={handleSwapClick}
                         swapsUsed={swapsUsed}
                         scheduledDate={meal.scheduledDate}
+                        verifier={meal.verifier}
                       />
                     ))}
                   </div>
@@ -1090,10 +1103,16 @@ export default function WeeklyPlanPage() {
                         <span>F: <span style={{ color: 'var(--macro-fat)' }} className="font-extrabold">{meal.fatG}g</span></span>
                       </div>
                       {/* Verifier PRC Badge */}
-                      <div className="text-[9px] text-brand-muted flex items-center justify-between gap-1 bg-brand-surface/80 p-1.5 rounded border border-brand-border/40">
-                        <span>Verified by: <span className="font-semibold text-brand-text">{meal.verifiedBy}</span></span>
+                      <button
+                        type="button"
+                        onClick={() => meal.verifier && setSelectedVerifier(meal.verifier)}
+                        disabled={!meal.verifier}
+                        className="w-full text-[9px] text-brand-muted flex items-center justify-between gap-1 bg-brand-surface/80 p-1.5 rounded border border-brand-border/40 transition hover:border-brand-green/35 hover:bg-brand-green/[0.05] disabled:cursor-default disabled:hover:border-brand-border/40"
+                        aria-label={`View verifier details for ${meal.verifiedBy}`}
+                      >
+                        <span>Verified by: <span className="font-semibold text-brand-text underline decoration-brand-green/40 underline-offset-2">{meal.verifiedBy}</span></span>
                         <span className="text-brand-green font-extrabold bg-brand-green/15 px-1 rounded uppercase tracking-tighter scale-95 origin-right">PRC: {meal.prcLicenseNumber}</span>
-                      </div>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1102,6 +1121,37 @@ export default function WeeklyPlanPage() {
           </div>
         )}
       </div>
+
+      {selectedVerifier && (
+        <Modal
+          isOpen={true}
+          onClose={() => setSelectedVerifier(null)}
+          title={selectedVerifier.name}
+          description="Nutritionist who reviewed and certified this reusable meal."
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-4">
+              <div className="flex items-center gap-2 text-brand-green">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="font-display text-sm font-extrabold">Verified nutritionist-dietitian</span>
+              </div>
+              <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                <div><dt className="text-brand-muted">PRC license</dt><dd className="mt-1 font-mono font-bold text-brand-text">{selectedVerifier.prcLicenseNumber}</dd></div>
+                <div><dt className="text-brand-muted">Valid until</dt><dd className="mt-1 font-bold text-brand-text">{new Date(selectedVerifier.prcLicenseExpiry).toLocaleDateString()}</dd></div>
+                <div><dt className="text-brand-muted">Specialization</dt><dd className="mt-1 font-bold text-brand-text">{selectedVerifier.specialization || 'General nutrition'}</dd></div>
+                <div><dt className="text-brand-muted">Experience</dt><dd className="mt-1 font-bold text-brand-text">{selectedVerifier.yearsOfExperience ?? 0} years</dd></div>
+              </dl>
+            </div>
+            {selectedVerifier.university && (
+              <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p><p className="mt-1 font-semibold text-brand-text">{selectedVerifier.university}</p></div>
+            )}
+            {selectedVerifier.bio && (
+              <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Professional profile</p><p className="mt-1 text-sm leading-6 text-brand-muted">{selectedVerifier.bio}</p></div>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {/* Swap Options Modal */}
       {activeSwapMeal && (

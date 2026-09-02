@@ -6,6 +6,7 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { 
   ArrowLeft, 
@@ -15,11 +16,12 @@ import {
   Apple, 
   Check, 
   X, 
-  AlertCircle 
+  AlertCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import axios from 'axios';
-import { MealType, MealPlanStatus } from '@/types';
+import { MealType, MealPlanStatus, PublicVerifier } from '@/types';
 
 interface Ingredient {
   id: string;
@@ -45,6 +47,7 @@ interface MealDetail {
   scheduledDate: string;
   ingredients: Ingredient[];
   mealLogs: MealLog[];
+  verifier?: PublicVerifier | null;
 }
 
 export default function MealDetailPage() {
@@ -55,6 +58,7 @@ export default function MealDetailPage() {
   const [meal, setMeal] = useState<MealDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isVerifierOpen, setIsVerifierOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchMealDetails = useCallback(async () => {
@@ -249,6 +253,23 @@ export default function MealDetailPage() {
             </p>
           </div>
 
+          {meal.verifier && (
+            <button
+              type="button"
+              onClick={() => setIsVerifierOpen(true)}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-3 text-left transition hover:border-brand-green/40"
+              aria-label={`View verifier details for ${meal.verifier.name}`}
+            >
+              <span className="flex items-center gap-2 text-xs font-bold text-brand-text">
+                <ShieldCheck className="h-4 w-4 text-brand-green" />
+                Verified by <span className="underline decoration-brand-green/40 underline-offset-2">{meal.verifier.name}</span>
+              </span>
+              <span className="rounded bg-brand-green/15 px-2 py-1 font-mono text-[9px] font-extrabold text-brand-green">
+                PRC {meal.verifier.prcLicenseNumber}
+              </span>
+            </button>
+          )}
+
           {/* YouTube Cooking Tutorial Banner */}
           <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -344,6 +365,33 @@ export default function MealDetailPage() {
           )}
         </div>
       </Card>
+
+      {meal.verifier && (
+        <Modal
+          isOpen={isVerifierOpen}
+          onClose={() => setIsVerifierOpen(false)}
+          title={meal.verifier.name}
+          description="Nutritionist who reviewed and certified this reusable meal."
+          size="md"
+        >
+          <div className="space-y-4 text-left">
+            <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-4">
+              <div className="flex items-center gap-2 text-brand-green">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="font-display text-sm font-extrabold">Verified nutritionist-dietitian</span>
+              </div>
+              <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                <div><dt className="text-brand-muted">PRC license</dt><dd className="mt-1 font-mono font-bold text-brand-text">{meal.verifier.prcLicenseNumber}</dd></div>
+                <div><dt className="text-brand-muted">Valid until</dt><dd className="mt-1 font-bold text-brand-text">{new Date(meal.verifier.prcLicenseExpiry).toLocaleDateString()}</dd></div>
+                <div><dt className="text-brand-muted">Specialization</dt><dd className="mt-1 font-bold text-brand-text">{meal.verifier.specialization || 'General nutrition'}</dd></div>
+                <div><dt className="text-brand-muted">Experience</dt><dd className="mt-1 font-bold text-brand-text">{meal.verifier.yearsOfExperience ?? 0} years</dd></div>
+              </dl>
+            </div>
+            {meal.verifier.university && <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p><p className="mt-1 font-semibold text-brand-text">{meal.verifier.university}</p></div>}
+            {meal.verifier.bio && <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Professional profile</p><p className="mt-1 text-sm leading-6 text-brand-muted">{meal.verifier.bio}</p></div>}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

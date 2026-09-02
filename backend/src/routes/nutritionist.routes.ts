@@ -102,6 +102,15 @@ router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+router.get('/library-coverage', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const coverage = await NutritionistService.getMealLibraryCoverage();
+    return res.status(200).json({ success: true, data: coverage });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal-library coverage.') });
+  }
+});
+
 /**
  * POST /api/nutritionist/library/:id/safety-evidence/certify
  * Certify one exact current evidence revision after strict server validation.

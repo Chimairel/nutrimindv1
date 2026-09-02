@@ -49,6 +49,7 @@ export const RESTRICTION_REASON_CODE_ORDER = Object.freeze([
   'UNRESOLVED_INGREDIENT',
   'UNREVIEWED_CONDITION_RULE',
   'KNOWN_CONDITION_REQUIRES_REVIEW',
+  'CERTIFIED_CONDITION_MATCH',
   'KNOWN_ALLERGY_NO_CONFLICT',
   'NO_DETERMINISTIC_CONFLICT_COMPLETE_EVIDENCE',
   'MULTIPLE_RESULTS_MOST_RESTRICTIVE',
@@ -167,7 +168,13 @@ const SAFETY_METADATA_KEYS = new Set([
   'complete',
   'detectedAllergens',
   'conditionRuleMatches',
+  'conditionRulesReviewed',
   'contradictory',
+]);
+
+const REUSABLE_CERTIFIED_CONDITION_KEYS = new Set<CanonicalConditionKey>([
+  'DIABETES',
+  'HYPERTENSION',
 ]);
 
 const INGREDIENT_EVIDENCE_KEYS = new Set([
@@ -421,15 +428,12 @@ export function evaluateRestrictions(
     restriction.canonicalKey !== 'NONE'
   );
 
-  if (positiveConditions.length > 0) {
-    reasons.add('KNOWN_CONDITION_REQUIRES_REVIEW');
-  }
-
   const evidence = isRecord(input.evidence) ? input.evidence : {};
   let metadataStructurallyComplete = false;
   let metadataContradictory = false;
   const detectedAllergens: ResolvedToken[] = [];
   const conditionRuleMatches: ResolvedToken[] = [];
+  let conditionRulesReviewed = false;
 
   if (input.evidence !== undefined && input.evidence !== null && !isRecord(input.evidence)) {
     reasons.add('MALFORMED_SAFETY_METADATA');
@@ -484,6 +488,15 @@ export function evaluateRestrictions(
           conditionRuleMatches.push(resolved);
         }
       }
+    }
+
+    if (
+      safetyMetadata.conditionRulesReviewed !== undefined &&
+      typeof safetyMetadata.conditionRulesReviewed !== 'boolean'
+    ) {
+      reasons.add('MALFORMED_SAFETY_METADATA');
+    } else {
+      conditionRulesReviewed = safetyMetadata.conditionRulesReviewed === true;
     }
 
     if (safetyMetadata.complete !== true) {
@@ -546,7 +559,23 @@ export function evaluateRestrictions(
     const evidenceMatch = conditionRuleMatches.find(
       (candidate) => candidate.canonicalKey === condition.canonicalKey
     );
-    if (evidenceMatch) {
+    const isReusableCertifiedMatch = Boolean(
+      evidenceMatch &&
+      condition.canonicalKey &&
+      REUSABLE_CERTIFIED_CONDITION_KEYS.has(condition.canonicalKey as CanonicalConditionKey) &&
+      conditionRulesReviewed &&
+      metadataComplete
+    );
+    if (isReusableCertifiedMatch) {
+      reasons.add('CERTIFIED_CONDITION_MATCH');
+      matches.push(createMatch(
+        condition,
+        'CERTIFIED_CONDITION_MATCH',
+        'CONDITION_RULE_EVIDENCE',
+        evidenceMatch
+      ));
+    } else if (evidenceMatch) {
+      reasons.add('KNOWN_CONDITION_REQUIRES_REVIEW');
       reasons.add('UNREVIEWED_CONDITION_RULE');
       matches.push(createMatch(
         condition,
@@ -554,6 +583,8 @@ export function evaluateRestrictions(
         'CONDITION_RULE_EVIDENCE',
         evidenceMatch
       ));
+    } else {
+      reasons.add('KNOWN_CONDITION_REQUIRES_REVIEW');
     }
   }
 

@@ -32,7 +32,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const publicRoutes = ['/login', '/register', '/unauthorized', '/forgot-password', '/reset-password'];
+  const publicRoutes = ['/login', '/register', '/unauthorized', '/forgot-password', '/reset-password', '/nutritionist-apply', '/nutritionist-invitation'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');

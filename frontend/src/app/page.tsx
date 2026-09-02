@@ -5,6 +5,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   BookOpenText,
+  BadgeCheck,
   Bot,
   ChevronRight,
   CircleDot,
@@ -18,6 +19,7 @@ import {
   Stethoscope,
   UtensilsCrossed,
   Users,
+  Video,
   WandSparkles,
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
@@ -68,7 +70,17 @@ const capabilities = [
 
 export default function Home() {
   const { user } = useAuth();
-  const workspaceHref = user ? getRoleHome(user.role) : '/register';
+  const isPendingVerification = Boolean(user && !user.emailVerified);
+  const workspaceHref = user
+    ? isPendingVerification
+      ? '/verify-email'
+      : getRoleHome(user.role)
+    : '/register';
+  const workspaceLabel = user
+    ? isPendingVerification
+      ? 'Continue email verification'
+      : 'Open my workspace'
+    : 'Build my nutrition profile';
 
   return (
     <div className="min-h-screen overflow-hidden text-brand-text">
@@ -100,7 +112,7 @@ export default function Home() {
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link href={workspaceHref} className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-1 hover:brightness-105">
-                  {user ? 'Open my workspace' : 'Build my nutrition profile'}
+                  {workspaceLabel}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href="/docs" className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-brand-border/80 bg-brand-surface/65 px-6 text-sm font-bold text-brand-text backdrop-blur-xl transition hover:-translate-y-1 hover:border-brand-green/35">
@@ -283,6 +295,37 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="nutritionists" className="mx-auto max-w-[1440px] scroll-mt-24 px-5 py-24 sm:px-8 lg:px-12">
+          <div className="futuristic-grid relative overflow-hidden rounded-[36px] bg-[#07100d] p-8 text-white shadow-card-lg sm:p-12 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:p-16">
+            <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[100px]" />
+            <div className="relative">
+              <div className="eyebrow inline-flex border-white/10 bg-white/5 text-brand-accent"><Stethoscope className="h-3.5 w-3.5" />For registered nutritionist-dietitians</div>
+              <h2 className="mt-6 max-w-2xl font-display text-4xl font-black leading-[1.02] tracking-[-0.045em] sm:text-5xl">Help keep AI-assisted nutrition accountable.</h2>
+              <p className="mt-5 max-w-xl text-sm leading-7 text-white/50 sm:text-base">Apply online from anywhere in the Philippines to join NutriMind&apos;s professional review team. Every application goes through credential screening and a one-on-one verification call before access is granted.</p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/nutritionist-apply" className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-0.5">
+                  Apply as a nutritionist <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/nutritionist-apply#track" className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-6 text-sm font-bold text-white/70 transition hover:border-brand-cyan/30 hover:text-brand-cyan">
+                  Track an application
+                </Link>
+              </div>
+            </div>
+            <div className="relative mt-10 grid gap-3 lg:mt-0">
+              {[
+                { icon: BadgeCheck, title: 'Credential review', text: 'PRC license details and professional background are manually assessed.' },
+                { icon: Video, title: 'One-on-one verification', text: 'Choose available schedules, then meet online with a NutriMind administrator.' },
+                { icon: ShieldCheck, title: 'Controlled access', text: 'Only approved applicants receive a private, expiring account invitation.' },
+              ].map(({ icon: Icon, title, text }, index) => (
+                <div key={title} className="flex gap-4 rounded-[22px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-accent/10 text-brand-accent"><Icon className="h-5 w-5" /></span>
+                  <div><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">Stage 0{index + 1}</p><h3 className="mt-1 text-sm font-bold text-white/90">{title}</h3><p className="mt-2 text-xs leading-5 text-white/40">{text}</p></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12">
           <div className="grid overflow-hidden rounded-[36px] border border-brand-border/70 bg-brand-surface/70 shadow-card-lg backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]">
             <div className="p-8 sm:p-12 lg:p-16">
@@ -328,7 +371,7 @@ export default function Home() {
               <h2 className="mt-3 max-w-2xl font-display text-3xl font-black tracking-[-0.04em] sm:text-4xl">A smarter weekly plan starts with understanding you.</h2>
             </div>
             <Link href={workspaceHref} className="relative mt-7 inline-flex min-h-[52px] items-center gap-3 rounded-2xl bg-[#07100d] px-6 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 lg:mt-0">
-              {user ? 'Return to workspace' : 'Start onboarding'}
+              {user ? (isPendingVerification ? 'Continue verification' : 'Return to workspace') : 'Start onboarding'}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

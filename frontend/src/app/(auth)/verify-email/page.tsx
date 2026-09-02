@@ -4,18 +4,19 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import AuthShell from '@/components/auth/AuthShell';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, LogOut, Mail } from 'lucide-react';
 
 /**
  * Email Verification Page — 6-digit OTP input with auto-submit and resend cooldown.
  */
 export default function VerifyEmailPage() {
-  const { refreshSession } = useAuth();
+  const { user, refreshSession, logout } = useAuth();
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Resend cooldown timer
@@ -108,7 +109,7 @@ export default function VerifyEmailPage() {
     setError(null);
     try {
       await api.post('/auth/resend-verification');
-      setSuccess('A new code has been sent to your email.');
+      setSuccess(`A new code has been sent to ${user?.email || 'your registered email address'}.`);
       setResendCooldown(60);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: unknown) {
@@ -117,15 +118,43 @@ export default function VerifyEmailPage() {
     }
   };
 
+  const handleUseDifferentAccount = async () => {
+    setIsSwitchingAccount(true);
+    await logout();
+  };
+
 
   return (
     <AuthShell
       eyebrow="Identity checkpoint"
       title="Verify your email"
-      description="Enter the 6-digit code sent to your inbox to continue into onboarding."
+      description="Enter the 6-digit code sent to the email address below to continue into onboarding."
       heroTitle={<>One quick check.<br /><span className="text-brand-accent">Then we personalize.</span></>}
       heroDescription="Verification protects your account before health preferences, meal plans, and progress data are connected to it."
+      footer={(
+        <button
+          type="button"
+          onClick={handleUseDifferentAccount}
+          disabled={isSwitchingAccount || isLoading}
+          className="mx-auto inline-flex items-center gap-2 font-bold text-brand-green transition hover:text-brand-cyan disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          {isSwitchingAccount ? 'Signing out...' : 'Use a different account'}
+        </button>
+      )}
     >
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] px-4 py-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+            <Mail className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-muted">Code sent to</p>
+            <p className="truncate text-sm font-bold text-brand-text" title={user?.email}>
+              {user?.email || 'Your registered email address'}
+            </p>
+          </div>
+        </div>
+
         {error && (
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

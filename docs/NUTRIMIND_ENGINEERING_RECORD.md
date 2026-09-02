@@ -27,12 +27,12 @@ Rules:
 
 | Prefix | Meaning | Next ID |
 | --- | --- | --- |
-| REQ | Functional or non-functional requirement | REQ-013 |
-| ADR | Architecture/design decision | ADR-011 |
-| RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-021 |
+| REQ | Functional or non-functional requirement | REQ-014 |
+| ADR | Architecture/design decision | ADR-016 |
+| RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-022 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260830-05 |
-| TEST | Test case or verification procedure | TEST-046 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260902-02 |
+| TEST | Test case or verification procedure | TEST-071 |
 | UNC | Unresolved uncertainty | UNC-016 |
 | DOC | Documentation correction or addition | DOC-027 |
 
@@ -2056,3 +2056,140 @@ Source verification passed after the surface alignment: backend no-emit TypeScri
 ### Remaining external production boundary
 
 - TEST-021 remains deliberately TODO. NutriMind cannot honestly declare calorie bounds, medical compatibility rules, condition-specific thresholds, or adaptation wording clinically approved without a qualified reviewer. Production startup now enforces this boundary through `CLINICAL_POLICY_APPROVED_VERSION=NUTRIMIND_CLINICAL_DRAFT_V1`; the value must be set only after the approval record is completed. Code, database, workflow, build, integration, and local operations checks pass, but clinical sign-off and production hosting/provider configuration remain external actions.
+
+## 29. Online nutritionist application and controlled activation (2026-09-02)
+
+**Requirement ID:** REQ-013
+
+**Decision ID:** ADR-015
+
+**Change ID:** CHG-20260902-01
+
+**Verification IDs:** TEST-067 through TEST-070; INT-003; E2E-003
+
+### Requirement and decision
+
+- Registered nutritionist-dietitians may apply online from anywhere in the Philippines. Physical proximity to the NutriMind office is not an eligibility boundary.
+- Applying never grants the `NUTRITIONIST` role. The required lifecycle is `SUBMITTED -> UNDER_REVIEW -> CALL_REQUIRED -> CALL_SCHEDULED -> APPROVED -> ACTIVATED`, with `REJECTED` as a recorded terminal decision.
+- A one-on-one online verification call is mandatory. Admin approval is rejected until a scheduled call exists and its scheduled time has passed.
+- The administrator does not choose or receive the applicant's password. Approval creates a non-active professional account and sends a private 72-hour invitation; the applicant activates it by choosing their own password.
+- ADR-015 accepts an online application plus manual PRC review and required video call as the capstone-sized governance model. Video transport remains an external Google Meet/Zoom link rather than an embedded conferencing subsystem.
+
+### Implemented behavior
+
+- Added a themed five-step `/nutritionist-apply` experience covering identity/contact, PRC credential data, professional background, multiple call-availability options, declaration, review, submission, and private reference-plus-email status tracking.
+- Added a landing-page `For nutritionists` destination with separate apply and tracking actions. The workflow explicitly states that submission does not grant access or guarantee employment.
+- Added an admin application pipeline within `/admin/nutritionists`: credential review, advancement to required call, selection/override of an applicant-proposed schedule, external meeting link, post-call approval, reason-required rejection, invitation-delivery status, invitation resend, completed applications, and active professionals.
+- Added `/nutritionist-invitation` so an approved applicant creates their own policy-compliant password. Activation marks email ownership verified and consumes the invitation token.
+- Application payloads use strict Zod allow lists and bounded fields. Duplicate application email, PRC license, existing user email, and existing professional license boundaries are rejected. Public status lookup returns only applicant-facing state; private contact/background/admin data remain in the protected admin API.
+- Approval and activation are transactional and emit audit events. Invitation tokens are random, stored only as SHA-256 hashes, expire after 72 hours, and are rotated on resend. SMTP delivery failure does not falsely mark an invitation as sent.
+- Added expected theme-class hydration suppression on the root element because the pre-hydration theme script intentionally changes that class from stored browser preference.
+
+### Schema and deployment evidence
+
+- Deployed additive migration `20260902090000_add_nutritionist_applications`. It adds the application status enum, application table, uniqueness/index boundaries, and reviewer/invitee relations; it does not rewrite existing users, nutritionist profiles, meals, or clinical data.
+- `prisma generate`, backend production build, frontend lint, and frontend production build pass. The frontend build generates 37 routes, including the application and invitation pages.
+- The deterministic backend suite registers 144 tests: **143 pass, 0 fail, 1 pre-existing clinical TODO**. TEST-067 through TEST-070 cover complete input normalization, expired-license/availability/unknown-field rejection, default-deny admin transition inputs and meeting URL policy, and decision/invitation-password validation.
+- INT-003 submitted and retrieved one reserved-domain synthetic application through the live API, confirmed unauthenticated admin listing returns `401`, and then removed the exact synthetic application. No professional account, email, or meeting was created.
+- E2E-003 rendered the public multi-step application in the browser with correct labeled controls and themed responsive layout. A non-admin authenticated session was redirected from the admin application screen to `/unauthorized`, confirming the role guard. An admin decision, external meeting, SMTP invitation, and applicant activation were not browser-executed in this change set.
+
+### Remaining boundaries
+
+- Production operation still requires a real administrator to independently verify PRC credentials, conduct the call, record an honest decision, and configure a trusted meeting provider and SMTP sender.
+- Credential-document upload is intentionally excluded from this capstone-sized workflow. Adding it later requires encrypted object storage, malware scanning, retention/deletion policy, access logging, and a privacy review.
+- The application/reference lookup is protected by a high-entropy reference plus matching email and a dedicated status-attempt limiter; submissions also have a stricter hourly limiter. Applicant email notifications for submission/call scheduling remain recommended before public internet deployment.
+
+## 30. FNRI-backed common meal catalogue and public verifier details (2026-09-02)
+
+**Requirement ID:** REQ-014
+
+**Change ID:** CHG-20260902-02
+
+**Verification ID:** TEST-071; INT-004
+
+### Implemented behavior
+
+- Added an idempotent common-meal catalogue containing 30 distinct recipes: 10 breakfasts, 10 lunches, and 10 dinners. The set intentionally mixes familiar Filipino plates with ordinary broadly eaten options such as scrambled eggs, oatmeal, sandwiches, canned tuna/sardines, rice bowls, potatoes, corn, fruit, tofu, chicken, beef, pork, and fish.
+- Every ingredient resolves by exact name to one of 32 existing FNRI `FoodItem` records. Stored portions use grams, and calories/protein/carbohydrates/fat are calculated from the linked FNRI values rather than handwritten independently.
+- Every inserted meal owns ordered first-class ingredients, explicit quantities and units, dietary-preference tags, all four supported goal tags, reviewed condition/allergen domains, an explicit cross-contact assessment, a draft evidence event, and a certified current-revision evidence event.
+- Catalogue meals declare no condition-specific suitability. They are intended for profiles with no recorded health condition; the existing compatibility evaluator continues to deny reuse when a condition or unknown custom restriction requires review.
+- The existing nutritionist account now has a complete fictional capstone profile (`Andrea Reyes, RND`) with a project-scoped PRC-style identifier, validity date, specialization, experience, education, and public professional bio. Seeded meals are attributed to this account through the normal verifier and safety-review relations.
+- User library and swap API responses expose a bounded public verifier object: name, PRC identifier/validity, specialization, experience, university, and bio. Email, internal IDs, admin-verification metadata, and private account data are not exposed. The user library verifier badge is now a keyboard-accessible button that opens a themed professional-details dialog.
+- Added `npm run seed:test-accounts`, plus `npm run seed:meal-library` as a read-only validation/dry run and `npm run seed:meal-library -- --apply` as the explicit additive population command. Existing non-catalogue rows with the same name are never overwritten; current catalogue rows are skipped idempotently.
+- Prisma certification transactions now use a bounded 10-second acquisition wait and 15-second execution timeout so the serializable multi-query evidence workflow can complete against the managed database without weakening its isolation level.
+- The backend test command now discovers every `tests/*.test.ts` suite instead of maintaining an incomplete hand-written list.
+
+### Verification evidence
+
+- TEST-071 validates catalogue uniqueness/completeness, exactly 10 meals per main slot, known ingredient-to-allergen declarations, omnivore availability, and all supported goal tags.
+- The full deterministic backend suite registers 246 tests: **245 pass, 0 fail, 1 pre-existing clinical-policy TODO**.
+- Backend and frontend production builds pass. The frontend build generates all 37 current routes.
+- INT-004 resolved all 32 required exact FNRI names, populated the configured database, and then re-ran idempotently. The post-write evidence evaluator confirmed **30/30 current certified catalogue meals** with eligible reviewer evidence, linked FNRI ingredients, reviewed declarations, matching revisions, supported policy version, and no pending flags.
+- The nutritionist profile's derived `totalVerified` was reconciled to **34**, retaining four existing verified-library records plus the 30 common catalogue meals.
+
+### Scope boundary
+
+- The catalogue is baseline reusable content, not a replacement for per-user restriction checks. A meal is still filtered on every selection and swap. Health-condition suitability remains deliberately undeclared, and custom/unsupported restrictions continue to fail closed into review or generation rather than inheriting a general-meal certification.
+
+## 31. Verified-library fresh-user acceptance and derived grocery projection (2026-09-03)
+
+**Requirement ID:** REQ-015
+
+**Change ID:** CHG-20260903-01
+
+**Verification IDs:** INT-005; E2E-004
+
+### Implemented behavior
+
+- Successful plan creation now automatically derives the user's grocery checklist whenever the result contains actionable meals. Users no longer need to run a second generation action for data already present in the plan.
+- Current-plan and meal-detail responses expose the same bounded public verifier object as the library. Dashboard cards, the weekly-plan workspace, and the standalone meal-detail route provide a keyboard-accessible verifier control and themed professional-details dialog without exposing email, internal identifiers, or admin-only data.
+- Swap options exclude the current meal and every library meal already assigned elsewhere in the same plan. The swap transaction independently enforces the same no-duplicate rule, so a stale or crafted client cannot bypass it.
+- Health-profile selection removes the legacy `NONE` sentinel when a real condition/allergy or custom value is entered and restores it only when no restriction remains. Identical safety submissions are idempotent and do not invalidate the nutrition report or re-run plan safety work.
+- A real safety change redirects to the required updated report. Remaining meals are re-evaluated, incompatible meals are replaced only from current certified evidence, and replacement selection avoids repeating a meal within three scheduled days.
+
+### Controlled acceptance evidence
+
+- INT-005 created one exact reserved-domain user fixture, generated a full 21-slot weekly plan, performed one user swap, recorded one eaten meal, added an egg allergy, acknowledged the refreshed report, and inspected the resulting database state. The plan contained seven breakfasts, seven lunches, and seven dinners; every slot was approved, library-backed, ingredient-backed, and attributed to Andrea Reyes, RND.
+- The initial unrestricted plan used 21 distinct library meals. After the egg-allergy safety pass, zero egg-declared meals remained. The constrained result used 20 distinct meals because only six certified egg-free breakfasts exist; the unavoidable repeat remained at least three scheduled days apart.
+- The grocery projection existed automatically and contained 29 aggregated items after the swap and safety replacement. The AI-usage count was unchanged from the pre-generation snapshot, proving the fully matched plan did not call Gemini.
+- Weekly check-in status was not due for the first-week user. Admin analytics included the active plan and the completed meal log. Eligible swap results contained neither the current library meal nor a meal already used elsewhere in the plan.
+- E2E-004 signed in through the actual browser UI, rendered the dashboard and standalone meal-detail route, displayed `Verified by Andrea Reyes, RND`, and opened the bounded PRC validity, specialization, experience, education, and biography dialog. No browser errors were recorded on that path.
+
+### Verification and cleanup
+
+- `npm test`: **246 registered, 245 pass, 0 fail, 1 pre-existing clinical-policy TODO**.
+- Backend production build: pass. Frontend lint: pass with zero warnings. Frontend production build: pass with all 37 routes generated.
+- `backend/scripts/library-reuse-acceptance.ts` owns setup, verification, report-alignment, and exact cleanup modes. Cleanup restores the catalogue usage counters captured before the run and deletes only the named fixture and its snapshot event.
+
+### Remaining external boundary
+
+- This acceptance proves implemented software behavior against the configured database and local browser. It does not replace licensed clinical approval, production provider configuration, or deployment monitoring. The clinical calorie-bound approval TODO remains intentionally open.
+
+## 32. Condition-aware library coverage and nutritionist readiness monitor (2026-09-03)
+
+**Requirement ID:** REQ-016
+
+**Change ID:** CHG-20260903-02
+
+**Verification IDs:** TEST-072; INT-006; E2E-005
+
+### Implemented behavior
+
+- Expanded the managed FNRI-backed catalogue from 30 to 43 meals: 13 breakfasts, 15 lunches, and 15 dinners. The 13 additions use exact existing FNRI food records and close seven-day slot-coverage gaps for vegetarian, pescatarian, and supported single-allergen profiles.
+- Catalogue condition tags are now derived from measured meal data rather than assigned by name. A catalogue meal may declare diabetes suitability only at or below 60 g carbohydrate per meal and hypertension suitability only at or below 600 mg sodium per meal.
+- Reuse for a matching diabetes or hypertension profile requires a current certification, complete linked FNRI evidence, an exact positive condition declaration, and an explicit reviewed-condition-rules marker. Missing, stale, incomplete, or contradictory evidence continues to require review.
+- Kidney disease, heart conditions, pregnancy/lactation, and custom conditions remain individually review-gated even when a meal has a matching text declaration. They are not authorized by the catalogue's bounded diabetes/hypertension rules.
+- Added a protected nutritionist coverage endpoint and a themed `Seven-day library readiness` monitor to the meal-library page. It reports breakfast/lunch/dinner compatibility counts and marks a profile week-ready only when every main slot has at least seven independently eligible meals.
+- Versioned catalogue signatures make re-seeding deterministic. Existing managed V1 rows are upgraded to the exact V2 definition, their stale certification is invalidated, and new evidence is certified at the current revision. A second run performs no writes.
+
+### Verification evidence
+
+- TEST-072 verifies 43 unique definitions, 13/15/15 slot distribution, at least seven compatible choices per slot for vegetarian, pescatarian, and every supported single-allergen profile, and deterministic diabetes/hypertension threshold derivation.
+- The full deterministic backend suite registers 250 tests: **249 pass, 0 fail, 1 pre-existing clinical-policy TODO**. Backend and frontend production builds pass; frontend lint passes with zero warnings and all 37 routes are generated.
+- INT-006 populated 13 new catalogue rows and upgraded/certified all 43 managed rows. An immediate second apply reported **0 created, 0 certified, 43 already current**, establishing database idempotence.
+- Live compatibility acceptance through the production services returned breakfast/lunch/dinner counts of **11/11/8** for diabetes, **12/15/15** for hypertension, **7/7/7** for vegetarian, **9/11/11** for pescatarian, and **9/14/14** for egg-free. A kidney-disease fixture returned **0/0/0**, confirming the unsupported high-risk path remains fail-closed. All exact reserved-domain fixtures were removed after the run.
+- E2E-005 signed in through the real browser UI as the nutritionist test actor, opened the meal-library page, and observed 47 total database records plus all five week-ready coverage cards with counts matching INT-006. The page finished loading without browser console errors.
+
+### Scope boundary
+
+- The carbohydrate and sodium limits are conservative project rules used to make catalogue evidence measurable and testable; they are not a claim of licensed clinical approval. The existing clinical-policy approval TODO remains open, and deployment must not present the software as independently clinically certified until that external review is recorded.

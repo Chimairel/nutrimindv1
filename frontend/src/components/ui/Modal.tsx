@@ -23,6 +23,7 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   size = 'md',
 }) => {
+  const descriptionId = React.useId();
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -35,6 +36,7 @@ export const Modal: React.FC<ModalProps> = ({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[#020806]/75 backdrop-blur-md transition-all duration-300" />
         <Dialog.Content
+          aria-describedby={description ? descriptionId : undefined}
           className={`
             fixed left-1/2 top-1/2 z-50 w-[92vw] ${sizeClasses[size]}
             max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[28px]
@@ -49,7 +51,7 @@ export const Modal: React.FC<ModalProps> = ({
                   {title}
                 </Dialog.Title>
                 {description && (
-                  <Dialog.Description className="mt-1 text-sm leading-relaxed text-brand-muted">
+                  <Dialog.Description id={descriptionId} className="mt-1 text-sm leading-relaxed text-brand-muted">
                     {description}
                   </Dialog.Description>
                 )}

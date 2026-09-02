@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { MealSwapService } from '@/services/meal-swap.service';
+import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealType } from '@prisma/client';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
@@ -18,6 +19,32 @@ import {
   buildPendingMealPlanPreview,
   summarizeGeneratedMealPlan,
 } from '@/domain/meal-generation-result.policy';
+
+function toPublicVerifier(nutritionist: {
+  prcLicenseNumber: string;
+  prcLicenseExpiry: Date;
+  specialization: string | null;
+  yearsOfExperience: number | null;
+  university: string | null;
+  bio: string | null;
+  user: { name: string };
+} | null) {
+  if (!nutritionist) return null;
+  return {
+    name: nutritionist.user.name,
+    prcLicenseNumber: nutritionist.prcLicenseNumber,
+    prcLicenseExpiry: nutritionist.prcLicenseExpiry,
+    specialization: nutritionist.specialization,
+    yearsOfExperience: nutritionist.yearsOfExperience,
+    university: nutritionist.university,
+    bio: nutritionist.bio,
+  };
+}
+
+function serializeActionableMeal<T extends { nutritionist: Parameters<typeof toPublicVerifier>[0] }>(meal: T) {
+  const { nutritionist, ...publicMeal } = meal;
+  return { ...publicMeal, verifier: toPublicVerifier(nutritionist) };
+}
 
 export class MealsController {
   /**
@@ -48,6 +75,14 @@ export class MealsController {
       const meals = filterUserActionableMealPlans(generatedPlanRows);
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
       const pendingReview = buildPendingMealPlanPreview(generatedPlanRows);
+
+      // The grocery checklist is a projection of the actionable plan, not a
+      // second user-generated artifact. Build it as part of successful plan
+      // generation whenever at least one approved meal is available. A retry
+      // remains safe because GroceryService replaces the prior projection.
+      if (meals.length > 0) {
+        await GroceryService.generateGroceryList(userId);
+      }
 
       return res.status(200).json({
         success: true,
@@ -171,13 +206,16 @@ export class MealsController {
           mealLogs: {
             where: { userId },
           },
+          nutritionist: {
+            include: { user: { select: { name: true } } },
+          },
         },
         orderBy: { scheduledDate: 'asc' },
       }), prisma.planSwapTracker.findUnique({
         where: { planGroupId: latestPlan.planGroupId },
         select: { swapsUsed: true },
       })]);
-      const meals = filterUserActionableMealPlans(groupMeals, now);
+      const meals = filterUserActionableMealPlans(groupMeals, now).map(serializeActionableMeal);
 
       return res.status(200).json({
         success: true,
@@ -243,6 +281,9 @@ export class MealsController {
           mealLogs: {
             where: { userId },
           },
+          nutritionist: {
+            include: { user: { select: { name: true } } },
+          },
         },
       });
 
@@ -252,7 +293,7 @@ export class MealsController {
 
       return res.status(200).json({
         success: true,
-        data: meal,
+        data: serializeActionableMeal(meal),
       });
     } catch (error: any) {
       console.error('[MealsController] getMealDetails error:', error);

@@ -157,6 +157,7 @@ async function main() {
           dietaryPreference: DietaryPreference.OMNIVORE,
           dailyCalorieTarget: 2200,
           shoppingDayOfWeek: 6,
+          lastCheckinAt: new Date(Date.now() - 8 * 86_400_000),
         },
       },
     },

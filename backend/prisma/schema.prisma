@@ -17,6 +17,16 @@ enum Role {
   ADMIN
 }
 
+enum NutritionistApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  CALL_REQUIRED
+  CALL_SCHEDULED
+  APPROVED
+  REJECTED
+  ACTIVATED
+}
+
 enum Goal {
   LOSE_WEIGHT
   GAIN_WEIGHT
@@ -164,27 +174,29 @@ model User {
   suspensionReason                String?   @db.VarChar(240)
 
   // Relations
-  accounts                  Account[]
-  sessions                  Session[]
-  userProfile               UserProfile?
-  healthConditions          HealthCondition[]
-  allergies                 Allergy[]
-  nutritionReport           NutritionReport?
-  nutritionistProfile       NutritionistProfile?    @relation("UserToNutritionistProfile")
-  nutritionistVerifications NutritionistProfile[]   @relation("AdminVerifier")
-  mealPlans                 MealPlan[]              @relation("UserMealPlans")
-  mealLogs                  MealLog[]
-  weightLogs                WeightLog[]
-  dailyNutritionLogs        DailyNutritionLog[]
-  groceryLists              GroceryList[]
-  notifications             Notification[]
-  planSwapTrackers          PlanSwapTracker[]
-  mealPlanGenerationJobs    MealPlanGenerationJob[]
-  weeklyCheckins            WeeklyCheckin[]
-  healthProfileRevisions    HealthProfileRevision[]
-  auditEvents               AuditEvent[]
-  outsideMealPreviews       OutsideMealPreview[]
-  waterLogs                 WaterLog[]
+  accounts                         Account[]
+  sessions                         Session[]
+  userProfile                      UserProfile?
+  healthConditions                 HealthCondition[]
+  allergies                        Allergy[]
+  nutritionReport                  NutritionReport?
+  nutritionistProfile              NutritionistProfile?      @relation("UserToNutritionistProfile")
+  nutritionistVerifications        NutritionistProfile[]     @relation("AdminVerifier")
+  mealPlans                        MealPlan[]                @relation("UserMealPlans")
+  mealLogs                         MealLog[]
+  weightLogs                       WeightLog[]
+  dailyNutritionLogs               DailyNutritionLog[]
+  groceryLists                     GroceryList[]
+  notifications                    Notification[]
+  planSwapTrackers                 PlanSwapTracker[]
+  mealPlanGenerationJobs           MealPlanGenerationJob[]
+  weeklyCheckins                   WeeklyCheckin[]
+  healthProfileRevisions           HealthProfileRevision[]
+  auditEvents                      AuditEvent[]
+  outsideMealPreviews              OutsideMealPreview[]
+  waterLogs                        WaterLog[]
+  nutritionistApplicationsReviewed NutritionistApplication[] @relation("NutritionistApplicationReviewer")
+  nutritionistApplicationInvite    NutritionistApplication?  @relation("NutritionistApplicationInvitee")
 }
 
 model Account {
@@ -287,6 +299,42 @@ model NutritionistProfile {
   submittedFlags      MealLibraryFlag[]         @relation("SubmittedFlags")
   claimedPlans        MealPlan[]                @relation("ClaimedPlans")
   firstApprovedPlans  MealPlan[]                @relation("FirstMealPlanApproval")
+}
+
+model NutritionistApplication {
+  id                  String                        @id @default(cuid())
+  referenceCode       String                        @unique @db.VarChar(32)
+  status              NutritionistApplicationStatus @default(SUBMITTED)
+  fullName            String                        @db.VarChar(161)
+  email               String                        @unique @db.VarChar(254)
+  phoneNumber         String                        @db.VarChar(30)
+  prcLicenseNumber    String                        @unique @db.VarChar(80)
+  prcLicenseExpiry    DateTime
+  specialization      String                        @db.VarChar(120)
+  yearsOfExperience   Int
+  university          String                        @db.VarChar(180)
+  professionalBio     String                        @db.Text
+  availableCallSlots  Json
+  applicantConsentAt  DateTime
+  reviewedByAdminId   String?
+  reviewedByAdmin     User?                         @relation("NutritionistApplicationReviewer", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  scheduledCallAt     DateTime?
+  meetingUrl          String?                       @db.VarChar(500)
+  adminNotes          String?                       @db.Text
+  decisionReason      String?                       @db.VarChar(500)
+  reviewedAt          DateTime?
+  approvedAt          DateTime?
+  invitationTokenHash String?                       @unique @db.VarChar(64)
+  invitationExpiresAt DateTime?
+  invitationSentAt    DateTime?
+  activatedAt         DateTime?
+  invitedUserId       String?                       @unique
+  invitedUser         User?                         @relation("NutritionistApplicationInvitee", fields: [invitedUserId], references: [id], onDelete: SetNull)
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([scheduledCallAt])
 }
 
 model FoodItem {

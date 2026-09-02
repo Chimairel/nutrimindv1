@@ -177,7 +177,7 @@ export class UserController {
         allergies,
         normalizedOtherAllergies
       );
-      await UserService.runSafetyRecheck(userId);
+      if (saved.changed) await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({ success: true, data: saved });
     } catch (error: unknown) {

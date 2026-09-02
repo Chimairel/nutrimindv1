@@ -30,6 +30,12 @@ function getTransporter(): nodemailer.Transporter {
 }
 
 const getFromAddress = () => process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@nutrimind.app';
+const escapeHtml = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 /**
  * Sends a 6-digit OTP verification email to the user's inbox.
@@ -136,6 +142,42 @@ export async function sendPasswordResetEmail(
   } catch (error: any) {
     console.error(`[Email] Failed to send password reset email to ${to}:`, error.message);
     throw new Error('Failed to send password reset email. Please check SMTP configuration.');
+  }
+}
+
+/** Sends an approved nutritionist applicant an expiring account-activation link. */
+export async function sendNutritionistInvitationEmail(
+  to: string,
+  invitationToken: string,
+  applicantName: string
+): Promise<void> {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const invitationLink = `${frontendUrl}/nutritionist-invitation?token=${encodeURIComponent(invitationToken)}`;
+  const subject = 'NutriMind — Your nutritionist application was approved';
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background: #07100d; color: #e8f3ec; border-radius: 16px;">
+      <h1 style="color: #b8f45f; font-size: 24px; margin: 0 0 20px;">Welcome to NutriMind</h1>
+      <p style="font-size: 15px; line-height: 1.7;">Hi <strong>${escapeHtml(applicantName)}</strong>,</p>
+      <p style="font-size: 15px; line-height: 1.7;">Your professional application and verification call have been approved. Create your private password to activate your nutritionist workspace.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${invitationLink}" style="display: inline-block; background: #b8f45f; color: #07100d; font-weight: 700; padding: 14px 28px; border-radius: 12px; text-decoration: none;">Activate nutritionist account</a>
+      </div>
+      <p style="font-size: 13px; color: #9aaba2;">This private invitation expires in 72 hours. If it expires, contact NutriMind so an administrator can issue a new one.</p>
+      <p style="font-size: 11px; color: #718079; word-break: break-all;">${invitationLink}</p>
+    </div>
+  `;
+
+  try {
+    await getTransporter().sendMail({
+      from: `"NutriMind" <${getFromAddress()}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log(`[Email] Nutritionist invitation sent to ${to}`);
+  } catch (error: any) {
+    console.error(`[Email] Failed to send nutritionist invitation to ${to}:`, error.message);
+    throw new Error('Failed to send nutritionist invitation. Please check SMTP configuration.');
   }
 }
 

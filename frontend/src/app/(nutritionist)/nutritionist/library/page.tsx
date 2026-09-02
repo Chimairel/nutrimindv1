@@ -76,6 +76,19 @@ interface LibraryMeal {
   safetyReviewedByNutritionist?: { user: { name: string } } | null;
 }
 
+interface LibraryCoverage {
+  certifiedMeals: number;
+  requiredPerSlot: number;
+  profiles: Array<{
+    key: string;
+    label: string;
+    counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+    total: number;
+    minimumPerSlot: number;
+    weekReady: boolean;
+  }>;
+}
+
 const AVAILABLE_CONDITIONS = [
   { label: 'Diabetes reviewed', value: 'DIABETES' },
   { label: 'Hypertension reviewed', value: 'HYPERTENSION' },
@@ -111,6 +124,7 @@ export default function MealLibraryPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<LibraryCoverage | null>(null);
 
   // Filter States
   const [searchVal, setSearchVal] = useState('');
@@ -184,10 +198,23 @@ export default function MealLibraryPage() {
     }
   };
 
+  const fetchCoverage = React.useCallback(async () => {
+    try {
+      const response = await api.get('/nutritionist/library-coverage');
+      if (response.data?.success) setCoverage(response.data.data);
+    } catch {
+      setCoverage(null);
+    }
+  }, []);
+
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, mealType, conditionTag, status, verifiedByMe, page]);
+
+  useEffect(() => {
+    fetchCoverage();
+  }, [fetchCoverage]);
 
   // Check if current user is owner or admin (for override checks)
   const isOwner = (meal: LibraryMeal) => {
@@ -247,7 +274,7 @@ export default function MealLibraryPage() {
         allergensReviewedAbsent: evidenceForm.allergensReviewedAbsent,
       });
       if (res.data?.success) {
-        await fetchLibrary();
+        await Promise.all([fetchLibrary(), fetchCoverage()]);
         setActiveModal(null);
       }
     } catch (err: unknown) {
@@ -276,7 +303,7 @@ export default function MealLibraryPage() {
         dietaryTags: editForm.dietaryTags,
       });
       if (res.data?.success) {
-        fetchLibrary();
+        await Promise.all([fetchLibrary(), fetchCoverage()]);
         setActiveModal(null);
       }
     } catch (err: unknown) {
@@ -296,7 +323,7 @@ export default function MealLibraryPage() {
     try {
       const res = await api.delete(`/nutritionist/library/${selectedMeal.id}`);
       if (res.data?.success) {
-        fetchLibrary();
+        await Promise.all([fetchLibrary(), fetchCoverage()]);
         setActiveModal(null);
       }
     } catch (err: unknown) {
@@ -317,7 +344,7 @@ export default function MealLibraryPage() {
     try {
       const res = await api.post(`/nutritionist/library/${selectedMeal.id}/flag`, { reason: flagReason });
       if (res.data?.success) {
-        fetchLibrary();
+        await Promise.all([fetchLibrary(), fetchCoverage()]);
         setActiveModal(null);
         setFlagReason('');
       }
@@ -350,7 +377,7 @@ export default function MealLibraryPage() {
       };
       const res = await api.patch(`/nutritionist/library/${selectedMeal.id}/resolve-flag`, payload);
       if (res.data?.success) {
-        fetchLibrary();
+        await Promise.all([fetchLibrary(), fetchCoverage()]);
         setActiveModal(null);
       }
     } catch (err: unknown) {
@@ -397,6 +424,41 @@ export default function MealLibraryPage() {
       
       {/* Header */}
       <PortalPageHeader icon={BookOpen} eyebrow="Meal intelligence" title="Verified meal library" description="Search, inspect, and maintain the reusable meal evidence available to compatible user plans." meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">{totalCount} records</span>} />
+
+      {coverage && (
+        <section aria-labelledby="coverage-heading" className="space-y-3">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">Coverage monitor</p>
+              <h2 id="coverage-heading" className="font-display text-lg font-black text-brand-text">Seven-day library readiness</h2>
+            </div>
+            <p className="text-xs text-brand-muted">{coverage.certifiedMeals} current certified meals · {coverage.requiredPerSlot} required per slot</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {coverage.profiles.map((profile) => (
+              <Card key={profile.key} className="border-brand-border/60 bg-brand-surface/65 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-extrabold text-brand-text">{profile.label}</p>
+                    <p className="mt-1 text-[10px] text-brand-muted">Lowest slot: {profile.minimumPerSlot}</p>
+                  </div>
+                  <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
+                    {profile.weekReady ? 'Week ready' : 'Coverage gap'}
+                  </Badge>
+                </div>
+                <dl className="mt-4 grid grid-cols-3 gap-1 text-center">
+                  {(['BREAKFAST', 'LUNCH', 'DINNER'] as const).map((slot) => (
+                    <div key={slot} className="rounded-lg border border-brand-border/50 bg-brand-bg/50 px-1 py-2">
+                      <dt className="text-[8px] font-bold uppercase text-brand-muted">{slot.slice(0, 1)}</dt>
+                      <dd className="mt-0.5 font-mono text-xs font-black text-brand-text">{profile.counts[slot]}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Top Filter Panel */}
       <Card className="portal-filter-panel space-y-4 p-5">
@@ -939,7 +1001,7 @@ export default function MealLibraryPage() {
             <div>
               <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Condition review scope</span>
               <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
-                Record only conditions you explicitly considered. Condition-tagged reuse remains professional-review gated until NutriMind has approved condition-specific rules.
+                Record only conditions you explicitly considered. Current complete diabetes and hypertension declarations may authorize reusable matching; heart, kidney, pregnancy, custom, and incomplete cases remain individually review-gated.
               </p>
               <div className="grid grid-cols-1 gap-2 rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 sm:grid-cols-2">
                 {AVAILABLE_CONDITIONS.map((condition) => (
