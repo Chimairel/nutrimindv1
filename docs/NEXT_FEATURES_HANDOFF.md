@@ -1,7 +1,9 @@
 # NutriMind — Upcoming Features Handoff
 
-**Recorded:** September 3, 2026  
-**Purpose:** Preserve owner decisions and the next implementation path independently of chat history.  
+**Recorded:** September 3, 2026
+
+**Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
+
 **Status:** Planning context only. Nothing described as “planned” below is implemented unless a later entry in `NUTRIMIND_ENGINEERING_RECORD.md` proves it with code and verification evidence.
 
 ## 1. Resume point
@@ -163,4 +165,3 @@ Only after this ADR should schema design and implementation begin.
 5. Re-inspect current code and tests instead of trusting old completion claims.
 6. Never expose `.env` values, mutate production/shared data without bounded authorization, or claim clinical/payment production readiness from static tests alone.
 7. After each implemented phase, add dated requirement/change/verification evidence to the engineering record and update this handoff so completed items move out of the planned list.
-
