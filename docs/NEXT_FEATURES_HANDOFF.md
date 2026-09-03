@@ -1,0 +1,166 @@
+# NutriMind — Upcoming Features Handoff
+
+**Recorded:** September 3, 2026  
+**Purpose:** Preserve owner decisions and the next implementation path independently of chat history.  
+**Status:** Planning context only. Nothing described as “planned” below is implemented unless a later entry in `NUTRIMIND_ENGINEERING_RECORD.md` proves it with code and verification evidence.
+
+## 1. Resume point
+
+- Repository: `Chimairel/nutrimindv1`
+- Working branch: `feature/condition-aware-meal-library`
+- `main` baseline at the time of this handoff: `d17b304`
+- Latest roadmap commit before this file: `802fa34`
+- Implemented feature commits on the branch:
+  - `1ccd9b7` — condition-aware meal-library workflows
+  - `483047d` — combined restriction coverage matrix
+- The configured database contained 49 current managed catalogue meals and 53 total meal-library records at the last acceptance run.
+- The branch passed the backend suite (250 registered, 249 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, live service acceptance, and browser inspection. See engineering-record sections 32–33 for exact evidence and scope.
+- Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
+
+## 2. Product model that must remain intact
+
+- Users receive personalized plans from current verified-library evidence first; Gemini fills only genuine coverage gaps.
+- Newly generated meals remain visible but unverified until reviewed. Nutritionists review through a shared prioritized queue with bounded claim locks; approval creates reusable evidence only through the established certification lifecycle.
+- Verified meals are reusable by any compatible profile, based on deterministic restrictions rather than exact whole-profile identity.
+- Users can browse only meals compatible with their complete health context. Grocery data is derived automatically from the active plan.
+- Multiple nutritionists are company/platform participants, not clinicians whom each user individually hires and waits for.
+- Admins oversee nutritionist applications/credentials, platform operations, and future financial reconciliation.
+- Safety controls and essential restriction information must never become paid-only features.
+
+## 3. Next feature — structured multi-value safety intake
+
+### Goal
+
+Replace fragile custom condition/allergy strings with a reusable, structured entry experience while continuing to support existing predefined choices.
+
+### Included fields
+
+- Medical conditions
+- Food allergies
+- Food intolerances
+- Foods or ingredients to avoid
+- Medication entry is a possible later category only if a separately approved medication–food policy is added; it is not part of the initial scope.
+
+### Required interaction
+
+1. Predefined buttons and custom/autocomplete selections feed one unified chip collection.
+2. Users may mix both sources, such as selecting Hypertension and then adding Gout through autocomplete.
+3. The input may accept commas, semicolons, slashes, or line breaks as convenience separators. Display a short note explaining this behavior.
+4. Never split on ordinary spaces; multi-word entries such as `chronic kidney disease` must remain intact.
+5. Parse into a preview and require review/confirmation before saving. Each item becomes a removable chip.
+6. Trim whitespace, discard empty segments, match without case sensitivity, normalize approved aliases, and merge duplicates. Example: `high blood pressure` and `Hypertension` become one canonical entry.
+7. Keep condition and allergy catalogues separate so a match cannot cross semantic categories.
+
+### Catalogue and persisted representation
+
+- Start with version-controlled backend catalogues; a database-managed catalogue and curation UI may follow later.
+- Each catalogue item needs a stable code, display name, approved aliases/search terms, support state, and policy/evidence reference.
+- Store the canonical entry and the user's original wording/provenance. Do not preserve only a combined string.
+- Suggested states:
+  - `SUPPORTED`
+  - `RECOGNIZED_UNSUPPORTED`
+  - `NEEDS_CLARIFICATION`
+  - `PENDING_REVIEW`
+  - `INVALID`
+- Frontend autocomplete is only assistance. Every saved code and classification must be revalidated by the backend.
+
+### Validation and safety behavior
+
+- Reject whitespace-only, duplicate-only, oversized, or clearly invalid input with accessible inline feedback.
+- Do not diagnose symptoms or vague phrases. Ask the user to clarify terms such as “high sugar” or “heart problem.”
+- Gemini may suggest possible catalogue matches but cannot be the authority that validates a diagnosis or allergy.
+- Apply all recognized restrictions as an intersection. Never relax one restriction merely because coverage is insufficient.
+- Any ambiguous, unsupported, custom-unmapped, or evidence-incomplete entry must fail closed: request clarification or route the plan to review; never label it compatible or verified automatically.
+- Profile changes must retain revision history, invalidate stale nutrition guidance when appropriate, and run the existing safety recheck idempotently.
+
+### Minimum acceptance evidence
+
+- Unit tests for separators, multi-word terms, aliases, duplicates, mixed predefined/custom entries, invalid values, and `NONE` contradictions.
+- API tests proving clients cannot forge supported codes or classifications.
+- Policy tests proving every combined condition/allergy/intolerance/exclusion is evaluated conservatively.
+- Browser tests for keyboard autocomplete, chip removal, mobile layout, errors, confirmation, save/reload, and profile editing.
+- A live database-backed flow showing that an added restriction replaces or blocks incompatible meals and refreshes the derived grocery projection without leaving stale safety claims.
+
+## 4. Coverage work after structured intake
+
+- Re-measure certified-library coverage using actual structured combined profiles rather than assuming single restrictions.
+- Current measured support is deliberately bounded to Diabetes or Hypertension crossed with one modeled diet/allergy constraint.
+- Arbitrary multiple allergies, custom conditions, Kidney Disease, Heart Condition, and pregnancy/lactation remain outside proven automatic coverage.
+- Add catalogue meals only to close measured gaps. Every addition needs first-class FNRI ingredient linkage, explicit allergen/condition declarations, current certification evidence, deterministic compatibility tests, and idempotent population behavior.
+- Do not manufacture “verified” state through raw seed flags or by copying one user's profile declarations into reusable authority.
+
+## 5. Planned payments and subscriptions
+
+### Provider direction
+
+- PayMongo is the leading candidate for Philippine payment collection, not a final integration decision.
+- Re-check current APIs, supported payment methods, sandbox behavior, fees, business/KYC requirements, webhook signing, payout capabilities, and terms immediately before implementation.
+- Begin in sandbox/test mode. A live-money demonstration requires an explicit owner decision and approved operational checklist.
+
+### User subscriptions
+
+- Create checkout/payment intents on the backend only; provider secret keys must never reach the browser.
+- Verify webhook signatures and process provider events idempotently.
+- Model subscription state transitions, failed/late payments, cancellation, refunds, receipts, and reconciliation.
+- Store an append-only sanitized payment-event audit trail; never log card/payment credentials or unnecessary personal data.
+- Entitlements must derive from authoritative subscription state, not a client-controlled flag.
+
+### Realistic benefit candidates
+
+- Higher but still safety-bounded meal swap/library-choice allowance
+- Longer progress/history analysis and richer exports
+- Advanced planning or household-oriented convenience features
+- Budget-oriented planning only where price coverage and freshness are disclosed
+- Final pricing, tier names, quotas, and benefit selection remain owner decisions. Core safety, restrictions, verification status, and essential nutrition information stay available to free users.
+
+## 6. Nutritionist compensation
+
+- User billing and nutritionist compensation are separate accounting domains. A subscription payment must never directly and automatically pay a reviewer.
+- Do not use a raw per-approved-meal salary formula; it incentivizes approval volume and weakens review quality.
+- Preferred initial model: an admin-approved compensation ledger based on an agreed employment/contract period. Review workload, turnaround, disagreement, and quality metrics may inform administration but must not autonomously determine salary.
+- Capstone-first option: record approved pay periods and manual/off-platform payouts without moving real money.
+- If automated payouts are later adopted, independently model recipient verification, payout account data, approval separation, payout batches, idempotency, failures/retries, reversals, receipts, and reconciliation.
+
+## 7. Budget and ingredient-price roadmap
+
+- FNRI supplies nutrition composition, not dependable retail pricing.
+- Price functionality needs a dated, location-aware catalogue with source/provenance, unit normalization, and freshness metadata. PSA/OpenSTAT or another authoritative source may seed only the data it actually publishes.
+- Never require the owner to manually import every published record before prototyping; start with a bounded high-coverage basket and measurable coverage reporting.
+- When a meal includes an ingredient without current price data, show `price unavailable` or a clearly labeled estimate/range and reduce the plan's coverage/confidence. Do not let Gemini invent an authoritative price.
+- Budget filtering must not override clinical compatibility or silently substitute unsafe ingredients.
+
+## 8. Required architecture decision before payment coding
+
+Create and approve an ADR that fixes:
+
+- Provider and exact APIs
+- Sandbox versus live-demo boundary
+- Fees and who bears them
+- Subscription tiers and authoritative entitlements
+- Refund/cancellation policy
+- Nutritionist compensation and payout policy
+- Webhook threat model and idempotency design
+- Financial audit, reconciliation, data retention, and privacy controls
+- Failure/recovery procedures and capstone scope
+
+Only after this ADR should schema design and implementation begin.
+
+## 9. Recommended execution order
+
+1. Implement structured multi-value intake and backend catalogues.
+2. Verify combined restriction behavior and close only measured library gaps.
+3. Write the payment/subscription/compensation ADR using freshly verified provider information.
+4. Implement subscription sandbox billing and admin reconciliation.
+5. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.
+6. Prototype price coverage separately, after core safety and payment flows remain stable.
+
+## 10. Instructions for the next agent or conversation
+
+1. Read `AGENTS.md` completely.
+2. Treat `docs/NUTRIMIND_ENGINEERING_RECORD.md` as the canonical evidence source and this file as planned-work context.
+3. Inspect Git status and preserve unrelated/user changes.
+4. Confirm the intended starting branch with the owner before implementation; do not assume this feature branch should be merged.
+5. Re-inspect current code and tests instead of trusting old completion claims.
+6. Never expose `.env` values, mutate production/shared data without bounded authorization, or claim clinical/payment production readiness from static tests alone.
+7. After each implemented phase, add dated requirement/change/verification evidence to the engineering record and update this handoff so completed items move out of the planned list.
+
