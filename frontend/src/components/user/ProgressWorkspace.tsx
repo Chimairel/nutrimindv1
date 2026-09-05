@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
+import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -11,7 +11,9 @@ import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import AutocompleteInput from '@/components/ui/AutocompleteInput';
+import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
+import { safetyInputsFromProfile } from '@/lib/safety-intake';
+import type { SafetyProfileEntry } from '@/types';
 import axios from 'axios';
 import { 
   TrendingUp, 
@@ -73,6 +75,7 @@ interface ProfileDetails {
   };
   healthConditions?: string[];
   allergies?: string[];
+  safetyEntries?: SafetyProfileEntry[];
 }
 
 interface ProgressHistory {
@@ -91,10 +94,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('week');
   const [isTimeframeDropdownOpen, setIsTimeframeDropdownOpen] = useState(false);
 
-  // Auto-complete Suggestions
-  const [conditionSuggestions, setConditionSuggestions] = useState<string[]>([]);
-  const [allergenSuggestions, setAllergenSuggestions] = useState<string[]>([]);
-
   // Form State - Biometrics & Preferences
   const [age, setAge] = useState('');
   const [heightCm, setHeightCm] = useState('');
@@ -111,14 +110,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
   const [biometricsSuccess, setBiometricsSuccess] = useState<string | null>(null);
   const [biometricsError, setBiometricsError] = useState<string | null>(null);
 
-  // Form State - Health & Allergies
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
-  const [otherConditions, setOtherConditions] = useState('');
-  const [otherAllergies, setOtherAllergies] = useState('');
-  const [isSavingHealth, setIsSavingHealth] = useState(false);
   const [healthSuccess, setHealthSuccess] = useState<string | null>(null);
-  const [healthError, setHealthError] = useState<string | null>(null);
 
   // Form State - New Weight Reading
   const [isLogFormOpen, setIsLogFormOpen] = useState(false);
@@ -133,10 +125,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setIsLoading(true);
     setError(null);
     try {
-      const [historyRes, profileRes, suggestionsRes] = await Promise.all([
+      const [historyRes, profileRes] = await Promise.all([
         api.get('/user/progress/history'),
         api.get('/user/profile'),
-        api.get('/user/onboarding/suggestions'),
       ]);
 
       if (historyRes.data && historyRes.data.success) {
@@ -163,17 +154,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               ? data.userProfile.shoppingDayOfWeek
               : data.userProfile.shoppingDayGroup === 'WEEKDAY' ? 0 : 6
           );
-          setOtherConditions(data.userProfile.otherConditions || '');
-          setOtherAllergies(data.userProfile.otherAllergies || '');
         }
-
-        // Pre-populate health enums
-        setSelectedConditions(normalizeExclusiveNone(data.healthConditions));
-        setSelectedAllergies(normalizeExclusiveNone(data.allergies));
-      }
-      if (suggestionsRes.data && suggestionsRes.data.success) {
-        setConditionSuggestions(suggestionsRes.data.data.conditions || []);
-        setAllergenSuggestions(suggestionsRes.data.data.allergies || []);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -234,50 +215,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     }
   };
 
-  // Handles updating clinical health conditions and food allergies form
-  const handleHealthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingHealth(true);
-    setHealthError(null);
-    setHealthSuccess(null);
-
-    try {
-      const safetyRes = await api.put('/user/profile/safety', {
-        conditions: selectedConditions,
-        otherConditions,
-        allergies: selectedAllergies,
-        otherAllergies,
-      });
-
-      if (safetyRes.data.success) {
-        const changed = safetyRes.data.data?.changed === true;
-        setHealthSuccess(changed
-          ? 'Clinical safety settings saved. Your active plan was scanned; refresh your nutrition report to continue.'
-          : 'Your clinical safety settings are already up to date.');
-
-        if (changed) {
-          router.push('/nutrition-report');
-          return;
-        }
-        
-        // An unchanged save keeps the existing report valid and can safely
-        // refresh the local profile view.
-        const profileRes = await api.get('/user/profile');
-        if (profileRes.data && profileRes.data.success) {
-          setProfileData(profileRes.data.data);
-        }
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setHealthError(err.response?.data?.error || 'Failed to update safety settings.');
-      } else {
-        setHealthError('Failed to reach server.');
-      }
-    } finally {
-      setIsSavingHealth(false);
-    }
-  };
-
   // Handles logging a new weight reading
   const handleLogWeightSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -324,26 +261,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     } finally {
       setIsSubmittingWeight(false);
     }
-  };
-
-  const toggleCondition = (cond: string) => {
-    setSelectedConditions((prev) => {
-      if (prev.includes(cond)) {
-        const remaining = prev.filter((value) => value !== cond && value !== 'NONE');
-        return remaining.length > 0 ? remaining : ['NONE'];
-      }
-      return [...prev.filter((value) => value !== 'NONE'), cond];
-    });
-  };
-
-  const toggleAllergy = (aller: string) => {
-    setSelectedAllergies((prev) => {
-      if (prev.includes(aller)) {
-        const remaining = prev.filter((value) => value !== aller && value !== 'NONE');
-        return remaining.length > 0 ? remaining : ['NONE'];
-      }
-      return [...prev.filter((value) => value !== 'NONE'), aller];
-    });
   };
 
   const groupedLogs = React.useMemo(() => {
@@ -963,7 +880,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           <span>Clinical Safety Safeguards</span>
         </h3>
         <p className="text-xs text-brand-muted mb-6 leading-relaxed">
-          Updating your medical conditions or food allergies will immediately trigger a backend safety scan to identify and swap conflicting meals in your current plan.
+          Conditions, allergies, intolerances, and avoided foods are saved together. A real change invalidates stale guidance and runs one backend safety scan.
         </p>
 
         {healthSuccess && (
@@ -973,121 +890,22 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           </div>
         )}
 
-        {healthError && (
-          <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-            <span>{healthError}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleHealthSubmit} className="flex flex-col gap-6">
-          {/* Medical Conditions Choice Chips */}
-          <div>
-            <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-3">Health & Medical Conditions</label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'DIABETES', label: 'Diabetes' },
-                { id: 'HYPERTENSION', label: 'Hypertension' },
-                { id: 'KIDNEY_DISEASE', label: 'Kidney Disease' },
-                { id: 'HEART_CONDITION', label: 'Heart Condition' },
-                { id: 'PREGNANT', label: 'Pregnant / Lactating' },
-              ].map((cond) => {
-                const isSelected = selectedConditions.includes(cond.id);
-                return (
-                  <button
-                    key={cond.id}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => toggleCondition(cond.id)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer outline-none ${
-                      isSelected
-                        ? 'bg-brand-green/20 border-brand-green text-brand-green shadow-md shadow-brand-green/5'
-                        : 'bg-brand-bgAlt border-brand-border text-brand-muted hover:text-brand-text hover:bg-brand-border/40'
-                    }`}
-                  >
-                    {cond.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Autocomplete for Other Conditions */}
-          <div className="grid grid-cols-1 gap-1">
-            <label htmlFor="profile-other-conditions" className="block text-xs font-bold tracking-wider text-brand-muted uppercase">Additional Medical Conditions</label>
-            <span className="text-[10px] text-brand-muted mb-2 font-medium">Type custom conditions (e.g. Gout, Celiac, GERD) and hit enter</span>
-            <AutocompleteInput
-              id="profile-other-conditions"
-              value={otherConditions}
-              onChange={(value) => {
-                setOtherConditions(value);
-                if (value.trim()) setSelectedConditions((current) => current.filter((item) => item !== 'NONE'));
-                else setSelectedConditions((current) => current.length > 0 ? current : ['NONE']);
-              }}
-              suggestions={conditionSuggestions}
-              placeholder="Search or add additional clinical conditions..."
-            />
-          </div>
-
-          {/* Food Allergens Choice Chips */}
-          <div>
-            <label className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-3">Primary Food Allergens</label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'SHELLFISH', label: 'Shellfish' },
-                { id: 'NUTS', label: 'Tree Nuts / Peanuts' },
-                { id: 'DAIRY', label: 'Dairy' },
-                { id: 'GLUTEN', label: 'Wheat / Gluten' },
-                { id: 'EGGS', label: 'Eggs' },
-              ].map((aller) => {
-                const isSelected = selectedAllergies.includes(aller.id);
-                return (
-                  <button
-                    key={aller.id}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => toggleAllergy(aller.id)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer outline-none ${
-                      isSelected
-                        ? 'bg-brand-green/20 border-brand-green text-brand-green shadow-md shadow-brand-green/5'
-                        : 'bg-brand-bgAlt border-brand-border text-brand-muted hover:text-brand-text hover:bg-brand-border/40'
-                    }`}
-                  >
-                    {aller.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Autocomplete for Other Allergies */}
-          <div className="grid grid-cols-1 gap-1">
-            <label htmlFor="profile-other-allergies" className="block text-xs font-bold tracking-wider text-brand-muted uppercase">Additional Food Allergies</label>
-            <span className="text-[10px] text-brand-muted mb-2 font-medium">Type custom allergens (e.g. Soy, Sesame, Mustard, Sulfites) and hit enter</span>
-            <AutocompleteInput
-              id="profile-other-allergies"
-              value={otherAllergies}
-              onChange={(value) => {
-                setOtherAllergies(value);
-                if (value.trim()) setSelectedAllergies((current) => current.filter((item) => item !== 'NONE'));
-                else setSelectedAllergies((current) => current.length > 0 ? current : ['NONE']);
-              }}
-              suggestions={allergenSuggestions}
-              placeholder="Search or add additional food allergies..."
-            />
-          </div>
-
-          <div className="flex justify-end mt-2">
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={isSavingHealth}
-              className="text-xs font-bold py-2.5 px-6 shadow-md"
-            >
-              {isSavingHealth ? 'Scanning Plan Safety...' : 'Save Safety Changes'}
-            </Button>
-          </div>
-        </form>
+        <StructuredSafetyIntake
+          initialEntries={safetyInputsFromProfile(profileData)}
+          editableDomains={['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']}
+          submitLabel="Save safety changes"
+          onSaved={async (_entries, changed) => {
+            setHealthSuccess(changed
+              ? 'Safety settings saved. Your current plan was scanned and your nutrition report must be refreshed.'
+              : 'Your safety settings are already up to date.');
+            if (changed) {
+              router.push('/nutrition-report');
+              return;
+            }
+            const response = await api.get('/user/profile');
+            if (response.data?.success) setProfileData(response.data.data);
+          }}
+        />
       </Card>
       )}
 

@@ -477,6 +477,19 @@ export class UserService {
             allergen: true,
           },
         },
+        safetyProfileEntries: {
+          orderBy: [{ domain: 'asc' }, { displayName: 'asc' }],
+          select: {
+            domain: true,
+            canonicalCode: true,
+            displayName: true,
+            originalText: true,
+            normalizedText: true,
+            provenance: true,
+            supportState: true,
+            policyReference: true,
+          },
+        },
         nutritionReport: {
           select: {
             id: true,
@@ -520,6 +533,7 @@ export class UserService {
       userProfile: user.userProfile,
       healthConditions: user.healthConditions.map((c) => c.condition),
       allergies: user.allergies.map((a) => a.allergen),
+      safetyEntries: user.safetyProfileEntries,
       nutritionReport: user.nutritionReport,
       onboardingStatus,
     };

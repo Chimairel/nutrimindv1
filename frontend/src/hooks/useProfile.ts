@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
+import type { SafetyProfileEntry } from '@/types';
 
 export interface UserProfileData {
   id: string;
@@ -34,6 +35,7 @@ export interface UserProfileData {
   } | null;
   healthConditions: string[];
   allergies: string[];
+  safetyEntries: SafetyProfileEntry[];
   nutritionReport: { id: string; generatedAt: string; acknowledgedAt?: string } | null;
   onboardingStatus?: {
     nextPath: string;

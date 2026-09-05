@@ -8,6 +8,23 @@ const carbSchema = z.enum(['LOW', 'MODERATE', 'HIGH']);
 const sexSchema = z.enum(['MALE', 'FEMALE']);
 const conditionSchema = z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT', 'NONE']);
 const allergySchema = z.enum(['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS', 'NONE']);
+const safetyDomainSchema = z.enum(['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']);
+const safetyProvenanceSchema = z.enum(['PREDEFINED', 'CUSTOM']);
+
+export const structuredSafetyItemSchema = z.object({
+  domain: safetyDomainSchema,
+  value: z.string().trim().min(1).max(500),
+  provenance: safetyProvenanceSchema,
+}).strict();
+
+export const structuredSafetyPreviewSchema = z.object({
+  entries: z.array(structuredSafetyItemSchema).max(80),
+}).strict();
+
+export const structuredSafetySaveSchema = z.object({
+  entries: z.array(structuredSafetyItemSchema).max(80),
+  confirmed: z.literal(true),
+}).strict();
 
 export const onboardingProfileSchema = z.object({
   age: z.coerce.number().int().min(18).max(100).optional(),

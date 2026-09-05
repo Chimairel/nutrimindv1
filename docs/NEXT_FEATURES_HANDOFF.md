@@ -4,7 +4,7 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Planning context only. Nothing described as “planned” below is implemented unless a later entry in `NUTRIMIND_ENGINEERING_RECORD.md` proves it with code and verification evidence.
+**Status:** Phase 1 is implemented in source on `feature/structured-safety-intake` and is waiting at its shared-database migration gate. Later phases remain planning context unless a later engineering-record entry proves implementation and verification.
 
 ## 1. Resume point
 
@@ -29,7 +29,13 @@
 - Admins oversee nutritionist applications/credentials, platform operations, and future financial reconciliation.
 - Safety controls and essential restriction information must never become paid-only features.
 
-## 3. Next feature — structured multi-value safety intake
+## 3. Current phase — structured multi-value safety intake
+
+### September 5 source status
+
+- Source implementation, additive Prisma schema/migration, deterministic tests, frontend type/lint/build verification, and a guarded database acceptance script are present on `feature/structured-safety-intake`.
+- The migration is intentionally unapplied. Authenticated persistence/reload, browser interaction, mobile inspection, active-plan safety replacement, and derived-grocery acceptance remain pending owner approval to apply the migration to the configured shared database.
+- See engineering-record section 35 for exact behavior and evidence. Do not treat this phase as integration-tested or E2E-tested until INT-009 and E2E-007 are recorded there.
 
 ### Goal
 
@@ -149,8 +155,8 @@ Only after this ADR should schema design and implementation begin.
 
 ## 9. Recommended execution order
 
-1. Implement structured multi-value intake and backend catalogues.
-2. Verify combined restriction behavior and close only measured library gaps.
+1. With owner approval, apply the prepared structured-intake migration and run INT-009 plus authenticated desktop/mobile E2E-007.
+2. Verify combined restriction behavior and close only measured library gaps after Phase 1 acceptance.
 3. Write the payment/subscription/compensation ADR using freshly verified provider information.
 4. Implement subscription sandbox billing and admin reconciliation.
 5. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.

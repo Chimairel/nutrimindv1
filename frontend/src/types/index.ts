@@ -12,6 +12,21 @@ export type HealthConditionType = 'DIABETES' | 'HYPERTENSION' | 'KIDNEY_DISEASE'
 
 export type AllergenType = 'SHELLFISH' | 'NUTS' | 'DAIRY' | 'GLUTEN' | 'EGGS' | 'NONE';
 
+export type SafetyEntryDomain = 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT';
+export type SafetyEntryProvenance = 'PREDEFINED' | 'CUSTOM' | 'LEGACY_MIGRATION';
+export type SafetySupportState = 'SUPPORTED' | 'RECOGNIZED_UNSUPPORTED' | 'NEEDS_CLARIFICATION' | 'PENDING_REVIEW' | 'INVALID';
+
+export interface SafetyProfileEntry {
+  domain: SafetyEntryDomain;
+  canonicalCode: string | null;
+  displayName: string;
+  originalText: string;
+  normalizedText: string;
+  provenance: SafetyEntryProvenance;
+  supportState: SafetySupportState;
+  policyReference: string;
+}
+
 export type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 
 export type MealPlanStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';

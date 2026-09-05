@@ -7,20 +7,33 @@ import { UserService } from '@/services/user.service';
 import { NutritionReportService } from '@/services/nutrition-report.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { COMMON_ALLERGIES, COMMON_CONDITIONS } from '@/services/health-validation.service';
-import { sanitizeRestrictionDisplayValue } from '@/domain/restriction-evaluation.policy';
-
-function normalizeCustomEntries(rawValue: string, curatedValues: readonly string[]): string {
-  const normalized = rawValue
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .map((value) => curatedValues.find((item) => item.toLowerCase() === value.toLowerCase()) ?? value)
-    .map(sanitizeRestrictionDisplayValue);
-
-  return [...new Map(normalized.map((value) => [value.toLowerCase(), value])).values()].join(', ');
-}
+import { SafetyIntakeService } from '@/services/safety-intake.service';
 
 export class UserController {
+  static async getSafetyCatalogue(_req: AuthenticatedRequest, res: Response) {
+    return res.status(200).json({ success: true, data: SafetyIntakeService.getCatalogue() });
+  }
+
+  static async previewStructuredSafety(req: AuthenticatedRequest, res: Response) {
+    const preview = SafetyIntakeService.preview(req.body.entries);
+    return res.status(200).json({ success: true, data: preview });
+  }
+
+  static async saveStructuredSafety(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      const saved = await SafetyIntakeService.save(userId, req.body.entries);
+      if (saved.changed) await UserService.runSafetyRecheck(userId);
+      return res.status(200).json({ success: true, data: saved });
+    } catch (error: unknown) {
+      return res.status(400).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Unable to save structured safety entries.'),
+      });
+    }
+  }
+
   /**
    * GET /api/user/profile
    * Returns complete profile details (User + Profile + Conditions + Allergies + NutritionReport status)
@@ -93,19 +106,14 @@ export class UserController {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of conditions.' });
       }
 
-      // Normalize known spelling/case mechanically. Unknown values are retained
-      // as conservative custom restrictions and are never sent to an AI service.
-      const normalizedOtherConditions = typeof otherConditions === 'string'
-        ? normalizeCustomEntries(otherConditions, COMMON_CONDITIONS)
-        : '';
+      const savedConditions = await SafetyIntakeService.replaceDomains(userId, ['CONDITION'], [
+        ...conditions.map((value: string) => ({ domain: 'CONDITION' as const, value, provenance: 'PREDEFINED' as const })),
+        ...(typeof otherConditions === 'string' && otherConditions.trim()
+          ? [{ domain: 'CONDITION' as const, value: otherConditions, provenance: 'CUSTOM' as const }]
+          : []),
+      ]);
 
-      const savedConditions = await UserService.updateHealthConditionsWithCustom(
-        userId,
-        conditions,
-        normalizedOtherConditions
-      );
-
-      await UserService.runSafetyRecheck(userId);
+      if (savedConditions.changed) await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({
         success: true,
@@ -133,17 +141,14 @@ export class UserController {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of allergies.' });
       }
 
-      const normalizedOtherAllergies = typeof otherAllergies === 'string'
-        ? normalizeCustomEntries(otherAllergies, COMMON_ALLERGIES)
-        : '';
+      const savedAllergies = await SafetyIntakeService.replaceDomains(userId, ['ALLERGY'], [
+        ...allergies.map((value: string) => ({ domain: 'ALLERGY' as const, value, provenance: 'PREDEFINED' as const })),
+        ...(typeof otherAllergies === 'string' && otherAllergies.trim()
+          ? [{ domain: 'ALLERGY' as const, value: otherAllergies, provenance: 'CUSTOM' as const }]
+          : []),
+      ]);
 
-      const savedAllergies = await UserService.updateAllergiesWithCustom(
-        userId,
-        allergies,
-        normalizedOtherAllergies
-      );
-
-      await UserService.runSafetyRecheck(userId);
+      if (savedAllergies.changed) await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({
         success: true,
@@ -167,16 +172,12 @@ export class UserController {
       }
 
       const { conditions, otherConditions, allergies, otherAllergies } = req.body;
-      const normalizedOtherConditions = normalizeCustomEntries(otherConditions || '', COMMON_CONDITIONS);
-      const normalizedOtherAllergies = normalizeCustomEntries(otherAllergies || '', COMMON_ALLERGIES);
-
-      const saved = await UserService.updateSafetyProfile(
-        userId,
-        conditions,
-        normalizedOtherConditions,
-        allergies,
-        normalizedOtherAllergies
-      );
+      const saved = await SafetyIntakeService.replaceDomains(userId, ['CONDITION', 'ALLERGY'], [
+        ...conditions.map((value: string) => ({ domain: 'CONDITION' as const, value, provenance: 'PREDEFINED' as const })),
+        ...(otherConditions?.trim() ? [{ domain: 'CONDITION' as const, value: otherConditions, provenance: 'CUSTOM' as const }] : []),
+        ...allergies.map((value: string) => ({ domain: 'ALLERGY' as const, value, provenance: 'PREDEFINED' as const })),
+        ...(otherAllergies?.trim() ? [{ domain: 'ALLERGY' as const, value: otherAllergies, provenance: 'CUSTOM' as const }] : []),
+      ]);
       if (saved.changed) await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({ success: true, data: saved });

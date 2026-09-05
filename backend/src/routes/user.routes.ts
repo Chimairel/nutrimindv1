@@ -20,6 +20,8 @@ import {
   onboardingProfileSchema,
   profileSafetySchema,
   shoppingDaySchema,
+  structuredSafetyPreviewSchema,
+  structuredSafetySaveSchema,
 } from '@/validation/onboarding.schemas';
 import { weeklyCheckinSchema } from '@/validation/checkin.schemas';
 import { z } from 'zod';
@@ -51,6 +53,9 @@ router.post('/onboarding/profile', requireVerifiedUser, validateZodBody(onboardi
 router.get('/onboarding/suggestions', requireVerifiedUser, UserController.getSuggestions);
 router.post('/onboarding/conditions', requireVerifiedUser, validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
 router.post('/onboarding/allergies', requireVerifiedUser, validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
+router.get('/onboarding/safety-catalogue', requireVerifiedUser, UserController.getSafetyCatalogue);
+router.post('/onboarding/safety-preview', requireVerifiedUser, validateZodBody(structuredSafetyPreviewSchema), UserController.previewStructuredSafety);
+router.post('/onboarding/safety', requireVerifiedUser, validateZodBody(structuredSafetySaveSchema), UserController.saveStructuredSafety);
 router.post('/onboarding/shopping-day', requireVerifiedUser, validateZodBody(shoppingDaySchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { shoppingDayOfWeek } = req.body;

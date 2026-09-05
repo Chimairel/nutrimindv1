@@ -142,6 +142,27 @@ enum PlanType {
   WEEKLY // normal 7-day repeating plan
 }
 
+enum SafetyEntryDomain {
+  CONDITION
+  ALLERGY
+  INTOLERANCE
+  AVOIDED_INGREDIENT
+}
+
+enum SafetyEntryProvenance {
+  PREDEFINED
+  CUSTOM
+  LEGACY_MIGRATION
+}
+
+enum SafetyEntrySupportState {
+  SUPPORTED
+  RECOGNIZED_UNSUPPORTED
+  NEEDS_CLARIFICATION
+  PENDING_REVIEW
+  INVALID
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -192,6 +213,7 @@ model User {
   mealPlanGenerationJobs           MealPlanGenerationJob[]
   weeklyCheckins                   WeeklyCheckin[]
   healthProfileRevisions           HealthProfileRevision[]
+  safetyProfileEntries             SafetyProfileEntry[]
   auditEvents                      AuditEvent[]
   outsideMealPreviews              OutsideMealPreview[]
   waterLogs                        WaterLog[]
@@ -257,6 +279,26 @@ model Allergy {
   allergen AllergenType
 
   @@map("Allgy") // Preserves existing table name to avoid data loss during migration
+}
+
+model SafetyProfileEntry {
+  id              String                  @id @default(cuid())
+  userId          String
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain          SafetyEntryDomain
+  canonicalCode   String?                 @db.VarChar(64)
+  displayName     String                  @db.VarChar(120)
+  originalText    String                  @db.VarChar(120)
+  normalizedText  String                  @db.VarChar(120)
+  provenance      SafetyEntryProvenance
+  supportState    SafetyEntrySupportState
+  policyReference String                  @db.VarChar(120)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([userId, domain, normalizedText])
+  @@index([userId, domain])
+  @@index([supportState])
 }
 
 model NutritionReport {
@@ -755,6 +797,7 @@ enum HealthProfileRevisionType {
   BODY_DIET_UPDATED
   CONDITIONS_UPDATED
   ALLERGIES_UPDATED
+  STRUCTURED_SAFETY_UPDATED
 }
 
 enum AiUsageStatus {
