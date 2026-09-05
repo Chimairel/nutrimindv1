@@ -4,12 +4,13 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The payment/subscription/compensation architecture is accepted, and its Phase 1 additive schema, unapplied migration SQL, pure policies, and database-free tests are implemented on `feature/billing-foundation`. Provider integration, migration application, UI, credentials, money movement, and deployment have not started.
+**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The payment/subscription/compensation architecture is accepted, and its Phase 1 additive schema, unapplied migration SQL, pure policies, and database-free tests are implemented on `feature/billing-foundation`. The Phase 2 disposable migration rehearsal is environment-blocked because this host currently has no local PostgreSQL runtime or running Docker/Podman engine; no remote fallback was used. Provider integration, migration application, UI, credentials, money movement, and deployment have not started.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
-- Billing-foundation branch: `feature/billing-foundation`, created from exact architecture commit `bc07d9a`
+- Billing-foundation branch: `feature/billing-foundation`, commit `753be3d`
+- Migration-rehearsal branch: `feature/billing-migration-rehearsal`, created from exact billing-foundation commit `753be3d`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
@@ -20,6 +21,7 @@
 - INT-011 left the configured database with 51 complete current managed catalogue meals and reconciled the existing configured reviewer's `totalVerified` counter to 55. The first apply created/certified exactly two meals and skipped 49; the immediate second run performed no writes and skipped all 51.
 - The current branch passed the backend suite (271 registered, 270 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, the offline FNRI projection, and live production-evaluator measurement. See engineering-record section 37. Earlier configured-database and browser evidence remains in sections 32–36.
 - Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
+- Local port ownership: port `3000` is available and reserved for NutriMind; the unrelated Antigravity project uses port `3030`. A database-only migration rehearsal does not require either application server and must not disturb the Antigravity process.
 
 ## 2. Product model that must remain intact
 
@@ -158,7 +160,7 @@ Production remains blocked on PayMongo's written business approval and actual ac
 
 ## 9. Recommended execution order
 
-1. Rehearse the exact checked-in migration on a disposable local PostgreSQL database only. Prove constraints, schema shape, preservation, and rollback-safe cleanup; do not use Neon or call PayMongo.
+1. On the owner-managed host, install/start either local PostgreSQL 15+ or Docker Desktop outside the agent task, then rerun the exact checked-in migration rehearsal against a uniquely named disposable local target. Prove constraints, schema shape, preservation, and rollback-safe cleanup; do not use Neon or call PayMongo.
 2. Apply the reviewed migration to shared development only under fresh bounded owner authorization.
 3. Implement sandbox collection, then the raw-body webhook inbox/outbox and reconciliation, before enabling the 3-versus-6 swap entitlement.
 4. Add the internal compensation ledger and manual payout records after collection/entitlement evidence is stable. Consider automated disbursements only after the capstone and a separate approval.

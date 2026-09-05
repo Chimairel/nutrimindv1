@@ -31,10 +31,10 @@ Rules:
 | ADR | Architecture/design decision | ADR-018 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-023 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-06 |
-| TEST | Test case or verification procedure | TEST-083 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-07 |
+| TEST | Test case or verification procedure | TEST-084 |
 | UNC | Unresolved uncertainty | UNC-017 |
-| DOC | Documentation correction or addition | DOC-032 |
+| DOC | Documentation correction or addition | DOC-033 |
 
 ---
 
@@ -516,6 +516,7 @@ No schema or migration changes are authorized in the first run. Before future un
 | TEST-080 | Subscription, invoice, payment, refund, and entitlement policy | Backend pure-policy unit | Valid transitions apply; duplicates are idempotent; older/out-of-order and terminal regressions deny; only verified paid-period/admin grants provide Premium; cancellation preserves paid-through access; expiry/revocation/unpaid deny; past-due grace is bounded; swap cap is 3 Free/6 Premium | Pass: 14 database-free cases across entitlement and state files | CHG-20260905-05; REQ-021; ADR-017 |
 | TEST-081 | Provider-event idempotency and money/refund invariants | Backend pure-policy unit | Event identity classifies insert/duplicate/hash conflict; keys are deterministic and bounded; malformed identities deny; money is safe integer minor units with ISO currency; refunds cannot exceed paid remainder; ledger signs and overflow are guarded | Pass: 7 database-free cases | CHG-20260905-05; REQ-021; ADR-017 |
 | TEST-082 | Nutritionist work-credit and compensation policy | Backend pure-policy unit | Review outcomes do not change ordinary credit; source actions and reversals deduplicate; corrections append signed reversals; fixed workload bands cap volume incentives; adjustments/gross/payout currency and amount boundaries hold; maker-checker actors differ | Pass: 8 database-free cases | CHG-20260905-05; REQ-021; ADR-017 |
+| TEST-083 | Disposable billing-migration runtime preflight | Read-only local command, service, process, listener, common-install-path, WSL-distribution, and repository-runtime inventory | Continue only when an already installed/running local PostgreSQL or Docker runtime exists; never install tooling or fall back to a configured/shared remote database | Blocked safely: no PostgreSQL client/server tools, PostgreSQL service/process, port-5432 listener, Docker/Podman executable/service/process, common installation, or installed WSL distribution was found; no database/container resource was created or contacted | CHG-20260905-06; REQ-021; ADR-017; DOC-032 |
 | INT-009 | Structured safety persistence, compatibility projection, history, report invalidation, and bounded plan/grocery behavior | Guarded live Prisma/service fixture against the configured Neon database | Mixed restrictions and controlled aliases survive reload; one revision per semantic change; identical save is idempotent; stale report acknowledgement clears; a still-compatible certified active plan and its derived grocery list remain actionable and unchanged; exact fixture cleanup leaves no rows | Pass: 7 entries reloaded; `high blood pressure` resolved to `HYPERTENSION`; revision delta 1; report invalidated; compatible plan actionable; grocery projection unchanged; identical save unchanged; 0 residual users/entries/plans/grocery lists | `backend/scripts/structured-safety-intake-acceptance.ts`; CHG-20260905-01; REQ-018; ADR-016 |
 | E2E-007 | Structured safety onboarding and editable Health profile | Authenticated in-app browser at default desktop and 390x844 mobile viewport using an exact reserved account | Mixed predefined/custom values, separators, multi-word terms, aliases, classifications, vague-entry errors, removal, keyboard confirmation/submission, save, report invalidation, and profile reload behave visibly without console errors | Pass for onboarding and Health profile: conditions and all three food domains saved; `spicy food` removal survived reload; desktop/mobile layouts remained usable; 0 browser warnings/errors; fixture and sessions removed. No active-plan replacement was exercised by this browser actor | CHG-20260905-01; REQ-018; ADR-016; INT-009 |
 
@@ -2446,3 +2447,29 @@ This section is a continuity record for agreed future work. Every item below is 
 
 - The next smallest phase is the ADR's Phase 2 migration rehearsal against a disposable local PostgreSQL database only. It must use the exact committed SQL/checksum, prove schema objects and constraints with rollback-safe fixtures, confirm zero prior-data loss, and clean up the disposable target.
 - Applying the migration to the configured shared development database requires fresh bounded owner authorization after the disposable rehearsal. PayMongo sandbox integration, raw-body webhook routing/verification/worker/reconciliation, entitlement consumption, billing UI, and manual compensation workflow remain separate later phases.
+
+## 40. Disposable billing-migration rehearsal preflight (2026-09-05)
+
+**Requirement ID:** REQ-021
+
+**Decision ID:** ADR-017
+
+**Change ID:** CHG-20260905-06
+
+**Verification ID:** TEST-083
+
+**Documentation ID:** DOC-032
+
+### Environment result
+
+- The rehearsal branch was created from exact clean billing-foundation commit `753be3d7609e6b43f249893e587c7c6a7c7bf4cf`. Local `main` and `origin/main` were both `d17b30482398472a02eefd505950f8b42af6b223` and were not checked out or modified.
+- The committed migration file remained unchanged with SHA-256 `a3e8b56ca5f3ea640ecd6fb619230038e26654422c387628792a05f728779563`. No execution target was selected because preflight found no eligible local runtime.
+- Read-only discovery found no `psql`, `pg_ctl`, `postgres`, `createdb`, or `dropdb` command; no PostgreSQL Windows service/process; and no listener on local port 5432. The common `C:\Program Files\PostgreSQL` installation root was absent.
+- Read-only discovery found no Docker or Podman command, common Docker Desktop installation, Windows service, or engine process. `wsl.exe` exists as a Windows system component, but its own read-only listing reported that Windows Subsystem for Linux is not installed, so there is no installed Linux distribution providing a safe local runtime.
+- No environment file or connection string was read or printed. No database, container, network, volume, synthetic row, migration history, or schema object was created, contacted, changed, or removed. In particular, the configured/shared Neon database was never used as a fallback.
+
+### Gate status and owner action
+
+- TEST-083 is safely blocked before resource creation because no authorized local PostgreSQL execution substrate exists. Migration application, preservation hashes, database constraint probes, second-deploy/no-drift evidence, and cleanup proof cannot truthfully be claimed from this host state.
+- The smallest owner action is to install and start either PostgreSQL 15+ locally or Docker Desktop outside this agent task, then request the same bounded rehearsal again. The rerun must create a uniquely named disposable target, verify it before every mutation/removal, avoid all remote URLs, and remove only resources created by that rerun.
+- Port `3000` is available and reserved for NutriMind. The unrelated Antigravity project uses port `3030`. This database-only phase started no application server and used neither port.
