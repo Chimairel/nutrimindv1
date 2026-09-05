@@ -235,6 +235,7 @@ Consult the engineering record for the ranked register. Important limitations in
 
 - [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md): canonical current evidence, ADRs, requirements, risks, defects, tests, and change history.
 - [`docs/NUTRIMIND_CLEANUP_PLAN.md`](docs/NUTRIMIND_CLEANUP_PLAN.md): completed Batches 1, 2A, and 3 plus proposed future cleanup batches.
+- [`docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md): accepted sandbox-first PayMongo, entitlement, webhook, financial-audit, and nutritionist-compensation architecture; implementation and production gates remain open.
 - [`chatgptcontext.md`](chatgptcontext.md): August 19 audit snapshot; useful context but not the canonical living record.
 - Root legacy prompts, addenda, handoff guides, and system references: historical, aspirational, or partially superseded as described by their notices.
 

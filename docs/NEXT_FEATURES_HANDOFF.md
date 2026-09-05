@@ -4,12 +4,12 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Phase 1, the structured-safety Phase 2, and the minimum combined-coverage catalogue addition are implemented. INT-011 populated and certified the two authorized meals, proved a zero-write repeat run, and measured live 7/7/7 Diabetes + vegetarian + egg-allergy coverage on `feature/combined-coverage-gap`.
+**Status:** Phase 1, the structured-safety Phase 2, and the minimum combined-coverage catalogue addition are implemented. INT-011 populated and certified the two authorized meals, proved a zero-write repeat run, and measured live 7/7/7 Diabetes + vegetarian + egg-allergy coverage on `feature/combined-coverage-gap`. The payment, subscription, and nutritionist-compensation architecture is accepted in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md); implementation has not started.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
-- Working branch: `feature/combined-coverage-gap`
+- Payment-planning branch: `feature/payment-subscription-architecture`, created from exact `d3c7391`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
@@ -112,33 +112,33 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 
 ### Provider direction
 
-- PayMongo is the leading candidate for Philippine payment collection, not a final integration decision.
-- Re-check current APIs, supported payment methods, sandbox behavior, fees, business/KYC requirements, webhook signing, payout capabilities, and terms immediately before implementation.
+- ADR-017 selects PayMongo as the first **sandbox collection adapter**. Production remains conditional on account verification/capability activation, written approval of NutriMind's exact business model, confirmed commercial terms, tax/refund decisions, and the production gates in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md).
+- The sandbox MVP uses one monthly Premium test price and card/Maya only when the account exposes those test capabilities. PHP 199 may be used only as a demo placeholder; it is not an approved commercial price. GCash is not promised because current official provider material leaves its subscription availability account/support dependent.
 - Begin in sandbox/test mode. A live-money demonstration requires an explicit owner decision and approved operational checklist.
 
 ### User subscriptions
 
-- Create checkout/payment intents on the backend only; provider secret keys must never reach the browser.
-- Verify webhook signatures and process provider events idempotently.
-- Model subscription state transitions, failed/late payments, cancellation, refunds, receipts, and reconciliation.
-- Store an append-only sanitized payment-event audit trail; never log card/payment credentials or unnecessary personal data.
-- Entitlements must derive from authoritative subscription state, not a client-controlled flag.
+- Keep collection, user entitlement, and compensation in separate models and ledgers.
+- Create provider resources on the backend only; provider secret keys and raw payment credentials must never reach NutriMind browser state, persistence, or logs.
+- Mount the future raw-body webhook before the current global JSON middleware, verify the environment-specific signature over the exact body, persist an immutable idempotent inbox/outbox record before 2xx, process asynchronously, and reconcile independently.
+- Grant Premium from durable paid-invoice periods established by verified webhooks or server reconciliation. Redirects and client flags never grant access.
+- Preserve an already-paid period through cancellation; bound any `past_due` grace to 72 hours; do not create a new grant for incomplete or unpaid periods. Refund-to-entitlement behavior must be explicit and auditable.
 
 ### Realistic benefit candidates
 
-- Higher but still safety-bounded meal swap/library-choice allowance
-- Longer progress/history analysis and richer exports
-- Advanced planning or household-oriented convenience features
-- Budget-oriented planning only where price coverage and freshness are disclosed
-- Final pricing, tier names, quotas, and benefit selection remain owner decisions. Core safety, restrictions, verification status, and essential nutrition information stay available to free users.
+- The only Premium MVP behavior is a six-swap weekly cap versus the existing Free cap of three. Both tiers use the same complete-profile compatibility and meal-actionability rules.
+- All safety intake, restriction enforcement, warnings, verification labels, weekly safe planning, logging, grocery data/PDF, compatible-library access, and account data export remain available to Free users.
+- Longer derived comparisons, richer convenience exports, and favorites are candidates after the MVP. Existing raw history cannot be removed from Free.
+- Household/multi-person planning, price-aware budgets, unlimited AI, priority licensed review/SLA, and promised medical outcomes are deferred.
 
 ## 6. Nutritionist compensation
 
 - User billing and nutritionist compensation are separate accounting domains. A subscription payment must never directly and automatically pay a reviewer.
 - Do not use a raw per-approved-meal salary formula; it incentivizes approval volume and weakens review quality.
-- Preferred initial model: an admin-approved compensation ledger based on an agreed employment/contract period. Review workload, turnaround, disagreement, and quality metrics may inform administration but must not autonomously determine salary.
-- Capstone-first option: record approved pay periods and manual/off-platform payouts without moving real money.
-- If automated payouts are later adopted, independently model recipient verification, payout account data, approval separation, payout batches, idempotency, failures/retries, reversals, receipts, and reconciliation.
+- Use first-class immutable work credits written with valid completed review actions. Do not infer compensation from `NutritionistProfile.totalVerified`, mutable plan state, claims, or approval counts.
+- Preferred initial formula: contracted base retainer plus a capped workload-band allowance plus independently approved adjustments. Approve/reject/escalate outcomes receive equal ordinary-review credit; quality metrics trigger review rather than automatic bonus multipliers.
+- Capstone scope records approved periods, statements, adjustments, and manual/off-platform payouts without storing bank details or moving money.
+- PayMongo **Disbursements**, rather than merchant **Payouts**, is the potentially relevant later provider function. It remains deferred behind a separate ADR covering employment/tax status, provider approval, wallet funding, recipient data, maker-checker controls, retries/reversals, and reconciliation.
 
 ## 7. Budget and ingredient-price roadmap
 
@@ -148,28 +148,19 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 - When a meal includes an ingredient without current price data, show `price unavailable` or a clearly labeled estimate/range and reduce the plan's coverage/confidence. Do not let Gemini invent an authoritative price.
 - Budget filtering must not override clinical compatibility or silently substitute unsafe ingredients.
 
-## 8. Required architecture decision before payment coding
+## 8. Accepted architecture and remaining production decisions
 
-Create and approve an ADR that fixes:
+ADR-017 is recorded in the engineering record and fully specified in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md). It fixes the sandbox provider direction, domain boundaries, MVP entitlement, webhook/idempotency design, financial and compensation records, failure/reconciliation behavior, phased tests, rollback boundaries, and capstone scope.
 
-- Provider and exact APIs
-- Sandbox versus live-demo boundary
-- Fees and who bears them
-- Subscription tiers and authoritative entitlements
-- Refund/cancellation policy
-- Nutritionist compensation and payout policy
-- Webhook threat model and idempotency design
-- Financial audit, reconciliation, data retention, and privacy controls
-- Failure/recovery procedures and capstone scope
-
-Only after this ADR should schema design and implementation begin.
+Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize code, migration application, provider calls, accounts, credentials, or live money.
 
 ## 9. Recommended execution order
 
-1. Write the payment/subscription/compensation ADR using freshly verified provider information.
-2. Implement subscription sandbox billing and admin reconciliation.
-3. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.
-4. Prototype price coverage separately, after core safety and payment flows remain stable.
+1. Implement the single bounded Phase 1 from ADR-017: additive Prisma schema/migration files plus pure state, entitlement, money, idempotency, and work-credit policies and deterministic tests. Do not apply the migration or call PayMongo.
+2. Rehearse the reviewed migration on a disposable database, then apply it to shared development only under fresh bounded owner authorization.
+3. Implement sandbox collection, then the raw-body webhook inbox/outbox and reconciliation, before enabling the 3-versus-6 swap entitlement.
+4. Add the internal compensation ledger and manual payout records after collection/entitlement evidence is stable. Consider automated disbursements only after the capstone and a separate approval.
+5. Prototype price coverage separately, after core safety and payment flows remain stable.
 
 ## 10. Instructions for the next agent or conversation
 
