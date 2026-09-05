@@ -37,6 +37,7 @@ import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
 } from '@/services/meal-swap.service';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 
 const COVERAGE_MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
 
@@ -62,6 +63,37 @@ const COMBINATION_CONSTRAINTS = [
 const COMBINATION_CONDITIONS = [
   { key: 'DIABETES', label: 'Diabetes', condition: HealthConditionType.DIABETES },
   { key: 'HYPERTENSION', label: 'Hypertension', condition: HealthConditionType.HYPERTENSION },
+] as const;
+
+const STRUCTURED_COMBINATION_COVERAGE_PROFILES = [
+  {
+    key: 'DIABETES_VEGETARIAN_EGGS',
+    label: 'Diabetes + vegetarian + egg allergy',
+    dietaryPreference: DietaryPreference.VEGETARIAN,
+    safetyEntries: [
+      { domain: 'CONDITION', canonicalCode: 'DIABETES', displayName: 'Diabetes', supportState: 'SUPPORTED' },
+      { domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' },
+    ],
+  },
+  {
+    key: 'HYPERTENSION_PESCATARIAN_DAIRY',
+    label: 'Hypertension + pescatarian + dairy allergy',
+    dietaryPreference: DietaryPreference.PESCATARIAN,
+    safetyEntries: [
+      { domain: 'CONDITION', canonicalCode: 'HYPERTENSION', displayName: 'Hypertension', supportState: 'SUPPORTED' },
+      { domain: 'ALLERGY', canonicalCode: 'DAIRY', displayName: 'Dairy', supportState: 'SUPPORTED' },
+    ],
+  },
+  {
+    key: 'DIABETES_HYPERTENSION_GLUTEN',
+    label: 'Diabetes + hypertension + gluten allergy',
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    safetyEntries: [
+      { domain: 'CONDITION', canonicalCode: 'DIABETES', displayName: 'Diabetes', supportState: 'SUPPORTED' },
+      { domain: 'CONDITION', canonicalCode: 'HYPERTENSION', displayName: 'Hypertension', supportState: 'SUPPORTED' },
+      { domain: 'ALLERGY', canonicalCode: 'GLUTEN', displayName: 'Gluten', supportState: 'SUPPORTED' },
+    ],
+  },
 ] as const;
 
 export class NutritionistService {
@@ -200,6 +232,7 @@ export class NutritionistService {
             userProfile: true,
             healthConditions: true,
             allergies: true,
+            safetyProfileEntries: true,
           },
         },
       },
@@ -210,8 +243,22 @@ export class NutritionistService {
     const warnings: { severity: 'CRITICAL' | 'IMPORTANT' | 'NOTICE'; message: string }[] = [];
     const user = updatedMealPlan.user;
     const userProfile = user.userProfile;
-    const conditions = user.healthConditions.map(hc => hc.condition);
-    const allergies = user.allergies.map(a => a.allergen);
+    const safetyRestrictions = adaptUserSafetyRestrictions({
+      safetyEntries: user.safetyProfileEntries,
+      healthConditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+      otherConditions: userProfile?.otherConditions,
+      otherAllergies: userProfile?.otherAllergies,
+    });
+    const conditions = safetyRestrictions.conditions;
+    const allergies = safetyRestrictions.allergies;
+
+    if (safetyRestrictions.requiresReview) {
+      warnings.push({
+        severity: 'IMPORTANT',
+        message: 'The user has an unsupported, pending, or evidence-incomplete structured restriction. Review every retained entry before approval.',
+      });
+    }
 
     const allergenMatches: Record<string, string[]> = {
       NUTS: ['peanut', 'peanuts', 'mani', 'cashew', 'almond', 'walnut', 'pecan', 'macadamia', 'nut', 'nuts'],
@@ -343,6 +390,7 @@ export class NutritionistService {
         carbPreference: userProfile?.carbPreference || 'MODERATE',
         conditions: conditions,
         allergies: allergies,
+        safetyEntries: safetyRestrictions.displayEntries,
       },
       ingredients: updatedMealPlan.ingredients.map(ing => ({
         name: ing.ingredientName,
@@ -660,7 +708,7 @@ export class NutritionistService {
     const plan = await prisma.mealPlan.findUnique({
       where: { id: mealPlanId },
       include: {
-        user: { include: { userProfile: true, healthConditions: true, allergies: true } }
+        user: { include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true } }
       },
     });
 
@@ -725,8 +773,15 @@ export class NutritionistService {
     // Generate a replacement only after the rejection decision commits.
     try {
       const profile = plan.user.userProfile;
-      const conditions = plan.user.healthConditions.map((c) => c.condition);
-      const allergens = plan.user.allergies.map((a) => a.allergen);
+      const safetyRestrictions = adaptUserSafetyRestrictions({
+        safetyEntries: plan.user.safetyProfileEntries,
+        healthConditions: plan.user.healthConditions.map((item) => item.condition),
+        allergies: plan.user.allergies.map((item) => item.allergen),
+        otherConditions: profile?.otherConditions,
+        otherAllergies: profile?.otherAllergies,
+      });
+      const conditions = [...safetyRestrictions.conditions, ...safetyRestrictions.customConditions];
+      const allergens = [...safetyRestrictions.allergies, ...safetyRestrictions.customFoodRestrictions];
 
       const prompt =
         `Generate a single replacement ${plan.mealType} meal for a Filipino patient with these constraints:\n` +
@@ -971,6 +1026,12 @@ export class NutritionistService {
       dietaryPreference: DietaryPreference;
       conditions: readonly HealthConditionType[];
       allergens: readonly AllergenType[];
+      safetyEntries?: readonly {
+        domain: string;
+        canonicalCode: string | null;
+        displayName: string;
+        supportState: string;
+      }[];
     }) => {
       const matching = meals.filter((meal) => isCertifiedLibraryMealCompatible(
         meal,
@@ -981,6 +1042,7 @@ export class NutritionistService {
           goal: Goal.MAINTAIN,
           otherConditions: null,
           otherAllergies: null,
+          safetyEntries: definition.safetyEntries,
         }
       ));
       const counts = Object.fromEntries(COVERAGE_MEAL_TYPES.map((mealType) => [
@@ -1021,6 +1083,17 @@ export class NutritionistService {
       label,
     }));
 
+    const structuredProfiles = STRUCTURED_COMBINATION_COVERAGE_PROFILES.map((definition) => ({
+      key: definition.key,
+      label: definition.label,
+      ...countProfile({
+        dietaryPreference: definition.dietaryPreference,
+        conditions: [],
+        allergens: [],
+        safetyEntries: definition.safetyEntries,
+      }),
+    }));
+
     return {
       certifiedMeals: meals.filter((meal) =>
         meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
@@ -1031,6 +1104,7 @@ export class NutritionistService {
       profiles,
       combinationColumns,
       combinationMatrix,
+      structuredProfiles,
     };
   }
 

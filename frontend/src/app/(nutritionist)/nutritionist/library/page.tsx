@@ -100,6 +100,14 @@ interface LibraryCoverage {
       weekReady: boolean;
     }>;
   }>;
+  structuredProfiles: Array<{
+    key: string;
+    label: string;
+    counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+    total: number;
+    minimumPerSlot: number;
+    weekReady: boolean;
+  }>;
 }
 
 const AVAILABLE_CONDITIONS = [
@@ -511,6 +519,29 @@ export default function MealLibraryPage() {
               </table>
             </div>
           </Card>
+          <div className="grid gap-3 lg:grid-cols-3" aria-label="Structured combined profile coverage">
+            {coverage.structuredProfiles.map((profile) => (
+              <Card key={profile.key} className="border-brand-border/60 bg-brand-surface/65 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-cyan">Structured profile</p>
+                    <p className="mt-1 text-sm font-extrabold text-brand-text">{profile.label}</p>
+                  </div>
+                  <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
+                    {profile.weekReady ? 'Week ready' : 'Coverage gap'}
+                  </Badge>
+                </div>
+                <dl className="mt-4 grid grid-cols-3 gap-1 text-center">
+                  {(['BREAKFAST', 'LUNCH', 'DINNER'] as const).map((slot) => (
+                    <div key={slot} className="rounded-lg border border-brand-border/50 bg-brand-bg/50 px-1 py-2">
+                      <dt className="text-[8px] font-bold uppercase text-brand-muted">{slot.slice(0, 1)}</dt>
+                      <dd className="mt-0.5 font-mono text-xs font-black text-brand-text">{profile.counts[slot]}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Card>
+            ))}
+          </div>
         </section>
       )}
 

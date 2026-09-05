@@ -73,6 +73,11 @@ interface DetailData {
     carbPreference: string;
     conditions: string[];
     allergies: string[];
+    safetyEntries?: Array<{
+      domain: 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT' | 'UNKNOWN';
+      label: string;
+      supportState: string;
+    }>;
   };
   ingredients: {
     name: string;
@@ -485,6 +490,22 @@ export default function ReviewsPage() {
                     )}
                   </div>
                 </div>
+
+                {detailData.user.safetyEntries && detailData.user.safetyEntries.length > 0 && (
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-bold text-brand-muted">Complete structured restrictions</h4>
+                    <div className="space-y-1.5">
+                      {detailData.user.safetyEntries.map((entry, index) => (
+                        <div key={`${entry.domain}-${entry.label}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-brand-border/60 bg-brand-bg/50 px-2.5 py-2 text-[10px]">
+                          <span className="font-bold text-brand-text">{entry.label}</span>
+                          <span className="text-right font-mono uppercase text-brand-muted">
+                            {entry.domain.replaceAll('_', ' ')} · {entry.supportState.replaceAll('_', ' ')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* General Info Grid */}
                 <div className="grid grid-cols-2 gap-4 text-xs pt-2 border-t border-brand-border">

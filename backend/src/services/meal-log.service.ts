@@ -9,6 +9,7 @@ import {
   AllergenType 
 } from '@prisma/client';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 
 interface LogOutsideMealInput {
   userId: string;
@@ -93,6 +94,7 @@ export class MealLogService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
       },
     });
 
@@ -101,8 +103,15 @@ export class MealLogService {
     }
 
     const dailyCalorieTarget = user.userProfile.dailyCalorieTarget || 2000;
-    const conditions = user.healthConditions.map((c) => c.condition);
-    const allergens = user.allergies.map((a) => a.allergen);
+    const safetyRestrictions = adaptUserSafetyRestrictions({
+      safetyEntries: user.safetyProfileEntries,
+      healthConditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+      otherConditions: user.userProfile.otherConditions,
+      otherAllergies: user.userProfile.otherAllergies,
+    });
+    const conditions = safetyRestrictions.conditions;
+    const allergens = safetyRestrictions.allergies;
 
     // 2. Perform Gemini AI nutritional and ingredient estimation
     console.log(`[Meal Log] Querying Gemini AI estimation for outside meal: "${mealName}"`);
@@ -129,6 +138,13 @@ export class MealLogService {
     // --- WARNING CHECKS LAYER ---
     const detectedWarnings: string[] = [];
     const conflictReasons: string[] = [];
+
+    if (safetyRestrictions.requiresReview) {
+      detectedWarnings.push('RESTRICTION_REVIEW');
+      conflictReasons.push(
+        'Your health profile contains an unsupported, pending, or evidence-incomplete restriction. This meal requires individual review before it can be treated as compatible.'
+      );
+    }
 
     /**
      * Normalize text for allergen matching:

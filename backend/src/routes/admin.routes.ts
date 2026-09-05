@@ -167,4 +167,9 @@ router.get('/safety-incidents', async (_req: AuthenticatedRequest, res: Response
   return res.json({ success: true, data });
 });
 
+router.get('/structured-safety-operations', async (_req: AuthenticatedRequest, res: Response) => {
+  const data = await AdminService.getStructuredSafetyOperations();
+  return res.json({ success: true, data });
+});
+
 export default router;

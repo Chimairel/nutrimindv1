@@ -18,6 +18,10 @@ import {
 } from '@/domain/meal-generation-library-compatibility.adapter';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+import {
+  adaptUserSafetyRestrictions,
+  type StructuredSafetyRestrictionEntry,
+} from '@/domain/structured-restriction.adapter';
 
 export const certifiedLibraryMealInclude = {
   ingredients: { orderBy: { position: 'asc' as const } },
@@ -35,6 +39,7 @@ export type UserCompatibilityProfile = {
   goal: string | null;
   otherConditions: string | null;
   otherAllergies: string | null;
+  safetyEntries?: readonly StructuredSafetyRestrictionEntry[];
 };
 
 export function isCertifiedLibraryMealCompatible(
@@ -51,13 +56,15 @@ export function isCertifiedLibraryMealCompatible(
   });
   if (!safety.complete) return false;
 
+  const restrictions = adaptUserSafetyRestrictions({
+    safetyEntries: profile.safetyEntries,
+    healthConditions: userConditions,
+    allergies: userAllergens,
+    otherConditions: profile.otherConditions,
+    otherAllergies: profile.otherAllergies,
+  });
   const compatibility = evaluateMealGenerationLibraryCompatibility({
-    userRestrictions: {
-      conditions: userConditions,
-      allergies: userAllergens,
-      customConditions: profile.otherConditions || '',
-      customAllergies: profile.otherAllergies || '',
-    },
+    userRestrictions: restrictions.evaluationRestrictions,
     candidate: {
       status: meal.status,
       suitableConditions: safety.suitableConditions,
@@ -109,6 +116,7 @@ export class MealSwapService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
       },
     });
 
@@ -164,7 +172,10 @@ export class MealSwapService {
     const eligibleMeals = libraryMeals.filter((meal) =>
       meal.id !== mealPlan.libraryMealId &&
       !usedLibraryMealIds.has(meal.id) &&
-      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, userProfile)
+      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+        ...userProfile,
+        safetyEntries: user.safetyProfileEntries,
+      })
     );
 
     return {
@@ -217,14 +228,14 @@ export class MealSwapService {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { userProfile: true, healthConditions: true, allergies: true },
+      include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
     });
     if (!user?.userProfile) throw new Error('User profile not found.');
     if (!isCertifiedLibraryMealCompatible(
       libraryMeal,
       user.healthConditions.map((item) => item.condition),
       user.allergies.map((item) => item.allergen),
-      user.userProfile
+      { ...user.userProfile, safetyEntries: user.safetyProfileEntries }
     )) {
       throw new Error('Selected replacement meal is not certified for your current health profile.');
     }
@@ -317,6 +328,7 @@ export class MealSwapService {
           userProfile: true,
           healthConditions: true,
           allergies: true,
+          safetyProfileEntries: true,
         },
       });
 
@@ -379,7 +391,7 @@ export class MealSwapService {
         libraryMeal,
         userConditions,
         userAllergens,
-        userProfile
+        { ...userProfile, safetyEntries: user.safetyProfileEntries }
       )) {
         throw new Error('Selected meal is not certified for your current health profile.');
       }
@@ -595,6 +607,7 @@ export class MealSwapService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
       },
     });
 
@@ -624,7 +637,10 @@ export class MealSwapService {
 
     // 3. Fail closed unless evidence is current, complete, and compatible.
     const eligibleMeals = libraryMeals.filter((meal) =>
-      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, userProfile)
+      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+        ...userProfile,
+        safetyEntries: user.safetyProfileEntries,
+      })
     );
 
     return eligibleMeals.map((m) => ({

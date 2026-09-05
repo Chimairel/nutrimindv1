@@ -44,6 +44,19 @@ export default function NutritionReportPage() {
       .filter((value) => value && value !== 'NONE');
   };
 
+  const extractStructuredRestrictions = (values: unknown, domainGroup: 'condition' | 'food') => {
+    if (!Array.isArray(values) || values.length === 0) return null;
+    return values
+      .filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object')
+      .filter((entry) => domainGroup === 'condition'
+        ? entry.domain === 'CONDITION'
+        : entry.domain === 'ALLERGY' || entry.domain === 'INTOLERANCE' || entry.domain === 'AVOIDED_INGREDIENT')
+      .map((entry) => typeof entry.canonicalCode === 'string' && entry.canonicalCode
+        ? entry.canonicalCode
+        : typeof entry.displayName === 'string' ? entry.displayName : '')
+      .filter((value) => value && value !== 'NONE');
+  };
+
   const normalizeContext = (values: unknown) => Array.from(new Set(
     (Array.isArray(values) ? values : [])
       .filter((value): value is string => typeof value === 'string')
@@ -66,12 +79,14 @@ export default function NutritionReportPage() {
         const profileRes = await api.get('/user/profile');
         if (profileRes.data?.success) {
           const p = profileRes.data.data;
+          const structuredConditions = extractStructuredRestrictions(p.safetyEntries, 'condition');
+          const structuredFoodRestrictions = extractStructuredRestrictions(p.safetyEntries, 'food');
           setProfileData({
             name: p.name || 'User',
             goal: p.userProfile?.goal || 'MAINTAIN',
             dailyCalorieTarget: p.userProfile?.dailyCalorieTarget || 0,
-            conditions: extractRestrictionKeys(p.healthConditions, 'condition'),
-            allergies: extractRestrictionKeys(p.allergies, 'allergen'),
+            conditions: structuredConditions ?? extractRestrictionKeys(p.healthConditions, 'condition'),
+            allergies: structuredFoodRestrictions ?? extractRestrictionKeys(p.allergies, 'allergen'),
           });
         }
 
@@ -212,7 +227,7 @@ export default function NutritionReportPage() {
           <p className="portal-kicker !text-status-pending-text">Health context changed</p>
           <h1 className="mt-3 font-display text-2xl font-black">Your nutrition report needs an update</h1>
           <p className="mt-3 text-sm leading-6 text-brand-muted">
-            Your conditions or allergies changed after this report was created. The older guidance is hidden so it cannot conflict with your current health profile.
+            Your conditions, allergies, intolerances, or avoided foods changed after this report was created. The older guidance is hidden so it cannot conflict with your current health profile.
           </p>
           {error && <p role="alert" className="mt-4 text-xs font-semibold text-status-error-text">{error}</p>}
           <Button variant="primary" onClick={handleRegenerate} isLoading={isRegenerating} className="mt-6 w-full">

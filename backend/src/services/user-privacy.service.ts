@@ -23,6 +23,7 @@ export class UserPrivacyService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
         nutritionReport: true,
         mealPlans: { include: { ingredients: true } },
         mealLogs: true,
@@ -67,4 +68,3 @@ export class UserPrivacyService {
     });
   }
 }
-

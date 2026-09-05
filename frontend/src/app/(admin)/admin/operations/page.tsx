@@ -23,9 +23,15 @@ interface SafetyIncident {
   flaggedByNutritionist: { user: { name: string } };
 }
 
+interface StructuredSafetyOperations {
+  usersRequiringReview: number;
+  entries: Array<{ domain: string; supportState: string; count: number }>;
+}
+
 export default function AdminOperationsPage() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [incidents, setIncidents] = useState<SafetyIncident[]>([]);
+  const [structuredSafety, setStructuredSafety] = useState<StructuredSafetyOperations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -33,12 +39,14 @@ export default function AdminOperationsPage() {
     setLoading(true);
     setError('');
     try {
-      const [auditResponse, incidentResponse] = await Promise.all([
+      const [auditResponse, incidentResponse, structuredResponse] = await Promise.all([
         api.get('/admin/audit-events?limit=30'),
         api.get('/admin/safety-incidents'),
+        api.get('/admin/structured-safety-operations'),
       ]);
       setEvents(auditResponse.data?.data?.events || []);
       setIncidents(incidentResponse.data?.data || []);
+      setStructuredSafety(structuredResponse.data?.data || null);
     } catch {
       setError('Could not load operational records.');
     } finally {
@@ -59,6 +67,24 @@ export default function AdminOperationsPage() {
       />
 
       {error && <div role="alert" className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>}
+
+      {structuredSafety && (
+        <section aria-labelledby="structured-safety-heading">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <p id="structured-safety-heading" className="portal-section-label">Structured restriction review gates</p>
+            <p className="text-xs font-bold text-brand-muted">{structuredSafety.usersRequiringReview} users require review</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {structuredSafety.entries.map((entry) => (
+              <Card key={`${entry.domain}-${entry.supportState}`} className="p-4">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">{entry.domain.replaceAll('_', ' ')}</p>
+                <p className="mt-2 text-2xl font-black text-brand-text">{entry.count}</p>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">{entry.supportState.replaceAll('_', ' ')}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <p className="portal-section-label mb-4">Pending safety incidents</p>

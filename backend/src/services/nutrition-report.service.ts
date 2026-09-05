@@ -1,8 +1,8 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
-import { HealthConditionType, AllergenType } from '@prisma/client';
 import { z } from 'zod';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 
 const NUTRITION_REPORT_SYSTEM_CONTEXT = `
 You are generating a nutrition report for a system with this
@@ -78,6 +78,7 @@ export class NutritionReportService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
       },
     });
 
@@ -86,10 +87,17 @@ export class NutritionReportService {
     }
 
     const profile = user.userProfile;
-    const conditions = user.healthConditions.map((c) => c.condition);
-    const allergens = user.allergies.map((a) => a.allergen);
-    const otherConditions = profile.otherConditions || '';
-    const otherAllergies = profile.otherAllergies || '';
+    const safetyRestrictions = adaptUserSafetyRestrictions({
+      safetyEntries: user.safetyProfileEntries,
+      healthConditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+      otherConditions: profile.otherConditions,
+      otherAllergies: profile.otherAllergies,
+    });
+    const conditions = safetyRestrictions.conditions;
+    const allergens = safetyRestrictions.allergies;
+    const otherConditions = safetyRestrictions.customConditions.join(', ');
+    const otherAllergies = safetyRestrictions.customFoodRestrictions.join(', ');
 
     // Verify stats exist
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
@@ -131,7 +139,7 @@ export class NutritionReportService {
       `\n` +
       `[CLINICAL CONSTRAINTS]\n` +
       `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +
-      `- Confirmed Food Allergies (HARD EXCLUSIONS): ${allergens.join(', ') || 'NONE'}${otherAllergies ? '; Additional: ' + otherAllergies : ''}\n` +
+      `- Food Allergies / Intolerances / Avoidances (HARD EXCLUSIONS OR REVIEW GATES): ${allergens.join(', ') || 'NONE'}${otherAllergies ? '; Additional: ' + otherAllergies : ''}\n` +
       `\n` +
       `[AVAILABLE NATIVE FILIPINO INGREDIENTS CONTEXT]\n` +
       `${formattedLocalFoods}\n` +
@@ -192,8 +200,8 @@ export class NutritionReportService {
       foodsToLimit: reportData.foodsToLimit,
       foodsRecommended: reportData.foodsRecommended,
       drinksGuidance: reportData.drinksGuidance,
-      basedOnConditions: conditions,
-      basedOnAllergies: allergens,
+      basedOnConditions: [...conditions, ...safetyRestrictions.customConditions],
+      basedOnAllergies: [...allergens, ...safetyRestrictions.customFoodRestrictions],
     };
 
     // 5. Persist the real report to database and reset acknowledgedAt (so guard lock activates)

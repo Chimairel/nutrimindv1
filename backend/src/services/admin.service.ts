@@ -144,6 +144,30 @@ export class AdminService {
     });
   }
 
+  static async getStructuredSafetyOperations() {
+    const reviewStates = ['RECOGNIZED_UNSUPPORTED', 'NEEDS_CLARIFICATION', 'PENDING_REVIEW', 'INVALID'] as const;
+    const [groupedEntries, reviewUsers] = await Promise.all([
+      prisma.safetyProfileEntry.groupBy({
+        by: ['domain', 'supportState'],
+        _count: { _all: true },
+        orderBy: [{ domain: 'asc' }, { supportState: 'asc' }],
+      }),
+      prisma.safetyProfileEntry.findMany({
+        where: { supportState: { in: [...reviewStates] } },
+        distinct: ['userId'],
+        select: { userId: true },
+      }),
+    ]);
+    return {
+      usersRequiringReview: reviewUsers.length,
+      entries: groupedEntries.map((row) => ({
+        domain: row.domain,
+        supportState: row.supportState,
+        count: row._count._all,
+      })),
+    };
+  }
+
   /**
    * Returns aggregate platform analytics.
    */

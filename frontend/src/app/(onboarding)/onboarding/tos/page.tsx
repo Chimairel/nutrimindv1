@@ -12,6 +12,7 @@ import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
 import axios from 'axios';
 import { useProfile } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
+import type { SafetyProfileEntry } from '@/types';
 
 function formatOnboardingValue(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return 'Not provided';
@@ -27,6 +28,18 @@ function joinSelections(values: string[], custom?: string) {
   const selections = normalizeExclusiveNone(values).filter((value) => value !== 'NONE').map(formatOnboardingValue);
   if (custom) selections.push(custom);
   return selections.length > 0 ? selections.join(', ') : 'None declared';
+}
+
+function joinStructuredSelections(
+  entries: readonly SafetyProfileEntry[] | undefined,
+  domain: 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT',
+  legacy: string
+) {
+  if (!entries?.length) return legacy;
+  const values = entries
+    .filter((entry) => entry.domain === domain && entry.canonicalCode !== 'NONE')
+    .map((entry) => entry.displayName);
+  return values.length > 0 ? values.join(', ') : 'None declared';
 }
 
 const shoppingDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -53,6 +66,8 @@ export default function OnboardingTosPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const userProfile = profile?.userProfile;
+  const legacyConditions = joinSelections(profile?.healthConditions ?? [], userProfile?.otherConditions);
+  const legacyAllergies = joinSelections(profile?.allergies ?? [], userProfile?.otherAllergies);
   const reviewSections = [
     {
       title: 'Body & goal',
@@ -80,8 +95,10 @@ export default function OnboardingTosPage() {
       title: 'Health context',
       editPath: '/onboarding/conditions',
       items: [
-        ['Conditions', joinSelections(profile?.healthConditions ?? [], userProfile?.otherConditions)],
-        ['Allergies', joinSelections(profile?.allergies ?? [], userProfile?.otherAllergies)],
+        ['Conditions', joinStructuredSelections(profile?.safetyEntries, 'CONDITION', legacyConditions)],
+        ['Allergies', joinStructuredSelections(profile?.safetyEntries, 'ALLERGY', legacyAllergies)],
+        ['Intolerances', joinStructuredSelections(profile?.safetyEntries, 'INTOLERANCE', 'None declared')],
+        ['Avoided foods', joinStructuredSelections(profile?.safetyEntries, 'AVOIDED_INGREDIENT', 'None declared')],
       ],
     },
     {

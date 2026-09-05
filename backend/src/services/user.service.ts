@@ -30,6 +30,7 @@ import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 
 interface ProfileUpdateData {
   age?: number;
@@ -604,6 +605,7 @@ export class UserService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
       },
     });
 
@@ -613,8 +615,15 @@ export class UserService {
     }
 
     const { userProfile } = user;
-    const userConditions = user.healthConditions.map((c) => c.condition);
-    const userAllergens = user.allergies.map((a) => a.allergen);
+    const safetyRestrictions = adaptUserSafetyRestrictions({
+      safetyEntries: user.safetyProfileEntries,
+      healthConditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+      otherConditions: userProfile.otherConditions,
+      otherAllergies: userProfile.otherAllergies,
+    });
+    const userConditions = safetyRestrictions.conditions;
+    const userAllergens = safetyRestrictions.allergies;
 
     // 2. Find the latest active planGroupId
     const latestMeal = await prisma.mealPlan.findFirst({
@@ -659,11 +668,14 @@ export class UserService {
       include: certifiedLibraryMealInclude,
     });
     const eligibleLibraryMeals = libraryMeals.filter((candidate) =>
-      isCertifiedLibraryMealCompatible(candidate, userConditions, userAllergens, userProfile)
+      isCertifiedLibraryMealCompatible(candidate, userConditions, userAllergens, {
+        ...userProfile,
+        safetyEntries: user.safetyProfileEntries,
+      })
     );
     const highRiskReviewRequired = requiresEscalatedMealReview(
       userConditions,
-      userProfile.otherConditions || ''
+      safetyRestrictions.customConditions.join(', ')
     );
     let replacedCount = 0;
     const assignedLibraryMeals = remainingMeals.map((meal) => ({
@@ -804,8 +816,8 @@ export class UserService {
         const prompt =
           `Generate a single replacement ${meal.mealType} meal for a patient with these constraints:\n` +
           `- Daily Calorie Target: ${userProfile.dailyCalorieTarget || 2000} kcal (Aim for approx: breakfast 30%, lunch 40%, dinner 30%)\n` +
-          `- Health Conditions: ${[...userConditions, userProfile.otherConditions].filter(Boolean).join(', ') || 'NONE'}\n` +
-          `- Allergens to EXCLUDE: ${[...userAllergens, userProfile.otherAllergies].filter(Boolean).join(', ') || 'NONE'}\n` +
+          `- Health Conditions: ${[...userConditions, ...safetyRestrictions.customConditions].join(', ') || 'NONE'}\n` +
+          `- Food restrictions to EXCLUDE or REVIEW: ${[...userAllergens, ...safetyRestrictions.customFoodRestrictions].join(', ') || 'NONE'}\n` +
           `- Dietary Preference: ${userProfile.dietaryPreference || 'OMNIVORE'}\n` +
           `- Goal: ${userProfile.goal || 'MAINTAIN'}\n` +
           `Return a strict JSON object:\n` +

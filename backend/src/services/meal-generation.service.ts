@@ -40,6 +40,7 @@ import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 
 interface GeneratedMeal {
   dayNumber: number;
@@ -309,6 +310,7 @@ export class MealGenerationService {
         userProfile: true,
         healthConditions: true,
         allergies: true,
+        safetyProfileEntries: true,
       },
     });
 
@@ -317,10 +319,17 @@ export class MealGenerationService {
     }
 
     const profile = user.userProfile;
-    const userConditions = user.healthConditions.map((c) => c.condition);
-    const userAllergens = user.allergies.map((a) => a.allergen);
-    const otherConditions = profile.otherConditions || '';
-    const otherAllergies = profile.otherAllergies || '';
+    const safetyRestrictions = adaptUserSafetyRestrictions({
+      safetyEntries: user.safetyProfileEntries,
+      healthConditions: user.healthConditions.map((item) => item.condition),
+      allergies: user.allergies.map((item) => item.allergen),
+      otherConditions: profile.otherConditions,
+      otherAllergies: profile.otherAllergies,
+    });
+    const userConditions = safetyRestrictions.conditions;
+    const userAllergens = safetyRestrictions.allergies;
+    const otherConditions = safetyRestrictions.customConditions.join(', ');
+    const otherAllergies = safetyRestrictions.customFoodRestrictions.join(', ');
     const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
 
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
@@ -365,12 +374,7 @@ export class MealGenerationService {
 
     const eligibleLibraryMeals = filterEligibleMealGenerationLibraryCandidates(
       evaluatedLibraryMeals,
-      {
-        conditions: userConditions,
-        allergies: userAllergens,
-        customConditions: otherConditions,
-        customAllergies: otherAllergies,
-      },
+      safetyRestrictions.evaluationRestrictions,
       ({ meal, safety }) => ({
         status: meal.status,
         suitableConditions: safety.suitableConditions,
