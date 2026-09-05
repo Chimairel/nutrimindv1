@@ -4,7 +4,7 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The payment/subscription/compensation architecture is accepted, its Phase 1 schema/pure policies are implemented, the disposable rehearsal passed, and the exact billing migration is now applied and preservation-verified on the configured shared development Neon target. All 22 billing tables remain empty. Provider integration, UI, credentials, money movement, and deployment have not started.
+**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. Billing Phase 1 and both Phase 2 migration gates are complete. Phase 3A now supplies disabled TEST-only PayMongo checkout and signed-webhook boundaries with deterministic fakes; runtime HTTP/database adapters remain disconnected. All 22 billing tables remain empty. Real sandbox/provider traffic, webhook persistence/processing, reconciliation, entitlement activation, UI, credentials, money movement, and deployment have not started.
 
 ## 1. Resume point
 
@@ -12,6 +12,7 @@
 - Billing-foundation branch: `feature/billing-foundation`, commit `753be3d`
 - Migration-rehearsal branch: `feature/billing-migration-rehearsal`, created from exact billing-foundation commit `753be3d`
 - Shared-migration branch: `feature/billing-shared-migration`, created from exact rehearsal commit `7f5eb3d`
+- PayMongo-boundary branch: `feature/paymongo-adapter-boundary`, created from exact shared-migration commit `1f31a83`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
@@ -161,8 +162,8 @@ Production remains blocked on PayMongo's written business approval and actual ac
 
 ## 9. Recommended execution order
 
-1. Implement Phase 3 sandbox collection behind disabled-by-default configuration, with server-only PayMongo boundaries, environment/idempotency controls, sanitized errors, and no live-money capability.
-2. Implement the raw-body webhook inbox/outbox and reconciliation before treating provider state as authoritative.
+1. Run the separately authorized Phase 3B manual sandbox gate: confirm PayMongo account/business acceptance and card/Maya test capabilities, provide secrets outside source, connect the reviewed repository/HTTP seams, and create one idempotent hosted test checkout with the disable switch ready.
+2. Register and verify sandbox webhook delivery, then implement the durable inbox/outbox processor and reconciliation before treating provider state as authoritative.
 3. Enable the 3-versus-6 swap entitlement only after provider state, webhook processing, and reconciliation are stable.
 4. Add the internal compensation ledger and manual payout records after collection/entitlement evidence is stable. Consider automated disbursements only after the capstone and a separate approval.
 5. Prototype price coverage separately, after core safety and payment flows remain stable.

@@ -31,10 +31,10 @@ Rules:
 | ADR | Architecture/design decision | ADR-018 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-023 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-08 |
-| TEST | Test case or verification procedure | TEST-085 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-09 |
+| TEST | Test case or verification procedure | TEST-090 |
 | UNC | Unresolved uncertainty | UNC-017 |
-| DOC | Documentation correction or addition | DOC-034 |
+| DOC | Documentation correction or addition | DOC-035 |
 
 ---
 
@@ -518,6 +518,11 @@ No schema or migration changes are authorized in the first run. Before future un
 | TEST-082 | Nutritionist work-credit and compensation policy | Backend pure-policy unit | Review outcomes do not change ordinary credit; source actions and reversals deduplicate; corrections append signed reversals; fixed workload bands cap volume incentives; adjustments/gross/payout currency and amount boundaries hold; maker-checker actors differ | Pass: 8 database-free cases | CHG-20260905-05; REQ-021; ADR-017 |
 | TEST-083 | Disposable billing-migration rehearsal | Docker PostgreSQL 16.4; Prisma production migration path/status/diff; SQL object inventory; count/hash preservation; rollback-only relation/constraint probes; full backend regression/build; exact cleanup audit | Exact 16-migration baseline precedes the billing migration; committed checksum/history match; additive object deltas and manual constraints exist; prebilling rows do not change; invalid finance/work-credit/compensation states reject; second deploy is empty with no drift; all task resources are removed | Pass locally: 17 migrations current; 34 prebilling table snapshots unchanged; +22 tables, +21 enums, +89 indexes, +42 foreign keys, +43 checks; 18 exact constraint failures and 9 relation/state assertions pass; 303 tests registered, 302 pass, 0 fail, 1 existing TODO; clean resource teardown | `backend/scripts/billing-migration-rehearsal.sql`; CHG-20260905-06; REQ-021; ADR-017; DOC-032 |
 | TEST-084 | Shared-development billing migration acceptance | Sanitized target classification; canonical history checksums; exact pending-set gate; migration-derived local schema parity; privacy-safe pre/post count/hash snapshots; postflight object/empty-table inventory; second deploy/status; backend regression/build/static audit | Target is the owner-authorized pooled Neon `neondb`/`public` development schema; exactly billing migration pending/applied; 17 clean history rows with expected checksum; all billing objects present and empty; 34 old-domain snapshots unchanged; no drift or second-deploy write | Pass: only `20260905180000_billing_foundation` applied; checksum `a3e8…79563`; 22 tables, 21 enum types/83 values, 67 declared indexes, 42 FKs, 43 checks, 2 partial indexes, 0 billing rows; 303 tests registered, 302 pass, 0 fail, 1 existing TODO | CHG-20260905-07; REQ-021; ADR-017; DOC-033 |
+| TEST-085 | Disabled and sandbox-only PayMongo configuration | Pure configuration policy with synthetic environment maps | Missing switch defaults disabled; enabled mode requires exact TEST keys/HTTPS returns; fixed origins, 5s timeout, 64 KiB limits, and 5-minute signature tolerance; malformed/live/production-enabled settings fail closed without echoing values | Pass: 6 deterministic cases | `backend/tests/paymongo-config-policy.test.ts`; CHG-20260905-08; REQ-021; ADR-017 |
+| TEST-086 | Provider-neutral gateway and PayMongo adapter | Injected fake HTTP transport only | Exact HTTPS v2 endpoint, Basic secret-key auth, idempotency, fixed redirect policy, card/Maya request, bounded response, test-mode response, checkout-origin allow-list, and sanitized failures hold without network access | Pass: 6 deterministic cases | `backend/tests/paymongo-gateway.test.ts`; CHG-20260905-08; REQ-021; ADR-017 |
+| TEST-087 | Authenticated owner-scoped checkout-intent boundary | Injected fake gateway/repository/clock-independent service | Disabled mode is inert; owner and eligible-price scope propagate; exact replay avoids provider work; collisions and malformed/unavailable inputs fail closed; failures release claims; no checkout result grants entitlement | Pass: 7 deterministic cases | `backend/tests/billing-checkout-boundary.test.ts`; CHG-20260905-08; REQ-021; ADR-017 |
+| TEST-088 | PayMongo signed raw webhook boundary | Exact byte fixtures, HMAC-SHA256, fake clock, injected fake atomic inbox | Test/live signature-slot selection, tamper/stale/future/malformed/live-event rejection, event allow-list, minimal sanitized envelope/hash, duplicate/conflict/out-of-order/unknown handling, 64 KiB limit, repository failure, and zero entitlement effect | Pass: 13 deterministic cases | `backend/tests/paymongo-webhook-boundary.test.ts`; CHG-20260905-08; REQ-021; ADR-017 |
+| TEST-089 | Checkout and webhook route boundary | Direct Express handler/router inspection without a listener or port | Auth/USER/readiness precede checkout; idempotency header is required; disabled and successful responses are sanitized; redirect cannot grant entitlement; webhook requires JSON/raw bytes/signature; raw parser precedes global JSON; accepted/duplicate/quarantine/conflict/oversize responses are stable | Pass: 8 deterministic cases | `backend/tests/paymongo-route-boundary.test.ts`; CHG-20260905-08; REQ-021; ADR-017 |
 | INT-009 | Structured safety persistence, compatibility projection, history, report invalidation, and bounded plan/grocery behavior | Guarded live Prisma/service fixture against the configured Neon database | Mixed restrictions and controlled aliases survive reload; one revision per semantic change; identical save is idempotent; stale report acknowledgement clears; a still-compatible certified active plan and its derived grocery list remain actionable and unchanged; exact fixture cleanup leaves no rows | Pass: 7 entries reloaded; `high blood pressure` resolved to `HYPERTENSION`; revision delta 1; report invalidated; compatible plan actionable; grocery projection unchanged; identical save unchanged; 0 residual users/entries/plans/grocery lists | `backend/scripts/structured-safety-intake-acceptance.ts`; CHG-20260905-01; REQ-018; ADR-016 |
 | E2E-007 | Structured safety onboarding and editable Health profile | Authenticated in-app browser at default desktop and 390x844 mobile viewport using an exact reserved account | Mixed predefined/custom values, separators, multi-word terms, aliases, classifications, vague-entry errors, removal, keyboard confirmation/submission, save, report invalidation, and profile reload behave visibly without console errors | Pass for onboarding and Health profile: conditions and all three food domains saved; `spicy food` removal survived reload; desktop/mobile layouts remained usable; 0 browser warnings/errors; fixture and sessions removed. No active-plan replacement was exercised by this browser actor | CHG-20260905-01; REQ-018; ADR-016; INT-009 |
 
@@ -2526,3 +2531,44 @@ This section is a continuity record for agreed future work. Every item below is 
 ### Next gate
 
 - The next smallest phase is Phase 3 sandbox collection only: disabled-by-default server-side provider adapter boundaries and deterministic tests. It remains gated on owner-controlled sandbox capability/credentials, provider business acceptance, test-mode enforcement, secret isolation, idempotency, sanitization, and an immediate disable path. Redirects must never grant Premium; verified webhook/reconciliation authority remains a later phase before entitlement activation.
+
+## 42. Disabled PayMongo adapter and webhook-intake boundary (2026-09-05)
+
+**Requirement ID:** REQ-021
+
+**Decision ID:** ADR-017
+
+**Change ID:** CHG-20260905-08
+
+**Verification IDs:** TEST-085, TEST-086, TEST-087, TEST-088, TEST-089
+
+**Documentation ID:** DOC-034
+
+### Provider contract and configuration boundary
+
+- Official PayMongo Hosted Checkout, idempotency, webhook signature, event, retry, error, testing, and payment-method documentation was rechecked on September 5, 2026. The implementation selects the currently recommended server-side `POST /v2/checkout_sessions`, Basic secret-key authentication, `Idempotency-Key`, provider-hosted `checkout_url`, and signed webhook authority. Exact source links and two documentation inconsistencies are recorded in ADR-017 section 3.6.
+- `paymongo-config.policy.ts` defaults to disabled, permits enabled Phase 3A only in non-production `TEST` mode, requires test-key/webhook-secret shapes plus HTTPS success/cancel URLs, fixes the API and checkout origins, and fixes a 5-second HTTP timeout, 64 KiB request/response limits, and 5-minute signature tolerance. Configuration errors contain key names only. The environment example contains no value.
+- The detailed webhook guide uses `Paymongo-Signature` with `t`, `te`, and `li`; a general best-practices page says `X-Paymongo-Signature`. Phase 3A follows the detailed guide and accepted ADR. The detailed event catalogue includes `subscription.activated` and `subscription.invoice.updated`, while the webhook-resource registration list omits them; actual sandbox endpoint registration/delivery remains unverified.
+
+### Checkout and provider adapter boundary
+
+- Added provider-neutral gateway, HTTP transport, checkout-intent repository, and webhook-inbox repository contracts. `PaymongoGateway` accepts only an injected transport; deterministic tests use fakes. The application runtime deliberately supplies no network transport and no database repository, so even valid-looking local configuration cannot contact PayMongo or mutate billing data in this phase.
+- The adapter emits only the fixed HTTPS PayMongo v2 checkout URL, forbids redirects, bounds timeout and response bytes, uses server-side Basic authentication and the provider idempotency header, allows only `card` and `paymaya`, sends an opaque reference plus price data, and rejects unexpected live mode or checkout URL origins. It never includes a user ID, health data, or arbitrary metadata and never returns a provider client key.
+- `POST /api/billing/subscriptions` is mounted behind the existing authentication, `USER` role, and ready-user prerequisites. The route requires an idempotency header and strict price code. Its injected repository contract owns eligible-price lookup, user scoping, request hash/collision classification, replay, completion, and claim release. Disabled and infrastructure failures return stable sanitized responses. Every result carries `entitlementGranted: false`.
+
+### Signed webhook intake boundary
+
+- `POST /api/webhooks/paymongo` is public by provider signature and is mounted with route-scoped `express.raw()` before global JSON parsing. It accepts only JSON and 64 KiB, parses exactly `t`/`te`/`li`, selects the configured signature slot, verifies HMAC-SHA256 over the exact `timestamp.rawBody` with `timingSafeEqual`, rejects timestamps outside five minutes, and parses the minimal event envelope only after authentication.
+- The TEST-only runtime rejects `livemode: true`. The explicit allow-list covers Hosted Checkout paid plus bounded subscription/invoice events. Unknown valid events are marked ignored/quarantined; a repository-reported out-of-order event is quarantined; exact duplicates are acknowledged; provider-event ID/hash conflicts return non-2xx; unavailable durable ingestion returns 503 for provider retry.
+- The injected atomic inbox contract receives only provider/environment/event ID, type, livemode, SHA-256 body hash, timestamps, signature-key version, minimal resource ID/type, and disposition. It receives no raw body or full provider payload. Phase 3A does not process any event into subscription, invoice, payment, refund, ledger, entitlement, or compensation state.
+
+### Verification and preserved boundaries
+
+- TEST-085 through TEST-089 add 40 deterministic cases. The full backend suite reports **343 registered, 342 pass, 0 fail, and 1 pre-existing clinical-policy TODO**. Tests use synthetic process-local secrets, fake clocks, fake repositories, and fake HTTP transports; they open no listener and use no port.
+- Backend production build and Prisma schema validation pass. No Prisma schema, migration, lockfile, frontend, auth, clinical-safety, catalogue, review, or existing billing-policy source changed. The committed billing migration checksum remains `a3e8b56ca5f3ea640ecd6fb619230038e26654422c387628792a05f728779563`.
+- No PayMongo/provider HTTP request, provider account action, credential, shared/configured Neon query or mutation, migration, seed, financial row, entitlement grant, email, OAuth, Gemini, deployment, application server, browser, or port 3000/5000/3030 was used.
+
+### Next gate
+
+- The next smallest phase is manual Phase 3B sandbox acceptance under fresh owner authorization: confirm PayMongo business/account and card/Maya test capabilities, supply secrets outside source, connect reviewed checkout persistence and an injected real HTTP transport, and create one idempotent hosted test checkout with the disable switch ready. The browser return remains non-authoritative.
+- Webhook endpoint registration/delivery and durable database inbox evidence remain separate bounded work. Provider-event processing/reconciliation, subscription/invoice/ledger projection, Premium grants, frontend subscription UX, refunds, compensation, and payouts remain pending.

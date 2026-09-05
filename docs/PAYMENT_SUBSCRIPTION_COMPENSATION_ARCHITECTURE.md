@@ -1,6 +1,6 @@
 # NutriMind Payment, Subscription, and Nutritionist Compensation Architecture
 
-**Status:** Accepted architecture. Phase 1 schema/pure policies and both Phase 2 migration gates are complete: the disposable rehearsal passed and the exact migration is applied to shared development with preservation/no-drift evidence. Provider integration, UI, credentials, money movement, and deployment remain pending.
+**Status:** Accepted architecture. Phase 1 schema/pure policies, both Phase 2 migration gates, and the inert Phase 3A PayMongo adapter/webhook boundary are complete. Phase 3A is disabled by default and has no connected HTTP transport or database repository. Real sandbox checkout, webhook delivery/persistence/processing, reconciliation, entitlement activation, UI, credentials, money movement, and deployment remain pending.
 
 **Decision ID:** ADR-017
 
@@ -26,9 +26,9 @@ The capstone implementation will record nutritionist compensation and manual/off
 
 ## 2. Current repository boundary
 
-The current repository has no payment, subscription, entitlement, invoice, refund, compensation, or payout models or routes. The existing `User` roles remain `USER`, `NUTRITIONIST`, and `ADMIN`. `NutritionistProfile.totalVerified` is a mutable aggregate and cannot serve as payroll evidence. Existing review flows use a pooled queue with exclusive 30-minute claims and independent second approval for high-risk plans. Compensation evidence must therefore be written in the same transaction as an eligible completed review action, rather than reconstructed from aggregate counters or current plan state.
+Phase 1 added payment, subscription, entitlement, invoice, refund, webhook, compensation, and payout persistence definitions. Phase 3A adds only an authenticated checkout route shell plus a public signed-webhook intake shell. Their runtime repository and network adapters remain deliberately disconnected. The existing `User` roles remain `USER`, `NUTRITIONIST`, and `ADMIN`. `NutritionistProfile.totalVerified` is a mutable aggregate and cannot serve as payroll evidence. Existing review flows use a pooled queue with exclusive 30-minute claims and independent second approval for high-risk plans. Compensation evidence must therefore be written in the same transaction as an eligible completed review action, rather than reconstructed from aggregate counters or current plan state.
 
-The current Express app mounts `express.json()` before its ordinary routers. A future PayMongo webhook route must be mounted before that middleware and receive the exact raw bytes required for signature verification. This ADR does not make that source change.
+The Express app now mounts `POST /api/webhooks/paymongo` with a route-scoped raw parser before `express.json()`. The disabled Phase 3A handler verifies exact bytes only when explicitly configured and can persist only through an injected atomic inbox contract; the production runtime supplies no repository yet and therefore cannot acknowledge a valid event as durable.
 
 The existing meal-swap allowance is three per weekly cycle. It is the only current behavior chosen for the first Premium entitlement experiment: Free retains three and Premium receives six. All compatibility, restriction, approval, and weekly boundary rules remain identical.
 
@@ -75,6 +75,14 @@ Production activation requires account and business verification, supporting doc
 PayMongo's official restricted-business list identifies subscription services and telemedicine, telehealth, and medical-benefit packages as elevated-risk categories that may require prior written approval. NutriMind's exact classification is unresolved. Production use requires written provider confirmation before live credentials or money are introduced. [Restricted businesses](https://www.paymongo.com/en/restricted-businesses)
 
 PayMongo's provider invoice identifies a subscription billing cycle. This ADR does not assume that the provider invoice or an emailed payment receipt satisfies Philippine BIR invoicing requirements. The owner must obtain accounting/legal guidance and define the merchant's invoice/official-receipt process before production. [Invoice resource](https://docs.paymongo.com/reference/invoice)
+
+### 3.6 Phase 3A contract revalidation
+
+The provider contracts used by Phase 3A were rechecked on September 5, 2026. Current Hosted Checkout guidance recommends server-side `POST /v2/checkout_sessions`, HTTP Basic authentication with the secret key as username and an empty password, `data.attributes.checkout_url` as the redirect target, and `checkout_session.payment.paid` as webhook authority rather than the browser return. Current idempotency guidance requires `Idempotency-Key` on create operations, permits up to 255 characters, rejects changed retry parameters, and retains provider keys for 24 hours. [Hosted Checkout quick start](https://docs.paymongo.com/docs/payment-channels-hosted-checkout-quick-start), [idempotent requests](https://docs.paymongo.com/reference/idempotent-requests)
+
+The detailed webhook setup guide still defines `Paymongo-Signature` as `t`, `te`, and `li`, with HMAC-SHA256 over `timestamp.rawBody`; it requires selection of `te` for test and `li` for live events. PayMongo expects a JSON 2xx acknowledgement, times out after 30 seconds, and retries failed deliveries up to 12 times. [webhook setup](https://docs.paymongo.com/docs/developer-tools-webhook-setup-management), [retry logic](https://docs.paymongo.com/docs/developer-tools-retry-logic), [webhook resource](https://docs.paymongo.com/reference/webhook-resource)
+
+Two official inconsistencies remain open for sandbox acceptance. A general best-practices page names `X-Paymongo-Signature`, while the detailed setup guide and accepted ADR name `Paymongo-Signature`; Phase 3A follows the detailed guide. The detailed event catalogue includes `subscription.activated` and `subscription.invoice.updated`, while the webhook-resource event list omits them; Phase 3A recognizes them conservatively but must confirm endpoint registration/delivery against the actual sandbox account. Card and Maya (`paymaya`) capability remains account-specific. [best practices](https://docs.paymongo.com/docs/payment-acceptance-best-practices), [event catalogue](https://docs.paymongo.com/docs/developer-tools-webhooks-events), [webhook resource](https://docs.paymongo.com/reference/webhook-resource), [payment-method resource](https://docs.paymongo.com/reference/the-payment-method-object)
 
 ## 4. Product and entitlement policy
 
@@ -361,7 +369,7 @@ The disposable half passed on PostgreSQL 16.4 with exact checksum/history, objec
 
 ### Phase 3 — sandbox collection adapter
 
-Add server-side PayMongo client boundaries, customer/plan/subscription creation, environment/idempotency controls, sanitized errors, and a minimal provider-hosted USER checkout. Use test mode only. Rollback: disable new checkout and deactivate the test price while preserving cancellation/status access.
+Phase 3A now provides the disabled-by-default server-side gateway, strict TEST-only configuration, fixed PayMongo origins, injected transport contract, authenticated USER checkout-intent contract, request idempotency seam, sanitized errors, raw-body webhook route, signature/replay/environment/event allow-list policy, and an atomic inbox interface. The application runtime intentionally injects no HTTP transport and no checkout/webhook repository. Phase 3B must connect reviewed persistence and transport only under a separate sandbox authorization, then demonstrate a real provider-hosted USER checkout without granting entitlement from the redirect. Rollback: keep the integration switch false.
 
 ### Phase 4 — webhook inbox and reconciliation
 
@@ -381,9 +389,9 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next single phase should be **Phase 3 sandbox collection only: add disabled-by-default server-side PayMongo adapter boundaries, test-environment and idempotency controls, sanitized failures, and a minimal provider-hosted checkout without granting entitlements from redirects**.
+The next single phase should be **Phase 3B sandbox acceptance only: obtain owner-controlled sandbox access, confirm account/business and card/Maya test capabilities, connect the already-defined persistence and HTTP seams, and create one bounded provider-hosted test checkout without granting entitlement from its redirect**.
 
-Phase 3 requires owner-provided sandbox capability and credentials outside source, provider acceptance of the business model, deterministic adapter tests, no live-mode calls, no client-side secret or entitlement authority, and an immediate disable path. Webhook authority and reconciliation remain Phase 4 and must exist before Premium activation.
+Phase 3B requires credentials outside source, an explicit target/capability check, test-mode enforcement, one stable local/provider idempotency record, sanitized evidence, and immediate rollback through `PAYMONGO_INTEGRATION_ENABLED=false`. Webhook endpoint registration/delivery and durable database inbox evidence remain separately gated; event processing/reconciliation remains Phase 4 and must exist before Premium activation.
 
 ## 16. Explicit unresolved decisions
 

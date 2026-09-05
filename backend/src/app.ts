@@ -18,6 +18,8 @@ import groceryRouter from '@/routes/grocery.routes';
 import progressRouter from '@/routes/progress.routes';
 import cronRouter from '@/routes/cron.routes';
 import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
+import billingRouter from '@/routes/billing.routes';
+import paymongoWebhookRouter from '@/routes/paymongo-webhook.routes';
 
 // Initialize Express app
 const app = express();
@@ -66,6 +68,8 @@ app.use(
     credentials: true,
   })
 );
+// PayMongo signs the exact request bytes. Keep this route before express.json().
+app.use('/api/webhooks/paymongo', apiLimiter, paymongoWebhookRouter);
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 app.use('/api', apiLimiter); // Global API rate limit
@@ -87,6 +91,7 @@ app.use('/api/user/grocery', groceryRouter);
 app.use('/api/user/progress', progressRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/nutritionist-applications', nutritionistApplicationRouter);
+app.use('/api/billing', billingRouter);
 
 // Base health check endpoint
 app.get('/health', (req: Request, res: Response) => {
