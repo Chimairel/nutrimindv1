@@ -151,7 +151,7 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 - Never require the owner to manually import every published record before prototyping; start with a bounded high-coverage basket and measurable coverage reporting.
 - When a meal includes an ingredient without current price data, show `price unavailable` or a clearly labeled estimate/range and reduce the plan's coverage/confidence. Do not let Gemini invent an authoritative price.
 - Budget filtering must not override clinical compatibility or silently substitute unsafe ingredients.
-- ADR-018 and the full September 6 source review are recorded in [`BUDGET_PRICE_FOUNDATION.md`](BUDGET_PRICE_FOUNDATION.md). The additive schema, two migrations, pure estimation policies, and disposable PostgreSQL rehearsal exist on `feature/budget-price-migration-rehearsal`; both migrations remain unapplied to shared development and the catalogue is empty.
+- ADR-018 and the full September 6 source review are recorded in [`BUDGET_PRICE_FOUNDATION.md`](BUDGET_PRICE_FOUNDATION.md). The additive schema, two migrations, pure estimation policies, disposable rehearsal, and shared-development acceptance exist on `feature/budget-price-shared-migration`; both migrations are applied to shared development and the catalogue is empty.
 - PSA/OpenSTAT is the only reviewed source with a documented structured API and explicit general CC BY 4.0 terms. DA weekly NCR bulletins and DTI package-specific SRPs remain manual/unverified ingestion candidates with distinct semantics and unresolved or publication-specific reuse checks.
 
 ## 8. Accepted architecture and remaining production decisions
@@ -160,14 +160,14 @@ ADR-017 is recorded in the engineering record and fully specified in [`PAYMENT_S
 
 Payment Phase 1 supplies additive persistence definitions, deterministic SQL, and pure policies for state, paid-period entitlement, 3-versus-6 swap caps, money/refund invariants, provider-event idempotency, append-only work-credit reversal, capped workload-band compensation, payout bounds, and maker-checker separation. Its shared-development migration is applied, while the adapter remains disabled and no provider call has occurred.
 
-Budget-price Phase 1 supplies six append-only evidence models, deterministic additive SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. A task-owned PostgreSQL 16.4 rehearsal applied the foundation migration (`54ee88a…feab210ff7d`) and additive normalization hardening migration (`f3b92e5c…d5aefd4f11`), passed 36 rollback-only invalid-state probes, preserved all 56 pre-price table hashes, and removed every task resource. It adds no price data, caller, endpoint, UI, or Premium behavior.
+Budget-price Phase 1 supplies six append-only evidence models, deterministic additive SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. Disposable rehearsal and guarded shared-development acceptance both passed for the foundation (`54ee88a…feab210ff7d`) and normalization hardening (`f3b92e5c…d5aefd4f11`) migrations. Shared development now has 19 accepted migrations and six empty price tables; all 56 old-domain hashes were preserved. It adds no price data, caller, endpoint, UI, or Premium behavior.
 
 Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize provider calls, accounts, credentials, or live money.
 
 ## 9. Recommended execution order
 
-1. Under fresh bounded owner authorization, accept `20260906120000_ingredient_price_foundation` and `20260906150000_harden_ingredient_price_normalization` on shared development. Require exact pending history/checksums, privacy-safe preservation snapshots, empty price tables, no-op redeploy, current status, and migration-derived parity. Do not seed price data.
-2. After shared-migration and source-license acceptance, build one small PSA/OpenSTAT basket from exact frequently used managed-meal ingredients, one explicit geography, and current monthly observations. Measure meal-slot and grocery item-count coverage before expanding.
+1. After explicit source-license and product-scope acceptance, build one small PSA/OpenSTAT basket from exact frequently used managed-meal ingredients, one explicit geography, and current monthly observations. Measure meal-slot and grocery item-count coverage before expanding.
+2. Keep the basket internal and append-only; require exact reviewed FNRI mappings, source publication/geography/unit provenance, and zero Gemini-created prices.
 3. Add price repositories and internal query adapters only after the basket is accepted. Public endpoints, frontend estimates, scheduled ingestion, and Premium claims remain later gates.
 4. PayMongo Phase 3B is paused indefinitely at the existing manual provider gate. Resume only on a new owner instruction after account/business acceptance and sandbox capability are available.
 
@@ -176,7 +176,7 @@ Production remains blocked on PayMongo's written business approval and actual ac
 1. Read `AGENTS.md` completely.
 2. Treat `docs/NUTRIMIND_ENGINEERING_RECORD.md` as the canonical evidence source and this file as planned-work context.
 3. Inspect Git status and preserve unrelated/user changes.
-4. Continue price work from the clean pushed `feature/budget-price-migration-rehearsal` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
+4. Continue price work from the clean pushed `feature/budget-price-shared-migration` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
 5. Re-inspect current code and tests instead of trusting old completion claims.
 6. Never expose `.env` values, mutate production/shared data without bounded authorization, or claim clinical/payment production readiness from static tests alone.
 7. After each implemented phase, add dated requirement/change/verification evidence to the engineering record and update this handoff so completed items move out of the planned list.

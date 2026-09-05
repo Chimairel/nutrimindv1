@@ -1,16 +1,16 @@
 # Budget and Ingredient-Price Foundation
 
-Status: ADR-018 accepted; both additive migrations passed a disposable PostgreSQL rehearsal and remain unapplied to shared development
+Status: ADR-018 accepted; both additive migrations passed disposable rehearsal and shared-development acceptance
 
 Evidence date: September 6, 2026
 
-Scope: source research, additive schema/migrations, pure policy, and disposable migration verification only
+Scope: source research, additive schema/migrations, pure policy, disposable rehearsal, and shared-development migration acceptance
 
 ## 1. Decision
 
 NutriMind will treat retail price data as dated evidence that is separate from FNRI nutrition composition. A price estimate must identify its official publication, source commodity wording and unit, observation period, geography, mapping decision, normalized basis when defensible, and supersession history. FNRI `FoodItem` rows do not receive a timeless price field.
 
-The first catalogue phase is intentionally empty. This branch adds no source, publication, commodity, mapping, observation, persistent fixture, endpoint, UI, scheduled fetch, or generated price. Both migrations were applied only to a task-owned disposable database and remain unapplied to shared development. Payment code remains inert and unchanged.
+The first catalogue phase is intentionally empty. This branch adds no source, publication, commodity, mapping, observation, persistent fixture, endpoint, UI, scheduled fetch, or generated price. Both migrations are now applied to the owner-authorized shared-development database, where all six price tables remain empty. Payment code remains inert and unchanged.
 
 ## 2. Verified repository baseline
 
@@ -92,12 +92,20 @@ One probe found a SQL three-valued-logic gap: each original normalization check 
 
 With both migrations applied, the disposable database had 6 price tables, 8 enums with 34 values, 15 declared indexes plus 6 primary-key indexes, 10 foreign keys, 14 checks, and 6 append-only triggers. Thirty-six invalid-operation probes covered provenance, identifiers, money/ranges, periods/validity, both normalization half-states, mapping evidence, geography hierarchy, FKs, uniqueness, supersession, and immutability. All passed; the transaction rolled back to zero price rows. All 56 pre-price table count/content hashes remained unchanged. A second deploy was empty, migration status was current, and migration-derived parity reported no difference. Exact Docker and test/cleanup evidence is recorded in engineering-record section 44.
 
-## 7. Smallest next gated phases
+## 7. Shared-development migration acceptance
 
-1. **Shared-development migration acceptance:** under fresh bounded owner authorization, preflight the configured development database without exposing connection details, prove its 17-migration history/checksums and old-domain snapshots, then apply exactly the two price migrations. Repeat object, preservation, empty-price-table, second-deploy, status, and migration-derived parity checks. Do not seed price data.
-2. **Bounded source basket:** after shared migration and source-license acceptance, ingest a small PSA/OpenSTAT basket chosen from exact ingredients used most often by the 51 managed meals. Start with current monthly kilogram-based staples/vegetables that have exact FNRI mappings and one explicit target geography. Measure meal-slot and grocery item-count coverage before expanding. Do not mix DA/DTI rows until their ingestion and reuse gates are resolved.
-3. Add internal repository/query adapters only after the basket and migration are accepted. Public endpoints, frontend labels, plan ranking integration, scheduled ingestion, and any Premium promise remain later phases.
+The September 6 acceptance targeted the previously approved TLS-required pooled Neon development database `neondb`, schema `public`, with sanitized hostname fingerprint `6f48da70b1ce`. Read-only preflight found exactly 17 successful parent migrations through `20260905180000_billing_foundation`, canonical SQL content for every stored checksum, exactly the two price migrations pending, 56 pre-price tables, and no price table. The required migration file hashes matched the disposable rehearsal.
 
-## 8. Explicitly unavailable in this phase
+A datamodel comparison exposed two pre-existing `MealPlan` indexes declared in Prisma but absent from migration history. An exact local database rebuilt from the 17 canonical migrations matched shared development with no difference, clearing migration-history drift for this bounded deployment; the datamodel/index mismatch remains separately recorded as DEF-031. The normal production deploy then applied exactly the foundation and hardening migrations.
+
+Postflight found exactly 19 successful migrations with the required new stored checksums, the same six tables, 8 enums/34 values, 15 declared plus 6 primary-key indexes, 10 restrictive foreign keys, 14 checks, and 6 append-only triggers. Every price table had zero rows. All 56 pre-price table count/content hashes matched, migration-derived parity reported no difference, and a second deploy/status was a no-op with identical migration, snapshot, and schema-inventory evidence. No shared fixture, seed, destructive probe, source data, or price value was written.
+
+## 8. Smallest next gated phases
+
+1. **Bounded source basket:** after explicit source-license and product-scope acceptance, ingest a small PSA/OpenSTAT basket chosen from exact ingredients used most often by the 51 managed meals. Start with current monthly kilogram-based staples/vegetables that have exact FNRI mappings and one explicit target geography. Measure meal-slot and grocery item-count coverage before expanding. Do not mix DA/DTI rows until their ingestion and reuse gates are resolved.
+2. Add internal repository/query adapters only after the basket is accepted. Public endpoints, frontend labels, plan ranking integration, scheduled ingestion, and any Premium promise remain later phases.
+3. Reconcile DEF-031 through a separate additive migration if the two declared `MealPlan` indexes are still required; do not fold that unrelated repair into source-data ingestion.
+
+## 9. Explicitly unavailable in this phase
 
 There is no current price catalogue, user-location preference, accepted default geography, retailer/store price, package-to-edible-weight mapping, source precedence product decision, importer, database repository, API response, UI, budget target, or paid benefit. Estimates cannot run against production data until those inputs exist.
