@@ -309,6 +309,64 @@ enum CompensationPayoutStatus {
   VOIDED
 }
 
+enum IngredientPriceSourceKind {
+  PSA_OPENSTAT
+  DA_BANTAY_PRESYO
+  DTI_SRP_BULLETIN
+  OTHER_OFFICIAL
+}
+
+enum IngredientPriceAccessMethod {
+  API
+  DOWNLOAD
+  MANUAL_TRANSCRIPTION
+}
+
+enum IngredientPriceAutomationStatus {
+  SUPPORTED
+  MANUAL_ONLY
+  UNVERIFIED
+}
+
+enum IngredientPriceGeographyLevel {
+  NATIONAL
+  REGION
+  PROVINCE
+  CITY
+  MARKET_GROUP
+}
+
+enum IngredientPriceObservationKind {
+  AVERAGE_RETAIL
+  SUGGESTED_RETAIL
+  OBSERVED_RANGE
+}
+
+enum IngredientPriceUnit {
+  MILLIGRAM
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  PIECE
+  PACKAGE
+}
+
+enum IngredientPriceMappingState {
+  UNMAPPED
+  EXACT
+  AMBIGUOUS
+  REJECTED
+}
+
+enum IngredientPriceMappingEvidenceKind {
+  EXTERNAL_IDENTIFIER
+  REVIEWED_EXACT_DESCRIPTION
+  REVIEWED_EXACT_ALIAS
+  CANDIDATE_ONLY
+  REJECTION_NOTE
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -566,6 +624,7 @@ model FoodItem {
   aliases            FoodAlias[]
   mealIngredients    MealIngredient[]
   libraryIngredients MealLibraryIngredient[]
+  priceMappings      IngredientPriceCommodityMapping[]
 }
 
 model FoodAlias {
@@ -793,6 +852,131 @@ model GroceryItem {
   unit            String?     @db.VarChar(32)
   sourceMealCount Int         @default(1)
   isPantryStaple  Boolean     @default(false)
+}
+
+model IngredientPriceSource {
+  id               String                          @id @default(cuid())
+  code             String                          @unique @db.VarChar(80)
+  kind             IngredientPriceSourceKind
+  agencyName       String                          @db.VarChar(160)
+  datasetName      String                          @db.VarChar(240)
+  homepageUrl      String                          @db.VarChar(500)
+  apiBaseUrl       String?                         @db.VarChar(500)
+  termsUrl         String?                         @db.VarChar(500)
+  licenseCode      String?                         @db.VarChar(80)
+  attributionText  String                          @db.VarChar(300)
+  accessMethod     IngredientPriceAccessMethod
+  automationStatus IngredientPriceAutomationStatus
+  updateCadence    String?                         @db.VarChar(80)
+  createdAt        DateTime                        @default(now())
+  publications     IngredientPricePublication[]
+  commodities      IngredientPriceCommodity[]
+}
+
+model IngredientPricePublication {
+  id                    String                       @id @default(cuid())
+  sourceId              String
+  source                IngredientPriceSource        @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  externalPublicationId String                       @db.VarChar(191)
+  sourceUrl             String                       @db.VarChar(500)
+  publishedAt           DateTime?
+  periodStart           DateTime?
+  periodEnd             DateTime?
+  retrievedAt           DateTime
+  contentSha256         String?                      @db.Char(64)
+  metadata              Json?
+  createdAt             DateTime                     @default(now())
+  observations          IngredientPriceObservation[]
+
+  @@unique([sourceId, externalPublicationId, retrievedAt])
+  @@index([sourceId, periodEnd])
+}
+
+model IngredientPriceGeography {
+  id           String                        @id @default(cuid())
+  scheme       String                        @db.VarChar(80)
+  externalCode String                        @db.VarChar(120)
+  displayName  String                        @db.VarChar(180)
+  level        IngredientPriceGeographyLevel
+  parentId     String?
+  parent       IngredientPriceGeography?     @relation("IngredientPriceGeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children     IngredientPriceGeography[]    @relation("IngredientPriceGeographyTree")
+  createdAt    DateTime                      @default(now())
+  observations IngredientPriceObservation[]
+
+  @@unique([scheme, externalCode])
+  @@index([parentId])
+}
+
+model IngredientPriceCommodity {
+  id                    String                            @id @default(cuid())
+  sourceId              String
+  source                IngredientPriceSource             @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  sourceCommodityKey    String                            @db.VarChar(191)
+  originalDescription   String                            @db.VarChar(240)
+  originalSpecification String?                           @db.VarChar(240)
+  originalUnit          String                            @db.VarChar(80)
+  normalizedQuantity    Decimal?                          @db.Decimal(18, 6)
+  normalizedUnit        IngredientPriceUnit?
+  createdAt             DateTime                          @default(now())
+  mappings              IngredientPriceCommodityMapping[]
+  observations          IngredientPriceObservation[]
+
+  @@unique([sourceId, sourceCommodityKey])
+  @@index([sourceId, originalDescription])
+}
+
+model IngredientPriceCommodityMapping {
+  id                   String                             @id @default(cuid())
+  commodityId          String
+  commodity            IngredientPriceCommodity           @relation(fields: [commodityId], references: [id], onDelete: Restrict)
+  state                IngredientPriceMappingState
+  foodItemId           String?
+  foodItem             FoodItem?                          @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  evidenceKind         IngredientPriceMappingEvidenceKind
+  evidenceReference    String?                            @db.VarChar(500)
+  rationale            String                             @db.VarChar(500)
+  candidateFoodItemIds Json?
+  supersedesMappingId  String?                            @unique
+  supersedesMapping    IngredientPriceCommodityMapping?   @relation("IngredientPriceMappingSupersession", fields: [supersedesMappingId], references: [id], onDelete: Restrict)
+  supersededBy         IngredientPriceCommodityMapping?   @relation("IngredientPriceMappingSupersession")
+  createdAt            DateTime                           @default(now())
+
+  @@index([commodityId, createdAt])
+  @@index([foodItemId])
+  @@index([state])
+}
+
+model IngredientPriceObservation {
+  id                           String                         @id @default(cuid())
+  publicationId                String
+  publication                  IngredientPricePublication     @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  commodityId                  String
+  commodity                    IngredientPriceCommodity       @relation(fields: [commodityId], references: [id], onDelete: Restrict)
+  geographyId                  String
+  geography                    IngredientPriceGeography       @relation(fields: [geographyId], references: [id], onDelete: Restrict)
+  sourceObservationKey         String                         @db.VarChar(240)
+  kind                         IngredientPriceObservationKind
+  currency                     String                         @default("PHP") @db.Char(3)
+  amountMinCentavos            Int
+  amountMaxCentavos            Int
+  observedFrom                 DateTime
+  observedTo                   DateTime
+  validFrom                    DateTime?
+  validUntil                   DateTime?
+  originalCommodityDescription String                         @db.VarChar(240)
+  originalSpecification        String?                        @db.VarChar(240)
+  originalUnit                 String                         @db.VarChar(80)
+  normalizedQuantity           Decimal?                       @db.Decimal(18, 6)
+  normalizedUnit               IngredientPriceUnit?
+  supersedesObservationId      String?                        @unique
+  supersedesObservation        IngredientPriceObservation?    @relation("IngredientPriceObservationSupersession", fields: [supersedesObservationId], references: [id], onDelete: Restrict)
+  supersededBy                 IngredientPriceObservation?    @relation("IngredientPriceObservationSupersession")
+  createdAt                    DateTime                       @default(now())
+
+  @@unique([publicationId, sourceObservationKey])
+  @@index([commodityId, geographyId, observedTo])
+  @@index([geographyId, observedTo])
 }
 
 model Notification {

@@ -151,29 +151,32 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 - Never require the owner to manually import every published record before prototyping; start with a bounded high-coverage basket and measurable coverage reporting.
 - When a meal includes an ingredient without current price data, show `price unavailable` or a clearly labeled estimate/range and reduce the plan's coverage/confidence. Do not let Gemini invent an authoritative price.
 - Budget filtering must not override clinical compatibility or silently substitute unsafe ingredients.
+- ADR-018 and the full September 6 source review are recorded in [`BUDGET_PRICE_FOUNDATION.md`](BUDGET_PRICE_FOUNDATION.md). The additive schema/migration and pure estimation policies exist on `feature/budget-price-foundation`; the migration is unapplied and the catalogue is empty.
+- PSA/OpenSTAT is the only reviewed source with a documented structured API and explicit general CC BY 4.0 terms. DA weekly NCR bulletins and DTI package-specific SRPs remain manual/unverified ingestion candidates with distinct semantics and unresolved or publication-specific reuse checks.
 
 ## 8. Accepted architecture and remaining production decisions
 
 ADR-017 is recorded in the engineering record and fully specified in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md). It fixes the sandbox provider direction, domain boundaries, MVP entitlement, webhook/idempotency design, financial and compensation records, failure/reconciliation behavior, phased tests, rollback boundaries, and capstone scope.
 
-Phase 1 now supplies additive persistence definitions, deterministic SQL, and pure policies for state, paid-period entitlement, 3-versus-6 swap caps, money/refund invariants, provider-event idempotency, append-only work-credit reversal, capped workload-band compensation, payout bounds, and maker-checker separation. The migration is intentionally unapplied and no production caller consumes these policies yet.
+Payment Phase 1 supplies additive persistence definitions, deterministic SQL, and pure policies for state, paid-period entitlement, 3-versus-6 swap caps, money/refund invariants, provider-event idempotency, append-only work-credit reversal, capped workload-band compensation, payout bounds, and maker-checker separation. Its shared-development migration is applied, while the adapter remains disabled and no provider call has occurred.
+
+Budget-price Phase 1 supplies six append-only evidence models, deterministic unapplied SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. It adds no data, caller, endpoint, UI, or Premium behavior.
 
 Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize provider calls, accounts, credentials, or live money.
 
 ## 9. Recommended execution order
 
-1. Run the separately authorized Phase 3B manual sandbox gate: confirm PayMongo account/business acceptance and card/Maya test capabilities, provide secrets outside source, connect the reviewed repository/HTTP seams, and create one idempotent hosted test checkout with the disable switch ready.
-2. Register and verify sandbox webhook delivery, then implement the durable inbox/outbox processor and reconciliation before treating provider state as authoritative.
-3. Enable the 3-versus-6 swap entitlement only after provider state, webhook processing, and reconciliation are stable.
-4. Add the internal compensation ledger and manual payout records after collection/entitlement evidence is stable. Consider automated disbursements only after the capstone and a separate approval.
-5. Prototype price coverage separately, after core safety and payment flows remain stable.
+1. Rehearse `20260906120000_ingredient_price_foundation` only in a task-owned disposable PostgreSQL target; verify checks, append-only triggers, supersession, schema parity, rollback, and complete resource cleanup.
+2. After migration/reuse acceptance, build one small PSA/OpenSTAT basket from exact frequently used managed-meal ingredients, one explicit geography, and current monthly observations. Measure meal-slot and grocery item-count coverage before expanding.
+3. Add price repositories and internal query adapters only after the basket is accepted. Public endpoints, frontend estimates, scheduled ingestion, and Premium claims remain later gates.
+4. PayMongo Phase 3B is paused indefinitely at the existing manual provider gate. Resume only on a new owner instruction after account/business acceptance and sandbox capability are available.
 
 ## 10. Instructions for the next agent or conversation
 
 1. Read `AGENTS.md` completely.
 2. Treat `docs/NUTRIMIND_ENGINEERING_RECORD.md` as the canonical evidence source and this file as planned-work context.
 3. Inspect Git status and preserve unrelated/user changes.
-4. Confirm the intended starting branch with the owner before implementation; do not assume this feature branch should be merged.
+4. Continue price work from the clean pushed `feature/budget-price-foundation` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
 5. Re-inspect current code and tests instead of trusting old completion claims.
 6. Never expose `.env` values, mutate production/shared data without bounded authorization, or claim clinical/payment production readiness from static tests alone.
 7. After each implemented phase, add dated requirement/change/verification evidence to the engineering record and update this handoff so completed items move out of the planned list.
