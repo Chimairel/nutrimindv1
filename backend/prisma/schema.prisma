@@ -163,6 +163,152 @@ enum SafetyEntrySupportState {
   INVALID
 }
 
+enum BillingProvider {
+  PAYMONGO
+}
+
+enum BillingEnvironment {
+  TEST
+  LIVE
+}
+
+enum BillingProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BillingInterval {
+  MONTH
+}
+
+enum BillingSubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_CANCELLED
+  ACTIVE
+  PAST_DUE
+  UNPAID
+  CANCELLED
+  UNKNOWN
+}
+
+enum BillingInvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNKNOWN
+}
+
+enum BillingPaymentAttemptStatus {
+  CREATED
+  REQUIRES_ACTION
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  UNKNOWN
+}
+
+enum BillingLedgerEntryType {
+  CHARGE
+  REFUND
+  DISPUTE
+  ADJUSTMENT
+}
+
+enum BillingRefundStatus {
+  REQUESTED
+  REVIEWED
+  APPROVED
+  SUBMITTED
+  SUCCEEDED
+  FAILED
+  REJECTED
+  CANCELLED
+}
+
+enum BillingCancellationStatus {
+  REQUESTED
+  CONFIRMED
+  FAILED
+}
+
+enum BillingWebhookProcessingStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  IGNORED
+}
+
+enum BillingEntitlementKey {
+  PREMIUM
+}
+
+enum BillingEntitlementSource {
+  PAID_INVOICE
+  ADMIN_ADJUSTMENT
+}
+
+enum BillingReconciliationIssueStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+}
+
+enum NutritionistWorkCreditKind {
+  ORDINARY_PLAN_REVIEW
+  HIGH_RISK_SECOND_REVIEW
+  LIBRARY_SAFETY_CERTIFICATION
+  SAFETY_FLAG_RESOLUTION
+}
+
+enum NutritionistWorkCreditEntryType {
+  AWARD
+  REVERSAL
+}
+
+enum CompensationPolicyStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum CompensationPeriodStatus {
+  OPEN
+  CALCULATING
+  REVIEW
+  APPROVED
+  CLOSED
+}
+
+enum CompensationStatementStatus {
+  DRAFT
+  CALCULATED
+  REVIEWED
+  APPROVED
+  PAYOUT_PENDING
+  PAID
+  RETURNED
+  VOIDED
+  PAYOUT_FAILED
+}
+
+enum CompensationPayoutMethod {
+  MANUAL_OFF_PLATFORM
+  PAYMONGO_DISBURSEMENT
+}
+
+enum CompensationPayoutStatus {
+  DRAFT
+  APPROVED
+  MANUAL_RECORDED
+  SUBMITTED
+  SUCCEEDED
+  FAILED
+  VOIDED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -201,9 +347,9 @@ model User {
   healthConditions                 HealthCondition[]
   allergies                        Allergy[]
   nutritionReport                  NutritionReport?
-  nutritionistProfile              NutritionistProfile?      @relation("UserToNutritionistProfile")
-  nutritionistVerifications        NutritionistProfile[]     @relation("AdminVerifier")
-  mealPlans                        MealPlan[]                @relation("UserMealPlans")
+  nutritionistProfile              NutritionistProfile?              @relation("UserToNutritionistProfile")
+  nutritionistVerifications        NutritionistProfile[]             @relation("AdminVerifier")
+  mealPlans                        MealPlan[]                        @relation("UserMealPlans")
   mealLogs                         MealLog[]
   weightLogs                       WeightLog[]
   dailyNutritionLogs               DailyNutritionLog[]
@@ -217,8 +363,22 @@ model User {
   auditEvents                      AuditEvent[]
   outsideMealPreviews              OutsideMealPreview[]
   waterLogs                        WaterLog[]
-  nutritionistApplicationsReviewed NutritionistApplication[] @relation("NutritionistApplicationReviewer")
-  nutritionistApplicationInvite    NutritionistApplication?  @relation("NutritionistApplicationInvitee")
+  nutritionistApplicationsReviewed NutritionistApplication[]         @relation("NutritionistApplicationReviewer")
+  nutritionistApplicationInvite    NutritionistApplication?          @relation("NutritionistApplicationInvitee")
+  providerCustomers                ProviderCustomer[]                @relation("ProviderCustomerUser")
+  billingSubscriptions             UserSubscription[]                @relation("BillingSubscriptionUser")
+  entitlementGrants                EntitlementGrant[]                @relation("EntitlementGrantUser")
+  billingCancellationsRequested    BillingSubscriptionCancellation[] @relation("BillingCancellationRequester")
+  billingRefundsRequested          BillingRefund[]                   @relation("BillingRefundRequester")
+  billingRefundsApproved           BillingRefund[]                   @relation("BillingRefundApprover")
+  billingIssuesResolved            BillingReconciliationIssue[]      @relation("BillingReconciliationResolver")
+  compensationStatementsReviewed   CompensationStatement[]           @relation("CompensationStatementReviewer")
+  compensationStatementsApproved   CompensationStatement[]           @relation("CompensationStatementApprover")
+  compensationAdjustmentsCreated   CompensationAdjustment[]          @relation("CompensationAdjustmentCreator")
+  compensationAdjustmentsApproved  CompensationAdjustment[]          @relation("CompensationAdjustmentApprover")
+  compensationPayoutsSubmitted     CompensationPayout[]              @relation("CompensationPayoutSubmitter")
+  compensationPayoutsApproved      CompensationPayout[]              @relation("CompensationPayoutApprover")
+  compensationPayoutEvents         CompensationPayoutEvent[]
 }
 
 model Account {
@@ -334,13 +494,15 @@ model NutritionistProfile {
   verifiedAt        DateTime?
 
   // Relations
-  mealPlansReviewed   MealPlan[]
-  verifiedMeals       MealLibrary[]
-  safetyReviewedMeals MealLibrary[]             @relation("MealLibrarySafetyReviewer")
-  safetyReviewEvents  MealLibrarySafetyReview[] @relation("MealLibrarySafetyReviewActor")
-  submittedFlags      MealLibraryFlag[]         @relation("SubmittedFlags")
-  claimedPlans        MealPlan[]                @relation("ClaimedPlans")
-  firstApprovedPlans  MealPlan[]                @relation("FirstMealPlanApproval")
+  mealPlansReviewed      MealPlan[]
+  verifiedMeals          MealLibrary[]
+  safetyReviewedMeals    MealLibrary[]             @relation("MealLibrarySafetyReviewer")
+  safetyReviewEvents     MealLibrarySafetyReview[] @relation("MealLibrarySafetyReviewActor")
+  submittedFlags         MealLibraryFlag[]         @relation("SubmittedFlags")
+  claimedPlans           MealPlan[]                @relation("ClaimedPlans")
+  firstApprovedPlans     MealPlan[]                @relation("FirstMealPlanApproval")
+  workCredits            NutritionistWorkCredit[]
+  compensationStatements CompensationStatement[]
 }
 
 model NutritionistApplication {
@@ -861,4 +1023,490 @@ model SwapLog {
   warningShown        Boolean         @default(false)
   warningAcknowledged Boolean         @default(false)
   swappedAt           DateTime        @default(now())
+}
+
+model BillingProduct {
+  id                String               @id @default(cuid())
+  code              String               @unique @db.VarChar(64)
+  displayName       String               @db.VarChar(120)
+  description       String?              @db.Text
+  status            BillingProductStatus @default(INACTIVE)
+  featureSetVersion String               @db.VarChar(64)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  prices            BillingPrice[]
+}
+
+model BillingPrice {
+  id             String             @id @default(cuid())
+  productId      String
+  product        BillingProduct     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  provider       BillingProvider
+  environment    BillingEnvironment
+  providerPlanId String?            @db.VarChar(191)
+  currency       String             @db.Char(3)
+  amountMinor    Int
+  interval       BillingInterval
+  intervalCount  Int                @default(1)
+  version        Int
+  isActive       Boolean            @default(false)
+  activeFrom     DateTime?
+  activeUntil    DateTime?
+  createdAt      DateTime           @default(now())
+  subscriptions  UserSubscription[]
+
+  @@unique([productId, environment, version])
+  @@unique([provider, environment, providerPlanId])
+  @@index([environment, isActive])
+}
+
+model ProviderCustomer {
+  id                 String             @id @default(cuid())
+  userId             String?
+  user               User?              @relation("ProviderCustomerUser", fields: [userId], references: [id], onDelete: SetNull)
+  billingSubjectKey  String             @db.VarChar(80)
+  provider           BillingProvider
+  environment        BillingEnvironment
+  providerCustomerId String             @db.VarChar(191)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  subscriptions      UserSubscription[]
+
+  @@unique([provider, environment, providerCustomerId])
+  @@unique([userId, provider, environment])
+  @@unique([billingSubjectKey, provider, environment])
+  @@index([billingSubjectKey, environment])
+}
+
+model UserSubscription {
+  id                       String                            @id @default(cuid())
+  userId                   String?
+  user                     User?                             @relation("BillingSubscriptionUser", fields: [userId], references: [id], onDelete: SetNull)
+  billingSubjectKey        String                            @db.VarChar(80)
+  providerCustomerRecordId String
+  providerCustomer         ProviderCustomer                  @relation(fields: [providerCustomerRecordId], references: [id], onDelete: Restrict)
+  billingPriceId           String
+  billingPrice             BillingPrice                      @relation(fields: [billingPriceId], references: [id], onDelete: Restrict)
+  provider                 BillingProvider
+  environment              BillingEnvironment
+  providerSubscriptionId   String                            @db.VarChar(191)
+  creationIdempotencyKey   String                            @db.VarChar(160)
+  status                   BillingSubscriptionStatus         @default(INCOMPLETE)
+  providerStatus           String?                           @db.VarChar(64)
+  currentPeriodStart       DateTime?
+  currentPeriodEnd         DateTime?
+  pastDueAt                DateTime?
+  cancelAtPeriodEnd        Boolean                           @default(false)
+  cancelledAt              DateTime?
+  providerUpdatedAt        DateTime?
+  stateVersion             Int                               @default(0)
+  createdAt                DateTime                          @default(now())
+  updatedAt                DateTime                          @updatedAt
+  invoices                 BillingInvoice[]
+  paymentAttempts          PaymentAttempt[]
+  cancellations            BillingSubscriptionCancellation[]
+  entitlementGrants        EntitlementGrant[]
+
+  @@unique([provider, environment, providerSubscriptionId])
+  @@unique([provider, environment, creationIdempotencyKey])
+  @@index([userId, status])
+  @@index([billingSubjectKey, status])
+  @@index([status, currentPeriodEnd])
+}
+
+model BillingSubscriptionCancellation {
+  id                  String                    @id @default(cuid())
+  subscriptionId      String
+  subscription        UserSubscription          @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  requestedByUserId   String?
+  requestedByUser     User?                     @relation("BillingCancellationRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  idempotencyKey      String                    @db.VarChar(160)
+  status              BillingCancellationStatus @default(REQUESTED)
+  requestedAt         DateTime                  @default(now())
+  providerConfirmedAt DateTime?
+  effectiveAt         DateTime?
+  failureCode         String?                   @db.VarChar(64)
+
+  @@unique([subscriptionId, idempotencyKey])
+  @@index([status, requestedAt])
+}
+
+model BillingInvoice {
+  id                        String                 @id @default(cuid())
+  subscriptionId            String
+  subscription              UserSubscription       @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  provider                  BillingProvider
+  environment               BillingEnvironment
+  providerInvoiceId         String                 @db.VarChar(191)
+  status                    BillingInvoiceStatus   @default(DRAFT)
+  currency                  String                 @db.Char(3)
+  amountDueMinor            Int
+  amountPaidMinor           Int                    @default(0)
+  amountRefundedMinor       Int                    @default(0)
+  servicePeriodStart        DateTime?
+  servicePeriodEnd          DateTime?
+  providerCreatedAt         DateTime?
+  providerUpdatedAt         DateTime?
+  merchantDocumentReference String?                @db.VarChar(191)
+  merchantDocumentIssuedAt  DateTime?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  paymentAttempts           PaymentAttempt[]
+  transactions              BillingTransaction[]
+  refunds                   BillingRefund[]
+  ledgerEntries             FinancialLedgerEntry[]
+  entitlementGrants         EntitlementGrant[]
+
+  @@unique([provider, environment, providerInvoiceId])
+  @@index([subscriptionId, status])
+  @@index([status, providerUpdatedAt])
+}
+
+model PaymentAttempt {
+  id                      String                      @id @default(cuid())
+  subscriptionId          String
+  subscription            UserSubscription            @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  invoiceId               String?
+  invoice                 BillingInvoice?             @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  provider                BillingProvider
+  environment             BillingEnvironment
+  idempotencyKey          String                      @db.VarChar(160)
+  providerPaymentIntentId String?                     @db.VarChar(191)
+  providerPaymentId       String?                     @db.VarChar(191)
+  status                  BillingPaymentAttemptStatus @default(CREATED)
+  amountMinor             Int
+  currency                String                      @db.Char(3)
+  failureCode             String?                     @db.VarChar(64)
+  providerUpdatedAt       DateTime?
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+  transaction             BillingTransaction?
+
+  @@unique([provider, environment, idempotencyKey])
+  @@unique([provider, environment, providerPaymentIntentId])
+  @@unique([provider, environment, providerPaymentId])
+  @@index([invoiceId, status])
+  @@index([subscriptionId, status])
+}
+
+model BillingTransaction {
+  id                String                 @id @default(cuid())
+  invoiceId         String
+  invoice           BillingInvoice         @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  paymentAttemptId  String?
+  paymentAttempt    PaymentAttempt?        @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+  provider          BillingProvider
+  environment       BillingEnvironment
+  providerPaymentId String                 @db.VarChar(191)
+  amountMinor       Int
+  currency          String                 @db.Char(3)
+  paidAt            DateTime
+  createdAt         DateTime               @default(now())
+  refunds           BillingRefund[]
+  ledgerEntries     FinancialLedgerEntry[]
+
+  @@unique([provider, environment, providerPaymentId])
+  @@unique([paymentAttemptId])
+  @@index([invoiceId, paidAt])
+}
+
+model BillingRefund {
+  id                    String                 @id @default(cuid())
+  invoiceId             String
+  invoice               BillingInvoice         @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  transactionId         String
+  transaction           BillingTransaction     @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  requestedByUserId     String?
+  requestedByUser       User?                  @relation("BillingRefundRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  approvedByAdminId     String?
+  approvedByAdmin       User?                  @relation("BillingRefundApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
+  provider              BillingProvider
+  environment           BillingEnvironment
+  providerRefundId      String?                @db.VarChar(191)
+  idempotencyKey        String                 @db.VarChar(160)
+  status                BillingRefundStatus    @default(REQUESTED)
+  amountMinor           Int
+  currency              String                 @db.Char(3)
+  reasonCode            String                 @db.VarChar(64)
+  note                  String?                @db.VarChar(500)
+  entitlementResolution String?                @db.VarChar(64)
+  requestedAt           DateTime               @default(now())
+  approvedAt            DateTime?
+  providerUpdatedAt     DateTime?
+  completedAt           DateTime?
+  ledgerEntries         FinancialLedgerEntry[]
+
+  @@unique([provider, environment, idempotencyKey])
+  @@unique([provider, environment, providerRefundId])
+  @@index([invoiceId, status])
+  @@index([status, requestedAt])
+}
+
+model ProviderWebhookEvent {
+  id                  String                  @id @default(cuid())
+  provider            BillingProvider
+  environment         BillingEnvironment
+  providerEventId     String                  @db.VarChar(191)
+  eventType           String                  @db.VarChar(120)
+  livemode            Boolean
+  payloadHash         String                  @db.Char(64)
+  sanitizedPayload    Json
+  signatureKeyVersion String                  @db.VarChar(64)
+  providerCreatedAt   DateTime?
+  receivedAt          DateTime                @default(now())
+  processing          WebhookEventProcessing?
+  ledgerEntries       FinancialLedgerEntry[]
+
+  @@unique([provider, environment, providerEventId])
+  @@index([eventType, receivedAt])
+  @@index([environment, receivedAt])
+}
+
+model WebhookEventProcessing {
+  id             String                         @id @default(cuid())
+  webhookEventId String                         @unique
+  webhookEvent   ProviderWebhookEvent           @relation(fields: [webhookEventId], references: [id], onDelete: Restrict)
+  status         BillingWebhookProcessingStatus @default(PENDING)
+  attemptCount   Int                            @default(0)
+  handlerVersion String                         @db.VarChar(64)
+  lockedAt       DateTime?
+  nextAttemptAt  DateTime?
+  lastErrorCode  String?                        @db.VarChar(64)
+  completedAt    DateTime?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+
+  @@index([status, nextAttemptAt])
+}
+
+model FinancialLedgerEntry {
+  id                     String                 @id @default(cuid())
+  provider               BillingProvider
+  environment            BillingEnvironment
+  sourceKey              String                 @db.VarChar(191)
+  entryType              BillingLedgerEntryType
+  amountMinor            Int
+  currency               String                 @db.Char(3)
+  invoiceId              String?
+  invoice                BillingInvoice?        @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  transactionId          String?
+  transaction            BillingTransaction?    @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  refundId               String?
+  refund                 BillingRefund?         @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  providerWebhookEventId String?
+  providerWebhookEvent   ProviderWebhookEvent?  @relation(fields: [providerWebhookEventId], references: [id], onDelete: Restrict)
+  reasonCode             String                 @db.VarChar(64)
+  createdAt              DateTime               @default(now())
+
+  @@unique([provider, environment, sourceKey])
+  @@index([invoiceId, createdAt])
+  @@index([transactionId, createdAt])
+  @@index([refundId, createdAt])
+}
+
+model EntitlementGrant {
+  id                String                   @id @default(cuid())
+  userId            String?
+  user              User?                    @relation("EntitlementGrantUser", fields: [userId], references: [id], onDelete: SetNull)
+  billingSubjectKey String                   @db.VarChar(80)
+  subscriptionId    String?
+  subscription      UserSubscription?        @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  invoiceId         String?
+  invoice           BillingInvoice?          @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  entitlementKey    BillingEntitlementKey
+  source            BillingEntitlementSource
+  sourceKey         String                   @unique @db.VarChar(191)
+  effectiveFrom     DateTime
+  effectiveUntil    DateTime
+  grantVersion      Int                      @default(1)
+  revokedAt         DateTime?
+  revocationReason  String?                  @db.VarChar(120)
+  createdAt         DateTime                 @default(now())
+
+  @@index([userId, entitlementKey, effectiveUntil])
+  @@index([billingSubjectKey, entitlementKey, effectiveUntil])
+  @@index([subscriptionId, effectiveUntil])
+}
+
+model BillingReconciliationIssue {
+  id                 String                           @id @default(cuid())
+  provider           BillingProvider
+  environment        BillingEnvironment
+  resourceType       String                           @db.VarChar(80)
+  providerResourceId String                           @db.VarChar(191)
+  issueCode          String                           @db.VarChar(64)
+  severity           String                           @db.VarChar(16)
+  status             BillingReconciliationIssueStatus @default(OPEN)
+  details            Json?
+  firstSeenAt        DateTime                         @default(now())
+  lastSeenAt         DateTime                         @default(now())
+  resolvedAt         DateTime?
+  resolvedByUserId   String?
+  resolvedByUser     User?                            @relation("BillingReconciliationResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolutionNote     String?                          @db.VarChar(500)
+
+  @@unique([provider, environment, resourceType, providerResourceId, issueCode])
+  @@index([status, severity, lastSeenAt])
+}
+
+model NutritionistWorkCredit {
+  id                    String                            @id @default(cuid())
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile               @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  entryType             NutritionistWorkCreditEntryType
+  creditKind            NutritionistWorkCreditKind
+  sourceActionKey       String                            @unique @db.VarChar(191)
+  sourceEntityType      String                            @db.VarChar(80)
+  sourceEntityId        String                            @db.VarChar(191)
+  sourceOutcome         String                            @db.VarChar(64)
+  unitsMillis           Int
+  policyVersion         String                            @db.VarChar(64)
+  earnedAt              DateTime
+  reversesCreditId      String?                           @unique
+  reversesCredit        NutritionistWorkCredit?           @relation("WorkCreditReversal", fields: [reversesCreditId], references: [id], onDelete: Restrict)
+  reversedByCredit      NutritionistWorkCredit?           @relation("WorkCreditReversal")
+  reasonCode            String                            @db.VarChar(64)
+  createdAt             DateTime                          @default(now())
+  statementLinks        CompensationStatementWorkCredit[]
+
+  @@index([nutritionistProfileId, earnedAt])
+  @@index([creditKind, earnedAt])
+}
+
+model CompensationPolicy {
+  id                    String                   @id @default(cuid())
+  version               String                   @unique @db.VarChar(64)
+  status                CompensationPolicyStatus @default(DRAFT)
+  currency              String                   @db.Char(3)
+  baseRetainerMinor     Int
+  workloadUnitCapMillis Int
+  workloadBands         Json
+  effectiveFrom         DateTime
+  effectiveUntil        DateTime?
+  approvedAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  periods               CompensationPeriod[]
+}
+
+model CompensationPeriod {
+  id          String                   @id @default(cuid())
+  policyId    String
+  policy      CompensationPolicy       @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  periodStart DateTime
+  periodEnd   DateTime
+  status      CompensationPeriodStatus @default(OPEN)
+  closedAt    DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  statements  CompensationStatement[]
+
+  @@unique([policyId, periodStart, periodEnd])
+  @@index([status, periodEnd])
+}
+
+model CompensationStatement {
+  id                     String                            @id @default(cuid())
+  periodId               String
+  period                 CompensationPeriod                @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  nutritionistProfileId  String
+  nutritionistProfile    NutritionistProfile               @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  status                 CompensationStatementStatus       @default(DRAFT)
+  currency               String                            @db.Char(3)
+  creditedUnitsMillis    Int                               @default(0)
+  cappedUnitsMillis      Int                               @default(0)
+  baseRetainerMinor      Int                               @default(0)
+  workloadAllowanceMinor Int                               @default(0)
+  adjustmentMinor        Int                               @default(0)
+  grossMinor             Int                               @default(0)
+  calculatedAt           DateTime?
+  reviewedByAdminId      String?
+  reviewedByAdmin        User?                             @relation("CompensationStatementReviewer", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  reviewedAt             DateTime?
+  approvedByAdminId      String?
+  approvedByAdmin        User?                             @relation("CompensationStatementApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
+  approvedAt             DateTime?
+  createdAt              DateTime                          @default(now())
+  updatedAt              DateTime                          @updatedAt
+  workCredits            CompensationStatementWorkCredit[]
+  adjustments            CompensationAdjustment[]
+  payouts                CompensationPayout[]
+
+  @@unique([periodId, nutritionistProfileId])
+  @@index([nutritionistProfileId, status])
+  @@index([status, approvedAt])
+}
+
+model CompensationStatementWorkCredit {
+  id                  String                 @id @default(cuid())
+  statementId         String
+  statement           CompensationStatement  @relation(fields: [statementId], references: [id], onDelete: Restrict)
+  workCreditId        String                 @unique
+  workCredit          NutritionistWorkCredit @relation(fields: [workCreditId], references: [id], onDelete: Restrict)
+  unitsMillisSnapshot Int
+  createdAt           DateTime               @default(now())
+
+  @@index([statementId])
+}
+
+model CompensationAdjustment {
+  id                String                @id @default(cuid())
+  statementId       String
+  statement         CompensationStatement @relation(fields: [statementId], references: [id], onDelete: Restrict)
+  amountMinor       Int
+  currency          String                @db.Char(3)
+  reasonCode        String                @db.VarChar(64)
+  note              String?               @db.VarChar(500)
+  idempotencyKey    String                @unique @db.VarChar(160)
+  createdByAdminId  String?
+  createdByAdmin    User?                 @relation("CompensationAdjustmentCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  approvedByAdminId String?
+  approvedByAdmin   User?                 @relation("CompensationAdjustmentApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
+  createdAt         DateTime              @default(now())
+  approvedAt        DateTime?
+
+  @@index([statementId, createdAt])
+}
+
+model CompensationPayout {
+  id                 String                    @id @default(cuid())
+  statementId        String
+  statement          CompensationStatement     @relation(fields: [statementId], references: [id], onDelete: Restrict)
+  method             CompensationPayoutMethod  @default(MANUAL_OFF_PLATFORM)
+  status             CompensationPayoutStatus  @default(DRAFT)
+  amountMinor        Int
+  currency           String                    @db.Char(3)
+  idempotencyKey     String                    @unique @db.VarChar(160)
+  provider           BillingProvider?
+  environment        BillingEnvironment?
+  providerTransferId String?                   @db.VarChar(191)
+  externalReference  String?                   @db.VarChar(191)
+  submittedByAdminId String?
+  submittedByAdmin   User?                     @relation("CompensationPayoutSubmitter", fields: [submittedByAdminId], references: [id], onDelete: SetNull)
+  approvedByAdminId  String?
+  approvedByAdmin    User?                     @relation("CompensationPayoutApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
+  approvedAt         DateTime?
+  submittedAt        DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  events             CompensationPayoutEvent[]
+
+  @@unique([provider, environment, providerTransferId])
+  @@index([statementId, status])
+  @@index([status, createdAt])
+}
+
+model CompensationPayoutEvent {
+  id          String                   @id @default(cuid())
+  payoutId    String
+  payout      CompensationPayout       @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+  status      CompensationPayoutStatus
+  actorUserId String?
+  actorUser   User?                    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  reasonCode  String                   @db.VarChar(64)
+  metadata    Json?
+  createdAt   DateTime                 @default(now())
+
+  @@index([payoutId, createdAt])
+  @@index([actorUserId, createdAt])
 }

@@ -4,12 +4,12 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Phase 1, the structured-safety Phase 2, and the minimum combined-coverage catalogue addition are implemented. INT-011 populated and certified the two authorized meals, proved a zero-write repeat run, and measured live 7/7/7 Diabetes + vegetarian + egg-allergy coverage on `feature/combined-coverage-gap`. The payment, subscription, and nutritionist-compensation architecture is accepted in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md); implementation has not started.
+**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The payment/subscription/compensation architecture is accepted, and its Phase 1 additive schema, unapplied migration SQL, pure policies, and database-free tests are implemented on `feature/billing-foundation`. Provider integration, migration application, UI, credentials, money movement, and deployment have not started.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
-- Payment-planning branch: `feature/payment-subscription-architecture`, created from exact `d3c7391`
+- Billing-foundation branch: `feature/billing-foundation`, created from exact architecture commit `bc07d9a`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
@@ -152,12 +152,14 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 
 ADR-017 is recorded in the engineering record and fully specified in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md). It fixes the sandbox provider direction, domain boundaries, MVP entitlement, webhook/idempotency design, financial and compensation records, failure/reconciliation behavior, phased tests, rollback boundaries, and capstone scope.
 
-Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize code, migration application, provider calls, accounts, credentials, or live money.
+Phase 1 now supplies additive persistence definitions, deterministic SQL, and pure policies for state, paid-period entitlement, 3-versus-6 swap caps, money/refund invariants, provider-event idempotency, append-only work-credit reversal, capped workload-band compensation, payout bounds, and maker-checker separation. The migration is intentionally unapplied and no production caller consumes these policies yet.
+
+Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize provider calls, accounts, credentials, or live money.
 
 ## 9. Recommended execution order
 
-1. Implement the single bounded Phase 1 from ADR-017: additive Prisma schema/migration files plus pure state, entitlement, money, idempotency, and work-credit policies and deterministic tests. Do not apply the migration or call PayMongo.
-2. Rehearse the reviewed migration on a disposable database, then apply it to shared development only under fresh bounded owner authorization.
+1. Rehearse the exact checked-in migration on a disposable local PostgreSQL database only. Prove constraints, schema shape, preservation, and rollback-safe cleanup; do not use Neon or call PayMongo.
+2. Apply the reviewed migration to shared development only under fresh bounded owner authorization.
 3. Implement sandbox collection, then the raw-body webhook inbox/outbox and reconciliation, before enabling the 3-versus-6 swap entitlement.
 4. Add the internal compensation ledger and manual payout records after collection/entitlement evidence is stable. Consider automated disbursements only after the capstone and a separate approval.
 5. Prototype price coverage separately, after core safety and payment flows remain stable.

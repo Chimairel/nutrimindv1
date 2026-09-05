@@ -1,6 +1,6 @@
 # NutriMind Payment, Subscription, and Nutritionist Compensation Architecture
 
-**Status:** Accepted architecture for future implementation; no payment code, schema, migration, provider account, credential, live-money flow, or deployment is included in this document change.
+**Status:** Accepted architecture. Phase 1 additive schema definitions, unapplied migration SQL, pure policies, and database-free tests are implemented on `feature/billing-foundation`; provider integration, migration application, UI, credentials, money movement, and deployment remain pending.
 
 **Decision ID:** ADR-017
 
@@ -353,7 +353,7 @@ Confirm business eligibility, account capabilities, sandbox method/event/refund 
 
 ### Phase 1 — schema proposal and pure policies
 
-Create one additive Prisma migration file and schema definitions for collection, entitlement, webhook inbox, reconciliation, and compensation evidence. Add pure state, entitlement, money, idempotency, and compensation-credit policies plus deterministic tests. Do not apply the migration, call PayMongo, create provider accounts, or add UI. Review generated SQL and destructive-change absence. Rollback: revert this isolated source commit before migration application.
+Implemented in source on `feature/billing-foundation`: one additive Prisma migration file and schema definitions cover collection, entitlement, webhook inbox, reconciliation, and compensation evidence. Pure state, entitlement, money, idempotency, and compensation-credit policies have deterministic database-free tests. The migration remains unapplied; no PayMongo call, provider account, credential, UI, or money operation was added. Rollback before migration application is the isolated source commit.
 
 ### Phase 2 — migration rehearsal
 
@@ -381,9 +381,9 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next single coding phase should be **Phase 1 only: additive schema definitions and migration SQL plus pure policies and deterministic tests, with no migration application and no PayMongo calls**. It creates a reviewable foundation for identifiers, constraints, state transitions, entitlement calculation, webhook idempotency, and fair work-credit evidence before external integration can obscure design errors.
+The next single phase should be **Phase 2 only: rehearse the exact checked-in migration on a disposable PostgreSQL database and prove schema/preservation behavior without PayMongo calls**. Applying it to the configured shared development database remains a later, separately authorized action.
 
-Phase 1 acceptance requires Prisma validation, generated-client type recognition if generation is locally safe, reviewed additive SQL with no destructive statements, backend type/build success, focused pure-policy tests, full existing regression success, secret/URL/static scans, and a clean branch diff. Applying the migration remains a separate owner-authorized action.
+Phase 2 acceptance requires a disposable local target, exact migration checksum, pre/post object inventory, Prisma status, zero pre-existing data loss, constraint probes inside rollback-safe fixtures, and complete cleanup. It must not use the configured Neon URL, provider credentials, provider APIs, seed data, or either application server.
 
 ## 16. Explicit unresolved decisions
 
