@@ -31,10 +31,10 @@ Rules:
 | ADR | Architecture/design decision | ADR-019 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-024 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260906-02 |
-| TEST | Test case or verification procedure | TEST-096 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260906-03 |
+| TEST | Test case or verification procedure | TEST-097 |
 | UNC | Unresolved uncertainty | UNC-018 |
-| DOC | Documentation correction or addition | DOC-036 |
+| DOC | Documentation correction or addition | DOC-037 |
 
 ---
 
@@ -533,7 +533,8 @@ Schema changes are authorized only in their recorded phase. The ingredient-price
 | TEST-092 | Observation locality, precedence, duplicate, stale, and supersession policy | Backend pure-policy unit | Locality/freshness precede explicit source order; ranges are not falsely merged; stale evidence is low-confidence; mismatch/unknown locality denies; conflicts quarantine; superseded rows cannot win | Pass: 5 deterministic cases | `backend/tests/ingredient-price-policy.test.ts`; CHG-20260906-01; REQ-022; ADR-018 |
 | TEST-093 | Ingredient range and unavailable-reason estimation | Backend pure-policy unit | Safe conversions scale and outward-round source ranges; missing mapping/quantity/unit/normalization and package ambiguity return unavailable reasons | Pass: 2 deterministic cases | `backend/tests/ingredient-price-policy.test.ts`; CHG-20260906-01; REQ-022; ADR-018 |
 | TEST-094 | Meal/plan/grocery coverage and clinical-first budget ranking | Backend pure-policy unit | Known ranges sum; partial coverage lists missing items and lowers confidence; empty sets are null/unavailable; `BLOCK`/`REVIEW` candidates are excluded before price sorting | Pass: 3 deterministic cases | `backend/tests/ingredient-price-policy.test.ts`; CHG-20260906-01; REQ-022; ADR-018 |
-| TEST-095 | Additive ingredient-price schema and migration audit | Static schema/SQL assertions | Six evidence models exist; no timeless FNRI price; no existing domain table alteration or destructive statement; required checks, restrictive FKs, and append-only triggers exist | Pass: 3 deterministic cases; migration remains unapplied | `backend/tests/ingredient-price-schema-migration.test.ts`; CHG-20260906-01; REQ-022; ADR-018 |
+| TEST-095 | Additive ingredient-price schema and migration audit | Static schema/SQL assertions | Six evidence models exist; no timeless FNRI price; no existing domain table alteration or destructive statement; required checks, restrictive FKs, and append-only triggers exist | Pass: 3 deterministic cases; no database was used during TEST-095 | `backend/tests/ingredient-price-schema-migration.test.ts`; CHG-20260906-01; REQ-022; ADR-018 |
+| TEST-096 | Disposable ingredient-price migration rehearsal and normalization hardening | Task-owned Docker PostgreSQL 16.4; Prisma production deploy/status/diff; migration checksum and SQL-object inventory; privacy-safe 56-table count/content-hash snapshots; rollback-only valid graph and 36 invalid-operation probes; no-op redeploy; full backend regression/build; exact resource teardown | Reconstruct the 17-migration parent, apply only the price foundation, expose and close both SQL NULL half-states with a second additive migration, preserve existing domain data, prove immutable evidence/FK/check/supersession behavior, and leave no database or Docker artifact | Pass locally: 19 migrations current; foundation checksum `54ee88a…feab210ff7d` preserved; hardening checksum `f3b92e5c…d5aefd4f11`; 6 tables, 8 enums/34 values, 15 declared indexes plus 6 PK indexes, 10 FKs, 14 checks, and 6 triggers; all 36 invalid probes pass; all 56 old-table snapshots match; zero price rows; no drift; 363 tests registered, 362 pass, 0 fail, 1 existing TODO; clean teardown | `backend/scripts/ingredient-price-migration-rehearsal.sql`; CHG-20260906-02; REQ-022; ADR-018; DOC-036 |
 | INT-009 | Structured safety persistence, compatibility projection, history, report invalidation, and bounded plan/grocery behavior | Guarded live Prisma/service fixture against the configured Neon database | Mixed restrictions and controlled aliases survive reload; one revision per semantic change; identical save is idempotent; stale report acknowledgement clears; a still-compatible certified active plan and its derived grocery list remain actionable and unchanged; exact fixture cleanup leaves no rows | Pass: 7 entries reloaded; `high blood pressure` resolved to `HYPERTENSION`; revision delta 1; report invalidated; compatible plan actionable; grocery projection unchanged; identical save unchanged; 0 residual users/entries/plans/grocery lists | `backend/scripts/structured-safety-intake-acceptance.ts`; CHG-20260905-01; REQ-018; ADR-016 |
 | E2E-007 | Structured safety onboarding and editable Health profile | Authenticated in-app browser at default desktop and 390x844 mobile viewport using an exact reserved account | Mixed predefined/custom values, separators, multi-word terms, aliases, classifications, vague-entry errors, removal, keyboard confirmation/submission, save, report invalidation, and profile reload behave visibly without console errors | Pass for onboarding and Health profile: conditions and all three food domains saved; `spicy food` removal survived reload; desktop/mobile layouts remained usable; 0 browser warnings/errors; fixture and sessions removed. No active-plan replacement was exercised by this browser actor | CHG-20260905-01; REQ-018; ADR-016; INT-009 |
 
@@ -2610,7 +2611,7 @@ This section is a continuity record for agreed future work. Every item below is 
 ### Additive persistence and policy
 
 - Added six price-evidence models for source metadata, publication snapshots, geographic scope, source commodities, explicit FNRI mapping decisions, and dated price observations. Original descriptions/specifications/units are retained; normalization is optional/all-or-none; all prices are positive integer PHP-centavo ranges; observation/validity dates and supersession are first class.
-- Generated `20260906120000_ingredient_price_foundation` entirely by schema-to-schema diff from exact commit `18c5a8cbffea3a90f7c90d9743f62e249d03b68e`, then added PostgreSQL checks and append-only triggers for invariants Prisma cannot express. SQL contains no destructive statement, data DML, or alteration of an existing domain table. The migration was not applied to any database.
+- Generated `20260906120000_ingredient_price_foundation` entirely by schema-to-schema diff from exact commit `18c5a8cbffea3a90f7c90d9743f62e249d03b68e`, then added PostgreSQL checks and append-only triggers for invariants Prisma cannot express. SQL contains no destructive statement, data DML, or alteration of an existing domain table. No database was used during this foundation checkpoint; section 44 records the later disposable-only rehearsal.
 - Added one DB-independent price policy covering canonical mass/volume/count conversion, package ambiguity, safe PHP money, exact mapping evidence, freshness, locality, source precedence, duplicate conflict quarantine, supersession, range scaling, explicit unavailable reasons, meal/plan/grocery coverage, confidence/status labels, and clinical-first ranking. It has no Prisma, Gemini, network, route, or UI dependency.
 - Partial estimates sum only known ranges, list every missing ingredient/reason, and report item-count coverage. Empty/unknown totals remain `null`, stale observations are low-confidence, locality mismatch/unknown blocks estimation, and blocked/review-required meals are excluded before price sorting.
 
@@ -2620,7 +2621,52 @@ This section is a continuity record for agreed future work. Every item below is 
 - No frontend source changed, so frontend checks are not required. No current or invented price value, source row, fixture, repository, public endpoint, UI, user geography, scheduled ingestion, Premium promise, or runtime price estimate was added.
 - No shared/configured Neon access, migration apply, scraping, bulk download/import, Gemini, PayMongo/provider call/account/credential, email, OAuth, deployment, server, browser, Docker, or ports 3000/5000/3030 were used. Existing payment source and migration remain unchanged and inert.
 
-### Next gates
+### Next gates at this checkpoint
 
-- First run the exact price migration in a task-owned disposable PostgreSQL target, prove checks/FKs/append-only/supersession and rollback/cleanup, and compare migration-derived schema. Shared-database application remains a later separately authorized phase.
-- After migration and reuse acceptance, select a small high-coverage PSA/OpenSTAT basket from exact, frequently used managed-meal ingredients, one explicit geography, current monthly observations, and safe kilogram bases. Measure coverage before expansion. DA/DTI ingestion, user-facing budget behavior, repositories, routes, UI, source schedules, and monetization remain separately gated.
+- The disposable migration rehearsal was the immediate next gate and is now recorded in section 44. Shared-development application remains separately authorized and pending.
+- After shared-migration and source-license acceptance, select a small high-coverage PSA/OpenSTAT basket from exact, frequently used managed-meal ingredients, one explicit geography, current monthly observations, and safe kilogram bases. Measure coverage before expansion. DA/DTI ingestion, user-facing budget behavior, repositories, routes, UI, source schedules, and monetization remain separately gated.
+
+## 44. Disposable ingredient-price migration rehearsal (2026-09-06)
+
+**Requirement ID:** REQ-022
+
+**Decision ID:** ADR-018
+
+**Risk ID:** RISK-023
+
+**Uncertainty ID:** UNC-017
+
+**Change ID:** CHG-20260906-02
+
+**Verification ID:** TEST-096
+
+**Documentation ID:** DOC-036
+
+### Isolated production-path migration
+
+- The rehearsal started from exact commit `2444127a5e9883e88d77dbfdb9420a27e2703ff6` on `feature/budget-price-migration-rehearsal`. It used only task-labeled Docker resources: PostgreSQL `16.4-alpine` image `sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c`, one container, one bridge network, one local volume, primary and shadow databases, a generated process-local credential, and loopback port `127.0.0.1:55441`. Initial Docker inventory contained no container, volume, or image; only built-in `bridge`, `host`, and `none` networks existed.
+- A temporary migration workspace reconstructed exactly the 17 parent migrations through `20260905180000_billing_foundation`. Four reserved synthetic pre-price rows populated only `User`, `FoodItem`, `GroceryList`, and `GroceryItem`; no real record or external dataset was read. Privacy-safe count plus MD5-of-ordered-JSON snapshots covered all 56 pre-price domain tables.
+- Full-repository `prisma migrate status` reported only `20260906120000_ingredient_price_foundation` pending. `prisma migrate deploy` applied that exact file; its working-tree SHA-256 and stored Prisma checksum both equal `54ee88a482cb6bfaa001126cff31c29092efeab1e5ac80c0505176aab210ff7d`.
+
+### Probe finding and additive correction
+
+- A transactional invalid-state probe found that the foundation's normalization checks rejected quantity-without-unit but allowed unit-without-quantity because SQL three-valued logic evaluated the expression to `NULL`. The committed foundation migration was left byte-for-byte unchanged so its recorded checksum and migration history remain stable.
+- Added `20260906150000_harden_ingredient_price_normalization` with only two new strict pair checks, one each on `IngredientPriceCommodity` and `IngredientPriceObservation`. It contains no data DML, drop, or alteration of a pre-price table; SHA-256 is `f3b92e5cc7fb4291c344096275e100083a298ec444af663254a616d5aefd4f11`. A normal second deploy applied only this migration.
+- With both migrations present, exact SQL-to-catalog inventory matched 6 price tables, 8 enum types with 34 values, 15 declared indexes plus 6 primary-key indexes, 10 restrictive foreign keys, 14 checks, and 6 append-only triggers. All 19 stored Prisma migration checksums matched their working migration files.
+
+### Preservation, behavior, and drift evidence
+
+- `backend/scripts/ingredient-price-migration-rehearsal.sql` constructs a valid synthetic evidence and supersession graph inside one transaction, then deliberately exercises 36 invalid operations. The probes cover HTTPS/API source claims and identities; geography hierarchy/uniqueness; publication periods, hashes, provenance, and identity; both commodity and observation normalization half-states and positive quantities; exact/unmapped mapping shapes, evidence, self-supersession, branch uniqueness, and restrictive `FoodItem` linkage; PHP centavo integer/range rules; observation and validity dates; observation identities, FKs, self/duplicate supersession; and update/delete immutability. Every expected failure occurred, the valid graph assertions passed, and `ROLLBACK` left all six price tables empty.
+- Post-migration snapshots matched all 56 pre-price count/content hashes byte-for-byte. The four reserved synthetic rows were then deleted in dependency order. No existing domain row changed during migration or probes.
+- A further production deploy reported no pending migration, status reported the database up to date, and migration-directory-to-primary comparison through the local shadow database reported `No difference detected`.
+
+### Regression and cleanup
+
+- TEST-096 adds a static assertion that both strict constraints exist and the hardening migration stays additive. The full backend suite reports **363 registered, 362 pass, 0 fail, and 1 unchanged clinical-policy TODO**. Backend production build, Prisma validation against a process-local non-routable placeholder, offline production-dependency audit, migration checksum/object audits, and source checks pass. Frontend source did not change.
+- The exact primary and shadow databases, labeled container, network, volume, initially absent PostgreSQL image, and verified temporary directory were removed. Final Docker inventory again has zero containers, volumes, and images and only the same built-in networks: `bridge` (`449732f727af`), `host` (`44b416820634`), and `none` (`84b4d9de7fb2`). Port `55441` is free.
+- No shared/configured Neon access or mutation, real PSA/DA/DTI row, invented price, PayMongo/provider call or credential, Gemini, email, OAuth, deployment, application server, browser, or port 3000/5000/3030 was used.
+
+### Next gate
+
+- Under fresh bounded owner authorization, run shared-development acceptance for exactly `20260906120000_ingredient_price_foundation` and `20260906150000_harden_ingredient_price_normalization`. Preflight exact history/checksums and privacy-safe old-domain snapshots; require both migrations as the complete pending set; verify the same objects, empty price tables, preservation, second-deploy no-op, current status, and migration-derived parity. Do not seed price data.
+- Only after shared migration and source-license acceptance should a bounded PSA/OpenSTAT basket be considered. PayMongo Phase 3B remains paused indefinitely until the owner supplies a new instruction after provider account/business acceptance.

@@ -8,6 +8,10 @@ const migration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260906120000_ingredient_price_foundation/migration.sql'),
   'utf8',
 );
+const normalizationHardeningMigration = readFileSync(
+  resolve(process.cwd(), 'prisma/migrations/20260906150000_harden_ingredient_price_normalization/migration.sql'),
+  'utf8',
+);
 
 const models = [
   'IngredientPriceSource',
@@ -49,4 +53,12 @@ test('[TEST-095] price evidence is append-only and deletes remain restrictive', 
   assert.match(migration, /IngredientPriceEvidence_reject_mutation/);
   assert.match(migration, /IngredientPriceObservation_publicationId_fkey[\s\S]*?ON DELETE RESTRICT/);
   assert.match(migration, /IngredientPriceCommodityMapping_foodItemId_fkey[\s\S]*?ON DELETE RESTRICT/);
+});
+
+test('[TEST-096] normalization hardening closes SQL NULL half-states additively', () => {
+  assert.match(normalizationHardeningMigration, /IngredientPriceCommodity_normalization_pair_strict/);
+  assert.match(normalizationHardeningMigration, /IngredientPriceObservation_normalization_pair_strict/);
+  assert.match(normalizationHardeningMigration, /"normalizedQuantity" IS NOT NULL[\s\S]*?"normalizedUnit" IS NOT NULL/);
+  assert.doesNotMatch(normalizationHardeningMigration, /^\s*(DROP|DELETE|UPDATE|INSERT|TRUNCATE)\b/im);
+  assert.doesNotMatch(normalizationHardeningMigration, /ALTER TABLE "(User|FoodItem|MealPlan|MealIngredient|MealLibrary|MealLibraryIngredient|GroceryList|GroceryItem)"/);
 });
