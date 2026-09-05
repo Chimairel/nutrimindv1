@@ -41,6 +41,6 @@ test('[TEST-044] cuisine variety remains subordinate to recorded clinical constr
   const { prompt } = buildMealGenerationPrompt(promptInput);
 
   assert.match(prompt, /Medical Conditions: HYPERTENSION; Additional: Gout/);
-  assert.match(prompt, /Allergens to EXCLUDE completely: NUTS; Additional: Sesame/);
+  assert.match(prompt, /Food restrictions to EXCLUDE or REVIEW: NUTS; Additional: Sesame/);
   assert.match(prompt, /Clinical safety always overrides cuisine variety, convenience, cost, or user preference/i);
 });

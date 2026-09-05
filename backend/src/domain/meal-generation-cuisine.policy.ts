@@ -51,7 +51,7 @@ Rules:
 
 export const MEAL_GENERATION_CUISINE_POLICY = `
 [ACCESSIBILITY AND CUISINE POLICY]
-- Optimize first for the user's medical restrictions, allergies, dietary preference, nutrition targets, affordability, preparation effort, and realistic availability in the Philippines.
+- Optimize first for the user's health and food restrictions, dietary preference, nutrition targets, affordability, preparation effort, and realistic availability in the Philippines.
 - Treat the user's food-culture preference as an influence, not an exclusive cuisine restriction. Do not make every meal belong to that cuisine.
 - Build a varied plan that may combine Filipino staples, universally familiar simple meals, locally popular foods with other cultural origins, and suitable ready-to-eat or convenience foods.
 - Simple everyday combinations are valid meal-plan choices. Do not make a meal elaborate or culturally specific merely to sound distinctive.
@@ -90,12 +90,12 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `- Preferred Food Culture: ${input.foodCulture} (influence only; this does not restrict the plan to one cuisine)\n\n` +
     `[CLINICAL SAFEGUARDS]\n` +
     `- Medical Conditions: ${conditions}${input.otherConditions ? '; Additional: ' + input.otherConditions : ''}\n` +
-    `- Allergens to EXCLUDE completely: ${allergens}${input.otherAllergies ? '; Additional: ' + input.otherAllergies : ''}\n\n` +
+    `- Food restrictions to EXCLUDE or REVIEW: ${allergens}${input.otherAllergies ? '; Additional: ' + input.otherAllergies : ''}\n\n` +
     `${MEAL_GENERATION_CUISINE_POLICY}\n` +
     `[PHILIPPINE FOOD COMPOSITION REFERENCE]\n` +
     `${input.foodReference}\n\n` +
     `Hard Rules:\n` +
-    `- Exclude every recorded allergen from all recipes.\n` +
+    `- Respect every recorded food restriction in all recipes; exclude canonical restrictions and retain review gates for unsupported entries.\n` +
     `- Filter out high-sodium foods and condiments when the user has HYPERTENSION.\n` +
     `- Limit simple carbohydrates, refined-rice portions, and added sugars when the user has DIABETES.\n` +
     `- Keep calories and macronutrients mathematically aligned with realistic portions.\n` +

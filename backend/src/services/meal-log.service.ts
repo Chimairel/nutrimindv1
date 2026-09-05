@@ -197,7 +197,7 @@ export class MealLogService {
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
         detectedWarnings.push('ALLERGY');
-        conflictReasons.push(`Contains shellfish indicator ("${hit}") matching your shellfish allergy.`);
+        conflictReasons.push(`Contains shellfish indicator ("${hit}") matching your declared shellfish restriction.`);
       }
     }
 
@@ -210,7 +210,7 @@ export class MealLogService {
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
         detectedWarnings.push('ALLERGY');
-        conflictReasons.push(`Contains nut indicator ("${hit}") matching your tree nut/peanut allergy.`);
+        conflictReasons.push(`Contains nut indicator ("${hit}") matching your declared tree nut/peanut restriction.`);
       }
     }
 
@@ -224,7 +224,7 @@ export class MealLogService {
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
         detectedWarnings.push('ALLERGY');
-        conflictReasons.push(`Contains dairy indicator ("${hit}") matching your lactose/dairy allergy.`);
+        conflictReasons.push(`Contains dairy indicator ("${hit}") matching your declared dairy restriction.`);
       }
     }
 
@@ -239,7 +239,7 @@ export class MealLogService {
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
         detectedWarnings.push('ALLERGY');
-        conflictReasons.push(`Contains gluten/wheat indicator ("${hit}") matching your wheat/gluten allergy.`);
+        conflictReasons.push(`Contains gluten/wheat indicator ("${hit}") matching your declared wheat/gluten restriction.`);
       }
     }
 
@@ -252,7 +252,7 @@ export class MealLogService {
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
         detectedWarnings.push('ALLERGY');
-        conflictReasons.push(`Contains egg indicator ("${hit}") matching your egg allergy.`);
+        conflictReasons.push(`Contains egg indicator ("${hit}") matching your declared egg restriction.`);
       }
     }
 

@@ -18,7 +18,7 @@
   - `4defe0f` — structured multi-value safety intake source and additive migration
 - Phase 2 adds one structured restriction adapter across production consumers, exact combined-profile coverage evidence, operational API/UI evidence, and a guarded incompatible-plan fixture. See engineering-record section 36.
 - The configured database contained 49 current managed catalogue meals and 53 total meal-library records at the last acceptance run.
-- The branch passed the backend suite (250 registered, 249 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, live service acceptance, and browser inspection. See engineering-record sections 32–33 for exact evidence and scope.
+- The branch passed the backend suite (268 registered, 267 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, read-only configured-database coverage measurement, and bounded browser inspection. See engineering-record sections 32–36 for exact evidence and scope.
 - Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
 
 ## 2. Product model that must remain intact
@@ -105,7 +105,7 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 ### Remaining Phase 2 runtime gate
 
 - `backend/scripts/structured-safety-replacement-acceptance.ts` is implemented and type-checked but unexecuted. It needs exact authorization to create the reserved `e2e.structured-replacement.acceptance@example.invalid` user/plan/grocery/history rows and temporarily increment then restore one selected managed meal's `usageCount`.
-- It snapshots all 49 managed counters before writes, deletes the exact reserved user in `finally`, restores every counter, and asserts zero residual rows and zero counter drift. It does not create certified catalogue rows or call Gemini/email/OAuth/payment code.
+- It reads the 49 managed counter baselines before writes, resolves the one selected replacement before fixture-row deletion, and restores only that fixture-owned increment through compare-and-set. Counter restoration and exact reserved-row deletion are attempted independently; concurrent counter changes are never overwritten. It asserts zero residual rows and zero selected-counter drift. It does not create certified catalogue rows or call Gemini/email/OAuth/payment code.
 
 ## 5. Planned payments and subscriptions
 

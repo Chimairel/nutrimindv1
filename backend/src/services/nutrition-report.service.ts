@@ -156,9 +156,9 @@ export class NutritionReportService {
       `Rules for content generation:\n` +
       `- If user has HYPERTENSION, strictly exclude bagoong, patis, high-sodium instant noodles, SPAM, and salty chicharon. Recommends kangkong, banana, low sodium garlic.\n` +
       `- If user has DIABETES, restrict refined white sugar, sweetened soft drinks, condensed milk, and large portions of white rice. Suggest brown rice, ampalaya, tokwa.\n` +
-      `- If user has SHELLFISH allergy, exclude shrimps, crabs, mussels, talaba, and bagoong alamang.\n` +
-      `- If user has DAIRY allergy, exclude fresh milk, evaporated milk, condensed milk, cheese, and halo-halo with dairy.\n` +
-      `- If user has GLUTEN allergy, exclude wheat flour pan de sal, regular soy sauce, pancit canton.\n` +
+      `- If a SHELLFISH restriction is present, exclude shrimps, crabs, mussels, talaba, and bagoong alamang.\n` +
+      `- If a DAIRY restriction is present, exclude fresh milk, evaporated milk, condensed milk, cheese, and halo-halo with dairy.\n` +
+      `- If a GLUTEN restriction is present, exclude wheat flour pan de sal, regular soy sauce, pancit canton.\n` +
       `- Keep suggestions highly realistic, affordable, and practical for young Filipinos.\n` +
       `- Return ONLY the clean JSON output. Do not wrap in markdown code blocks.`;
 

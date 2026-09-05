@@ -44,7 +44,7 @@ export const NutritionReportPDF = ({ user, report }: { user: any, report: any })
           <Text style={styles.text}><Text style={styles.bold}>Patient Name:</Text> {user.name}</Text>
           <Text style={styles.text}><Text style={styles.bold}>Daily Target:</Text> {user.userProfile?.dailyCalorieTarget || 'TBD'} kcal</Text>
           <Text style={styles.text}><Text style={styles.bold}>Conditions Considered:</Text> {conditions.length > 0 ? conditions.join(', ') : 'None'}</Text>
-          <Text style={styles.text}><Text style={styles.bold}>Allergies Considered:</Text> {allergies.length > 0 ? allergies.join(', ') : 'None'}</Text>
+          <Text style={styles.text}><Text style={styles.bold}>Food Restrictions Considered:</Text> {allergies.length > 0 ? allergies.join(', ') : 'None'}</Text>
         </View>
 
         <View style={styles.divider} />

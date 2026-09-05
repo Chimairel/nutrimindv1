@@ -279,7 +279,7 @@ export class NutritionistService {
         if (isMatch) {
           warnings.push({
             severity: 'CRITICAL',
-            message: `⚠️ ${ingredient.ingredientName} may contain ${allergen} — user has declared a ${allergen} allergy`
+            message: `⚠️ ${ingredient.ingredientName} may contain ${allergen} — this conflicts with the user's declared ${allergen} restriction`
           });
         }
       }
@@ -787,7 +787,7 @@ export class NutritionistService {
         `Generate a single replacement ${plan.mealType} meal for a Filipino patient with these constraints:\n` +
         `- Daily Calorie Target: ${profile?.dailyCalorieTarget || 2000} kcal\n` +
         `- Health Conditions: ${conditions.join(', ') || 'NONE'}\n` +
-        `- Allergens to EXCLUDE: ${allergens.join(', ') || 'NONE'}\n` +
+        `- Food restrictions to EXCLUDE or REVIEW: ${allergens.join(', ') || 'NONE'}\n` +
         `- Dietary Preference: ${profile?.dietaryPreference || 'OMNIVORE'}\n` +
         `- Rejection Reason: ${reason}\n` +
         `Return a strict JSON object:\n` +

@@ -922,7 +922,7 @@ export class UserService {
         data: {
           userId,
           title: 'Meal Plan Safety Update ⚠️',
-          message: `We updated ${replacedCount} meal(s) in your current plan due to your allergy/condition update.`,
+          message: `We updated ${replacedCount} meal(s) in your current plan due to your health or food restriction update.`,
           type: NotificationType.PLAN_APPROVED,
         },
       });

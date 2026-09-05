@@ -27,7 +27,6 @@ async function main() {
     );
   }
 
-  await cleanupFixture();
   const managedMeals = await prisma.mealLibrary.findMany({
     where: {
       mealName: { in: managedNames },
@@ -64,7 +63,11 @@ async function main() {
   assert.ok(replacements.length > 0, 'Acceptance requires one certified egg-compatible replacement in the same meal slot.');
 
   let userId: string | null = null;
+  let planId: string | null = null;
+  let selectedReplacementId: string | null = null;
+  let recheckAttempted = false;
   try {
+    await cleanupFixture();
     const user = await prisma.user.create({
       data: {
         name: 'Structured Replacement Acceptance Fixture',
@@ -123,6 +126,7 @@ async function main() {
         },
       },
     });
+    planId = plan.id;
     const groceryBefore = await GroceryService.generateGroceryList(userId);
 
     const inputs = [
@@ -133,16 +137,21 @@ async function main() {
     ];
     const firstSave = await SafetyIntakeService.save(userId, inputs);
     assert.equal(firstSave.changed, true);
+    recheckAttempted = true;
     await UserService.runSafetyRecheck(userId);
 
-    const [planAfter, groceryAfter, revisionsAfter, reportAfter, replacementLog] = await Promise.all([
-      prisma.mealPlan.findUnique({ where: { id: plan.id }, include: { ingredients: true } }),
+    const planAfter = await prisma.mealPlan.findUnique({
+      where: { id: plan.id },
+      include: { ingredients: true },
+    });
+    assert.ok(planAfter);
+    selectedReplacementId = planAfter.libraryMealId;
+    const [groceryAfter, revisionsAfter, reportAfter, replacementLog] = await Promise.all([
       GroceryService.getGroceryList(userId),
       prisma.healthProfileRevision.findMany({ where: { userId, revisionType: 'STRUCTURED_SAFETY_UPDATED' } }),
       prisma.nutritionReport.findUnique({ where: { userId } }),
       prisma.mealLog.findUnique({ where: { mealPlanId: plan.id } }),
     ]);
-    assert.ok(planAfter);
     assert.equal(planAfter.status, 'APPROVED');
     assert.equal(planAfter.requiresSafetyRevalidation, false);
     assert.notEqual(planAfter.libraryMealId, original.id);
@@ -180,26 +189,87 @@ async function main() {
       idempotent: !secondSave.changed && groceryFinal?.id === groceryAfter.id,
     }, null, 2));
   } finally {
-    await cleanupFixture();
-    await prisma.$transaction([...usageSnapshot].map(([id, usageCount]) => prisma.mealLibrary.update({
-      where: { id },
-      data: { usageCount },
-    })));
+    const cleanupFailures: string[] = [];
 
-    const [residualUsers, residualPlans, residualGroceries, residualEntries, residualRevisions, residualLogs, managedAfter] = await Promise.all([
-      prisma.user.count({ where: { email: FIXTURE_EMAIL } }),
-      prisma.mealPlan.count({ where: { planGroupId: FIXTURE_PLAN_GROUP } }),
-      userId ? prisma.groceryList.count({ where: { userId } }) : Promise.resolve(0),
-      userId ? prisma.safetyProfileEntry.count({ where: { userId } }) : Promise.resolve(0),
-      userId ? prisma.healthProfileRevision.count({ where: { userId } }) : Promise.resolve(0),
-      userId ? prisma.mealLog.count({ where: { userId } }) : Promise.resolve(0),
-      prisma.mealLibrary.findMany({ where: { id: { in: [...usageSnapshot.keys()] } }, select: { id: true, usageCount: true } }),
-    ]);
-    const counterDrift = managedAfter.filter((meal) => usageSnapshot.get(meal.id) !== meal.usageCount);
-    assert.deepEqual(
-      { residualUsers, residualPlans, residualGroceries, residualEntries, residualRevisions, residualLogs, counterDrift: counterDrift.length },
-      { residualUsers: 0, residualPlans: 0, residualGroceries: 0, residualEntries: 0, residualRevisions: 0, residualLogs: 0, counterDrift: 0 }
-    );
+    // Resolve the selected row before deleting the fixture. This is a fallback
+    // for failures after the recheck transaction commits but before the normal
+    // assertion query records its replacement id.
+    if (recheckAttempted && !selectedReplacementId && planId) {
+      try {
+        const planForCleanup = await prisma.mealPlan.findUnique({
+          where: { id: planId },
+          select: { libraryMealId: true },
+        });
+        selectedReplacementId = planForCleanup?.libraryMealId ?? null;
+      } catch (error) {
+        cleanupFailures.push(`could not resolve selected replacement: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    // Restore only the counter increment owned by this fixture. The equality
+    // predicate is compare-and-set: if another process changed the row, this
+    // fixture refuses to overwrite or decrement that concurrent state.
+    if (recheckAttempted && selectedReplacementId && selectedReplacementId !== original.id) {
+      try {
+        const baseline = usageSnapshot.get(selectedReplacementId);
+        assert.notEqual(baseline, undefined, 'Selected replacement is outside the managed counter snapshot.');
+        const current = await prisma.mealLibrary.findUnique({
+          where: { id: selectedReplacementId },
+          select: { usageCount: true },
+        });
+        assert.ok(current, 'Selected replacement disappeared before counter restoration.');
+        if (current.usageCount === baseline! + 1) {
+          const restored = await prisma.mealLibrary.updateMany({
+            where: { id: selectedReplacementId, usageCount: baseline! + 1 },
+            data: { usageCount: { decrement: 1 } },
+          });
+          assert.equal(restored.count, 1, 'Selected counter changed during compare-and-set restoration.');
+        } else {
+          assert.equal(
+            current.usageCount,
+            baseline,
+            'Selected counter contains concurrent or unexpected changes; refusing to overwrite it.'
+          );
+        }
+      } catch (error) {
+        cleanupFailures.push(`selected counter restoration failed safely: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    // Fixture-row deletion is independent from counter restoration, so either
+    // cleanup is still attempted if the other one fails.
+    try {
+      await cleanupFixture();
+    } catch (error) {
+      cleanupFailures.push(`reserved-row cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    try {
+      const [residualUsers, residualPlans, residualGroceries, residualEntries, residualRevisions, residualLogs, selectedAfter] = await Promise.all([
+        prisma.user.count({ where: { email: FIXTURE_EMAIL } }),
+        prisma.mealPlan.count({ where: { planGroupId: FIXTURE_PLAN_GROUP } }),
+        userId ? prisma.groceryList.count({ where: { userId } }) : Promise.resolve(0),
+        userId ? prisma.safetyProfileEntry.count({ where: { userId } }) : Promise.resolve(0),
+        userId ? prisma.healthProfileRevision.count({ where: { userId } }) : Promise.resolve(0),
+        userId ? prisma.mealLog.count({ where: { userId } }) : Promise.resolve(0),
+        selectedReplacementId && usageSnapshot.has(selectedReplacementId)
+          ? prisma.mealLibrary.findUnique({ where: { id: selectedReplacementId }, select: { usageCount: true } })
+          : Promise.resolve(null),
+      ]);
+      const selectedCounterDrift = selectedAfter && selectedReplacementId
+        ? Number(selectedAfter.usageCount !== usageSnapshot.get(selectedReplacementId))
+        : 0;
+      assert.deepEqual(
+        { residualUsers, residualPlans, residualGroceries, residualEntries, residualRevisions, residualLogs, selectedCounterDrift },
+        { residualUsers: 0, residualPlans: 0, residualGroceries: 0, residualEntries: 0, residualRevisions: 0, residualLogs: 0, selectedCounterDrift: 0 }
+      );
+    } catch (error) {
+      cleanupFailures.push(`cleanup verification failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (cleanupFailures.length > 0) {
+      throw new Error(`Acceptance cleanup was incomplete:\n- ${cleanupFailures.join('\n- ')}`);
+    }
   }
 }
 
