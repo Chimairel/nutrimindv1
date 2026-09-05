@@ -368,10 +368,23 @@ export const COMMON_MEAL_CATALOGUE: CommonMealDefinition[] = [
     mealType: 'DINNER', diets: vegan, allergensPresent: [],
     ingredients: [ingredient('Mung bean seed, green, dried, boiled', 90, 'PROTEIN'), ingredient('Sweet potato, purple, boiled', 65, 'GRAINS'), ingredient('Squash fruit, boiled', 120, 'VEGETABLES'), ingredient('Pechay lvs, boiled', 100, 'VEGETABLES')],
   },
+  {
+    mealName: 'Tokwa Ampalaya Rice Bowl',
+    description: 'Firm tokwa with boiled ampalaya, tomato, and onion over steamed rice.',
+    mealType: 'LUNCH', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Rice, well-milled, boiled', 130, 'GRAINS'), ingredient('Soybean cheese, hard curd', 160, 'PROTEIN'), ingredient('Bitter melon/gourd fruit, boiled', 120, 'VEGETABLES'), ingredient('Tomato', 60, 'VEGETABLES'), ingredient('Onion, Bombay bulb', 20, 'VEGETABLES')],
+  },
+  {
+    mealName: 'Tokwa Sayote and Sitaw Dinner Plate',
+    description: 'Firm tokwa with boiled sayote and sitaw, purple sweet potato, and fresh tomato.',
+    mealType: 'DINNER', diets: vegan, allergensPresent: [],
+    ingredients: [ingredient('Soybean cheese, hard curd', 160, 'PROTEIN'), ingredient('Chayote fruit, boiled', 160, 'VEGETABLES'), ingredient('String/Yard long bean pod, green, boiled', 100, 'VEGETABLES'), ingredient('Sweet potato, purple, boiled', 120, 'GRAINS'), ingredient('Tomato', 60, 'VEGETABLES')],
+  },
 ];
 
 export function assertCommonMealCatalogue(): void {
   const names = new Set<string>();
+  const recipes = new Map<string, string>();
   for (const meal of COMMON_MEAL_CATALOGUE) {
     if (names.has(meal.mealName)) throw new Error(`Duplicate catalogue meal: ${meal.mealName}`);
     names.add(meal.mealName);
@@ -385,5 +398,14 @@ export function assertCommonMealCatalogue(): void {
         throw new Error(`Invalid ingredient in ${meal.mealName}`);
       }
     }
+    const recipeKey = meal.ingredients
+      .map((item) => `${item.foodName}:${item.grams}:${item.category}`)
+      .sort()
+      .join('|');
+    const existingRecipe = recipes.get(recipeKey);
+    if (existingRecipe) {
+      throw new Error(`Duplicate catalogue recipe: ${meal.mealName} matches ${existingRecipe}`);
+    }
+    recipes.set(recipeKey, meal.mealName);
   }
 }

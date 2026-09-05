@@ -37,7 +37,7 @@ async function main() {
     },
     include: certifiedLibraryMealInclude,
   });
-  assert.equal(managedMeals.length, 49, 'Acceptance requires the exact 49-meal certified managed catalogue.');
+  assert.equal(managedMeals.length, 51, 'Acceptance requires the exact 51-meal certified managed catalogue.');
   const usageSnapshot = new Map(managedMeals.map((meal) => [meal.id, meal.usageCount]));
 
   const eggProfile = {

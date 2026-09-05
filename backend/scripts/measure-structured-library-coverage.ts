@@ -53,8 +53,8 @@ async function main() {
     include: certifiedLibraryMealInclude,
   });
 
-  assert.equal(COMMON_MEAL_CATALOGUE.length, 49, 'The version-controlled managed catalogue changed; update the evidence scope.');
-  assert.equal(meals.length, 49, 'The configured database does not contain all 49 current certified managed meals.');
+  assert.equal(COMMON_MEAL_CATALOGUE.length, 51, 'The version-controlled managed catalogue changed; update the evidence scope.');
+  assert.equal(meals.length, 51, 'The configured database does not contain all 51 current certified managed meals.');
 
   const results = profiles.map((profile) => {
     const matching = meals.filter((meal) => isCertifiedLibraryMealCompatible(

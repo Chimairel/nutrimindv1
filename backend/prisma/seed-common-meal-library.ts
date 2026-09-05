@@ -2,11 +2,13 @@
  * Populate the reusable MealLibrary with FNRI-linked common meals and certify
  * each exact evidence revision through NutritionistService.
  *
- * Dry run: npm run seed:meal-library
- * Apply:   npm run seed:meal-library -- --apply
+ * Database dry run: npm run seed:meal-library
+ * Offline source/FNRI projection: npm run seed:meal-library -- --offline-dry-run
+ * Apply: npm run seed:meal-library -- --apply
  */
 import 'dotenv/config';
-import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   MealIngredientDataSource,
   MealLibrarySafetyEvidenceStatus,
@@ -23,65 +25,33 @@ import {
   getCatalogueDietaryTags,
   type CommonMealDefinition,
 } from '../src/data/common-meal-catalogue';
+import {
+  calculateCatalogueNutrition,
+  type CatalogueFnriFoodEvidence,
+} from '../src/domain/catalogue-nutrition.policy';
+import {
+  CURRENT_CATALOGUE_REVIEW_REASON,
+  MANAGED_CATALOGUE_REVIEW_REASONS,
+  catalogueDefinitionSignature,
+  hasCurrentCatalogueDefinition,
+  shouldUpdateCatalogueVerifiedCount,
+} from '../src/domain/catalogue-population.policy';
+import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { NutritionistService } from '../src/services/nutritionist.service';
 import { evaluateMealLibrarySafetyEvidence } from '../src/domain/meal-library-safety-evidence.policy';
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
+import { isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
 
 const APPLY = process.argv.includes('--apply');
-const LEGACY_SEED_REVIEW_REASONS = [
-  'NUTRIMIND_COMMON_LIBRARY_V1',
-  'NUTRIMIND_COMMON_LIBRARY_V2',
-] as const;
-const SEED_REVIEW_REASON = 'NUTRIMIND_COMMON_LIBRARY_V3';
-const MANAGED_REVIEW_REASONS = [...LEGACY_SEED_REVIEW_REASONS, SEED_REVIEW_REASON];
+const OFFLINE_DRY_RUN = process.argv.includes('--offline-dry-run');
+const SEED_REVIEW_REASON = CURRENT_CATALOGUE_REVIEW_REASON;
 const NUTRITIONIST_EMAIL = 'nutritionist@gmail.com';
+const COVERAGE_GAP_ADDITION_NAMES = [
+  'Tokwa Ampalaya Rice Bowl',
+  'Tokwa Sayote and Sitaw Dinner Plate',
+] as const;
 
-type FnriFood = {
-  id: string;
-  name: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  sodium: number | null;
-};
-
-function definitionSignature(meal: CommonMealDefinition): string {
-  return createHash('sha256').update(JSON.stringify(meal)).digest('hex');
-}
-
-function roundNutrient(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
-function calculateNutrition(meal: CommonMealDefinition, foods: Map<string, FnriFood>) {
-  let hasCompleteSodium = true;
-  const totals = meal.ingredients.reduce(
-    (result, item) => {
-      const food = foods.get(item.foodName);
-      if (!food) throw new Error(`FNRI item not resolved: ${item.foodName}`);
-      const portion = item.grams / 100;
-      result.calories += food.calories * portion;
-      result.proteinG += food.proteinG * portion;
-      result.carbsG += food.carbsG * portion;
-      result.fatG += food.fatG * portion;
-      if (food.sodium === null) hasCompleteSodium = false;
-      else result.sodiumMg += food.sodium * portion;
-      return result;
-    },
-    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 }
-  );
-
-  return {
-    calories: roundNutrient(totals.calories),
-    proteinG: roundNutrient(totals.proteinG),
-    carbsG: roundNutrient(totals.carbsG),
-    fatG: roundNutrient(totals.fatG),
-    sodiumMg: hasCompleteSodium ? roundNutrient(totals.sodiumMg) : null,
-  };
-}
-
-async function resolveFnriFoods(): Promise<Map<string, FnriFood>> {
+async function resolveFnriFoods(): Promise<Map<string, CatalogueFnriFoodEvidence>> {
   const requiredNames = [...new Set(
     COMMON_MEAL_CATALOGUE.flatMap((meal) => meal.ingredients.map((item) => item.foodName))
   )];
@@ -90,7 +60,7 @@ async function resolveFnriFoods(): Promise<Map<string, FnriFood>> {
     select: { id: true, name: true, calories: true, proteinG: true, carbsG: true, fatG: true, sodium: true },
   });
 
-  const grouped = new Map<string, FnriFood[]>();
+  const grouped = new Map<string, CatalogueFnriFoodEvidence[]>();
   for (const row of rows) grouped.set(row.name, [...(grouped.get(row.name) || []), row]);
   const missing = requiredNames.filter((name) => !grouped.has(name));
   const ambiguous = requiredNames.filter((name) => (grouped.get(name)?.length || 0) !== 1 && !missing.includes(name));
@@ -100,7 +70,213 @@ async function resolveFnriFoods(): Promise<Map<string, FnriFood>> {
   return new Map(requiredNames.map((name) => [name, grouped.get(name)![0]]));
 }
 
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (const char of line) {
+    if (char === '"') inQuotes = !inQuotes;
+    else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else current += char;
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function requiredNumber(value: string | undefined, field: string, foodName: string): number {
+  const parsed = Number(value);
+  if (!value?.trim() || !Number.isFinite(parsed)) {
+    throw new Error(`Invalid FNRI ${field} for ${foodName}`);
+  }
+  return parsed;
+}
+
+function optionalNumber(value: string | undefined): number | null {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized || normalized === '-' || normalized === 'tr' || normalized === 'n/a') return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function resolveFnriFoodsFromCsv(): Map<string, CatalogueFnriFoodEvidence> {
+  const requiredNames = new Set(
+    COMMON_MEAL_CATALOGUE.flatMap((meal) => meal.ingredients.map((item) => item.foodName)),
+  );
+  const csvPath = path.join(__dirname, 'data', 'fnri.csv');
+  const lines = fs.readFileSync(csvPath, 'utf8').split(/\r?\n/).filter(Boolean).slice(1);
+  const grouped = new Map<string, CatalogueFnriFoodEvidence[]>();
+
+  for (const line of lines) {
+    const cells = parseCSVLine(line);
+    const name = cells[1];
+    if (!requiredNames.has(name) || cells[5]?.toUpperCase() !== 'TRUE') continue;
+    const row: CatalogueFnriFoodEvidence = {
+      id: `fnri-csv:${cells[0]}`,
+      name,
+      calories: requiredNumber(cells[7], 'calories', name),
+      proteinG: requiredNumber(cells[8], 'protein', name),
+      fatG: requiredNumber(cells[9], 'fat', name),
+      carbsG: requiredNumber(cells[10], 'carbohydrate', name),
+      sodium: optionalNumber(cells[18]),
+    };
+    grouped.set(name, [...(grouped.get(name) || []), row]);
+  }
+
+  const missing = [...requiredNames].filter((name) => !grouped.has(name));
+  const ambiguous = [...requiredNames].filter((name) => (grouped.get(name)?.length || 0) > 1);
+  if (missing.length > 0) throw new Error(`Missing FNRI CSV rows: ${missing.join(', ')}`);
+  if (ambiguous.length > 0) throw new Error(`Ambiguous FNRI CSV rows: ${ambiguous.join(', ')}`);
+  return new Map([...requiredNames].map((name) => [name, grouped.get(name)![0]]));
+}
+
+function projectCertifiedMeal(
+  meal: CommonMealDefinition,
+  foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>,
+) {
+  const nutrition = calculateCatalogueNutrition(meal, foods);
+  const suitableConditions = deriveCatalogueConditionSuitability(nutrition);
+  const allergensReviewedAbsent = SUPPORTED_LIBRARY_ALLERGENS.filter(
+    (allergen) => !meal.allergensPresent.includes(allergen),
+  );
+  return {
+    mealName: meal.mealName,
+    mealType: meal.mealType,
+    dietaryTags: getCatalogueDietaryTags(meal),
+    status: 'APPROVED',
+    safetyEvidenceStatus: 'COMPLETE',
+    safetyEvidenceOrigin: 'NUTRITIONIST_REVIEW',
+    conditionDeclarationState: suitableConditions.length > 0
+      ? 'REVIEWED_WITH_DECLARATIONS'
+      : 'REVIEWED_NONE_DECLARED',
+    allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+    crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
+    safetyEvidenceRevision: 1,
+    certifiedEvidenceRevision: 1,
+    safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+    safetyInvalidatedAt: null,
+    safetyReviewedByNutritionist: {
+      isVerified: true,
+      prcLicenseExpiry: new Date('2999-12-31T00:00:00.000Z'),
+    },
+    ingredients: meal.ingredients.map((item) => ({
+      dataSource: 'FNRI',
+      foodItemId: foods.get(item.foodName)!.id,
+      ingredientName: item.foodName,
+      quantity: item.grams,
+      unit: 'g',
+    })),
+    safetyDeclarations: [
+      ...suitableConditions.map((canonicalKey) => ({
+        declarationType: 'CONDITION_REVIEWED',
+        canonicalKey,
+        customKey: null,
+      })),
+      ...meal.allergensPresent.map((canonicalKey) => ({
+        declarationType: 'ALLERGEN_PRESENT',
+        canonicalKey,
+        customKey: null,
+      })),
+      ...allergensReviewedAbsent.map((canonicalKey) => ({
+        declarationType: 'ALLERGEN_REVIEWED_ABSENT',
+        canonicalKey,
+        customKey: null,
+      })),
+    ],
+    nutrition,
+    suitableConditions,
+    allergensPresent: meal.allergensPresent,
+    allergensReviewedAbsent,
+  };
+}
+
+function runOfflineDryRun(
+  counts: Record<string, number>,
+  foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>,
+) {
+  const projectedMeals = COMMON_MEAL_CATALOGUE.map((meal) => projectCertifiedMeal(meal, foods));
+  const safetyEntries = [
+    { domain: 'CONDITION', canonicalCode: 'DIABETES', displayName: 'Diabetes', supportState: 'SUPPORTED' },
+    { domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' },
+  ] as const;
+  const matching = projectedMeals.filter((meal) => isCertifiedLibraryMealCompatible(
+    meal,
+    [],
+    [],
+    {
+      dietaryPreference: 'VEGETARIAN',
+      goal: 'MAINTAIN',
+      otherConditions: null,
+      otherAllergies: null,
+      safetyEntries,
+    },
+  ));
+  const projectedCoverage = Object.fromEntries(
+    ['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType) => [
+      mealType,
+      matching.filter((meal) => meal.mealType === mealType).length,
+    ]),
+  ) as Record<string, number>;
+  if (Object.values(projectedCoverage).some((count) => count < 7)) {
+    throw new Error(`Projected combined-profile coverage remains incomplete: ${JSON.stringify(projectedCoverage)}`);
+  }
+
+  const repeatWrites = COMMON_MEAL_CATALOGUE.filter((meal) => !hasCurrentCatalogueDefinition(meal, {
+    safetyEvidenceStatus: 'COMPLETE',
+    safetyReviews: [{
+      reasonCode: CURRENT_CATALOGUE_REVIEW_REASON,
+      evidenceSnapshot: { signature: catalogueDefinitionSignature(meal) },
+    }],
+  })).length;
+  if (repeatWrites !== 0) throw new Error(`Idempotence projection requires ${repeatWrites} repeat writes.`);
+
+  const additions = projectedMeals.filter((meal) =>
+    COVERAGE_GAP_ADDITION_NAMES.includes(meal.mealName as typeof COVERAGE_GAP_ADDITION_NAMES[number])
+  );
+  if (additions.length !== COVERAGE_GAP_ADDITION_NAMES.length) {
+    throw new Error(`Expected ${COVERAGE_GAP_ADDITION_NAMES.length} bounded additions, found ${additions.length}.`);
+  }
+  console.log(JSON.stringify({
+    mode: 'offline-dry-run',
+    databaseConnected: false,
+    catalogueMeals: COMMON_MEAL_CATALOGUE.length,
+    mealTypeCounts: counts,
+    exactFnriFoods: foods.size,
+    projectedAgainstRecorded49MealBaseline: {
+      creates: additions.length,
+      updates: 0,
+      skips: COMMON_MEAL_CATALOGUE.length - additions.length,
+    },
+    repeatRun: {
+      catalogueWrites: repeatWrites,
+      profileCounterWrites: Number(shouldUpdateCatalogueVerifiedCount(
+        COMMON_MEAL_CATALOGUE.length,
+        COMMON_MEAL_CATALOGUE.length,
+      )),
+      skips: COMMON_MEAL_CATALOGUE.length,
+    },
+    projectedProfile: {
+      restrictions: ['DIABETES', 'VEGETARIAN', 'EGGS'],
+      counts: projectedCoverage,
+      weekReady: true,
+    },
+    additions: additions.map((meal) => ({
+      mealName: meal.mealName,
+      mealType: meal.mealType,
+      nutrition: meal.nutrition,
+      ingredients: meal.ingredients,
+      suitableConditions: meal.suitableConditions,
+      allergensPresent: meal.allergensPresent,
+      allergensReviewedAbsent: meal.allergensReviewedAbsent,
+    })),
+  }, null, 2));
+}
+
 async function main() {
+  if (APPLY && OFFLINE_DRY_RUN) {
+    throw new Error('--apply and --offline-dry-run cannot be combined.');
+  }
   assertCommonMealCatalogue();
   const counts = Object.fromEntries(
     ['BREAKFAST', 'LUNCH', 'DINNER'].map((type) => [
@@ -110,6 +286,12 @@ async function main() {
   );
   if (Object.values(counts).some((count) => count < 7)) {
     throw new Error(`Catalogue must provide at least seven meals per main slot: ${JSON.stringify(counts)}`);
+  }
+
+  if (OFFLINE_DRY_RUN) {
+    const foods = resolveFnriFoodsFromCsv();
+    runOfflineDryRun(counts, foods);
+    return;
   }
 
   const nutritionist = await prisma.nutritionistProfile.findFirst({
@@ -133,12 +315,12 @@ async function main() {
   let skipped = 0;
 
   for (const meal of COMMON_MEAL_CATALOGUE) {
-    const signature = definitionSignature(meal);
+    const signature = catalogueDefinitionSignature(meal);
     const collisions = await prisma.mealLibrary.findMany({
       where: { mealName: meal.mealName },
       include: {
         safetyReviews: {
-          where: { reasonCode: { in: MANAGED_REVIEW_REASONS } },
+          where: { reasonCode: { in: [...MANAGED_CATALOGUE_REVIEW_REASONS] } },
           select: { id: true, reasonCode: true, evidenceSnapshot: true },
         },
       },
@@ -151,18 +333,14 @@ async function main() {
       throw new Error(`Meal-name collision requires manual resolution: "${meal.mealName}".`);
     }
 
-    const currentVersionReview = managed?.safetyReviews.find((review) => {
-      const snapshot = review.evidenceSnapshot as { signature?: unknown } | null;
-      return review.reasonCode === SEED_REVIEW_REASON && snapshot?.signature === signature;
-    });
     let mealId = managed?.id;
     let expectedRevision = managed?.safetyEvidenceRevision;
-    if (managed?.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE && currentVersionReview) {
+    if (managed && hasCurrentCatalogueDefinition(meal, managed)) {
       skipped += 1;
       continue;
     }
 
-    const nutrition = calculateNutrition(meal, foods);
+    const nutrition = calculateCatalogueNutrition(meal, foods);
     const { sodiumMg, ...macros } = nutrition;
     const suitableConditions = deriveCatalogueConditionSuitability({
       carbsG: macros.carbsG,
@@ -323,13 +501,19 @@ async function main() {
   const totalVerified = await prisma.mealLibrary.count({
     where: { verifiedByNutritionistId: nutritionist.id },
   });
-  await prisma.nutritionistProfile.update({
-    where: { id: nutritionist.id },
-    data: { totalVerified },
-  });
+  const profileCounterUpdated = shouldUpdateCatalogueVerifiedCount(
+    nutritionist.totalVerified,
+    totalVerified,
+  );
+  if (profileCounterUpdated) {
+    await prisma.nutritionistProfile.update({
+      where: { id: nutritionist.id },
+      data: { totalVerified },
+    });
+  }
 
   console.log(`Finished: ${created} created, ${certified} certified, ${skipped} already current.`);
-  console.log(`Verified database state: ${verifiedRows.length} current catalogue meals; profile total ${totalVerified}.`);
+  console.log(`Verified database state: ${verifiedRows.length} current catalogue meals; profile total ${totalVerified}; profile counter ${profileCounterUpdated ? 'updated' : 'unchanged'}.`);
 }
 
 main()
