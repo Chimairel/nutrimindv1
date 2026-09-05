@@ -4,7 +4,7 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Phase 1 is implemented and migrated. Phase 2 consumer reconciliation, conservative combined-profile tests, and read-only coverage measurement are implemented on `feature/combined-safety-coverage`; the exact incompatible-plan runtime fixture remains behind an explicit shared-data authorization gate.
+**Status:** Phase 1 is implemented and migrated. Phase 2 consumer reconciliation, conservative combined-profile tests, read-only coverage measurement, and the one authorized INT-010 incompatible-plan replacement run are complete on `feature/combined-safety-coverage`.
 
 ## 1. Resume point
 
@@ -18,7 +18,7 @@
   - `4defe0f` — structured multi-value safety intake source and additive migration
 - Phase 2 adds one structured restriction adapter across production consumers, exact combined-profile coverage evidence, operational API/UI evidence, and a guarded incompatible-plan fixture. See engineering-record section 36.
 - The configured database contained 49 current managed catalogue meals and 53 total meal-library records at the last acceptance run.
-- The branch passed the backend suite (268 registered, 267 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, read-only configured-database coverage measurement, and bounded browser inspection. See engineering-record sections 32–36 for exact evidence and scope.
+- The branch passed the backend suite (268 registered, 267 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, read-only configured-database coverage measurement, INT-010, and bounded browser inspection. See engineering-record sections 32–36 for exact evidence and scope.
 - Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
 
 ## 2. Product model that must remain intact
@@ -102,10 +102,11 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 - Add catalogue meals only to close measured gaps. Every addition needs first-class FNRI ingredient linkage, explicit allergen/condition declarations, current certification evidence, deterministic compatibility tests, and idempotent population behavior.
 - Do not manufacture “verified” state through raw seed flags or by copying one user's profile declarations into reusable authority.
 
-### Remaining Phase 2 runtime gate
+### Completed Phase 2 runtime gate
 
-- `backend/scripts/structured-safety-replacement-acceptance.ts` is implemented and type-checked but unexecuted. It needs exact authorization to create the reserved `e2e.structured-replacement.acceptance@example.invalid` user/plan/grocery/history rows and temporarily increment then restore one selected managed meal's `usageCount`.
-- It reads the 49 managed counter baselines before writes, resolves the one selected replacement before fixture-row deletion, and restores only that fixture-owned increment through compare-and-set. Counter restoration and exact reserved-row deletion are attempted independently; concurrent counter changes are never overwritten. It asserts zero residual rows and zero selected-counter drift. It does not create certified catalogue rows or call Gemini/email/OAuth/payment code.
+- The owner authorized one INT-010 execution on September 5, 2026. Structured `EGGS` incompatibility replaced `Pandesal, Egg and Tomato Breakfast` with certified, egg-reviewed-absent `Tofu Tomato Breakfast Rice Bowl`; the production evaluator allowed the replacement, the grocery ingredient projection refreshed, report invalidation/revision/replacement evidence completed, and identical resubmission was idempotent.
+- Cleanup restored only the selected replacement's fixture-owned counter increment through compare-and-set and deleted the exact `e2e.structured-replacement.acceptance@example.invalid` namespace. A read-only post-check proved zero reserved users, structured entries, plans, meal ingredients, grocery lists/items, revisions, notifications, and replacement logs plus both involved meal counters at their baseline of zero. No external service or permanent catalogue write occurred.
+- The fixture cleaned itself before a browser could reuse its authenticated actor. Authenticated coverage/review/admin and replacement/grocery UI surfaces therefore remain static/build evidence; the public shell and unauthenticated route guard retain E2E-008 browser evidence.
 
 ## 5. Planned payments and subscriptions
 
@@ -165,12 +166,11 @@ Only after this ADR should schema design and implementation begin.
 
 ## 9. Recommended execution order
 
-1. If the owner wants the remaining optional Phase 1 evidence, authorize an exact temporary certified-meal fixture or exact shared usage-counter restoration, then prove that a new structured incompatibility replaces or blocks an active meal and refreshes groceries without Gemini.
-2. Verify combined restriction behavior and close only measured library gaps in Phase 2.
-3. Write the payment/subscription/compensation ADR using freshly verified provider information.
-4. Implement subscription sandbox billing and admin reconciliation.
-5. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.
-6. Prototype price coverage separately, after core safety and payment flows remain stable.
+1. In a separately authorized catalogue phase, add evidence-backed meals only for the measured Diabetes + vegetarian + egg lunch and dinner gaps, then remeasure through the production evaluator.
+2. Write the payment/subscription/compensation ADR using freshly verified provider information.
+3. Implement subscription sandbox billing and admin reconciliation.
+4. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.
+5. Prototype price coverage separately, after core safety and payment flows remain stable.
 
 ## 10. Instructions for the next agent or conversation
 
