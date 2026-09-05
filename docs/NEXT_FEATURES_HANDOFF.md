@@ -4,12 +4,12 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Phase 1 is implemented and migrated. Phase 2 consumer reconciliation, conservative combined-profile tests, read-only coverage measurement, and the one authorized INT-010 incompatible-plan replacement run are complete on `feature/combined-safety-coverage`.
+**Status:** Phase 1 and the structured-safety Phase 2 are implemented. The minimum two-meal catalogue-gap source is implemented on `feature/combined-coverage-gap`; shared population, certification, idempotence, and live 7/7/7 measurement remain pending owner authorization.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
-- Working branch: `feature/combined-safety-coverage`
+- Working branch: `feature/combined-coverage-gap`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
@@ -18,7 +18,7 @@
   - `4defe0f` — structured multi-value safety intake source and additive migration
 - Phase 2 adds one structured restriction adapter across production consumers, exact combined-profile coverage evidence, operational API/UI evidence, and a guarded incompatible-plan fixture. See engineering-record section 36.
 - The configured database contained 49 current managed catalogue meals and 53 total meal-library records at the last acceptance run.
-- The branch passed the backend suite (268 registered, 267 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, read-only configured-database coverage measurement, INT-010, and bounded browser inspection. See engineering-record sections 32–36 for exact evidence and scope.
+- The current branch passed the backend suite (271 registered, 270 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, an offline FNRI dry run, and projected 7/7/7 production-evaluator coverage. See engineering-record section 37. Earlier configured-database and browser evidence remains in sections 32–36.
 - Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
 
 ## 2. Product model that must remain intact
@@ -96,7 +96,7 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 ## 4. Coverage work after structured intake
 
 - The exact 49 certified managed meals were re-measured with the production evaluator and structured profiles: Diabetes + vegetarian + egg allergy is **7/6/6** breakfast/lunch/dinner; Hypertension + pescatarian + dairy allergy is **9/13/13**; Diabetes + Hypertension + gluten allergy is **9/13/10**.
-- The first profile is one lunch and one dinner short of seven-day readiness. No meal was added and no threshold was loosened.
+- Source now adds exactly one FNRI-backed vegan lunch (`Tokwa Ampalaya Rice Bowl`) and one FNRI-backed vegan dinner (`Tokwa Sayote and Sitaw Dinner Plate`) without changing a threshold. Offline production-evaluator projection is **7/7/7**; configured shared state remains **7/6/6** until authorized population and live remeasurement.
 - Structured rows are now authoritative for generation/library reuse, swaps, recheck/replacement, outside-meal warnings, nutrition-report context, nutritionist review displays, library browsing, and coverage/admin evidence. Legacy fields remain an explicit fallback for profiles without structured rows.
 - Arbitrary multiple allergies, custom conditions, Kidney Disease, Heart Condition, and pregnancy/lactation remain outside proven automatic coverage.
 - Add catalogue meals only to close measured gaps. Every addition needs first-class FNRI ingredient linkage, explicit allergen/condition declarations, current certification evidence, deterministic compatibility tests, and idempotent population behavior.
@@ -166,7 +166,7 @@ Only after this ADR should schema design and implementation begin.
 
 ## 9. Recommended execution order
 
-1. In a separately authorized catalogue phase, add evidence-backed meals only for the measured Diabetes + vegetarian + egg lunch and dinner gaps, then remeasure through the production evaluator.
+1. Separately authorize the shared-database preflight, one two-meal population/certification run, an apply-capable idempotence rerun, and read-only production-evaluator remeasurement described in engineering-record section 37.
 2. Write the payment/subscription/compensation ADR using freshly verified provider information.
 3. Implement subscription sandbox billing and admin reconciliation.
 4. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.

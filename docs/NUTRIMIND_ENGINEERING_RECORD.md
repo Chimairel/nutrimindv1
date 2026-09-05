@@ -27,12 +27,12 @@ Rules:
 
 | Prefix | Meaning | Next ID |
 | --- | --- | --- |
-| REQ | Functional or non-functional requirement | REQ-019 |
+| REQ | Functional or non-functional requirement | REQ-021 |
 | ADR | Architecture/design decision | ADR-017 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-022 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-02 |
-| TEST | Test case or verification procedure | TEST-074 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-04 |
+| TEST | Test case or verification procedure | TEST-078 |
 | UNC | Unresolved uncertainty | UNC-016 |
 | DOC | Documentation correction or addition | DOC-027 |
 
@@ -2329,3 +2329,30 @@ This section is a continuity record for agreed future work. Every item below is 
 
 - The measured Diabetes + vegetarian + egg profile has one-lunch and one-dinner gaps. No meal was added and no compatibility threshold was loosened in this phase. Evidence-backed catalogue additions remain a separate authorized change.
 - INT-010 closes the bounded structured egg-incompatibility replacement path. It does not establish arbitrary-combination clinical safety; unsupported and unproven combinations remain review-gated, and no broader medical-safety claim is made.
+
+## 37. Diabetes + vegetarian + egg-free catalogue gap source (2026-09-05)
+
+**Requirement ID:** REQ-020
+
+**Change ID:** CHG-20260905-03
+
+**Verification IDs:** TEST-076, TEST-077; INT-011 shared population/live coverage pending authorization
+
+### Minimum source additions
+
+- The 49-meal configured-database evidence in section 36 established one missing compatible lunch and one missing compatible dinner for the Diabetes + vegetarian + egg-free profile. The source catalogue now proposes exactly two distinct vegan, egg-free meals; no existing definition, compatibility threshold, clinical constant, migration, or schema changed.
+- `Tokwa Ampalaya Rice Bowl` is the lunch addition: 130 g `Rice, well-milled, boiled` (FNRI A020), 160 g `Soybean cheese, hard curd` (C064), 120 g `Bitter melon/gourd fruit, boiled` (D019), 60 g `Tomato` (D257), and 20 g `Onion, Bombay bulb` (D141). The file-backed FNRI calculation is **412.7 kcal, 24.7 g protein, 51.6 g carbohydrate, 11.8 g fat, and 196.3 mg sodium**.
+- `Tokwa Sayote and Sitaw Dinner Plate` is the dinner addition: 160 g `Soybean cheese, hard curd` (FNRI C064), 160 g `Chayote fruit, boiled` (D051), 100 g `String/Yard long bean pod, green, boiled` (D233), 120 g `Sweet potato, purple, boiled` (B010), and 60 g `Tomato` (D257). The file-backed FNRI calculation is **435.8 kcal, 26.3 g protein, 55.2 g carbohydrate, 12.2 g fat, and 252.6 mg sodium**.
+- Both definitions inherit the existing vegan/vegetarian/omnivore/pescatarian and goal tags, contain none of the five supported allergen classes, remain below the unchanged **60 g carbohydrate** diabetes threshold, have complete sodium evidence below the unchanged **600 mg** hypertension threshold, and project the five supported allergens as reviewed absent only after the established certification workflow runs. Catalogue validation now rejects exact duplicate ingredient/amount/category recipes in addition to duplicate names.
+
+### Population and verification behavior
+
+- FNRI nutrition calculation and catalogue-signature checks are now shared pure policies. A managed row is skipped only when it has complete evidence plus the current `NUTRIMIND_COMMON_LIBRARY_V3` review signature. Changed or incomplete definitions remain eligible for the existing invalidation-and-recertification path. The nutritionist `totalVerified` counter is updated only when its stored value differs, so a genuinely current repeat apply performs no catalogue or profile-counter writes.
+- `npm run seed:meal-library -- --offline-dry-run` resolves all **36** exact required foods from `backend/prisma/data/fnri.csv`, returns before the first Prisma query, and feeds projected post-certification evidence through production `isCertifiedLibraryMealCompatible`. It reported **51** source meals (15 breakfast, 18 lunch, 18 dinner), projected the recorded 49-meal baseline as **2 creates, 0 updates, 49 skips**, projected a repeat as **0 catalogue writes, 0 profile-counter writes, 51 skips**, and produced Diabetes + vegetarian + egg-free coverage of **7 breakfast / 7 lunch / 7 dinner**.
+- TEST-076 verifies exact quantities, FNRI nutrient arithmetic, vegan/vegetarian and egg-free declarations, diabetes suitability, and the one-lunch/one-dinner slot contribution. TEST-077 verifies deterministic definition signatures, changed/incomplete/legacy evidence behavior, and conditional profile-counter updates. The full backend suite is **271 registered, 270 pass, 0 fail, 1 pre-existing clinical-policy TODO**. Targeted catalogue tests, backend build, Phase 2 script type-check, Prisma validation, frontend lint with zero warnings, and the 37-route frontend production build pass.
+
+### Pending shared-database evidence
+
+- No database connection, migration, population, permanent certification, Gemini, email, OAuth, payment, deployment, or `main` write occurred in this phase. The configured shared database therefore still has the previously measured 49 managed meals and live coverage **7/6/6** until separately authorized population succeeds.
+- The next bounded shared-database sequence is: (1) authorize and run read-only `npm run seed:meal-library` to confirm all 51 exact FNRI rows and the existing eligible catalogue reviewer on the configured target; (2) authorize one `npm run seed:meal-library -- --apply`, expected to skip 49 signed rows, create/certify only the two additions with their ingredient, review, and declaration records, and reconcile that existing reviewer's `totalVerified`; (3) authorize a second apply-capable run to prove **0 writes / 51 skips** against live state; and (4) run read-only `npm run measure:structured-coverage` to prove live **7/7/7** coverage and remeasure the other two tracked combined profiles.
+- Using the existing configured catalogue reviewer for permanent certification and all resulting shared writes requires an explicit owner decision. No new or invented clinician identity may be created for this population.

@@ -119,6 +119,14 @@ The optional seed command writes FNRI records to the configured database:
 npm run seed
 ```
 
+Validate the managed meal catalogue and project its certified-profile coverage from the checked-in FNRI CSV without connecting to a database:
+
+```powershell
+npm run seed:meal-library -- --offline-dry-run
+```
+
+The ordinary `npm run seed:meal-library` command connects to the configured database for a read-only preflight, while `npm run seed:meal-library -- --apply` writes and certifies managed catalogue records. Both database-backed modes require explicit authorization for the configured target.
+
 Migrations and seeds modify database state. Confirm the database target and authorization first. Do not use production-like data for development or tests.
 
 ## Frontend setup
