@@ -96,7 +96,7 @@ With both migrations applied, the disposable database had 6 price tables, 8 enum
 
 The September 6 acceptance targeted the previously approved TLS-required pooled Neon development database `neondb`, schema `public`, with sanitized hostname fingerprint `6f48da70b1ce`. Read-only preflight found exactly 17 successful parent migrations through `20260905180000_billing_foundation`, canonical SQL content for every stored checksum, exactly the two price migrations pending, 56 pre-price tables, and no price table. The required migration file hashes matched the disposable rehearsal.
 
-A datamodel comparison exposed two pre-existing `MealPlan` indexes declared in Prisma but absent from migration history. An exact local database rebuilt from the 17 canonical migrations matched shared development with no difference, clearing migration-history drift for this bounded deployment; the datamodel/index mismatch remains separately recorded as DEF-031. The normal production deploy then applied exactly the foundation and hardening migrations.
+A datamodel comparison exposed two pre-existing `MealPlan` indexes created by `20260831090000_production_workflow_hardening` and present on shared development but omitted from Prisma schema metadata. An exact local database rebuilt from the 17 canonical migrations matched shared development with no difference, clearing migration-history drift for the bounded price deployment. DEF-031 later restored both exact mapped declarations without a database migration. The normal price deploy applied exactly the foundation and hardening migrations.
 
 Postflight found exactly 19 successful migrations with the required new stored checksums, the same six tables, 8 enums/34 values, 15 declared plus 6 primary-key indexes, 10 restrictive foreign keys, 14 checks, and 6 append-only triggers. Every price table had zero rows. All 56 pre-price table count/content hashes matched, migration-derived parity reported no difference, and a second deploy/status was a no-op with identical migration, snapshot, and schema-inventory evidence. No shared fixture, seed, destructive probe, source data, or price value was written.
 
@@ -104,7 +104,7 @@ Postflight found exactly 19 successful migrations with the required new stored c
 
 1. **Bounded source basket:** after explicit source-license and product-scope acceptance, ingest a small PSA/OpenSTAT basket chosen from exact ingredients used most often by the 51 managed meals. Start with current monthly kilogram-based staples/vegetables that have exact FNRI mappings and one explicit target geography. Measure meal-slot and grocery item-count coverage before expanding. Do not mix DA/DTI rows until their ingestion and reuse gates are resolved.
 2. Add internal repository/query adapters only after the basket is accepted. Public endpoints, frontend labels, plan ranking integration, scheduled ingestion, and any Premium promise remain later phases.
-3. Reconcile DEF-031 through a separate additive migration if the two declared `MealPlan` indexes are still required; do not fold that unrelated repair into source-data ingestion.
+3. Keep DEF-031's resolved mapped declarations intact so future datamodel comparisons retain both migration-created `MealPlan` indexes.
 
 ## 9. Explicitly unavailable in this phase
 

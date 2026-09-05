@@ -162,6 +162,8 @@ Payment Phase 1 supplies additive persistence definitions, deterministic SQL, an
 
 Budget-price Phase 1 supplies six append-only evidence models, deterministic additive SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. Disposable rehearsal and guarded shared-development acceptance both passed for the foundation (`54ee88a…feab210ff7d`) and normalization hardening (`f3b92e5c…d5aefd4f11`) migrations. Shared development now has 19 accepted migrations and six empty price tables; all 56 old-domain hashes were preserved. It adds no price data, caller, endpoint, UI, or Premium behavior.
 
+DEF-031 is resolved in source: Prisma now declares the exact mapped names and column order of both `MealPlan` indexes already created by `20260831090000_production_workflow_hardening`. No migration or shared-database write was required. The revalidation index directly supports the approved legacy-plan revalidation query; the high-risk index remains faithful physical-schema metadata while the current queue prioritizes those fields in memory.
+
 Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize provider calls, accounts, credentials, or live money.
 
 ## 9. Recommended execution order
@@ -176,7 +178,7 @@ Production remains blocked on PayMongo's written business approval and actual ac
 1. Read `AGENTS.md` completely.
 2. Treat `docs/NUTRIMIND_ENGINEERING_RECORD.md` as the canonical evidence source and this file as planned-work context.
 3. Inspect Git status and preserve unrelated/user changes.
-4. Continue price work from the clean pushed `feature/budget-price-shared-migration` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
+4. Continue price work from the clean pushed `fix/meal-plan-index-drift` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
 5. Re-inspect current code and tests instead of trusting old completion claims.
 6. Never expose `.env` values, mutate production/shared data without bounded authorization, or claim clinical/payment production readiness from static tests alone.
 7. After each implemented phase, add dated requirement/change/verification evidence to the engineering record and update this handoff so completed items move out of the planned list.

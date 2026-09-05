@@ -673,6 +673,9 @@ model MealPlan {
   ingredients MealIngredient[]
   mealLogs    MealLog[]
   swapLogs    SwapLog[]
+
+  @@index([requiresSafetyRevalidation, status], map: "MealPlan_revalidation_status_idx")
+  @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
 }
 
 model MealLibrary {
