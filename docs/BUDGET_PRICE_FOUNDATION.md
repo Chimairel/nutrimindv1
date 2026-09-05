@@ -1,16 +1,16 @@
 # Budget and Ingredient-Price Foundation
 
-Status: ADR-018 accepted; both additive migrations passed disposable rehearsal and shared-development acceptance
+Status: ADR-018/ADR-019 accepted; both additive migrations passed shared-development acceptance; bounded PSA/OpenSTAT ingestion is locally verified
 
 Evidence date: September 6, 2026
 
-Scope: source research, additive schema/migrations, pure policy, disposable rehearsal, and shared-development migration acceptance
+Scope: source research, additive schema/migrations, pure policy, licensed source snapshot, deterministic importer, disposable acceptance, and shared-development migration acceptance
 
 ## 1. Decision
 
 NutriMind will treat retail price data as dated evidence that is separate from FNRI nutrition composition. A price estimate must identify its official publication, source commodity wording and unit, observation period, geography, mapping decision, normalized basis when defensible, and supersession history. FNRI `FoodItem` rows do not receive a timeless price field.
 
-The first catalogue phase is intentionally empty. This branch adds no source, publication, commodity, mapping, observation, persistent fixture, endpoint, UI, scheduled fetch, or generated price. Both migrations are now applied to the owner-authorized shared-development database, where all six price tables remain empty. Payment code remains inert and unchanged.
+The database foundation was intentionally deployed empty. The later bounded ingestion phase commits one attributed, checksum-pinned PSA/OpenSTAT Cebu City snapshot plus a deterministic importer, but does not write it to shared development. Shared development's six price tables remain empty. No endpoint, UI, scheduled fetch, generated price, or payment behavior is added.
 
 ## 2. Verified repository baseline
 
@@ -24,18 +24,18 @@ These are code/schema observations. Historical documents that imply complete gro
 
 ## 3. Official Philippine source findings
 
-All sources below were accessed on **2026-09-06**. No bulk data was downloaded or imported.
+All sources below were first reviewed on **2026-09-06**. That initial review downloaded no bulk data; section 8 records the later owner-authorized bounded PSA snapshot and local-only import acceptance.
 
 ### 3.1 PSA Retail Price Survey and OpenSTAT
 
 - The [PSA Retail Price Survey page](https://psa.gov.ph/retail-price-survey) says the survey collects retail prices at pre-selected major trading centers and links category time series for cereals, root crops, beans/legumes, condiments, fruit vegetables, leafy vegetables, fruits, commercial crops, livestock/meat, poultry, and fish.
 - The current [2018-based, new-geographic-code OpenSTAT collection](https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__2018NEW/?tablelist=true) exposes national, regional, provincial, and selected-city results. Its 11 current matrices are `0042M4ARN01.px` through `0042M4ARN11.px`, in the category order above. On access, the collection covered 2018-2026 and reported updates dated September 3, 2026.
 - Individual matrix metadata identifies the indicator as average retail price, generally in pesos per kilogram, updated monthly. Commodity labels include retail specification and basis, while some categories use another indicated unit such as piece.
-- The official [OpenSTAT API guide](https://openstat.psa.gov.ph/API-Documentation) documents anonymous metadata/data access, a JSON POST query contract, `px`, `csv`, `json`, `xlsx`, `json-stat`, and `json-stat2` responses, and a limit of 10 requests per 10 seconds. A metadata-only request to the current API path succeeded during this review. Automated bounded ingestion is technically supported, but has not been implemented.
+- The official [OpenSTAT API guide](https://openstat.psa.gov.ph/API-Documentation) documents anonymous metadata/data access, a JSON POST query contract, `px`, `csv`, `json`, `xlsx`, `json-stat`, and `json-stat2` responses, and a limit of 10 requests per 10 seconds. A metadata-only request succeeded during the initial review; section 8 records the later deterministic bounded implementation.
 - Matrix IDs and PSA geographic codes are usable external identifiers within a named series. Commodity dimension values are source/matrix identifiers rather than FNRI codes, so NutriMind must retain the matrix ID, dimension value, exact label, and series version together. A label match alone cannot establish an FNRI mapping.
 - PSA pages state that site data/content is [CC BY 4.0 unless otherwise stated](https://psa.gov.ph/retail-price-survey). The reviewed matrix also reports `Copyright: No`. Attribution must name PSA, link the source/terms, state changes, and retain technical notes. Any future importer must re-check the exact matrix/publication terms because some PSA publications carry different notices.
 
-Conclusion: PSA/OpenSTAT is the only reviewed source with a documented structured API, monthly time series, subnational geography, and explicit general reuse terms suitable for a later ingestion prototype.
+Conclusion: PSA/OpenSTAT is the only accepted source for the bounded ingestion phase. The official series contains City of Cebu as its own selected-city geography with code `072217000`, so no Region VII or national substitution is used.
 
 ### 3.2 Department of Agriculture Bantay Presyo
 
@@ -100,12 +100,22 @@ A datamodel comparison exposed two pre-existing `MealPlan` indexes created by `2
 
 Postflight found exactly 19 successful migrations with the required new stored checksums, the same six tables, 8 enums/34 values, 15 declared plus 6 primary-key indexes, 10 restrictive foreign keys, 14 checks, and 6 append-only triggers. Every price table had zero rows. All 56 pre-price table count/content hashes matched, migration-derived parity reported no difference, and a second deploy/status was a no-op with identical migration, snapshot, and schema-inventory evidence. No shared fixture, seed, destructive probe, source data, or price value was written.
 
-## 8. Smallest next gated phases
+## 8. Bounded PSA/OpenSTAT ingestion result
 
-1. **Bounded source basket:** after explicit source-license and product-scope acceptance, ingest a small PSA/OpenSTAT basket chosen from exact ingredients used most often by the 51 managed meals. Start with current monthly kilogram-based staples/vegetables that have exact FNRI mappings and one explicit target geography. Measure meal-slot and grocery item-count coverage before expanding. Do not mix DA/DTI rows until their ingestion and reuse gates are resolved.
-2. Add internal repository/query adapters only after the basket is accepted. Public endpoints, frontend labels, plan ranking integration, scheduled ingestion, and any Premium promise remain later phases.
-3. Keep DEF-031's resolved mapped declarations intact so future datamodel comparisons retain both migration-created `MealPlan` indexes.
+The repository now contains an unchanged six-matrix CSV snapshot for City of Cebu, January-August 2026, its exact OpenSTAT POST requests, SHA-256 checksums, and CC BY 4.0 attribution. Eight source commodities were selected from frequent managed-catalogue ingredients: well-milled rice, carrot, potato, green munggo, cucumber, tomato, chicken breast, and tilapia.
 
-## 9. Explicitly unavailable in this phase
+Those targets account for 93 of 195 ingredient occurrences (47.69%) across 44 of 51 managed meals (86.27%). Exact raw FNRI mappings were accepted for seven commodities; green munggo remains `AMBIGUOUS` because the source label does not establish fresh versus dried preparation. Cooked catalogue foods remain distinct from raw retail identities. Exact same-identity catalogue coverage is therefore 49 of 195 rows (25.13%) across 37 meals, and actual available-cell coverage is 43 rows (22.05%) across 35 meals. Munggo, chicken breast, and tilapia have explicit `..` missing cells for every selected month; no observation is fabricated.
 
-There is no current price catalogue, user-location preference, accepted default geography, retailer/store price, package-to-edible-weight mapping, source precedence product decision, importer, database repository, API response, UI, budget target, or paid benefit. Estimates cannot run against production data until those inputs exist.
+`prices:psa:dry-run` verifies the manifest, source/request checksums, CSV structure, geography, reviewed labels, decimal-to-centavo conversion, missing markers, and coverage without database access. `prices:psa:apply-local` is deliberately restricted to loopback PostgreSQL. It inserts or verifies immutable evidence by stable IDs, resolves FNRI names exactly once, preserves ambiguous candidates, and uses append-only supersession for later snapshots. A disposable PostgreSQL acceptance created 1 source, 1 geography, 6 publications, 8 commodities, 8 mappings, and 40 observations. Exact replay created zero rows. A local-only synthetic correction probe created 40 successors and its replay created zero rows.
+
+The available observations span January 31 through August 31, 2026. The importer reports those dates and applies no implicit freshness threshold; the existing caller-supplied freshness policy remains authoritative. The official price basis is purchased commodity kilograms. Most meal quantities are edible or cooked grams. No yield, cooking conversion, or package conversion is inferred, and no runtime cost calculation is connected to this catalogue.
+
+## 9. Smallest next gated phases
+
+1. Review the bounded snapshot, seven exact mapping decisions, one ambiguous decision, and measured coverage before authorizing any shared-development import. A shared gate should re-check table emptiness, immutable source metadata, checksums, exact FNRI resolution, row counts, and rollback/cleanup behavior before using this importer outside disposable PostgreSQL.
+2. Define purchased-to-edible and raw-to-cooked quantity evidence before any internal price repository or estimator consumes these observations. Public endpoints, frontend labels, plan ranking integration, scheduled retrieval, and any Premium promise remain later phases.
+3. Do not mix DA/DTI data into this source catalogue. Keep DEF-031's resolved mapped declarations intact.
+
+## 10. Explicitly unavailable in this phase
+
+There is no shared/runtime price catalogue, user-location preference, retailer/store price, purchased-to-edible or raw-to-cooked conversion, package mapping, source precedence product decision, database query adapter, API response, UI, budget target, or paid benefit. The importer cannot target a non-loopback database. Estimates cannot run against production data until those inputs and later gates exist.

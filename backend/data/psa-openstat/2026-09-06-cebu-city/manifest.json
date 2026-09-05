@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "snapshotId": "psa-openstat-rps-2018new-cebu-city-2026-01-to-08",
+  "retrievedAt": "2026-09-05T18:59:18.157Z",
+  "source": {
+    "code": "PSA_OPENSTAT_RPS_2018_NEW_GEOCODE_V1",
+    "agencyName": "Philippine Statistics Authority (PSA)",
+    "datasetName": "Retail Price Survey, 2018-based (New Geographic Code)",
+    "homepageUrl": "https://psa.gov.ph/retail-price-survey",
+    "apiBaseUrl": "https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB/2M/2018NEW",
+    "termsUrl": "https://psa.gov.ph/retail-price-survey",
+    "licenseCode": "CC-BY-4.0",
+    "attributionText": "Source: Philippine Statistics Authority (PSA), Retail Price Survey via OpenSTAT; bounded Cebu City subset, unchanged source values.",
+    "updateCadence": "Monthly",
+    "apiRateLimit": "10 requests per 10 seconds"
+  },
+  "geography": {
+    "scheme": "PSA_PSGC_2018_NEW_GEOCODE",
+    "externalCode": "072217000",
+    "displayName": "City of Cebu",
+    "sourceLabel": "....City of Cebu",
+    "level": "CITY"
+  },
+  "catalogue": {
+    "mealCount": 51,
+    "ingredientRowCount": 195,
+    "selectedTargetRowCount": 93,
+    "selectedTargetMealCount": 44,
+    "selectionNote": "Eight official commodities were selected from frequent managed-catalogue ingredients where a manually reviewable FNRI identity was available. Cooked catalogue identities remain distinct from raw retail identities."
+  },
+  "files": [
+    {
+      "matrixId": "0042M4ARN01.px",
+      "matrixTitle": "Cereals: Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period",
+      "requestFile": "0042M4ARN01.px.request.json",
+      "requestSha256": "dfbc411ec3a9f7dce6af302e11c30b78b6c27a737fedeb165f79900861d5379d",
+      "dataFile": "0042M4ARN01.px.csv",
+      "dataSha256": "cf7ff011d09893c863eb28eabede9fd3bdcf4ae3894eca26dcfa4ec6eb2a1dea",
+      "commodities": [
+        {
+          "externalCode": "0",
+          "sourceLabel": "RICE, WELL-MILLED, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Rice, well-milled, boiled",
+          "catalogueOccurrences": 19,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Rice, well-milled",
+            "evidenceKind": "REVIEWED_EXACT_DESCRIPTION",
+            "evidenceReference": "FNRI food_name Rice, well-milled; PSA label adds only the declared 1 KG price basis.",
+            "rationale": "Exact raw well-milled rice identity. The catalogue uses a separate boiled FNRI identity, so this mapping does not price cooked grams."
+          }
+        }
+      ]
+    },
+    {
+      "matrixId": "0042M4ARN02.px",
+      "matrixTitle": "Rootcrops: Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period",
+      "requestFile": "0042M4ARN02.px.request.json",
+      "requestSha256": "6650b25ab90acb4899da26d1e45c6e0370129560bd38484bbf29b88e3776b941",
+      "dataFile": "0042M4ARN02.px.csv",
+      "dataSha256": "511ef9de79e1c83e10235a6d4cba57c47c37eb7245b9c785d9950cd1146946b2",
+      "commodities": [
+        {
+          "externalCode": "0",
+          "sourceLabel": "CARROT, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Carrot, boiled",
+          "catalogueOccurrences": 9,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Carrot",
+            "evidenceKind": "REVIEWED_EXACT_DESCRIPTION",
+            "evidenceReference": "FNRI food_name Carrot; PSA label adds only the declared 1 KG price basis.",
+            "rationale": "Exact raw carrot identity. The catalogue uses a separate boiled FNRI identity, so this mapping does not price cooked grams."
+          }
+        },
+        {
+          "externalCode": "3",
+          "sourceLabel": "POTATO, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Potato, boiled",
+          "catalogueOccurrences": 9,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Potato",
+            "evidenceKind": "REVIEWED_EXACT_DESCRIPTION",
+            "evidenceReference": "FNRI food_name Potato; PSA label adds only the declared 1 KG price basis.",
+            "rationale": "Exact raw potato identity. The catalogue uses a separate boiled FNRI identity, so this mapping does not price cooked grams."
+          }
+        }
+      ]
+    },
+    {
+      "matrixId": "0042M4ARN03.px",
+      "matrixTitle": "Beans and Legumes: Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period",
+      "requestFile": "0042M4ARN03.px.request.json",
+      "requestSha256": "2d147376ab96c87cfa4088c8eadda678b7e3d8647b724f28446a83ade17e7e86",
+      "dataFile": "0042M4ARN03.px.csv",
+      "dataSha256": "e2e0fa9969222dffdab3679d5246ad9ee8e874fb36a69ccc532e49740d8382f2",
+      "commodities": [
+        {
+          "externalCode": "6",
+          "sourceLabel": "MONGGO, GREEN, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Mung bean seed, green, dried, boiled",
+          "catalogueOccurrences": 7,
+          "mapping": {
+            "state": "AMBIGUOUS",
+            "candidateFoodNames": [
+              "Mung bean seed, green, dried",
+              "Mung bean seed, fresh"
+            ],
+            "evidenceKind": "CANDIDATE_ONLY",
+            "rationale": "The PSA label does not state dried or fresh preparation, and the catalogue uses a separately cooked FNRI identity."
+          }
+        }
+      ]
+    },
+    {
+      "matrixId": "0042M4ARN05.px",
+      "matrixTitle": "Fruit Vegetables: Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period",
+      "requestFile": "0042M4ARN05.px.request.json",
+      "requestSha256": "e2b84657e3d54e691339c6f8b6a552cdd996b8675a5715bd1a7a7098f37461dd",
+      "dataFile": "0042M4ARN05.px.csv",
+      "dataSha256": "8e345b53e33c20bb1b719b9c4c1f4da24d5e171ca35f55b223e17e9e6201d8dd",
+      "commodities": [
+        {
+          "externalCode": "0",
+          "sourceLabel": "CUCUMBER (PIPINO), 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Cucumber",
+          "catalogueOccurrences": 9,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Cucumber",
+            "evidenceKind": "REVIEWED_EXACT_ALIAS",
+            "evidenceReference": "FNRI food_name Cucumber and alternate_name Pipino exactly match the PSA commodity wording.",
+            "rationale": "Exact raw cucumber identity and alias; the 1 KG wording is retained as the source price basis."
+          }
+        },
+        {
+          "externalCode": "2",
+          "sourceLabel": "TOMATO, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Tomato",
+          "catalogueOccurrences": 34,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Tomato",
+            "evidenceKind": "REVIEWED_EXACT_DESCRIPTION",
+            "evidenceReference": "FNRI food_name Tomato; PSA label adds only the declared 1 KG price basis.",
+            "rationale": "Exact raw tomato identity and the catalogue uses the same FNRI food name."
+          }
+        }
+      ]
+    },
+    {
+      "matrixId": "0042M4ARN10.px",
+      "matrixTitle": "Poultry: Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period",
+      "requestFile": "0042M4ARN10.px.request.json",
+      "requestSha256": "dfbc411ec3a9f7dce6af302e11c30b78b6c27a737fedeb165f79900861d5379d",
+      "dataFile": "0042M4ARN10.px.csv",
+      "dataSha256": "2481f930f83026479bc7973a20a76a2d954e6b5e41acd3f3d22885e398c4bb2c",
+      "commodities": [
+        {
+          "externalCode": "0",
+          "sourceLabel": "FRESH CHICKEN, BREAST, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Chicken breast",
+          "catalogueOccurrences": 4,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Chicken breast",
+            "evidenceKind": "REVIEWED_EXACT_DESCRIPTION",
+            "evidenceReference": "FNRI food_name Chicken breast matches the fresh chicken breast commodity identity.",
+            "rationale": "Exact raw chicken breast identity; current Cebu City cells are explicitly unavailable."
+          }
+        }
+      ]
+    },
+    {
+      "matrixId": "0042M4ARN11.px",
+      "matrixTitle": "Fish: Retail Prices of Agricultural Commodities by Geolocation, Commodity, Year and Period",
+      "requestFile": "0042M4ARN11.px.request.json",
+      "requestSha256": "e7f0b87131b27efe8f32c7557a3dadd86146921b866767d2dbc2db9976069961",
+      "dataFile": "0042M4ARN11.px.csv",
+      "dataSha256": "b8aa0466ae909b4cb6c262eb5a6022ceb00846b8cf0dd7824a4dee6248881193",
+      "commodities": [
+        {
+          "externalCode": "4",
+          "sourceLabel": "FRESH FISH, TILAPIA, MEDIUM, 1 KG",
+          "originalUnit": "1 KG",
+          "normalizedQuantity": "1",
+          "normalizedUnit": "KILOGRAM",
+          "catalogueTargetName": "Tilapia",
+          "catalogueOccurrences": 2,
+          "mapping": {
+            "state": "EXACT",
+            "foodName": "Tilapia",
+            "evidenceKind": "REVIEWED_EXACT_DESCRIPTION",
+            "evidenceReference": "FNRI food_name Tilapia matches the fresh tilapia identity; medium is retained as a retail specification.",
+            "rationale": "Exact raw tilapia identity with source size wording preserved; current Cebu City cells are explicitly unavailable."
+          }
+        }
+      ]
+    }
+  ]
+}

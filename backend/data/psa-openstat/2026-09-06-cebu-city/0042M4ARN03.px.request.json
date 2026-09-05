@@ -1,0 +1,50 @@
+{
+  "query": [
+    {
+      "code": "Geolocation",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "072217000"
+        ]
+      }
+    },
+    {
+      "code": "Commodity",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "6"
+        ]
+      }
+    },
+    {
+      "code": "Year",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "8"
+        ]
+      }
+    },
+    {
+      "code": "Period",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "csv"
+  }
+}

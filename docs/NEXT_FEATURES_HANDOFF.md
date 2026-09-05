@@ -153,6 +153,7 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 - Budget filtering must not override clinical compatibility or silently substitute unsafe ingredients.
 - ADR-018 and the full September 6 source review are recorded in [`BUDGET_PRICE_FOUNDATION.md`](BUDGET_PRICE_FOUNDATION.md). The additive schema, two migrations, pure estimation policies, disposable rehearsal, and shared-development acceptance exist on `feature/budget-price-shared-migration`; both migrations are applied to shared development and the catalogue is empty.
 - PSA/OpenSTAT is the only reviewed source with a documented structured API and explicit general CC BY 4.0 terms. DA weekly NCR bulletins and DTI package-specific SRPs remain manual/unverified ingestion candidates with distinct semantics and unresolved or publication-specific reuse checks.
+- A later bounded branch commits an unchanged, attributed PSA/OpenSTAT snapshot for the exact City of Cebu geography, eight reviewed commodities, January-August 2026, deterministic parsing/import, and coverage evidence. Shared development remains empty and the importer is loopback-only pending a separate data-import gate.
 
 ## 8. Accepted architecture and remaining production decisions
 
@@ -160,7 +161,9 @@ ADR-017 is recorded in the engineering record and fully specified in [`PAYMENT_S
 
 Payment Phase 1 supplies additive persistence definitions, deterministic SQL, and pure policies for state, paid-period entitlement, 3-versus-6 swap caps, money/refund invariants, provider-event idempotency, append-only work-credit reversal, capped workload-band compensation, payout bounds, and maker-checker separation. Its shared-development migration is applied, while the adapter remains disabled and no provider call has occurred.
 
-Budget-price Phase 1 supplies six append-only evidence models, deterministic additive SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. Disposable rehearsal and guarded shared-development acceptance both passed for the foundation (`54ee88a…feab210ff7d`) and normalization hardening (`f3b92e5c…d5aefd4f11`) migrations. Shared development now has 19 accepted migrations and six empty price tables; all 56 old-domain hashes were preserved. It adds no price data, caller, endpoint, UI, or Premium behavior.
+Budget-price Phase 1 supplies six append-only evidence models, deterministic additive SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. Disposable rehearsal and guarded shared-development acceptance both passed for the foundation (`54ee88a…feab210ff7d`) and normalization hardening (`f3b92e5c…d5aefd4f11`) migrations. Shared development now has 19 accepted migrations and six empty price tables; all 56 old-domain hashes were preserved.
+
+The bounded PSA ingestion foundation uses City of Cebu code `072217000` directly. Its eight-commodity selection represents 47.69% of catalogue ingredient rows across 86.27% of meals. Seven source-to-raw-FNRI mappings are exact and green munggo is ambiguous. Current cells produce only 22.05% exact same-identity row coverage across 68.63% of meals because cooked identities remain separate and munggo, chicken breast, and tilapia are unavailable. The snapshot and importer remain internal, with no endpoint, UI, scheduler, runtime estimate, or Premium behavior.
 
 DEF-031 is resolved in source: Prisma now declares the exact mapped names and column order of both `MealPlan` indexes already created by `20260831090000_production_workflow_hardening`. No migration or shared-database write was required. The revalidation index directly supports the approved legacy-plan revalidation query; the high-risk index remains faithful physical-schema metadata while the current queue prioritizes those fields in memory.
 
@@ -168,9 +171,9 @@ Production remains blocked on PayMongo's written business approval and actual ac
 
 ## 9. Recommended execution order
 
-1. After explicit source-license and product-scope acceptance, build one small PSA/OpenSTAT basket from exact frequently used managed-meal ingredients, one explicit geography, and current monthly observations. Measure meal-slot and grocery item-count coverage before expanding.
-2. Keep the basket internal and append-only; require exact reviewed FNRI mappings, source publication/geography/unit provenance, and zero Gemini-created prices.
-3. Add price repositories and internal query adapters only after the basket is accepted. Public endpoints, frontend estimates, scheduled ingestion, and Premium claims remain later gates.
+1. Review the committed bounded PSA/OpenSTAT snapshot, mapping decisions, and coverage report. If accepted, authorize a separate guarded shared-development import; the current CLI rejects non-loopback databases.
+2. Define reviewed purchased-weight-to-edible-weight and raw-to-cooked conversion evidence before connecting a price repository or estimator to meal quantities.
+3. Add internal query adapters only after those gates. Public endpoints, frontend estimates, scheduled retrieval, basket expansion, and Premium claims remain later phases.
 4. PayMongo Phase 3B is paused indefinitely at the existing manual provider gate. Resume only on a new owner instruction after account/business acceptance and sandbox capability are available.
 
 ## 10. Instructions for the next agent or conversation
@@ -178,7 +181,7 @@ Production remains blocked on PayMongo's written business approval and actual ac
 1. Read `AGENTS.md` completely.
 2. Treat `docs/NUTRIMIND_ENGINEERING_RECORD.md` as the canonical evidence source and this file as planned-work context.
 3. Inspect Git status and preserve unrelated/user changes.
-4. Continue price work from the clean pushed `fix/meal-plan-index-drift` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
+4. Continue price work from the clean pushed `feature/psa-price-ingestion-foundation` commit reported at handoff. Do not merge or touch `main` without a separate instruction.
 5. Re-inspect current code and tests instead of trusting old completion claims.
 6. Never expose `.env` values, mutate production/shared data without bounded authorization, or claim clinical/payment production readiness from static tests alone.
 7. After each implemented phase, add dated requirement/change/verification evidence to the engineering record and update this handoff so completed items move out of the planned list.

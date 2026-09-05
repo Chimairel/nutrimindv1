@@ -26,6 +26,8 @@
     "preflight:data-integrity": "tsx scripts/production-data-integrity-preflight.ts",
     "plans:revalidation:dry-run": "tsx scripts/enqueue-legacy-plan-revalidation.ts",
     "plans:revalidation:apply": "tsx scripts/enqueue-legacy-plan-revalidation.ts --apply",
+    "prices:psa:dry-run": "tsx scripts/import-psa-openstat-prices.ts --dry-run",
+    "prices:psa:apply-local": "tsx scripts/import-psa-openstat-prices.ts --apply",
     "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts"
   },
   "dependencies": {
