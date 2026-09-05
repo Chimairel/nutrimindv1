@@ -2286,3 +2286,45 @@ This section is a continuity record for agreed future work. Every item below is 
 - The configured shared PostgreSQL/Neon database received only the authorized additive migration and exact temporary acceptance fixtures, all of which were removed. No seed, managed-catalogue definition, Gemini request, email, OAuth, payment, merge, `main` push, or deployment occurred.
 - This phase re-proved the compatible active-plan path: a plan that remains valid stays actionable and its grocery projection does not churn. It did not repeat an incompatible-meal replacement because doing so would mutate shared catalogue usage counters or require temporary certified catalogue rows; prior INT-005 evidence covers that older enum/allergy flow. A dedicated structured incompatible-plan fixture remains the next safety evidence gap if the owner authorizes bounded temporary catalogue evidence and exact counter restoration.
 - Combined-profile remeasurement and evidence-backed catalogue additions remain Phase 2. PayMongo research/ADR remains Phase 3. Neither later phase has started.
+
+## 36. Structured restriction consumer reconciliation and combined coverage measurement (2026-09-05)
+
+**Requirement ID:** REQ-019
+
+**Change ID:** CHG-20260905-02
+
+**Verification IDs:** TEST-074, TEST-075; INT-010 designed but mutation-gated; E2E-008 public/guard-only
+
+### Implemented source behavior and consumer audit
+
+- Added one pure `adaptUserSafetyRestrictions` boundary. Persisted structured rows are authoritative when present; legacy condition/allergy enums and custom strings are used only when a profile has no structured rows. The adapter deduplicates canonical identities across structured domains, maps supported avoided allergen-class ingredients into exact declaration evaluation without relabeling the user's intent, and retains unsupported, pending, malformed, or evidence-incomplete entries as explicit review gates.
+- Plan generation and certified-library reuse now load structured rows and pass the adapter output into the existing production compatibility evaluator. Dietary preference and goal tags remain independent intersected constraints. Unsupported/high-risk structured conditions retain their canonical escalation signal while also forcing review.
+- Swap option listing, direct swap preview/commit, and user library browsing now use the same adapter through `isCertifiedLibraryMealCompatible`. No controller or UI duplicates compatibility decisions.
+- Active-plan health recheck/replacement now evaluates the structured set. Compatible certified meals stay actionable; incompatible or review-gated profiles cannot reuse a meal as safe. Replacement prompts retain all structured condition and food-restriction values if the certified library has no match.
+- Outside-meal warnings now consume supported structured condition/allergen identities and always add a visible review warning when any structured intolerance, avoidance, custom, unsupported, or pending restriction lacks deterministic evidence.
+- Nutrition-report generation now includes conditions, allergies, intolerances, and avoidances in prompt context and in the persisted report-context snapshot. The report UI compares and displays that complete structured context, so an unsupported food restriction cannot disappear behind the old two-array view.
+- Nutritionist review details now include every structured entry with domain and support state, and add an explicit warning when the profile contains a review-gated entry. Nutritionist rejection replacement context uses the same complete adapter output. Library certification continues to create an incomplete draft that requires its separate evidence-review lifecycle.
+- Grocery generation does not independently interpret restrictions; it derives only from current actionable meals. Its safety dependency is therefore the reconciled generation/swap/recheck boundary. Account export now includes structured rows.
+- Nutritionist coverage and admin operations are the operational evidence surfaces. Coverage exposes exact structured-combination counts through the production evaluator; admin operations exposes structured entry counts by domain/support state and the number of users with review-gated entries.
+
+### Deterministic and read-only evidence
+
+- TEST-074 proves structured authority, legacy fallback, cross-domain canonical deduplication, and preservation of high-risk escalation plus review state. TEST-075 covers Diabetes + vegetarian + egg allergy; Hypertension + pescatarian + dairy allergy; Diabetes + Hypertension + gluten allergy; a recognized unsupported condition mixed with supported restrictions; a pending custom condition plus avoided ingredient; multiple allergy/intolerance/avoidance entries; and simultaneous conflict plus uncertainty. The most-restrictive result remains `BLOCK > REVIEW > ALLOW`.
+- A read-only configured-database run of `npm run measure:structured-coverage` selected the exact 49 version-controlled managed meals with current certified evidence, no pending flags, and the production `isCertifiedLibraryMealCompatible` evaluator. Results were:
+  - Diabetes + vegetarian + egg allergy: breakfast **7**, lunch **6**, dinner **6**; one lunch and one dinner short of seven-day readiness.
+  - Hypertension + pescatarian + dairy allergy: breakfast **9**, lunch **13**, dinner **13**; week-ready.
+  - Diabetes + Hypertension + gluten allergy: breakfast **9**, lunch **13**, dinner **10**; week-ready.
+- No catalogue definition, threshold, seed, profile, plan, counter, or other shared row was changed by the measurement.
+- Backend deterministic suite: **267 registered, 266 pass, 0 fail, 1 pre-existing clinical-policy TODO**. Prisma validation, backend build, Phase 2 script type-check, frontend lint, and frontend production build pass; lint has zero warnings and the build generates all 37 routes. Local browser inspection on port 3000 rendered the public landing page at the default viewport, rendered `/docs` at 390x844, and confirmed unauthenticated `/nutritionist/library` redirects to `/login`. The changed authenticated coverage/review/admin data surfaces were not claimed as browser-tested because this phase did not create or mutate an authenticated fixture. The public browser session recorded one expected stale-session `401` warning from `AuthContext`; no page-rendering error was observed.
+
+### Guarded runtime evidence still awaiting authorization
+
+- INT-010 is implemented in `backend/scripts/structured-safety-replacement-acceptance.ts` and compiles through `npm run check:phase2-scripts`, but it was not executed. Its gate requires `ALLOW_STRUCTURED_REPLACEMENT_ACCEPTANCE=true`.
+- The exact fixture would create one reserved user `e2e.structured-replacement.acceptance@example.invalid`, one active plan group `e2e.structured-replacement.acceptance`, its meal ingredients, structured rows, revision, notification/replacement log, and derived grocery rows. It chooses an existing certified managed meal with an explicit `EGGS`-present declaration and an existing same-slot egg-compatible replacement. The recheck temporarily increments the selected replacement's shared `MealLibrary.usageCount`.
+- Before any fixture write, all 49 managed usage counters are snapshotted. A `finally` block deletes the exact reserved user (cascading its owned rows), restores every snapshotted counter, then asserts zero reserved user, plan, grocery, structured-entry, revision, and meal-log rows plus zero counter drift. The intended assertions cover invalidation, certified replacement or safe block, grocery refresh, revision/replacement evidence, and idempotent resubmission/recheck.
+- Execution requires explicit authorization for those exact temporary rows and the temporary shared usage-counter increment/restoration. No Gemini, email, OAuth, payment, seed, or catalogue-content write is part of the fixture.
+
+### Remaining boundary
+
+- The measured Diabetes + vegetarian + egg profile has one-lunch and one-dinner gaps. No meal was added and no compatibility threshold was loosened in this phase. Evidence-backed catalogue additions remain a separate authorized change.
+- Static/pure policy evidence and read-only shared-database measurement do not replace the unexecuted INT-010 runtime proof. Arbitrary clinical combinations remain review-gated; no broader medical-safety claim is made.

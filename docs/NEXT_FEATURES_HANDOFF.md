@@ -4,18 +4,19 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Phase 1 is implemented, migrated, and accepted for structured persistence, onboarding/profile interaction, and the bounded still-compatible active-plan/grocery path on `feature/structured-safety-intake`. Later phases remain planning context unless a later engineering-record entry proves implementation and verification.
+**Status:** Phase 1 is implemented and migrated. Phase 2 consumer reconciliation, conservative combined-profile tests, and read-only coverage measurement are implemented on `feature/combined-safety-coverage`; the exact incompatible-plan runtime fixture remains behind an explicit shared-data authorization gate.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
-- Working branch: `feature/structured-safety-intake`
+- Working branch: `feature/combined-safety-coverage`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
   - `1ccd9b7` — condition-aware meal-library workflows
   - `483047d` — combined restriction coverage matrix
   - `4defe0f` — structured multi-value safety intake source and additive migration
+- Phase 2 adds one structured restriction adapter across production consumers, exact combined-profile coverage evidence, operational API/UI evidence, and a guarded incompatible-plan fixture. See engineering-record section 36.
 - The configured database contained 49 current managed catalogue meals and 53 total meal-library records at the last acceptance run.
 - The branch passed the backend suite (250 registered, 249 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, live service acceptance, and browser inspection. See engineering-record sections 32–33 for exact evidence and scope.
 - Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
@@ -94,11 +95,17 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 
 ## 4. Coverage work after structured intake
 
-- Re-measure certified-library coverage using actual structured combined profiles rather than assuming single restrictions.
-- Current measured support is deliberately bounded to Diabetes or Hypertension crossed with one modeled diet/allergy constraint.
+- The exact 49 certified managed meals were re-measured with the production evaluator and structured profiles: Diabetes + vegetarian + egg allergy is **7/6/6** breakfast/lunch/dinner; Hypertension + pescatarian + dairy allergy is **9/13/13**; Diabetes + Hypertension + gluten allergy is **9/13/10**.
+- The first profile is one lunch and one dinner short of seven-day readiness. No meal was added and no threshold was loosened.
+- Structured rows are now authoritative for generation/library reuse, swaps, recheck/replacement, outside-meal warnings, nutrition-report context, nutritionist review displays, library browsing, and coverage/admin evidence. Legacy fields remain an explicit fallback for profiles without structured rows.
 - Arbitrary multiple allergies, custom conditions, Kidney Disease, Heart Condition, and pregnancy/lactation remain outside proven automatic coverage.
 - Add catalogue meals only to close measured gaps. Every addition needs first-class FNRI ingredient linkage, explicit allergen/condition declarations, current certification evidence, deterministic compatibility tests, and idempotent population behavior.
 - Do not manufacture “verified” state through raw seed flags or by copying one user's profile declarations into reusable authority.
+
+### Remaining Phase 2 runtime gate
+
+- `backend/scripts/structured-safety-replacement-acceptance.ts` is implemented and type-checked but unexecuted. It needs exact authorization to create the reserved `e2e.structured-replacement.acceptance@example.invalid` user/plan/grocery/history rows and temporarily increment then restore one selected managed meal's `usageCount`.
+- It snapshots all 49 managed counters before writes, deletes the exact reserved user in `finally`, restores every counter, and asserts zero residual rows and zero counter drift. It does not create certified catalogue rows or call Gemini/email/OAuth/payment code.
 
 ## 5. Planned payments and subscriptions
 
