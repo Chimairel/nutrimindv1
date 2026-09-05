@@ -31,10 +31,10 @@ Rules:
 | ADR | Architecture/design decision | ADR-018 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-023 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-031 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-07 |
-| TEST | Test case or verification procedure | TEST-084 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260905-08 |
+| TEST | Test case or verification procedure | TEST-085 |
 | UNC | Unresolved uncertainty | UNC-017 |
-| DOC | Documentation correction or addition | DOC-033 |
+| DOC | Documentation correction or addition | DOC-034 |
 
 ---
 
@@ -517,6 +517,7 @@ No schema or migration changes are authorized in the first run. Before future un
 | TEST-081 | Provider-event idempotency and money/refund invariants | Backend pure-policy unit | Event identity classifies insert/duplicate/hash conflict; keys are deterministic and bounded; malformed identities deny; money is safe integer minor units with ISO currency; refunds cannot exceed paid remainder; ledger signs and overflow are guarded | Pass: 7 database-free cases | CHG-20260905-05; REQ-021; ADR-017 |
 | TEST-082 | Nutritionist work-credit and compensation policy | Backend pure-policy unit | Review outcomes do not change ordinary credit; source actions and reversals deduplicate; corrections append signed reversals; fixed workload bands cap volume incentives; adjustments/gross/payout currency and amount boundaries hold; maker-checker actors differ | Pass: 8 database-free cases | CHG-20260905-05; REQ-021; ADR-017 |
 | TEST-083 | Disposable billing-migration rehearsal | Docker PostgreSQL 16.4; Prisma production migration path/status/diff; SQL object inventory; count/hash preservation; rollback-only relation/constraint probes; full backend regression/build; exact cleanup audit | Exact 16-migration baseline precedes the billing migration; committed checksum/history match; additive object deltas and manual constraints exist; prebilling rows do not change; invalid finance/work-credit/compensation states reject; second deploy is empty with no drift; all task resources are removed | Pass locally: 17 migrations current; 34 prebilling table snapshots unchanged; +22 tables, +21 enums, +89 indexes, +42 foreign keys, +43 checks; 18 exact constraint failures and 9 relation/state assertions pass; 303 tests registered, 302 pass, 0 fail, 1 existing TODO; clean resource teardown | `backend/scripts/billing-migration-rehearsal.sql`; CHG-20260905-06; REQ-021; ADR-017; DOC-032 |
+| TEST-084 | Shared-development billing migration acceptance | Sanitized target classification; canonical history checksums; exact pending-set gate; migration-derived local schema parity; privacy-safe pre/post count/hash snapshots; postflight object/empty-table inventory; second deploy/status; backend regression/build/static audit | Target is the owner-authorized pooled Neon `neondb`/`public` development schema; exactly billing migration pending/applied; 17 clean history rows with expected checksum; all billing objects present and empty; 34 old-domain snapshots unchanged; no drift or second-deploy write | Pass: only `20260905180000_billing_foundation` applied; checksum `a3e8…79563`; 22 tables, 21 enum types/83 values, 67 declared indexes, 42 FKs, 43 checks, 2 partial indexes, 0 billing rows; 303 tests registered, 302 pass, 0 fail, 1 existing TODO | CHG-20260905-07; REQ-021; ADR-017; DOC-033 |
 | INT-009 | Structured safety persistence, compatibility projection, history, report invalidation, and bounded plan/grocery behavior | Guarded live Prisma/service fixture against the configured Neon database | Mixed restrictions and controlled aliases survive reload; one revision per semantic change; identical save is idempotent; stale report acknowledgement clears; a still-compatible certified active plan and its derived grocery list remain actionable and unchanged; exact fixture cleanup leaves no rows | Pass: 7 entries reloaded; `high blood pressure` resolved to `HYPERTENSION`; revision delta 1; report invalidated; compatible plan actionable; grocery projection unchanged; identical save unchanged; 0 residual users/entries/plans/grocery lists | `backend/scripts/structured-safety-intake-acceptance.ts`; CHG-20260905-01; REQ-018; ADR-016 |
 | E2E-007 | Structured safety onboarding and editable Health profile | Authenticated in-app browser at default desktop and 390x844 mobile viewport using an exact reserved account | Mixed predefined/custom values, separators, multi-word terms, aliases, classifications, vague-entry errors, removal, keyboard confirmation/submission, save, report invalidation, and profile reload behave visibly without console errors | Pass for onboarding and Health profile: conditions and all three food domains saved; `spicy food` removal survived reload; desktop/mobile layouts remained usable; 0 browser warnings/errors; fixture and sessions removed. No active-plan replacement was exercised by this browser actor | CHG-20260905-01; REQ-018; ADR-016; INT-009 |
 
@@ -2486,3 +2487,42 @@ This section is a continuity record for agreed future work. Every item below is 
 ### Next gate
 
 - Applying the exact billing migration to the configured shared development database remains a separate database-only phase requiring fresh bounded owner authorization. It should repeat migration-history/checksum and pre/post preservation checks before any sandbox provider integration begins.
+
+## 41. Shared-development billing migration acceptance (2026-09-05)
+
+**Requirement ID:** REQ-021
+
+**Decision ID:** ADR-017
+
+**Change ID:** CHG-20260905-07
+
+**Verification ID:** TEST-084
+
+**Documentation ID:** DOC-033
+
+### Authorization, target, and preflight
+
+- The owner explicitly authorized only the database migration phase. Work started from exact clean rehearsal commit `7f5eb3db6ccede5de19117703b6a616e9bd0acb8` on new branch `feature/billing-shared-migration`; local `main` and `origin/main` remained `d17b30482398472a02eefd505950f8b42af6b223`.
+- Configuration and a live identity query classified the target as the expected TLS-required pooled Neon development endpoint, database `neondb`, schema `public`. The sanitized hostname fingerprint was `6f48da70b1ce`. No connection string, password, username, or complete hostname was printed.
+- Preflight found exactly 16 completed, non-rolled-back migrations through `20260905120000_structured_safety_intake`. Every stored historical checksum matched the canonical committed Git blob. The only repository migration absent from history was `20260905180000_billing_foundation`; all 22 billing tables were absent.
+- Windows working-tree line endings differ from canonical Git blobs for historical SQL. The owner-authorized billing file's exact working-byte SHA-256 remained `a3e8b56ca5f3ea640ecd6fb619230038e26654422c387628792a05f728779563`. Historical comparisons therefore used canonical committed blobs, while the pending billing file and its eventual stored checksum used the explicitly authorized working bytes.
+- The prebilling database contained 34 domain tables, 34 enums, 77 indexes, 45 foreign keys, and 21 checks. Privacy-safe count/content hashes were captured for every one of the 34 domain tables without exposing row data.
+- A datamodel-only diff surfaced the two known `MealPlan` indexes created by the committed production-hardening migration but not represented in `schema.prisma`. To avoid misclassifying these migration-defined objects as drift, the task reconstructed all 16 migrations in an isolated PostgreSQL 16.4 Docker database and compared the shared database directly with that migration-derived schema. The result was no difference.
+
+### Authorized migration and postflight
+
+- Normal `prisma migrate deploy` applied exactly one migration: `20260905180000_billing_foundation`. No migration file was edited and no manual SQL was run against the shared target.
+- Postflight found 17 completed, non-rolled-back history rows. The stored billing checksum exactly matched `a3e8…79563`; all prior checksums remained matched. A second deploy reported no pending migrations and final `prisma migrate status` reported all 17 current.
+- The 22 exact billing tables, 21 billing enum types with 83 exact values, 67 declared indexes, 42 foreign keys, 43 validated checks, and both partial unique indexes matched the committed migration. Global inventory changed exactly from 34 to 56 domain tables, 34 to 55 enums, 77 to 166 indexes, 45 to 87 foreign keys, and 21 to 64 checks.
+- Every new billing table contained zero rows. All 34 prebilling table counts and content hashes remained byte-for-byte identical to preflight after the first and second deploys.
+- The isolated local parity database then applied the same billing migration. Direct shared-to-local comparison of the complete 17-migration schemas reported no difference, including migration-defined objects outside the Prisma datamodel.
+
+### Regression, cleanup, and boundary
+
+- The backend suite remained **303 registered, 302 pass, 0 fail, and 1 pre-existing clinical-policy TODO**. Backend production build and Prisma schema validation passed. Static migration audit reconfirmed the exact checksum, 22 tables, 21 enums, 67 indexes, 42 foreign keys, 43 checks, and zero destructive statements. No frontend source changed, so frontend checks were not repeated.
+- The local parity target used only labeled container/network/volume names prefixed `nutrimind-billing-shared-drift-20260905-7f5eb3d` on loopback port 55440. Its exact database, container, network, volume, task-pulled image, temporary credential file, migration workspace, and audit snapshots/scripts were removed. Docker returned to zero containers, images, and volumes with only its built-in networks; no unrelated user-defined Docker resource existed before or after.
+- No shared seed, fixture, user, reviewer, product, subscription, payment, ledger, entitlement, work-credit, statement, payout, or other domain row was inserted or updated. No destructive constraint probe ran against Neon. No PayMongo/provider call/account/credential/money, Gemini, email, OAuth, deployment, application server, UI, or ports 3000/5000/3030 were used.
+
+### Next gate
+
+- The next smallest phase is Phase 3 sandbox collection only: disabled-by-default server-side provider adapter boundaries and deterministic tests. It remains gated on owner-controlled sandbox capability/credentials, provider business acceptance, test-mode enforcement, secret isolation, idempotency, sanitization, and an immediate disable path. Redirects must never grant Premium; verified webhook/reconciliation authority remains a later phase before entitlement activation.

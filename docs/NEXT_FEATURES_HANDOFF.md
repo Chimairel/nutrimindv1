@@ -4,13 +4,14 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The payment/subscription/compensation architecture is accepted, its Phase 1 additive schema and pure policies are implemented, and the Phase 2 disposable rehearsal passed against a local PostgreSQL 16.4 Docker target. The task removed every created database/container/network/volume/image/file and left the configured/shared database untouched. Provider integration, shared migration application, UI, credentials, money movement, and deployment have not started.
+**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The payment/subscription/compensation architecture is accepted, its Phase 1 schema/pure policies are implemented, the disposable rehearsal passed, and the exact billing migration is now applied and preservation-verified on the configured shared development Neon target. All 22 billing tables remain empty. Provider integration, UI, credentials, money movement, and deployment have not started.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
 - Billing-foundation branch: `feature/billing-foundation`, commit `753be3d`
 - Migration-rehearsal branch: `feature/billing-migration-rehearsal`, created from exact billing-foundation commit `753be3d`
+- Shared-migration branch: `feature/billing-shared-migration`, created from exact rehearsal commit `7f5eb3d`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
@@ -160,8 +161,8 @@ Production remains blocked on PayMongo's written business approval and actual ac
 
 ## 9. Recommended execution order
 
-1. Apply the exact reviewed migration to shared development only under fresh bounded owner authorization, with pre/post migration history and preservation evidence. Do not call PayMongo in that database-only phase.
-2. Implement sandbox collection, then the raw-body webhook inbox/outbox and reconciliation, only after the shared migration is separately authorized and verified.
+1. Implement Phase 3 sandbox collection behind disabled-by-default configuration, with server-only PayMongo boundaries, environment/idempotency controls, sanitized errors, and no live-money capability.
+2. Implement the raw-body webhook inbox/outbox and reconciliation before treating provider state as authoritative.
 3. Enable the 3-versus-6 swap entitlement only after provider state, webhook processing, and reconciliation are stable.
 4. Add the internal compensation ledger and manual payout records after collection/entitlement evidence is stable. Consider automated disbursements only after the capstone and a separate approval.
 5. Prototype price coverage separately, after core safety and payment flows remain stable.

@@ -1,6 +1,6 @@
 # NutriMind Payment, Subscription, and Nutritionist Compensation Architecture
 
-**Status:** Accepted architecture. Phase 1 schema/pure policies are implemented and the Phase 2 disposable PostgreSQL rehearsal passed on `feature/billing-migration-rehearsal`; shared migration application, provider integration, UI, credentials, money movement, and deployment remain pending.
+**Status:** Accepted architecture. Phase 1 schema/pure policies and both Phase 2 migration gates are complete: the disposable rehearsal passed and the exact migration is applied to shared development with preservation/no-drift evidence. Provider integration, UI, credentials, money movement, and deployment remain pending.
 
 **Decision ID:** ADR-017
 
@@ -357,7 +357,7 @@ Implemented in source on `feature/billing-foundation`: one additive Prisma migra
 
 ### Phase 2 — migration rehearsal
 
-The disposable half passed on PostgreSQL 16.4 with exact checksum/history, object inventory, prebilling row hashes, rollback-only constraint probes, a clean second deploy/no-drift comparison, and full resource teardown. Applying the exact migration to configured shared development remains separately gated by fresh bounded owner authorization. Do not contact PayMongo. Rollback: down migration only while zero finance rows exist; otherwise disable features and retain data.
+The disposable half passed on PostgreSQL 16.4 with exact checksum/history, object inventory, prebilling row hashes, rollback-only constraint probes, a clean second deploy/no-drift comparison, and full resource teardown. The owner-authorized shared-development half then applied only the exact billing migration and verified 34 preexisting table snapshots unchanged, all billing tables empty, exact object inventory, a clean second deploy, and migration-derived schema parity. No PayMongo call occurred. Rollback: down migration only while zero finance rows exist; otherwise disable features and retain data.
 
 ### Phase 3 — sandbox collection adapter
 
@@ -381,9 +381,9 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next single phase should be **the shared-development half of Phase 2 only: apply the exact rehearsed migration under fresh bounded owner authorization and repeat migration-history/checksum and preservation evidence without PayMongo calls**.
+The next single phase should be **Phase 3 sandbox collection only: add disabled-by-default server-side PayMongo adapter boundaries, test-environment and idempotency controls, sanitized failures, and a minimal provider-hosted checkout without granting entitlements from redirects**.
 
-That shared-database phase requires explicit target classification, exact migration checksum, pre/post migration history and aggregate preservation evidence, Prisma status/no-drift checks, and zero unrelated writes. It must not use provider credentials/APIs, synthetic finance rows, seed data, or either application server.
+Phase 3 requires owner-provided sandbox capability and credentials outside source, provider acceptance of the business model, deterministic adapter tests, no live-mode calls, no client-side secret or entitlement authority, and an immediate disable path. Webhook authority and reconciliation remain Phase 4 and must exist before Premium activation.
 
 ## 16. Explicit unresolved decisions
 
