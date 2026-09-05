@@ -112,7 +112,7 @@ export class GroceryService {
       });
 
       return newList;
-    });
+    }, { timeout: 30_000 });
 
     return groceryList;
   }

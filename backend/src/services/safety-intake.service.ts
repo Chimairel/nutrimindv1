@@ -201,7 +201,7 @@ export class SafetyIntakeService {
         },
       });
       await tx.nutritionReport.updateMany({ where: { userId }, data: { acknowledgedAt: null } });
-    });
+    }, { timeout: 30_000 });
 
     return { ...preview, entries, changed: true };
   }

@@ -4,17 +4,18 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Phase 1 is implemented in source on `feature/structured-safety-intake` and is waiting at its shared-database migration gate. Later phases remain planning context unless a later engineering-record entry proves implementation and verification.
+**Status:** Phase 1 is implemented, migrated, and accepted for structured persistence, onboarding/profile interaction, and the bounded still-compatible active-plan/grocery path on `feature/structured-safety-intake`. Later phases remain planning context unless a later engineering-record entry proves implementation and verification.
 
 ## 1. Resume point
 
 - Repository: `Chimairel/nutrimindv1`
-- Working branch: `feature/condition-aware-meal-library`
+- Working branch: `feature/structured-safety-intake`
 - `main` baseline at the time of this handoff: `d17b304`
 - Latest roadmap commit before this file: `802fa34`
 - Implemented feature commits on the branch:
   - `1ccd9b7` — condition-aware meal-library workflows
   - `483047d` — combined restriction coverage matrix
+  - `4defe0f` — structured multi-value safety intake source and additive migration
 - The configured database contained 49 current managed catalogue meals and 53 total meal-library records at the last acceptance run.
 - The branch passed the backend suite (250 registered, 249 passed, 0 failed, 1 intentional clinical-policy TODO), backend production build, frontend lint, frontend production build, live service acceptance, and browser inspection. See engineering-record sections 32–33 for exact evidence and scope.
 - Do not merge into `main`, deploy, introduce live payments, or broaden clinical claims without fresh owner approval.
@@ -31,11 +32,13 @@
 
 ## 3. Current phase — structured multi-value safety intake
 
-### September 5 source status
+### September 5 acceptance status
 
-- Source implementation, additive Prisma schema/migration, deterministic tests, frontend type/lint/build verification, and a guarded database acceptance script are present on `feature/structured-safety-intake`.
-- The migration is intentionally unapplied. Authenticated persistence/reload, browser interaction, mobile inspection, active-plan safety replacement, and derived-grocery acceptance remain pending owner approval to apply the migration to the configured shared database.
-- See engineering-record section 35 for exact behavior and evidence. Do not treat this phase as integration-tested or E2E-tested until INT-009 and E2E-007 are recorded there.
+- The additive structured-safety migration is applied to the configured shared Neon database. The source, migration, deterministic tests, guarded integration fixture, and authenticated browser flows are present on `feature/structured-safety-intake`.
+- INT-009 proves mixed structured persistence/reload, canonical alias resolution, legacy synchronization, one revision per semantic change, report invalidation, idempotent resubmission, exact cleanup, and preservation of a still-compatible certified plan and its derived grocery list.
+- E2E-007 proves onboarding and editable Health profile behavior at desktop and 390x844 mobile widths, including separators, multi-word entries, mixed sources, statuses/errors, chip removal, keyboard confirmation, save, and reload with no browser warnings/errors.
+- An incompatible structured restriction replacing or blocking an active meal was not repeated because that bounded fixture would mutate shared catalogue usage counters or create temporary certified catalogue rows. Prior INT-005 covers the older enum/allergy replacement path. Treat a structured incompatible-plan fixture as the remaining optional Phase 1 evidence gap, not as proof for arbitrary clinical combinations.
+- See engineering-record section 35 for exact migration, runtime, browser, and cleanup evidence.
 
 ### Goal
 
@@ -155,8 +158,8 @@ Only after this ADR should schema design and implementation begin.
 
 ## 9. Recommended execution order
 
-1. With owner approval, apply the prepared structured-intake migration and run INT-009 plus authenticated desktop/mobile E2E-007.
-2. Verify combined restriction behavior and close only measured library gaps after Phase 1 acceptance.
+1. If the owner wants the remaining optional Phase 1 evidence, authorize an exact temporary certified-meal fixture or exact shared usage-counter restoration, then prove that a new structured incompatibility replaces or blocks an active meal and refreshes groceries without Gemini.
+2. Verify combined restriction behavior and close only measured library gaps in Phase 2.
 3. Write the payment/subscription/compensation ADR using freshly verified provider information.
 4. Implement subscription sandbox billing and admin reconciliation.
 5. Add a manual compensation ledger; automate payouts only if still necessary and provider-supported.
