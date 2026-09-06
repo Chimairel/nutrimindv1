@@ -13,6 +13,7 @@ import {
   libraryMealFlagSchema,
   nutritionistReviewActionSchema,
 } from '@/validation/nutritionist.schemas';
+import { NutritionistCompensationService } from '@/services/compensation-admin.service';
 
 const router = Router();
 
@@ -242,6 +243,15 @@ router.get('/approved', async (req: AuthenticatedRequest, res: Response) => {
     return res.status(200).json({ success: true, data: approved });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve approved meals.') });
+  }
+});
+
+router.get('/compensation', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await NutritionistCompensationService.getOwn(req.nutritionistProfileId!);
+    return res.status(200).json({ success: true, data });
+  } catch (error: unknown) {
+    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve your compensation records.') });
   }
 });
 

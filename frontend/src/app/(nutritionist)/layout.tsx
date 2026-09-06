@@ -6,12 +6,13 @@ import { usePathname } from 'next/navigation';
 import RouteGuard from '@/components/shared/RouteGuard';
 import Sidebar from '@/components/ui/Sidebar';
 import Navbar from '@/components/shared/Navbar';
-import { ClipboardList, BookOpen, User, BadgeCheck } from 'lucide-react';
+import { ClipboardList, BookOpen, User, BadgeCheck, Receipt } from 'lucide-react';
 
 const navItems = [
   { href: '/nutritionist/reviews', label: 'Reviews', icon: ClipboardList },
   { href: '/nutritionist/approved', label: 'Approved', icon: BadgeCheck },
   { href: '/nutritionist/library', label: 'Library', icon: BookOpen },
+  { href: '/nutritionist/compensation', label: 'Pay', icon: Receipt },
   { href: '/nutritionist/profile', label: 'Profile', icon: User },
 ];
 

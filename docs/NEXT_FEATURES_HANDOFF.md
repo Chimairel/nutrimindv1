@@ -139,9 +139,10 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 
 - User billing and nutritionist compensation are separate accounting domains. A subscription payment must never directly and automatically pay a reviewer.
 - Do not use a raw per-approved-meal salary formula; it incentivizes approval volume and weakens review quality.
-- Use first-class immutable work credits written with valid completed review actions. Do not infer compensation from `NutritionistProfile.totalVerified`, mutable plan state, claims, or approval counts.
-- Preferred initial formula: contracted base retainer plus a capped workload-band allowance plus independently approved adjustments. Approve/reject/escalate outcomes receive equal ordinary-review credit; quality metrics trigger review rather than automatic bonus multipliers.
-- Capstone scope records approved periods, statements, adjustments, and manual/off-platform payouts without storing bank details or moving money.
+- `feature/nutritionist-compensation-admin` now writes first-class immutable work credits with valid completed review actions. It does not infer compensation from `NutritionistProfile.totalVerified`, mutable plan state, claims, timeouts, or approval counts.
+- The implemented engine uses a versioned base retainer plus capped workload-band allowance plus independently approved signed adjustments. Approve/reject/escalate outcomes receive equal ordinary-review credit; independent high-risk second review has its declared fixed weight.
+- ADMIN policy, period, deterministic statement, adjustment, reconciliation, and manual payout-evidence workflows enforce maker-checker separation. The NUTRITIONIST view is profile-derived and own-only. Payout amount is server-derived; no bank/e-wallet detail or provider movement exists.
+- Source tests, all-migration disposable PostgreSQL lifecycle acceptance, and authenticated desktop/mobile browser checks pass. The new additive migration remains unapplied to shared development. Commercial amounts/contracts, tax/legal treatment, dispute operations, retention, deployment, and any automated disbursement remain separate gates.
 - PayMongo **Disbursements**, rather than merchant **Payouts**, is the potentially relevant later provider function. It remains deferred behind a separate ADR covering employment/tax status, provider approval, wallet funding, recipient data, maker-checker controls, retries/reversals, and reconciliation.
 
 ## 7. Budget and ingredient-price roadmap

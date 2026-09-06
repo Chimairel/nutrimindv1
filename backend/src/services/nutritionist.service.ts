@@ -31,6 +31,7 @@ import {
 } from '@/domain/nutritionist-review.policy';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '@/domain/meal-library-safety-evidence.policy';
 import type { CertifyMealLibrarySafetyInput } from '@/domain/meal-library-safety-review.schema';
+import { recordCompletedMealPlanReviewCredit } from '@/services/work-credit.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
 import {
@@ -520,6 +521,15 @@ export class NutritionistService {
           });
         }
 
+        await recordCompletedMealPlanReviewCredit(tx, {
+          nutritionistProfileId,
+          actorUserId: reviewer.userId,
+          mealPlanId,
+          stage: 'HIGH_RISK_ESCALATION',
+          outcome: 'ESCALATED',
+          earnedAt: now,
+        });
+
         await tx.auditEvent.create({
           data: {
             actorUserId: reviewer.userId,
@@ -683,6 +693,14 @@ export class NutritionistService {
           metadata: { policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION },
         },
       });
+      await recordCompletedMealPlanReviewCredit(tx, {
+        nutritionistProfileId,
+        actorUserId: reviewer.userId,
+        mealPlanId,
+        stage: plan.highRiskReviewRequired ? 'HIGH_RISK_SECOND' : 'ORDINARY_FINAL',
+        outcome: 'APPROVED',
+        earnedAt: now,
+      });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     // The grocery list is a derived projection of the user's approved current
@@ -767,6 +785,16 @@ export class NutritionistService {
           entityId: mealPlanId,
           metadata: { reason: reason.trim().slice(0, 240) },
         },
+      });
+      await recordCompletedMealPlanReviewCredit(tx, {
+        nutritionistProfileId,
+        actorUserId: reviewer.userId,
+        mealPlanId,
+        stage: plan.highRiskReviewRequired && plan.reviewApprovalCount === 1
+          ? 'HIGH_RISK_SECOND'
+          : 'ORDINARY_FINAL',
+        outcome: 'REJECTED',
+        earnedAt: now,
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 

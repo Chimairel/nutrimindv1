@@ -397,7 +397,7 @@ Implemented on `feature/premium-access-ui`: the authenticated ready-USER access 
 
 ### Phase 6 — compensation evidence
 
-Add transactionally created work credits, versioned policies, periods/statements/adjustments, nutritionist read view, admin maker-checker workflow, and manual/off-platform payout records. Do not automate PayMongo Disbursements. Rollback: stop new period calculation, retain credits/statements, and settle manually.
+Implemented on `feature/nutritionist-compensation-admin`: eligible completed meal-plan review decisions now create one immutable keyed work credit in the same serializable transaction. Versioned policy drafts, independent activation, period opening/closure, deterministic credit snapshots, independent statement review/approval, signed adjustment decisions, reconciliation, an ADMIN workspace, an own-only NUTRITIONIST view, and manual/off-platform payout evidence are present. Payout amounts are derived from the approved statement remainder and the application stores no bank/e-wallet details. The additive migration and full workflow passed on disposable PostgreSQL plus authenticated desktop/mobile browser acceptance; shared migration, commercial compensation values/contracts, tax/legal decisions, dispute operations, and deployment remain pending. No PayMongo Disbursements or other money movement exists. Rollback: stop new period calculation, retain credits/statements/payout evidence, and settle under the approved off-platform process.
 
 ### Phase 7 — separately approved production readiness
 

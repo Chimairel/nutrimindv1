@@ -25,6 +25,7 @@ import {
   Users,
   UtensilsCrossed,
   Crown,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
@@ -105,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Review queue', href: '/nutritionist/reviews', icon: ClipboardList },
       { label: 'Approved plans', href: '/nutritionist/approved', icon: CheckSquare2 },
       { label: 'Meal library', href: '/nutritionist/library', icon: BookOpen },
+      { label: 'Compensation', href: '/nutritionist/compensation', icon: Receipt },
       { label: 'My profile', href: '/nutritionist/profile', icon: UserRound },
     ],
     ADMIN: [
@@ -113,6 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Nutritionists', href: '/admin/nutritionists', icon: Stethoscope },
       { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
       { label: 'Operations', href: '/admin/operations', icon: ShieldCheck },
+      { label: 'Compensation', href: '/admin/compensation', icon: Receipt },
     ],
   };
 

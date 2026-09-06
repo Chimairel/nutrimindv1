@@ -328,6 +328,12 @@ enum CompensationStatementStatus {
   PAYOUT_FAILED
 }
 
+enum CompensationAdjustmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum CompensationPayoutMethod {
   MANUAL_OFF_PLATFORM
   PAYMONGO_DISBURSEMENT
@@ -515,6 +521,12 @@ model User {
   compensationPayoutsSubmitted     CompensationPayout[]              @relation("CompensationPayoutSubmitter")
   compensationPayoutsApproved      CompensationPayout[]              @relation("CompensationPayoutApprover")
   compensationPayoutEvents         CompensationPayoutEvent[]
+  compensationPoliciesCreated      CompensationPolicy[]              @relation("CompensationPolicyCreator")
+  compensationPoliciesApproved     CompensationPolicy[]              @relation("CompensationPolicyApprover")
+  compensationPeriodsOpened        CompensationPeriod[]              @relation("CompensationPeriodOpener")
+  compensationPeriodsClosed        CompensationPeriod[]              @relation("CompensationPeriodCloser")
+  compensationStatementsPrepared   CompensationStatement[]           @relation("CompensationStatementPreparer")
+  compensationAdjustmentsRejected  CompensationAdjustment[]          @relation("CompensationAdjustmentRejector")
 }
 
 model Account {
@@ -1780,24 +1792,37 @@ model CompensationPolicy {
   effectiveFrom         DateTime
   effectiveUntil        DateTime?
   approvedAt            DateTime?
+  createdByAdminId      String?
+  createdByAdmin        User?                    @relation("CompensationPolicyCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  approvedByAdminId     String?
+  approvedByAdmin       User?                    @relation("CompensationPolicyApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
   createdAt             DateTime                 @default(now())
   periods               CompensationPeriod[]
+
+  @@index([createdByAdminId])
+  @@index([approvedByAdminId])
 }
 
 model CompensationPeriod {
-  id          String                   @id @default(cuid())
-  policyId    String
-  policy      CompensationPolicy       @relation(fields: [policyId], references: [id], onDelete: Restrict)
-  periodStart DateTime
-  periodEnd   DateTime
-  status      CompensationPeriodStatus @default(OPEN)
-  closedAt    DateTime?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  statements  CompensationStatement[]
+  id              String                   @id @default(cuid())
+  policyId        String
+  policy          CompensationPolicy       @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  periodStart     DateTime
+  periodEnd       DateTime
+  status          CompensationPeriodStatus @default(OPEN)
+  closedAt        DateTime?
+  openedByAdminId String?
+  openedByAdmin   User?                    @relation("CompensationPeriodOpener", fields: [openedByAdminId], references: [id], onDelete: SetNull)
+  closedByAdminId String?
+  closedByAdmin   User?                    @relation("CompensationPeriodCloser", fields: [closedByAdminId], references: [id], onDelete: SetNull)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  statements      CompensationStatement[]
 
   @@unique([policyId, periodStart, periodEnd])
   @@index([status, periodEnd])
+  @@index([openedByAdminId])
+  @@index([closedByAdminId])
 }
 
 model CompensationStatement {
@@ -1815,6 +1840,8 @@ model CompensationStatement {
   adjustmentMinor        Int                               @default(0)
   grossMinor             Int                               @default(0)
   calculatedAt           DateTime?
+  preparedByAdminId      String?
+  preparedByAdmin        User?                             @relation("CompensationStatementPreparer", fields: [preparedByAdminId], references: [id], onDelete: SetNull)
   reviewedByAdminId      String?
   reviewedByAdmin        User?                             @relation("CompensationStatementReviewer", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
   reviewedAt             DateTime?
@@ -1830,6 +1857,7 @@ model CompensationStatement {
   @@unique([periodId, nutritionistProfileId])
   @@index([nutritionistProfileId, status])
   @@index([status, approvedAt])
+  @@index([preparedByAdminId])
 }
 
 model CompensationStatementWorkCredit {
@@ -1845,22 +1873,29 @@ model CompensationStatementWorkCredit {
 }
 
 model CompensationAdjustment {
-  id                String                @id @default(cuid())
+  id                String                       @id @default(cuid())
   statementId       String
-  statement         CompensationStatement @relation(fields: [statementId], references: [id], onDelete: Restrict)
+  statement         CompensationStatement        @relation(fields: [statementId], references: [id], onDelete: Restrict)
   amountMinor       Int
-  currency          String                @db.Char(3)
-  reasonCode        String                @db.VarChar(64)
-  note              String?               @db.VarChar(500)
-  idempotencyKey    String                @unique @db.VarChar(160)
+  currency          String                       @db.Char(3)
+  reasonCode        String                       @db.VarChar(64)
+  note              String?                      @db.VarChar(500)
+  idempotencyKey    String                       @unique @db.VarChar(160)
+  status            CompensationAdjustmentStatus @default(PENDING)
   createdByAdminId  String?
-  createdByAdmin    User?                 @relation("CompensationAdjustmentCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  createdByAdmin    User?                        @relation("CompensationAdjustmentCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
   approvedByAdminId String?
-  approvedByAdmin   User?                 @relation("CompensationAdjustmentApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
-  createdAt         DateTime              @default(now())
+  approvedByAdmin   User?                        @relation("CompensationAdjustmentApprover", fields: [approvedByAdminId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                     @default(now())
   approvedAt        DateTime?
+  rejectedByAdminId String?
+  rejectedByAdmin   User?                        @relation("CompensationAdjustmentRejector", fields: [rejectedByAdminId], references: [id], onDelete: SetNull)
+  rejectedAt        DateTime?
+  rejectionReason   String?                      @db.VarChar(240)
 
   @@index([statementId, createdAt])
+  @@index([status, createdAt])
+  @@index([rejectedByAdminId])
 }
 
 model CompensationPayout {

@@ -34,6 +34,7 @@
     "test:acceptance:paymongo-payment-projection-local": "tsx scripts/paymongo-payment-projection-local-acceptance.ts",
     "test:acceptance:paymongo-provider-reconciliation": "tsx scripts/paymongo-provider-reconciliation-acceptance.ts",
     "test:acceptance:premium-access-local": "tsx scripts/premium-access-local-acceptance.ts",
+    "test:acceptance:compensation-local": "tsx scripts/compensation-local-acceptance.ts",
     "paymongo:test-webhook-admin": "tsx scripts/paymongo-test-webhook-admin.ts",
     "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts"
   },
