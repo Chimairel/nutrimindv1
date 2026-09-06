@@ -1,10 +1,5 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { normalizeFoodCulture } from '@/lib/profile-normalization';
-import { useAuth } from '@/hooks/useAuth';
-import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import Card from '@/components/ui/Card';
@@ -12,9 +7,8 @@ import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
+import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
-import type { SafetyProfileEntry } from '@/types';
-import axios from 'axios';
 import {
   TrendingUp,
   Plus,
@@ -31,297 +25,67 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
-type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
-type ProgressWorkspaceMode = 'progress' | 'health';
-
-interface WeightLog {
-  id: string;
-  weightKg: number;
-  note: string | null;
-  loggedAt: string;
-}
-
-interface DailyNutritionLog {
-  id: string;
-  totalCalories: number;
-  totalProteinG: number;
-  totalCarbsG: number;
-  totalFatG: number;
-  targetCalories: number;
-  adherencePct: number;
-  logDate: string;
-}
-
-interface ProfileDetails {
-  id: string;
-  name: string;
-  email: string;
-  userProfile?: {
-    age?: number;
-    biologicalSex?: string;
-    heightCm?: number;
-    weightKg?: number;
-    targetWeightKg?: number;
-    goal?: string;
-    dailyCalorieTarget?: number;
-    activityLevel?: string;
-    dietaryPreference?: string;
-    carbPreference?: string;
-    foodCulture?: string;
-    otherConditions?: string;
-    otherAllergies?: string;
-    shoppingDayGroup?: string;
-    shoppingDayOfWeek?: number;
-  };
-  healthConditions?: string[];
-  allergies?: string[];
-  safetyEntries?: SafetyProfileEntry[];
-}
-
-interface ProgressHistory {
-  weightLogs: WeightLog[];
-  dailyNutritionLogs: DailyNutritionLog[];
-}
+import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
 
 export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorkspaceMode }) {
-  const router = useRouter();
-  const { user } = useAuth();
-  const [activeSection, setActiveSection] = useState<ProgressSection>(mode === 'health' ? 'profile' : 'overview');
-  const [history, setHistory] = useState<ProgressHistory | null>(null);
-  const [profileData, setProfileData] = useState<ProfileDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('week');
-  const [isTimeframeDropdownOpen, setIsTimeframeDropdownOpen] = useState(false);
-
-  // Form State - Biometrics & Preferences
-  const [age, setAge] = useState('');
-  const [heightCm, setHeightCm] = useState('');
-  const [weightKg, setWeightKg] = useState('');
-  const [targetWeightKg, setTargetWeightKg] = useState('');
-  const [biologicalSex, setBiologicalSex] = useState('MALE');
-  const [goal, setGoal] = useState('MAINTAIN');
-  const [activityLevel, setActivityLevel] = useState('SEDENTARY');
-  const [dietaryPreference, setDietaryPreference] = useState('OMNIVORE');
-  const [carbPreference, setCarbPreference] = useState('MODERATE');
-  const [foodCulture, setFoodCulture] = useState('Filipino');
-  const [shoppingDayOfWeek, setShoppingDayOfWeek] = useState(6);
-  const [isSavingBiometrics, setIsSavingBiometrics] = useState(false);
-  const [biometricsSuccess, setBiometricsSuccess] = useState<string | null>(null);
-  const [biometricsError, setBiometricsError] = useState<string | null>(null);
-
-  const [healthSuccess, setHealthSuccess] = useState<string | null>(null);
-
-  // Form State - New Weight Reading
-  const [isLogFormOpen, setIsLogFormOpen] = useState(false);
-  const [weightInput, setWeightInput] = useState('');
-  const [noteInput, setNoteInput] = useState('');
-  const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
-  const [weightFormError, setWeightFormError] = useState<string | null>(null);
-  const [weightSuccess, setWeightSuccess] = useState<string | null>(null);
-
-  // Fetch progress history and profile info
-  const fetchPageData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [historyRes, profileRes] = await Promise.all([api.get('/user/progress/history'), api.get('/user/profile')]);
-
-      if (historyRes.data && historyRes.data.success) {
-        setHistory(historyRes.data.data);
-      }
-      if (profileRes.data && profileRes.data.success) {
-        const data: ProfileDetails = profileRes.data.data;
-        setProfileData(data);
-
-        // Pre-populate biometric form states
-        if (data.userProfile) {
-          setAge(String(data.userProfile.age || ''));
-          setHeightCm(String(data.userProfile.heightCm || ''));
-          setWeightKg(String(data.userProfile.weightKg || ''));
-          setTargetWeightKg(String(data.userProfile.targetWeightKg || ''));
-          setBiologicalSex(data.userProfile.biologicalSex || 'MALE');
-          setGoal(data.userProfile.goal || 'MAINTAIN');
-          setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
-          setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
-          setCarbPreference(data.userProfile.carbPreference || 'MODERATE');
-          setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
-          setShoppingDayOfWeek(
-            typeof data.userProfile.shoppingDayOfWeek === 'number'
-              ? data.userProfile.shoppingDayOfWeek
-              : data.userProfile.shoppingDayGroup === 'WEEKDAY'
-                ? 0
-                : 6
-          );
-        }
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to fetch progress metrics.');
-      } else {
-        setError('Failed to reach backend API.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchPageData();
-    }
-  }, [user]);
-
-  // Handles updating biometrics and preferences form
-  const handleBiometricsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingBiometrics(true);
-    setBiometricsError(null);
-    setBiometricsSuccess(null);
-
-    try {
-      // 1. Save general profile stats
-      const profileUpdate = await api.put('/user/profile', {
-        age: parseInt(age),
-        heightCm: parseFloat(heightCm),
-        weightKg: parseFloat(weightKg),
-        targetWeightKg: parseFloat(targetWeightKg),
-        biologicalSex,
-        goal,
-        activityLevel,
-        dietaryPreference,
-        carbPreference,
-        foodCulture,
-      });
-
-      // 2. Save the exact shopping day preference
-      await api.post('/user/onboarding/shopping-day', {
-        shoppingDayOfWeek,
-      });
-
-      if (profileUpdate.data && profileUpdate.data.success) {
-        setBiometricsSuccess('Biometrics and dietary preferences updated successfully! Calorie budget recalculated.');
-        setProfileData(profileUpdate.data.data);
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setBiometricsError(err.response?.data?.error || 'Failed to update biometrics.');
-      } else {
-        setBiometricsError('Failed to reach server.');
-      }
-    } finally {
-      setIsSavingBiometrics(false);
-    }
-  };
-
-  // Handles logging a new weight reading
-  const handleLogWeightSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const weightNum = parseFloat(weightInput);
-    if (isNaN(weightNum) || weightNum <= 0) {
-      setWeightFormError('Please enter a valid positive weight.');
-      return;
-    }
-
-    setIsSubmittingWeight(true);
-    setWeightFormError(null);
-    setWeightSuccess(null);
-    try {
-      const res = await api.post('/user/progress/weight', {
-        weightKg: weightNum,
-        note: noteInput || null,
-      });
-
-      if (res.data && res.data.success) {
-        setWeightSuccess('Weight logged! Your daily calorie target has been recalculated.');
-        setWeightInput('');
-        setNoteInput('');
-        setIsLogFormOpen(false);
-
-        // Reload history & profile info to update graphs and target labels
-        const [historyRes, profileRes] = await Promise.all([
-          api.get('/user/progress/history'),
-          api.get('/user/profile'),
-        ]);
-
-        if (historyRes.data && historyRes.data.success) {
-          setHistory(historyRes.data.data);
-        }
-        if (profileRes.data && profileRes.data.success) {
-          setProfileData(profileRes.data.data);
-        }
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setWeightFormError(err.response?.data?.error || 'Failed to log weight.');
-      } else {
-        setWeightFormError('Failed to reach server.');
-      }
-    } finally {
-      setIsSubmittingWeight(false);
-    }
-  };
-
-  const groupedLogs = React.useMemo(() => {
-    if (!history?.weightLogs || history.weightLogs.length === 0) return [];
-
-    // Group logs
-    const groups: Record<string, { sum: number; count: number; date: Date }> = {};
-
-    history.weightLogs.forEach((log) => {
-      const d = new Date(log.loggedAt);
-      let key = '';
-      if (timeframe === 'week') {
-        const day = d.getDay();
-        const diff = d.getDate() - day;
-        const sunday = new Date(d.setDate(diff));
-        sunday.setHours(0, 0, 0, 0);
-        key = sunday.toDateString();
-      } else if (timeframe === 'month') {
-        key = `${d.getFullYear()}-${d.getMonth()}`;
-      } else {
-        key = `${d.getFullYear()}`;
-      }
-
-      if (!groups[key]) {
-        groups[key] = { sum: 0, count: 0, date: new Date(log.loggedAt) };
-      }
-      groups[key].sum += log.weightKg;
-      groups[key].count += 1;
-    });
-
-    return Object.keys(groups)
-      .sort((a, b) => {
-        if (timeframe === 'week') {
-          return new Date(a).getTime() - new Date(b).getTime();
-        } else if (timeframe === 'month') {
-          const [ay, am] = a.split('-').map(Number);
-          const [by, bm] = b.split('-').map(Number);
-          return ay !== by ? ay - by : am - bm;
-        } else {
-          return Number(a) - Number(b);
-        }
-      })
-      .map((key) => {
-        const item = groups[key];
-        const avgWeight = Math.round((item.sum / item.count) * 10) / 10;
-
-        let label = '';
-        if (timeframe === 'week') {
-          const sunday = new Date(key);
-          label = `Wk of ${sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
-        } else if (timeframe === 'month') {
-          label = item.date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-        } else {
-          label = item.date.getFullYear().toString();
-        }
-
-        return {
-          weightKg: avgWeight,
-          dateLabel: label,
-        };
-      });
-  }, [history?.weightLogs, timeframe]);
+  const {
+    router,
+    activeSection,
+    setActiveSection,
+    history,
+    profileData,
+    setProfileData,
+    isLoading,
+    error,
+    timeframe,
+    setTimeframe,
+    isTimeframeDropdownOpen,
+    setIsTimeframeDropdownOpen,
+    age,
+    setAge,
+    heightCm,
+    setHeightCm,
+    weightKg,
+    setWeightKg,
+    targetWeightKg,
+    setTargetWeightKg,
+    biologicalSex,
+    setBiologicalSex,
+    goal,
+    setGoal,
+    activityLevel,
+    setActivityLevel,
+    dietaryPreference,
+    setDietaryPreference,
+    carbPreference,
+    setCarbPreference,
+    foodCulture,
+    setFoodCulture,
+    shoppingDayOfWeek,
+    setShoppingDayOfWeek,
+    isSavingBiometrics,
+    biometricsSuccess,
+    biometricsError,
+    healthSuccess,
+    setHealthSuccess,
+    isLogFormOpen,
+    setIsLogFormOpen,
+    weightInput,
+    setWeightInput,
+    noteInput,
+    setNoteInput,
+    isSubmittingWeight,
+    weightFormError,
+    setWeightFormError,
+    weightSuccess,
+    setWeightSuccess,
+    handleBiometricsSubmit,
+    handleLogWeightSubmit,
+    groupedLogs,
+    targetWeight,
+    currentWeight,
+    dailyCalorieTarget,
+  } = useProgressWorkspace(mode);
 
   if (isLoading) {
     return (
@@ -330,10 +94,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       </div>
     );
   }
-
-  const targetWeight = profileData?.userProfile?.targetWeightKg || 0;
-  const currentWeight = profileData?.userProfile?.weightKg || 0;
-  const dailyCalorieTarget = profileData?.userProfile?.dailyCalorieTarget || 0;
 
   // Custom SVG Weight Graph calculations
   const renderWeightGraph = () => {
