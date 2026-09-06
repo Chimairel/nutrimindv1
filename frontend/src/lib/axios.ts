@@ -48,7 +48,15 @@ api.interceptors.response.use(
     // Check if error is a 401 and we haven't already retried this request
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       // Guard: don't redirect/refresh if we're already on an auth page
-      const authPages = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+      const authPages = [
+        '/login',
+        '/register',
+        '/forgot-password',
+        '/reset-password',
+        '/verify-email',
+        '/nutritionist-apply',
+        '/nutritionist-invitation',
+      ];
       const isAuthPage = typeof window !== 'undefined' && authPages.some((page) => window.location.pathname.startsWith(page));
 
       // Guard: if it's the refresh request itself that failed, don't retry!

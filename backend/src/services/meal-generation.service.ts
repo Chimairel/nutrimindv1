@@ -511,8 +511,7 @@ export class MealGenerationService {
       const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
         prompt,
         systemInstruction,
-        MealResponseSchema,
-        0.2 // Enforce temperature 0.2
+        MealResponseSchema
       );
 
       return aiResponse.meals;

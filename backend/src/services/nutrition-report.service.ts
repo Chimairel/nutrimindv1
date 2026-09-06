@@ -180,7 +180,7 @@ export class NutritionReportService {
       foodsRecommended: string[];
       drinksGuidance: string[];
       generalSummary: string;
-    }>(prompt, clinicalSystemInstruction, NutritionReportSchema, 0.2);
+    }>(prompt, clinicalSystemInstruction, NutritionReportSchema);
 
     // Validate structure format
     if (

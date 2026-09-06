@@ -28,13 +28,13 @@ Rules:
 | Prefix | Meaning | Next ID |
 | --- | --- | --- |
 | REQ | Functional or non-functional requirement | REQ-033 |
-| ADR | Architecture/design decision | ADR-027 |
+| ADR | Architecture/design decision | ADR-028 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-028 |
-| DEF | Defect, inconsistency, or documentation mismatch | DEF-037 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260906-17 |
-| TEST | Test case or verification procedure | TEST-150 |
+| DEF | Defect, inconsistency, or documentation mismatch | DEF-038 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260907-02 |
+| TEST | Test case or verification procedure | TEST-153 |
 | UNC | Unresolved uncertainty | UNC-019 |
-| DOC | Documentation correction or addition | DOC-051 |
+| DOC | Documentation correction or addition | DOC-052 |
 
 ---
 
@@ -55,7 +55,7 @@ The repository contains meaningful implementation for these workflows. Cleanup w
 | Database | Prisma 5 schema targeting PostgreSQL; eleven migrations present | `backend/prisma/schema.prisma`, `prisma/migrations` | Schema statically verified; live DB unverified |
 | Authentication | Custom access JWT plus refresh JWT cookie; client auth context and route guard | `src/lib/jwt.ts`, `auth.service.ts`, `auth.controller.ts`, frontend `AuthContext.tsx`, `axios.ts` | Statically verified; runtime unverified |
 | Authorization | Bearer authentication and role-only RBAC on route groups; prerequisite policies mainly client-side | backend `middleware/auth.ts`, `middleware/rbac.ts`; frontend `RouteGuard.tsx` | Partially implemented |
-| AI | Google Gemini JSON generation with four configured fallback model names | `backend/src/lib/gemini.ts` | Implemented but externally unverified |
+| AI | Google Gemini JSON generation with an explicit four-model GA fallback policy | `backend/src/domain/gemini-model.policy.ts`, `backend/src/lib/gemini.ts` | Live TEST journey verified against current provider models on 2026-09-07 |
 | Food data | FNRI CSV seed, database lookup, aliases, fuzzy matching, and Gemini estimation fallback | `prisma/seed.ts`, `src/lib/fnri.ts`, `prisma/data/fnri.csv` | Implemented but integration unverified |
 | Email/OAuth/PDF | Nodemailer SMTP, Google ID-token verification, React PDF | `src/lib/email.ts`, `auth.service.ts`, `src/lib/pdf.tsx` | Implemented but externally unverified |
 
@@ -222,6 +222,7 @@ The backend `.env.example` omits `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, and SMTP va
 | ADR-024 | Represent ingredient conversion as append-only source and evidence edges between explicit purchased-as-sold, raw-edible, and cooked-edible nodes; use exact identity/preparation matching and rational bounded evaluation | Accepted; empty schema applied to shared development and local policy/coverage verification complete | 2026-09-06 | Prevents raw-price/cooked-quantity conflation and arbitrary yield transfer; keeps nearby authoritative tables as metadata until licensing and exact row identity are defensible | REQ-022/030, RISK-024, UNC-017, TEST-130 through TEST-136/149 |
 | ADR-025 | Calculate compensation from immutable completed-action credits using one active versioned policy, period-locked base retainer and capped workload bands, independently approved signed adjustments, and manual off-platform payout evidence | Accepted; source/disposable acceptance and empty shared schema application complete | 2026-09-06 | Keeps subscription collection and reviewer compensation separate; avoids approval bounties; requires distinct workflow actors and retains correction/payment evidence without storing payout credentials or moving money | REQ-021/031, RISK-022/026, TEST-137 through TEST-142/149 |
 | ADR-026 | Treat additive shared-development schema application as a separate, empty-state gate from data import, runtime activation, provider access, compensation operations, and deployment | Accepted; final 21-to-23 shared schema gate passed | 2026-09-06 | Allows exact migration parity without implying price usability, compensation authorization, payment activity, clinical validation, or production readiness | REQ-030/031/032, RISK-024/026/027, TEST-149 |
+| ADR-027 | Pin Gemini fallback to explicit current GA model IDs and keep deprecated sampling controls out of Gemini 3 requests | Accepted | 2026-09-07 | Avoids floating aliases and known migration incompatibilities while retaining schema-validated fallback behavior | TEST-150/152, CHG-20260907-01 |
 
 ### ADR-001 - Stabilize the observed two-package architecture
 
@@ -403,6 +404,7 @@ The backend `.env.example` omits `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, and SMTP va
 | DEF-034 | `/api/user/progress/weight` accepted non-finite or unrealistic positive weights, differed from the older weight endpoint and weekly check-in bounds, and created the history row before profile lookup/update | High | A synthetic 10,000 kg request returned 200 and changed both profile and history in the disposable database | One finite 30–300 kg policy, bounded notes, and atomic profile/history writes across both endpoints and check-in | Resolved by CHG-20260906-15; TEST-143/144 and live 400/no-write plus valid-write evidence pass |
 | DEF-035 | The public landing page said budget shaped every planning decision while the exact conversion audit reports zero priced catalogue meals | High | Landing capability copy versus TEST-134 and the budget-evidence gate | Describe only currently implemented health, preference, condition, and shopping-routine inputs | Resolved by CHG-20260906-15; TEST-147 rejects the unsupported claim |
 | DEF-036 | Admin and nutritionist list services accepted negative pages, negative or enormous limits, and very long searches | Medium | Admin API returned page `-5`, totalPages `-1`, and accepted limit `999999999` | Normalize to positive safe integers, cap page size at 100, and trim/bound searches to 200 characters at the service boundary | Resolved by CHG-20260906-15; TEST-148 and live API regression pass |
+| DEF-037 | A stale unauthenticated session caused the public nutritionist application/invitation routes to enter refresh recovery and redirect to login; role checks also treated those public paths as protected nutritionist pages | High | Local browser opening `/nutritionist-apply` moved to `/login` after the failed refresh | Add both paths to the refresh interceptor public allowlist and exclude public routes from role-prefix enforcement | Resolved by CHG-20260907-01; TEST-151 and browser rerun pass |
 
 Contradiction resolution details:
 
@@ -425,7 +427,7 @@ Contradiction resolution details:
 | --- | --- | --- | --- | --- | --- |
 | UNC-001 | Does the owner accept ADR-001 as the long-term architecture? | Blocks stable cleanup direction | Owner approved ADR-001 on 2026-08-19 | Owner | Resolved |
 | UNC-002 | Which pre-existing modified/untracked files are intentional and ready to keep? | Prevents safe commits/untracking/refactors | Owner review or commit grouping | Owner | Open |
-| UNC-003 | Are current Gemini model IDs enabled and supported for the actual account? | AI features may fail at runtime | Controlled API integration test/current provider docs | Owner/engineer | Open |
+| UNC-003 | Are current Gemini model IDs enabled and supported for the actual account? | AI features may fail at runtime | Controlled API integration test/current provider docs | Owner/engineer | Resolved 2026-09-07 for the current TEST key: provider inventory exposed all four configured GA IDs and TEST-150/152 exercised live calls and fallback; production quotas remain separate |
 | UNC-004 | Is there an external deployment, CI, scheduler, or monitoring setup not stored here? | Repository absence does not prove operational absence | Deployment/account inventory | Owner | Open |
 | UNC-005 | Does live data contain duplicates that would block future unique constraints? | Determines migration cleanup rules | Privacy-safe aggregate queries on approved environment | Owner/engineer | Open |
 | UNC-006 | What timezone is used by any deployed server/scheduler and historical records? | Affects date migration/compatibility | Deployment config and sample boundary checks | Owner | Open |
@@ -590,6 +592,9 @@ Schema changes are authorized only in their recorded phase. The ingredient-price
 | TEST-147 | Catalogue-derived acceptance and truthful landing copy | Backend/frontend static plus disposable acceptance | Reuse acceptance follows the source catalogue and public copy makes no unsupported budget claim | Pass: 51-meal setup/verify path and static claim checks pass | `backend/tests/full-system-e2e-audit.test.ts`; `backend/scripts/library-reuse-acceptance.ts`; CHG-20260906-15; DEF-032/035 |
 | TEST-148 | Bounded list pagination and search | Pure policy plus live local API | Negative/malformed page inputs normalize, limits cap at 100, and searches cap at 200 characters | Pass: policy matrix and admin API regression return stable page/limit metadata | `backend/tests/full-system-e2e-audit.test.ts`; CHG-20260906-15; DEF-036 |
 | TEST-149 | Final shared-development conversion and compensation schema gate | Fixed-target read-only preflight; disposable PostgreSQL 16.4 parent/full reconstruction; exact migration/checksum/catalog/data snapshots; rollback-only conversion constraints; full compensation acceptance on a separate disposable database; normal shared deploy; postflight/no-op/status/parity; full regression/build/audit and cleanup | Apply only `20260906234500_ingredient_conversion_evidence` and `20260906235900_compensation_admin_workflow`; preserve every one of 64 existing table count/content hashes; create only the accepted additive objects; leave every new/billing/finance/compensation table empty; make no provider or external-system call | Pass: 21-to-23 clean migration history; exact checksums `cf6c15f3…c24af2a1` and `56ab3fa1…8c332232`; 64/64 existing table hashes unchanged; 2 empty conversion tables; no-op replay, current status, shared/local/datamodel parity; 457 pass, 0 fail, 1 unchanged TODO; zero external activity | `backend/scripts/final-shared-schema-acceptance-audit.ts`; CHG-20260906-16; REQ-032; ADR-026; RISK-027; DOC-050 |
+| TEST-150 | Current Gemini model policy | Pure backend policy/static regression plus provider model inventory | Use explicit current GA model IDs, no preview/latest aliases, and omit deprecated Gemini 3 sampling controls | Pass: `gemini-3.8-flash`, `3.7-flash`, `3.6-flash`, then `3.5-flash-lite`; configured key advertised all four; structured live calls exercised 3.8 and fallbacks | `backend/src/domain/gemini-model.policy.ts`; `backend/tests/gemini-model-policy.test.ts`; CHG-20260907-01; ADR-027 |
+| TEST-151 | Public nutritionist application routing | Frontend static regression and local browser with a stale unauthenticated session | Application and invitation routes remain public and a failed refresh does not redirect them to sign-in | Pass: `/nutritionist-apply` remained public and rendered its application workflow | `backend/tests/public-nutritionist-route-static.test.ts`; CHG-20260907-01; DEF-037 |
+| TEST-152 | Application-to-review connected role journey | Local API, shared development database, test-only mail capture, actual Gemini calls, and authenticated in-app browser | Submit an application, stage/schedule/approve it as ADMIN, activate/login as the hired NUTRITIONIST, register/verify/onboard a first-time USER, generate report/plan, approve one meal as that same nutritionist, and expose only allowlisted professional verifier details | Pass: six generated starter meals entered review; one was claimed/approved; nutritionist archive and user dashboard/detail/dialog rendered the same reviewer; email/phone absent; test mail removed; actors suspended and sessions revoked while append-only work credit/source records were retained | `backend/scripts/nutritionist-user-role-journey.ts`; `backend/scripts/finalize-nutritionist-user-role-journey.ts`; CHG-20260907-01; DEF-037; ADR-027 |
 | INT-009 | Structured safety persistence, compatibility projection, history, report invalidation, and bounded plan/grocery behavior | Guarded live Prisma/service fixture against the configured Neon database | Mixed restrictions and controlled aliases survive reload; one revision per semantic change; identical save is idempotent; stale report acknowledgement clears; a still-compatible certified active plan and its derived grocery list remain actionable and unchanged; exact fixture cleanup leaves no rows | Pass: 7 entries reloaded; `high blood pressure` resolved to `HYPERTENSION`; revision delta 1; report invalidated; compatible plan actionable; grocery projection unchanged; identical save unchanged; 0 residual users/entries/plans/grocery lists | `backend/scripts/structured-safety-intake-acceptance.ts`; CHG-20260905-01; REQ-018; ADR-016 |
 | E2E-007 | Structured safety onboarding and editable Health profile | Authenticated in-app browser at default desktop and 390x844 mobile viewport using an exact reserved account | Mixed predefined/custom values, separators, multi-word terms, aliases, classifications, vague-entry errors, removal, keyboard confirmation/submission, save, report invalidation, and profile reload behave visibly without console errors | Pass for onboarding and Health profile: conditions and all three food domains saved; `spicy food` removal survived reload; desktop/mobile layouts remained usable; 0 browser warnings/errors; fixture and sessions removed. No active-plan replacement was exercised by this browser actor | CHG-20260905-01; REQ-018; ADR-016; INT-009 |
 
@@ -1884,6 +1889,7 @@ If TEST-033 passes, select one unrelated feature scope and reconcile only the ex
 | DOC-048 | Record completed-review work credits, compensation maker-checker administration, own-only nutritionist evidence, manual payout records, disposable migration/lifecycle acceptance, browser evidence, and remaining shared/legal gates | Completed source, disposable integration, and local browser evidence; not shared, deployed, or an approved commercial compensation contract | REQ-031; ADR-025; RISK-026; TEST-137 through TEST-142; CHG-20260906-14 |
 | DOC-049 | Record the integrated three-role adversarial audit, bounded corrections, disposable database/provider-free acceptance, browser evidence, cleanup, and remaining external/mobile/clinical limits | Completed local source, unit, integration, and desktop-browser evidence; no deployment, live integration, or clinical review claim | DEF-032 through DEF-036; TEST-143 through TEST-148; CHG-20260906-15 |
 | DOC-050 | Record the final shared-development 21-to-23 schema gate with sanitized target, checksums, pre/post hashes, exact object delta, zero-row proof, connectivity retries, local rehearsal, verification, cleanup, and remaining activation/data gates | Completed shared-development schema evidence; no data import, compensation operation, provider activity, deployment, production, or clinical claim | REQ-030/031/032; ADR-024/025/026; RISK-024/026/027; TEST-149; CHG-20260906-16 |
+| DOC-051 | Record the current Gemini model policy, public application-route correction, connected application-to-review journey, browser evidence, and append-only fixture finalization | Completed local/shared-development TEST evidence; no deployment, live email, payment, production, or clinical claim | ADR-027; DEF-037; TEST-150 through TEST-152; CHG-20260907-01 |
 
 ---
 
@@ -3311,3 +3317,33 @@ This section is a continuity record for agreed future work. Every item below is 
 - No PayMongo/provider request, checkout, webhook, reconciliation, billing worker, payment, entitlement, Gemini, SMTP/email, OAuth, price import, conversion factor, compensation operation, payout, application server, browser, deployment, live key, or production action occurred.
 - The task-owned container, tmpfs data mount, newly pulled PostgreSQL image, local migration subset, local snapshots/probes, and shared pre/post snapshot files were removed after evidence capture. Ports 3000, 5000, and 55459 were free; port 3030 and Antigravity were untouched.
 - Shared development is now schema-current for the accepted branch. This establishes migration compatibility only. Price/factor ingestion, budget usability, real compensation policy or records, money movement, provider enablement, deployment, production monitoring, accessibility conformance, clinical validation, legal/tax decisions, and integration into `main` remain separate gates.
+
+## 59. Current Gemini policy and application-to-review journey (2026-09-07)
+
+**Architecture decision:** ADR-027
+
+**Defect ID:** DEF-037
+
+**Change ID:** CHG-20260907-01
+
+**Verification IDs:** TEST-150 through TEST-152
+
+**Documentation ID:** DOC-051
+
+### Model and public-route corrections
+
+- Official Gemini release/migration material and the configured TEST key's model inventory were reconciled before source changes. The explicit fallback is now `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, then `gemini-3.5-flash-lite`; floating `latest`/preview aliases are forbidden by regression and deprecated `temperature`, `topP`, and `topK` controls were removed.
+- A minimal structured `gemini-3.8-flash` request returned HTTP 200. In the connected journey, 3.8 produced valid ingredient-estimation responses but some larger strict schemas fell through to 3.7 or 3.6 as designed. No provider error body, key, raw prompt, or generated health narrative was retained in evidence.
+- Browser inspection found that `/nutritionist-apply` initially rendered and then redirected to `/login` when stale authentication triggered refresh recovery. The Axios public-page allowlist and route guard now treat both `/nutritionist-apply` and `/nutritionist-invitation` as public, including for already authenticated users of another role.
+
+### Connected TEST journey and browser evidence
+
+- One unique fictional applicant progressed through `SUBMITTED`, `UNDER_REVIEW`, `CALL_REQUIRED`, `CALL_SCHEDULED`, `APPROVED`, invitation activation, and authenticated nutritionist access. One unique first-time user registered, completed locally captured OTP verification, logged in, saved profile and structured safety intake, accepted current consent, completed onboarding, generated and acknowledged a real Gemini nutrition report, and generated a two-day/six-meal starter plan.
+- All six new meals entered `PENDING_REVIEW`. The newly hired nutritionist claimed and approved one breakfast, producing its linked incomplete library draft, user notification, audit event, grocery projection refresh, and one append-only ordinary-review work credit. The user detail API exposed the reviewer name, PRC number/expiry, specialization, experience, university, and bio while excluding email and phone.
+- Authenticated in-app browser checks showed the hired nutritionist's clinical portal and one-item approved archive, then the user's dashboard with five pending preview-only meals and one actionable approved meal. Opening the meal and reviewer dialog displayed the same professional details with no private contact information.
+- The final backend suite reports **462 registered, 461 pass, 0 fail, and 1 unchanged clinical-policy TODO**. Backend production compilation/path-alias rewriting, frontend no-emit TypeScript, lint with zero warnings, the 42-route frontend production build, and `git diff --check` pass.
+
+### Finalization and limits
+
+- The temporary OTP/invitation capture and local state file were removed. Deleting the test nutritionist was correctly rejected by the database because completed-review compensation evidence is append-only and restricts actor deletion. Rather than disabling that invariant or orphaning the source record, both known-password `example.com` accounts were suspended and all sessions revoked; the linked application, source meal, library draft, audit trail, and one work credit remain as an explicitly labelled shared-development audit fixture.
+- This phase used the existing shared development database and actual Gemini TEST access with owner authorization. It made no schema/migration change, SMTP delivery, Google OAuth call, PayMongo/payment/payout action, deployment, production request, or claim of clinical review. `main`, port 3030, and the unrelated Antigravity project remained untouched.

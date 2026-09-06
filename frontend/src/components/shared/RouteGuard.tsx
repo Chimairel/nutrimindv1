@@ -61,9 +61,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
         redirectTarget = '/verify-email';
       } else if (isVerifyPage && user.emailVerified) {
         redirectTarget = getRoleHome(user.role);
-      } else if (isAdminRoute && user.role !== 'ADMIN') {
+      } else if (!isPublicRoute && isAdminRoute && user.role !== 'ADMIN') {
         redirectTarget = '/unauthorized';
-      } else if (isNutritionistRoute && user.role !== 'NUTRITIONIST') {
+      } else if (!isPublicRoute && isNutritionistRoute && user.role !== 'NUTRITIONIST') {
         redirectTarget = '/unauthorized';
       } else if (isUserRoute && user.role !== 'USER') {
         redirectTarget = '/unauthorized';

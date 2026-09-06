@@ -2,21 +2,16 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ZodType } from 'zod';
 import prisma from '@/lib/prisma';
 import { AiUsageStatus } from '@prisma/client';
+import {
+  buildGeminiGenerationConfig,
+  GEMINI_MODEL_SEQUENCE,
+} from '@/domain/gemini-model.policy';
 
 // Retrieve API Key
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
   console.warn('⚠️ GEMINI_API_KEY is not defined in environment variables.');
 }
-
-// Model sequence rotation (order of preference, updated June 2026)
-// Free-tier Flash models first, heavier Pro models as fallback
-const MODEL_SEQUENCE = [
-  'gemini-3.5-flash',       // Latest, fastest — best free-tier option
-  'gemini-2.5-flash',       // Stable, production-ready
-  'gemini-3.1-flash-lite',  // High-volume, low-cost fallback
-  'gemini-2.5-pro',         // Heavyweight reasoning fallback
-];
 
 async function recordAiUsage(event: {
   model?: string;
@@ -71,14 +66,12 @@ function cleanJsonString(rawText: string): string {
  * @param prompt The main text prompt to analyze
  * @param systemInstruction Optional system directives to enforce role behavior
  * @param schema Optional Zod schema to validate response against
- * @param temperature Optional temperature for token generation (defaults to 0.2)
  * @returns Parsed and validated JSON object of type T
  */
 export async function generateGenerativeJSON<T = any>(
   prompt: string,
   systemInstruction?: string,
-  schema?: ZodType<T>,
-  temperature?: number
+  schema?: ZodType<T>
 ): Promise<T> {
   const startedAt = Date.now();
   if (!apiKey) {
@@ -97,7 +90,7 @@ export async function generateGenerativeJSON<T = any>(
   let lastModel: string | undefined;
 
   // Try each model sequentially in the cascade sequence
-  for (const modelName of MODEL_SEQUENCE) {
+  for (const modelName of GEMINI_MODEL_SEQUENCE) {
     attempts += 1;
     lastModel = modelName;
     try {
@@ -110,10 +103,7 @@ export async function generateGenerativeJSON<T = any>(
 
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: temperature !== undefined ? temperature : 0.2, // Default to 0.2 per addendum
-        },
+        generationConfig: buildGeminiGenerationConfig(),
       });
 
       const response = result.response;

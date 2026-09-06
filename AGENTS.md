@@ -310,7 +310,7 @@ When generating meal plans:
 2. **Meal Library Slot Matching**: `MealGenerationService` first queries the verified `MealLibrary` for approved meals matching the user's dietary preferences, calorie targets (within ±10%), and clinical restrictions. It applies an anti-repetition algorithm ensuring no recipe repeats within 3 days.
 3. **Gemini AI Generation**: For remaining unfilled slots, the backend compiles a schema-aware prompt containing the user's biometric stats, medical conditions, allergies, cultural preferences, and a representative ~120-item FNRI food sample.
 4. **4-Tier Model Fallback**: Prompt execution in `src/lib/gemini.ts` runs through a sequential cascade:
-   $$\text{gemini-3.5-flash} \longrightarrow \text{gemini-2.5-flash} \longrightarrow \text{gemini-3.1-flash-lite} \longrightarrow \text{gemini-2.5-pro}$$
+   $$\text{gemini-3.8-flash} \longrightarrow \text{gemini-3.7-flash} \longrightarrow \text{gemini-3.6-flash} \longrightarrow \text{gemini-3.5-flash-lite}$$
    Responses are parsed and validated against strict `Zod` schemas. If JSON parsing or validation fails, it cascades to the next model.
 5. **FNRI Ingredient Resolution**: Generated ingredients run through the 4-step FNRI lookup chain in `src/lib/fnri.ts`:
    * **Step 1 (Exact Match)**: Case-insensitive match on `FoodItem.name`.
@@ -649,7 +649,7 @@ npm run lint         # runs next lint
 | **HIGH** | **SMTP App Password Spacing** | `backend/.env` | Gmail App Passwords contain spaces. If `SMTP_PASS` is not wrapped in quotes, dotenv reads only the first word and email dispatch fails silently. Always use `SMTP_PASS="xxxx xxxx xxxx xxxx"`. |
 | **MEDIUM** | **Google OAuth Port Lock** | Google Cloud Console | Authorized JavaScript Origin is hardcoded to `http://localhost:3000`. If Next.js starts on port 3001, Google OAuth returns `Error 400: origin_mismatch`. Kill any stale processes on port 3000. |
 | **MEDIUM** | **Legacy Catch Blocks (`catch (error: any)`)** | Backend Services | Approximately 40 legacy catch blocks use `any`. All new code must strictly use `catch (error: unknown)` with type guards. |
-| **LOW** | **Gemini Model Deprecation Guard** | `src/lib/gemini.ts` | Gemini 1.5 and 2.0 models are deprecated. The model fallback sequence must remain pinned to current models (`gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-3.1-flash-lite`, `gemini-2.5-pro`). |
+| **LOW** | **Gemini Model Deprecation Guard** | `src/domain/gemini-model.policy.ts`, `src/lib/gemini.ts` | Keep the fallback sequence on explicit current GA identifiers (`gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite`), never floating `latest` or preview aliases; re-check official release notes before changing it. |
 
 ---
 
