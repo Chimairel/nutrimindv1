@@ -3379,3 +3379,28 @@ This section is a continuity record for agreed future work. Every item below is 
 - Local and production Compose files passed configuration expansion. The production configuration check used synthetic immutable digest references and the existing local backend environment-file path; it did not disclose values or start a service.
 - Local Docker image execution could not be established because Docker Desktop's Linux engine remained unavailable after a bounded startup attempt. Image builds are therefore a configured CI gate, not a local passing claim. Next standalone compilation did pass locally.
 - No configured/shared database query or write, migration, Prisma deploy/push, seed, Gemini request, PayMongo/provider request, SMTP/OAuth action, application server, deployment, port 3030 access, or production action occurred. The single external clinical-policy TODO remains intentionally unresolved and no clinical-readiness claim is made.
+
+## 61. Responsibility-based source modularization (2026-09-07)
+
+**Architecture decision:** ADR-029
+
+**Change ID:** CHG-20260907-03
+
+**Verification IDs:** TEST-157 through TEST-161
+
+**Documentation ID:** DOC-053
+
+### Refactor boundary
+
+- Work remained isolated on `refactor/modular-architecture`, descended from `feature/engineering-hardening`; neither `main` nor `development` was checked out, merged, or modified.
+- The refactor preserved existing controller and route contracts. Large mixed-responsibility modules were separated by feature and operational domain rather than by arbitrary equal-size chunks.
+- The dashboard now delegates metric calculation, health summary, meal schedule, and outside-meal dialogs to `frontend/src/features/dashboard`. Nutritionist application, administration, compensation, review, and library behavior use named feature modules. Meal and progress workspaces separate remote/state orchestration from presentation, and the two largest modal groups are isolated from their route views.
+- `NutritionistService` is now a stable façade over review, profile, and verified-library services. `UserService` is now a stable façade over profile/onboarding, structured safety intake, and safety recheck services. Existing controller imports remain valid.
+- Cohesive policy and evidence modules, including the common meal catalogue and restriction/price-ingestion policies, were deliberately retained as single modules: their size is primarily declarative evidence, not unrelated orchestration.
+- `scripts/check-source-architecture.mjs` enforces a 900-line ceiling across handwritten `backend/src` and `frontend/src` modules and is the first root `npm run check` gate. This prevents the previous 1,400-1,600-line monolith pattern from returning.
+
+### Safety and scope
+
+- Source-sensitive regression tests were updated to inspect the new owning module rather than the compatibility façade. No assertion was weakened and no production behavior, schema, migration, fixture, provider configuration, or environment secret changed.
+- Docker Desktop's Linux engine was confirmed available after the user enabled WSL support. The backend build stage now installs OpenSSL before Prisma generation, removing the earlier build-stage platform-detection ambiguity while retaining the non-root runtime image.
+- This phase does not establish clinical verification, production deployment, shared-database integration, or live payment readiness. Those gates remain separate from maintainability and packaging evidence.

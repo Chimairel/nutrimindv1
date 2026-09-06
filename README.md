@@ -208,6 +208,8 @@ npm run audit
 npm run test:e2e
 ```
 
+`npm run check` starts with a source-architecture guard. Handwritten backend and frontend modules must remain at or below 900 lines; additions that cross the boundary must first separate transport, state, policy, persistence, or presentation responsibilities.
+
 The backend `npm test` command uses Node's built-in test runner through `tsx` and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, billing/compensation policies, bounded weight/list input, fail-closed ingredient matching, runtime configuration, API contracts, and user-action validation. Frontend tests use Vitest and Testing Library; Playwright covers the public landing and adversarial registration paths. `npm run test:integration:production` and acceptance scripts require an explicitly authorized disposable database target. These local checks do not establish full authenticated-browser coverage, accessibility conformance, deployment monitoring, clinical verification, or production payment readiness.
 
 ## Optional local Docker workflow
