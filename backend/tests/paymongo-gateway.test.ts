@@ -27,17 +27,20 @@ const request: HostedCheckoutRequest = {
   cancelUrl: 'https://nutrimind.example.invalid/billing/cancel',
 };
 
-const response = (overrides: Record<string, unknown> = {}) => Buffer.from(JSON.stringify({
-  data: {
-    id: 'cs_synthetic_checkout_123',
-    type: 'checkout_session',
-    attributes: {
-      checkout_url: 'https://checkout.paymongo.com/synthetic-session',
-      livemode: false,
-      ...overrides,
-    },
-  },
-}));
+const response = (overrides: Record<string, unknown> = {}) =>
+  Buffer.from(
+    JSON.stringify({
+      data: {
+        id: 'cs_synthetic_checkout_123',
+        type: 'checkout_session',
+        attributes: {
+          checkout_url: 'https://checkout.paymongo.com/synthetic-session',
+          livemode: false,
+          ...overrides,
+        },
+      },
+    })
+  );
 
 test('[TEST-086] adapter emits only fixed HTTPS v2 checkout requests with bounded transport controls', async () => {
   let captured: BillingHttpRequest | undefined;
@@ -65,24 +68,49 @@ test('[TEST-086] adapter emits only fixed HTTPS v2 checkout requests with bounde
 test('[TEST-086] adapter rejects an overridden API origin before invoking transport', async () => {
   let calls = 0;
   const unsafe = { ...config(), apiOrigin: 'https://attacker.example' } as unknown as EnabledPaymongoCheckoutConfig;
-  const gateway = new PaymongoGateway(unsafe, { async send() { calls += 1; throw new Error('must not run'); } });
-  await assert.rejects(() => gateway.createHostedCheckout(request), (error: unknown) =>
-    error instanceof PaymongoGatewayError && error.code === 'PROVIDER_CONFIGURATION_ERROR');
+  const gateway = new PaymongoGateway(unsafe, {
+    async send() {
+      calls += 1;
+      throw new Error('must not run');
+    },
+  });
+  await assert.rejects(
+    () => gateway.createHostedCheckout(request),
+    (error: unknown) => error instanceof PaymongoGatewayError && error.code === 'PROVIDER_CONFIGURATION_ERROR'
+  );
   assert.equal(calls, 0);
 });
 
 test('[TEST-086] adapter rejects checkout URL origin surprises and live responses', async () => {
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { return { status: 200, body: response({ checkout_url: 'https://attacker.example/session' }) }; } }).createHostedCheckout(request),
-    /PROVIDER_RESPONSE_INVALID/,
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          return { status: 200, body: response({ checkout_url: 'https://attacker.example/session' }) };
+        },
+      }).createHostedCheckout(request),
+    /PROVIDER_RESPONSE_INVALID/
   );
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { return { status: 200, body: response({ livemode: true }) }; } }).createHostedCheckout(request),
-    /PROVIDER_RESPONSE_INVALID/,
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          return { status: 200, body: response({ livemode: true }) };
+        },
+      }).createHostedCheckout(request),
+    /PROVIDER_RESPONSE_INVALID/
   );
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { return { status: 200, body: response({ checkout_url: `https://checkout.paymongo.com/${'a'.repeat(2_100)}` }) }; } }).createHostedCheckout(request),
-    /PROVIDER_RESPONSE_INVALID/,
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          return {
+            status: 200,
+            body: response({ checkout_url: `https://checkout.paymongo.com/${'a'.repeat(2_100)}` }),
+          };
+        },
+      }).createHostedCheckout(request),
+    /PROVIDER_RESPONSE_INVALID/
   );
 });
 
@@ -90,7 +118,11 @@ test('[TEST-086] adapter maps provider errors without retaining raw error detail
   const sensitiveBody = Buffer.from('{"errors":[{"detail":"secret provider diagnostic"}]}');
   let caught: unknown;
   try {
-    await new PaymongoGateway(config(), { async send() { return { status: 400, body: sensitiveBody }; } }).createHostedCheckout(request);
+    await new PaymongoGateway(config(), {
+      async send() {
+        return { status: 400, body: sensitiveBody };
+      },
+    }).createHostedCheckout(request);
   } catch (error) {
     caught = error;
   }
@@ -100,10 +132,16 @@ test('[TEST-086] adapter maps provider errors without retaining raw error detail
 });
 
 test('[TEST-100] adapter preserves only a bounded provider error code classification', async () => {
-  const body = Buffer.from(JSON.stringify({ errors: [{ code: 'payment_method_not_allowed', detail: 'account detail' }] }));
+  const body = Buffer.from(
+    JSON.stringify({ errors: [{ code: 'payment_method_not_allowed', detail: 'account detail' }] })
+  );
   let caught: unknown;
   try {
-    await new PaymongoGateway(config(), { async send() { return { status: 400, body }; } }).createHostedCheckout(request);
+    await new PaymongoGateway(config(), {
+      async send() {
+        return { status: 400, body };
+      },
+    }).createHostedCheckout(request);
   } catch (error) {
     caught = error;
   }
@@ -114,22 +152,42 @@ test('[TEST-100] adapter preserves only a bounded provider error code classifica
 
 test('[TEST-086] adapter maps transport failures and retryable statuses to one sanitized category', async () => {
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { throw new Error('socket details'); } }).createHostedCheckout(request),
-    (error: unknown) => error instanceof PaymongoGatewayError && error.code === 'PROVIDER_TEMPORARILY_UNAVAILABLE',
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          throw new Error('socket details');
+        },
+      }).createHostedCheckout(request),
+    (error: unknown) => error instanceof PaymongoGatewayError && error.code === 'PROVIDER_TEMPORARILY_UNAVAILABLE'
   );
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { return { status: 503, body: Buffer.from('provider internals') }; } }).createHostedCheckout(request),
-    /PROVIDER_TEMPORARILY_UNAVAILABLE/,
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          return { status: 503, body: Buffer.from('provider internals') };
+        },
+      }).createHostedCheckout(request),
+    /PROVIDER_TEMPORARILY_UNAVAILABLE/
   );
 });
 
 test('[TEST-086] adapter rejects oversized and malformed successful responses', async () => {
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { return { status: 200, body: Buffer.alloc(65_537) }; } }).createHostedCheckout(request),
-    /PROVIDER_RESPONSE_INVALID/,
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          return { status: 200, body: Buffer.alloc(65_537) };
+        },
+      }).createHostedCheckout(request),
+    /PROVIDER_RESPONSE_INVALID/
   );
   await assert.rejects(
-    () => new PaymongoGateway(config(), { async send() { return { status: 200, body: Buffer.from('not json') }; } }).createHostedCheckout(request),
-    /PROVIDER_RESPONSE_INVALID/,
+    () =>
+      new PaymongoGateway(config(), {
+        async send() {
+          return { status: 200, body: Buffer.from('not json') };
+        },
+      }).createHostedCheckout(request),
+    /PROVIDER_RESPONSE_INVALID/
   );
 });

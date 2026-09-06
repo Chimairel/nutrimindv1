@@ -13,7 +13,6 @@ import { NutritionReport } from '@/types';
 import axios from 'axios';
 import { AlertTriangle, ClipboardList, Download, XCircle, Check, Droplet } from 'lucide-react';
 
-
 export default function NutritionReportPage() {
   const router = useRouter();
   const { user, refreshSession } = useAuth();
@@ -48,27 +47,38 @@ export default function NutritionReportPage() {
     if (!Array.isArray(values) || values.length === 0) return null;
     return values
       .filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object')
-      .filter((entry) => domainGroup === 'condition'
-        ? entry.domain === 'CONDITION'
-        : entry.domain === 'ALLERGY' || entry.domain === 'INTOLERANCE' || entry.domain === 'AVOIDED_INGREDIENT')
-      .map((entry) => typeof entry.canonicalCode === 'string' && entry.canonicalCode
-        ? entry.canonicalCode
-        : typeof entry.displayName === 'string' ? entry.displayName : '')
+      .filter((entry) =>
+        domainGroup === 'condition'
+          ? entry.domain === 'CONDITION'
+          : entry.domain === 'ALLERGY' || entry.domain === 'INTOLERANCE' || entry.domain === 'AVOIDED_INGREDIENT'
+      )
+      .map((entry) =>
+        typeof entry.canonicalCode === 'string' && entry.canonicalCode
+          ? entry.canonicalCode
+          : typeof entry.displayName === 'string'
+            ? entry.displayName
+            : ''
+      )
       .filter((value) => value && value !== 'NONE');
   };
 
-  const normalizeContext = (values: unknown) => Array.from(new Set(
-    (Array.isArray(values) ? values : [])
-      .filter((value): value is string => typeof value === 'string')
-      .map((value) => value.trim().toUpperCase())
-      .filter((value) => value && value !== 'NONE')
-  )).sort();
+  const normalizeContext = (values: unknown) =>
+    Array.from(
+      new Set(
+        (Array.isArray(values) ? values : [])
+          .filter((value): value is string => typeof value === 'string')
+          .map((value) => value.trim().toUpperCase())
+          .filter((value) => value && value !== 'NONE')
+      )
+    ).sort();
 
   const hasSameContext = (left: unknown, right: unknown) => {
     const normalizedLeft = normalizeContext(left);
     const normalizedRight = normalizeContext(right);
-    return normalizedLeft.length === normalizedRight.length
-      && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+    return (
+      normalizedLeft.length === normalizedRight.length &&
+      normalizedLeft.every((value, index) => value === normalizedRight[index])
+    );
   };
 
   useEffect(() => {
@@ -106,8 +116,7 @@ export default function NutritionReportPage() {
       } catch (err) {
         if (axios.isAxiosError(err)) {
           setError(
-            err.response?.data?.error || 
-            'Unable to load your customized report. Please verify your connection.'
+            err.response?.data?.error || 'Unable to load your customized report. Please verify your connection.'
           );
         } else {
           setError('An unexpected error occurred. Please try again.');
@@ -126,7 +135,7 @@ export default function NutritionReportPage() {
     setIsAcknowledging(true);
     try {
       await api.post('/user/nutrition-report/acknowledge');
-      
+
       // Sync state context parameters (so RouteGuard releases dashboard lock)
       await refreshSession();
 
@@ -134,10 +143,7 @@ export default function NutritionReportPage() {
       router.push('/dashboard');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(
-          err.response?.data?.error || 
-          'Failed to acknowledge the report. Please try again.'
-        );
+        setError(err.response?.data?.error || 'Failed to acknowledge the report. Please try again.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -215,8 +221,8 @@ export default function NutritionReportPage() {
   }
 
   const reportMatchesCurrentProfile = profileData
-    ? hasSameContext(report.basedOnConditions, profileData.conditions)
-      && hasSameContext(report.basedOnAllergies, profileData.allergies)
+    ? hasSameContext(report.basedOnConditions, profileData.conditions) &&
+      hasSameContext(report.basedOnAllergies, profileData.allergies)
     : false;
 
   if (!reportMatchesCurrentProfile) {
@@ -227,9 +233,14 @@ export default function NutritionReportPage() {
           <p className="portal-kicker !text-status-pending-text">Health context changed</p>
           <h1 className="mt-3 font-display text-2xl font-black">Your nutrition report needs an update</h1>
           <p className="mt-3 text-sm leading-6 text-brand-muted">
-            Your conditions, allergies, intolerances, or avoided foods changed after this report was created. The older guidance is hidden so it cannot conflict with your current health profile.
+            Your conditions, allergies, intolerances, or avoided foods changed after this report was created. The older
+            guidance is hidden so it cannot conflict with your current health profile.
           </p>
-          {error && <p role="alert" className="mt-4 text-xs font-semibold text-status-error-text">{error}</p>}
+          {error && (
+            <p role="alert" className="mt-4 text-xs font-semibold text-status-error-text">
+              {error}
+            </p>
+          )}
           <Button variant="primary" onClick={handleRegenerate} isLoading={isRegenerating} className="mt-6 w-full">
             Generate updated report
           </Button>
@@ -253,12 +264,17 @@ export default function NutritionReportPage() {
     }
     return (
       <ul className="flex flex-col gap-2.5">
-        {arr.filter((item): item is string => typeof item === 'string').map((item, idx) => (
-          <li key={idx} className="text-xs leading-relaxed text-brand-text flex items-start gap-2 bg-brand-bgAlt/50 p-2.5 rounded-xl border border-brand-border/40">
-            <span className="text-brand-green text-sm leading-none">•</span>
-            <span>{item}</span>
-          </li>
-        ))}
+        {arr
+          .filter((item): item is string => typeof item === 'string')
+          .map((item, idx) => (
+            <li
+              key={idx}
+              className="text-xs leading-relaxed text-brand-text flex items-start gap-2 bg-brand-bgAlt/50 p-2.5 rounded-xl border border-brand-border/40"
+            >
+              <span className="text-brand-green text-sm leading-none">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
       </ul>
     );
   };
@@ -280,51 +296,70 @@ export default function NutritionReportPage() {
             Clinical guidelines compiled by NutriMind AI and cross-referenced with FNRI index standards.
           </p>
         </div>
-        <Button variant="secondary" onClick={handleDownloadPDF} className="flex items-center gap-2 text-xs font-semibold py-2">
+        <Button
+          variant="secondary"
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2 text-xs font-semibold py-2"
+        >
           <Download className="w-4 h-4" />
           <span>Download PDF</span>
         </Button>
       </div>
 
-
       {/* Main layout container */}
       <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
         {error && (
-          <div role="alert" className="flex items-start gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
+          >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
-        
+
         {/* Core Summary card */}
         <Card className="p-6 border-brand-border/60 bg-gradient-to-br from-brand-surface to-brand-bgAlt relative overflow-hidden">
           <div className="absolute top-0 right-0 h-16 w-32 bg-brand-green/5 blur-xl rounded-full" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center justify-between text-left">
             <div>
               <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Name</span>
-              <p className="text-base font-bold text-brand-text font-display">{profileData?.name || user?.name || 'User'}</p>
+              <p className="text-base font-bold text-brand-text font-display">
+                {profileData?.name || user?.name || 'User'}
+              </p>
             </div>
             <div>
-              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Active Goal</span>
+              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">
+                Active Goal
+              </span>
               <Badge variant="verified">
                 {profileData?.goal?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Maintain'}
               </Badge>
             </div>
             <div>
-              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Calorie Target</span>
+              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">
+                Calorie Target
+              </span>
               <p className="text-xl font-extrabold text-brand-green font-display">
-                {profileData?.dailyCalorieTarget ? profileData.dailyCalorieTarget.toLocaleString() : '—'} kcal <span className="text-xs font-normal text-brand-muted">/ day</span>
+                {profileData?.dailyCalorieTarget ? profileData.dailyCalorieTarget.toLocaleString() : '—'} kcal{' '}
+                <span className="text-xs font-normal text-brand-muted">/ day</span>
               </p>
             </div>
             <div>
-              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">Health Restrictions</span>
+              <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">
+                Health Restrictions
+              </span>
               <div className="flex gap-1.5 flex-wrap">
                 {profileData && (profileData.conditions.length > 0 || profileData.allergies.length > 0) ? (
-                  [...profileData.conditions, ...profileData.allergies].map((restriction, idx) => restriction ? (
-                    <Badge key={idx} variant="rejected">
-                      {String(restriction).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
-                  ) : null)
+                  [...profileData.conditions, ...profileData.allergies].map((restriction, idx) =>
+                    restriction ? (
+                      <Badge key={idx} variant="rejected">
+                        {String(restriction)
+                          .replace(/_/g, ' ')
+                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </Badge>
+                    ) : null
+                  )
                 ) : (
                   <span className="text-xs text-brand-muted">None reported</span>
                 )}
@@ -335,20 +370,28 @@ export default function NutritionReportPage() {
 
         {/* Narrative General Summary */}
         <Card className="p-6 border-brand-border/60 bg-brand-surface/40">
-          <h3 className="text-sm font-bold tracking-wide uppercase text-brand-green mb-2 font-display">General Dietary Assessment</h3>
-          <p className="text-xs md:text-sm text-brand-muted leading-relaxed">
-            {report.generalSummary}
-          </p>
+          <h3 className="text-sm font-bold tracking-wide uppercase text-brand-green mb-2 font-display">
+            General Dietary Assessment
+          </h3>
+          <p className="text-xs md:text-sm text-brand-muted leading-relaxed">{report.generalSummary}</p>
         </Card>
 
         {/* Mobile Layout: Responsive Tab View */}
         <div className="md:hidden">
           <Tabs defaultValue="avoid">
             <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="avoid" className="flex-1">Avoid</TabsTrigger>
-              <TabsTrigger value="limit" className="flex-1">Limit</TabsTrigger>
-              <TabsTrigger value="good" className="flex-1">Good</TabsTrigger>
-              <TabsTrigger value="drinks" className="flex-1">Drinks</TabsTrigger>
+              <TabsTrigger value="avoid" className="flex-1">
+                Avoid
+              </TabsTrigger>
+              <TabsTrigger value="limit" className="flex-1">
+                Limit
+              </TabsTrigger>
+              <TabsTrigger value="good" className="flex-1">
+                Good
+              </TabsTrigger>
+              <TabsTrigger value="drinks" className="flex-1">
+                Drinks
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="avoid">
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
@@ -423,18 +466,18 @@ export default function NutritionReportPage() {
             {renderList(report.drinksGuidance)}
           </Card>
         </div>
-
       </div>
 
       {/* Sticky Acknowledge Banner at bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface/90 border-t border-brand-border py-4 px-6 backdrop-blur-md shadow-2xl flex items-center justify-center">
         <div className="max-w-6xl w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
           <p className="text-[11px] md:text-xs text-brand-muted leading-relaxed max-w-2xl text-center md:text-left">
-            By clicking acknowledge, you confirm that you have read our medical limitations disclaimers and understand that NutriMind recommendations are AI-generated estimations.
+            By clicking acknowledge, you confirm that you have read our medical limitations disclaimers and understand
+            that NutriMind recommendations are AI-generated estimations.
           </p>
-          <Button 
-            variant="primary" 
-            onClick={handleAcknowledge} 
+          <Button
+            variant="primary"
+            onClick={handleAcknowledge}
             className="px-8 py-3 text-sm font-bold tracking-wide shadow-xl min-w-[200px]"
             isLoading={isAcknowledging}
           >
@@ -442,7 +485,6 @@ export default function NutritionReportPage() {
           </Button>
         </div>
       </div>
-
     </div>
   );
 }

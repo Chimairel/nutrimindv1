@@ -33,34 +33,37 @@ export default function VerifyEmailPage() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  const handleVerify = useCallback(async (code: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await api.post('/auth/verify-email', { otp: code });
-      if (response.data?.success) {
-        setSuccess('Email verified successfully! Redirecting...');
-        // Try to refresh session — if it fails (e.g. rate limit), still redirect
-        try {
-          await refreshSession();
-        } catch {
-          // Session will be refreshed on next page load via AuthContext
-          console.warn('[VerifyEmail] refreshSession failed, redirecting anyway.');
+  const handleVerify = useCallback(
+    async (code: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await api.post('/auth/verify-email', { otp: code });
+        if (response.data?.success) {
+          setSuccess('Email verified successfully! Redirecting...');
+          // Try to refresh session — if it fails (e.g. rate limit), still redirect
+          try {
+            await refreshSession();
+          } catch {
+            // Session will be refreshed on next page load via AuthContext
+            console.warn('[VerifyEmail] refreshSession failed, redirecting anyway.');
+          }
+          // Always redirect after successful verification — don't stay stuck
+          setTimeout(() => {
+            window.location.href = '/onboarding/stats';
+          }, 1500);
         }
-        // Always redirect after successful verification — don't stay stuck
-        setTimeout(() => {
-          window.location.href = '/onboarding/stats';
-        }, 1500);
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { data?: { error?: string } } };
+        setError(axiosErr.response?.data?.error || 'Verification failed. Please try again.');
+        setOtp(Array(6).fill(''));
+        inputRefs.current[0]?.focus();
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      setError(axiosErr.response?.data?.error || 'Verification failed. Please try again.');
-      setOtp(Array(6).fill(''));
-      inputRefs.current[0]?.focus();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [refreshSession]);
+    },
+    [refreshSession]
+  );
 
   // Auto-submit when all 6 digits are entered
   useEffect(() => {
@@ -123,15 +126,20 @@ export default function VerifyEmailPage() {
     await logout();
   };
 
-
   return (
     <AuthShell
       eyebrow="Identity checkpoint"
       title="Verify your email"
       description="Enter the 6-digit code sent to the email address below to continue into onboarding."
-      heroTitle={<>One quick check.<br /><span className="text-brand-accent">Then we personalize.</span></>}
+      heroTitle={
+        <>
+          One quick check.
+          <br />
+          <span className="text-brand-accent">Then we personalize.</span>
+        </>
+      }
       heroDescription="Verification protects your account before health preferences, meal plans, and progress data are connected to it."
-      footer={(
+      footer={
         <button
           type="button"
           onClick={handleUseDifferentAccount}
@@ -141,72 +149,74 @@ export default function VerifyEmailPage() {
           <LogOut className="h-3.5 w-3.5" />
           {isSwitchingAccount ? 'Signing out...' : 'Use a different account'}
         </button>
-      )}
+      }
     >
-        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] px-4 py-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
-            <Mail className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-muted">Code sent to</p>
-            <p className="truncate text-sm font-bold text-brand-text" title={user?.email}>
-              {user?.email || 'Your registered email address'}
-            </p>
-          </div>
+      <div className="mb-5 flex items-center gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] px-4 py-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+          <Mail className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-muted">Code sent to</p>
+          <p className="truncate text-sm font-bold text-brand-text" title={user?.email}>
+            {user?.email || 'Your registered email address'}
+          </p>
         </div>
+      </div>
 
-        {error && (
-          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span className="leading-tight">{error}</span>
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-sm font-semibold text-brand-green">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            <span className="leading-tight">{success}</span>
-          </div>
-        )}
-
-        <div className="mb-8 flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => { inputRefs.current[index] = el; }}
-              id={`otp-${index}`}
-              aria-label={`Verification code digit ${index + 1}`}
-              type="text"
-              inputMode="numeric"
-              autoComplete={index === 0 ? 'one-time-code' : 'off'}
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              disabled={isLoading}
-              className="h-14 w-11 rounded-2xl border border-brand-border/80 bg-brand-surface/80 text-center font-mono text-xl font-bold text-brand-text outline-none transition-all duration-200 focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10 disabled:opacity-50 sm:w-12"
-              autoFocus={index === 0}
-            />
-          ))}
+      {error && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span className="leading-tight">{error}</span>
         </div>
+      )}
 
-        {isLoading && (
-          <div className="mb-4 text-center">
-            <span className="animate-pulse text-sm text-brand-muted">Verifying...</span>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/45 p-4 text-center">
-          <p className="mb-2 text-xs text-brand-muted">Didn&apos;t receive the code?</p>
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={resendCooldown > 0 || isLoading}
-            className="cursor-pointer text-sm font-bold text-brand-green transition hover:text-brand-cyan disabled:cursor-not-allowed disabled:text-brand-muted"
-          >
-            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
-          </button>
+      {success && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-sm font-semibold text-brand-green">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span className="leading-tight">{success}</span>
         </div>
+      )}
+
+      <div className="mb-8 flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
+        {otp.map((digit, index) => (
+          <input
+            key={index}
+            ref={(el) => {
+              inputRefs.current[index] = el;
+            }}
+            id={`otp-${index}`}
+            aria-label={`Verification code digit ${index + 1}`}
+            type="text"
+            inputMode="numeric"
+            autoComplete={index === 0 ? 'one-time-code' : 'off'}
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleChange(index, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            disabled={isLoading}
+            className="h-14 w-11 rounded-2xl border border-brand-border/80 bg-brand-surface/80 text-center font-mono text-xl font-bold text-brand-text outline-none transition-all duration-200 focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10 disabled:opacity-50 sm:w-12"
+            autoFocus={index === 0}
+          />
+        ))}
+      </div>
+
+      {isLoading && (
+        <div className="mb-4 text-center">
+          <span className="animate-pulse text-sm text-brand-muted">Verifying...</span>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/45 p-4 text-center">
+        <p className="mb-2 text-xs text-brand-muted">Didn&apos;t receive the code?</p>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resendCooldown > 0 || isLoading}
+          className="cursor-pointer text-sm font-bold text-brand-green transition hover:text-brand-cyan disabled:cursor-not-allowed disabled:text-brand-muted"
+        >
+          {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+        </button>
+      </div>
     </AuthShell>
   );
 }

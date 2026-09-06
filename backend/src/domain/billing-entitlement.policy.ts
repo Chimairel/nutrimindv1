@@ -60,10 +60,9 @@ export function resolveBillingEntitlement(input: {
   const atMs = input.at.getTime();
   const grants = input.grants.filter(isVerifiedGrant);
   const active = grants
-    .filter((grant) =>
-      grant.effectiveFrom.getTime() <= atMs &&
-      atMs < grant.effectiveUntil.getTime() &&
-      !isRevokedAt(grant, atMs),
+    .filter(
+      (grant) =>
+        grant.effectiveFrom.getTime() <= atMs && atMs < grant.effectiveUntil.getTime() && !isRevokedAt(grant, atMs)
     )
     .sort((a, b) => b.effectiveUntil.getTime() - a.effectiveUntil.getTime())[0];
 
@@ -83,20 +82,16 @@ export function resolveBillingEntitlement(input: {
       if (!grant.subscriptionId || grant.source !== 'PAID_INVOICE' || isRevokedAt(grant, atMs)) return false;
       const subscription = subscriptions.get(grant.subscriptionId);
       if (subscription?.status !== 'PAST_DUE' || !validDate(subscription.pastDueAt)) return false;
-      const graceUntil = Math.min(
-        grant.effectiveUntil.getTime() + graceMs,
-        subscription.pastDueAt.getTime() + graceMs,
-      );
+      const graceUntil = Math.min(grant.effectiveUntil.getTime() + graceMs, subscription.pastDueAt.getTime() + graceMs);
       return grant.effectiveUntil.getTime() <= atMs && atMs < graceUntil;
     })
     .sort((a, b) => b.effectiveUntil.getTime() - a.effectiveUntil.getTime())[0];
 
   if (graceGrant) {
     const subscription = subscriptions.get(graceGrant.subscriptionId!);
-    const effectiveUntil = new Date(Math.min(
-      graceGrant.effectiveUntil.getTime() + graceMs,
-      subscription!.pastDueAt!.getTime() + graceMs,
-    ));
+    const effectiveUntil = new Date(
+      Math.min(graceGrant.effectiveUntil.getTime() + graceMs, subscription!.pastDueAt!.getTime() + graceMs)
+    );
     return { tier: 'PREMIUM', reason: 'PAST_DUE_GRACE', grantId: graceGrant.id, effectiveUntil };
   }
 

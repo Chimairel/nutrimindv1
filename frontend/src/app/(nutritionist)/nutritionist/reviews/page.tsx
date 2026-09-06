@@ -5,15 +5,15 @@ import axios from 'axios';
 import api from '@/lib/axios';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { 
-  CheckCircle, 
-  Flame, 
-  Check, 
-  X, 
-  AlertTriangle, 
-  Edit, 
-  Trash2, 
-  Plus, 
+import {
+  CheckCircle,
+  Flame,
+  Check,
+  X,
+  AlertTriangle,
+  Edit,
+  Trash2,
+  Plus,
   Eye,
   RefreshCw,
   ShieldAlert,
@@ -117,12 +117,12 @@ const getApiError = (error: unknown, fallback: string) =>
 export default function ReviewsPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Selected Card Details
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState<DetailData | null>(null);
-  
+
   // Actions states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -233,9 +233,9 @@ export default function ReviewsPage() {
     setErrorMsg(null);
 
     try {
-      await api.patch(`/nutritionist/review/${selectedMealId}`, { 
-        action: 'reject', 
-        note: rejectNote.trim() 
+      await api.patch(`/nutritionist/review/${selectedMealId}`, {
+        action: 'reject',
+        note: rejectNote.trim(),
       });
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
@@ -271,10 +271,7 @@ export default function ReviewsPage() {
   const addIngredientField = () => {
     setEditForm((prev) => ({
       ...prev,
-      ingredients: [
-        ...prev.ingredients,
-        { name: '', category: 'PANTRY', dataSource: 'GEMINI_ESTIMATED' },
-      ],
+      ingredients: [...prev.ingredients, { name: '', category: 'PANTRY', dataSource: 'GEMINI_ESTIMATED' }],
     }));
   };
 
@@ -295,30 +292,37 @@ export default function ReviewsPage() {
 
   const flagColor = (flag: string): 'rejected' | 'pending' | 'verified' => {
     switch (flag) {
-      case 'NEEDS_REVIEW': return 'rejected';
-      case 'CAUTION': return 'pending';
-      default: return 'verified';
+      case 'NEEDS_REVIEW':
+        return 'rejected';
+      case 'CAUTION':
+        return 'pending';
+      default:
+        return 'verified';
     }
   };
 
   return (
     <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface/65 text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
       {/* Master Queue List Panel */}
-      <div className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}>
+      <div
+        className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
+      >
         <div className="rounded-[24px] bg-[#07100d] p-5 text-white shadow-card">
           <p className="portal-kicker">Clinical workflow</p>
           <div className="mt-3 flex items-center justify-between">
-          <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
-            Review queue
-            <button 
-              onClick={fetchQueue} 
-              className="rounded-xl p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-brand-cyan"
-              title="Refresh queue"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </h1>
-          <Badge variant="pending" className="text-[9px]">{queue.length} pending</Badge>
+            <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
+              Review queue
+              <button
+                onClick={fetchQueue}
+                className="rounded-xl p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-brand-cyan"
+                title="Refresh queue"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </h1>
+            <Badge variant="pending" className="text-[9px]">
+              {queue.length} pending
+            </Badge>
           </div>
         </div>
 
@@ -382,7 +386,9 @@ export default function ReviewsPage() {
       </div>
 
       {/* Details View Panel */}
-      <div className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}>
+      <div
+        className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}
+      >
         {selectedMealId !== null && (
           <button
             type="button"
@@ -401,7 +407,8 @@ export default function ReviewsPage() {
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-brand-text">No Card Selected</h2>
               <p className="text-xs text-brand-muted max-w-sm">
-                Select a generated meal plan card from the sidebar queue to display the user clinical profile, ingredient sources, and automatic warnings.
+                Select a generated meal plan card from the sidebar queue to display the user clinical profile,
+                ingredient sources, and automatic warnings.
               </p>
             </div>
           </div>
@@ -448,7 +455,6 @@ export default function ReviewsPage() {
 
             {/* Split Panel Body */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              
               {/* Left Panel: User Profile */}
               <div className="space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card">
                 <div className="border-b border-brand-border pb-3">
@@ -467,7 +473,10 @@ export default function ReviewsPage() {
                       <span className="text-xs text-brand-muted italic">None declared</span>
                     ) : (
                       detailData.user.conditions.map((hc, i) => (
-                        <span key={i} className="px-2.5 py-1 bg-red-950/30 border border-red-800/30 text-red-400 text-[10px] rounded-lg font-bold">
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 bg-red-950/30 border border-red-800/30 text-red-400 text-[10px] rounded-lg font-bold"
+                        >
                           {hc}
                         </span>
                       ))
@@ -483,7 +492,10 @@ export default function ReviewsPage() {
                       <span className="text-xs text-brand-muted italic">None declared</span>
                     ) : (
                       detailData.user.allergies.map((alg, i) => (
-                        <span key={i} className="px-2.5 py-1 bg-red-950/30 border border-red-800/30 text-red-400 text-[10px] rounded-lg font-bold">
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 bg-red-950/30 border border-red-800/30 text-red-400 text-[10px] rounded-lg font-bold"
+                        >
                           {alg}
                         </span>
                       ))
@@ -496,7 +508,10 @@ export default function ReviewsPage() {
                     <h4 className="text-xs font-bold text-brand-muted">Complete structured restrictions</h4>
                     <div className="space-y-1.5">
                       {detailData.user.safetyEntries.map((entry, index) => (
-                        <div key={`${entry.domain}-${entry.label}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-brand-border/60 bg-brand-bg/50 px-2.5 py-2 text-[10px]">
+                        <div
+                          key={`${entry.domain}-${entry.label}-${index}`}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-brand-border/60 bg-brand-bg/50 px-2.5 py-2 text-[10px]"
+                        >
                           <span className="font-bold text-brand-text">{entry.label}</span>
                           <span className="text-right font-mono uppercase text-brand-muted">
                             {entry.domain.replaceAll('_', ' ')} · {entry.supportState.replaceAll('_', ' ')}
@@ -534,17 +549,18 @@ export default function ReviewsPage() {
                   <div>
                     <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Meal Details</h2>
                     {isEditing ? (
-                      <input 
+                      <input
                         type="text"
                         value={editForm.mealName}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, mealName: e.target.value }))}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, mealName: e.target.value }))}
                         className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 text-sm font-extrabold w-full mt-2 focus:outline-none focus:border-brand-green"
                       />
                     ) : (
                       <h3 className="text-base font-extrabold text-brand-text mt-1">{detailData.mealPlan.mealName}</h3>
                     )}
                     <p className="text-xs text-brand-muted mt-1 uppercase">
-                      {detailData.mealPlan.mealType} • Generated {new Date(detailData.mealPlan.createdAt).toLocaleDateString()}
+                      {detailData.mealPlan.mealType} • Generated{' '}
+                      {new Date(detailData.mealPlan.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -553,9 +569,9 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-brand-muted">Description</h4>
                   {isEditing ? (
-                    <textarea 
+                    <textarea
                       value={editForm.description}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
                       rows={3}
                       className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 text-xs w-full focus:outline-none focus:border-brand-green resize-none"
                     />
@@ -573,37 +589,43 @@ export default function ReviewsPage() {
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       <div>
                         <label className="block text-[10px] text-brand-muted">Calories</label>
-                        <input 
+                        <input
                           type="number"
                           value={editForm.calories}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, calories: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, calories: parseFloat(e.target.value) || 0 }))
+                          }
                           className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 w-full mt-1 focus:outline-none focus:border-brand-green"
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] text-brand-muted">Protein (g)</label>
-                        <input 
+                        <input
                           type="number"
                           value={editForm.proteinG}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, proteinG: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, proteinG: parseFloat(e.target.value) || 0 }))
+                          }
                           className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 w-full mt-1 focus:outline-none focus:border-brand-green"
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] text-brand-muted">Carbs (g)</label>
-                        <input 
+                        <input
                           type="number"
                           value={editForm.carbsG}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, carbsG: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, carbsG: parseFloat(e.target.value) || 0 }))
+                          }
                           className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 w-full mt-1 focus:outline-none focus:border-brand-green"
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] text-brand-muted">Fat (g)</label>
-                        <input 
+                        <input
                           type="number"
                           value={editForm.fatG}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, fatG: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e) => setEditForm((prev) => ({ ...prev, fatG: parseFloat(e.target.value) || 0 }))}
                           className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 w-full mt-1 focus:outline-none focus:border-brand-green"
                         />
                       </div>
@@ -614,9 +636,15 @@ export default function ReviewsPage() {
                         <Flame className="w-3.5 h-3.5 fill-current" />
                         <span>{detailData.mealPlan.calories.toFixed(0)} kcal</span>
                       </span>
-                      <span>P: <strong>{detailData.mealPlan.proteinG.toFixed(1)}g</strong></span>
-                      <span>C: <strong>{detailData.mealPlan.carbsG.toFixed(1)}g</strong></span>
-                      <span>F: <strong>{detailData.mealPlan.fatG.toFixed(1)}g</strong></span>
+                      <span>
+                        P: <strong>{detailData.mealPlan.proteinG.toFixed(1)}g</strong>
+                      </span>
+                      <span>
+                        C: <strong>{detailData.mealPlan.carbsG.toFixed(1)}g</strong>
+                      </span>
+                      <span>
+                        F: <strong>{detailData.mealPlan.fatG.toFixed(1)}g</strong>
+                      </span>
                     </div>
                   )}
                 </div>
@@ -626,7 +654,7 @@ export default function ReviewsPage() {
                   <h4 className="text-xs font-bold text-brand-muted flex justify-between items-center">
                     <span>Ingredients</span>
                     {isEditing && (
-                      <button 
+                      <button
                         onClick={addIngredientField}
                         className="text-brand-green hover:underline text-[11px] flex items-center gap-0.5"
                       >
@@ -638,17 +666,20 @@ export default function ReviewsPage() {
                     {isEditing ? (
                       editForm.ingredients.map((ing, idx) => (
                         <div key={idx} className="flex gap-2 items-center">
-                          <input 
+                          <input
                             type="text"
                             value={ing.name}
                             onChange={(e) => updateIngredientField(idx, e.target.value)}
                             placeholder="Ingredient name..."
                             className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 text-xs flex-grow focus:outline-none focus:border-brand-green"
                           />
-                          <Badge variant={ing.dataSource === 'FNRI' ? 'verified' : 'pending'} className="text-[8px] uppercase select-none">
+                          <Badge
+                            variant={ing.dataSource === 'FNRI' ? 'verified' : 'pending'}
+                            className="text-[8px] uppercase select-none"
+                          >
                             {ing.dataSource === 'FNRI' ? 'FNRI' : 'EST'}
                           </Badge>
-                          <button 
+                          <button
                             onClick={() => removeIngredientField(idx)}
                             className="p-1 text-red-500 hover:bg-red-950/20 rounded transition"
                           >
@@ -659,12 +690,15 @@ export default function ReviewsPage() {
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {detailData.ingredients.map((ing, idx) => (
-                          <div 
+                          <div
                             key={idx}
                             className="flex items-center gap-1 px-2.5 py-1 bg-brand-surface border border-brand-border text-xs rounded-lg text-brand-muted"
                           >
                             <span>{ing.name}</span>
-                            <span className="text-[9px]" title={ing.source === 'FNRI' ? 'FNRI Database verified' : 'AI Estimated'}>
+                            <span
+                              className="text-[9px]"
+                              title={ing.source === 'FNRI' ? 'FNRI Database verified' : 'AI Estimated'}
+                            >
                               {ing.source === 'FNRI' ? '✅' : '⚠️'}
                             </span>
                           </div>
@@ -692,13 +726,17 @@ export default function ReviewsPage() {
                       severityStyles = 'text-amber-500 bg-amber-950/20 border-amber-800/20';
                     }
                     return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`p-3 rounded-lg border text-xs leading-relaxed flex items-start gap-2.5 ${severityStyles}`}
                       >
                         {w.severity === 'CRITICAL' && <ShieldAlert className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />}
-                        {w.severity === 'IMPORTANT' && <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />}
-                        {w.severity === 'NOTICE' && <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-green dark:text-brand-cyan" />}
+                        {w.severity === 'IMPORTANT' && (
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+                        )}
+                        {w.severity === 'NOTICE' && (
+                          <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-green dark:text-brand-cyan" />
+                        )}
                         <span>{w.message}</span>
                       </div>
                     );
@@ -712,7 +750,7 @@ export default function ReviewsPage() {
               <h4 className="text-xs font-bold text-brand-muted uppercase tracking-wider">
                 Note to Patient (optional)
               </h4>
-              <textarea 
+              <textarea
                 value={generalNote}
                 onChange={(e) => setGeneralNote(e.target.value)}
                 placeholder="Include a helpful message, advice, or summary context for the patient. They will see this alongside their approved meal."
@@ -728,9 +766,10 @@ export default function ReviewsPage() {
                   <ShieldAlert className="w-4 h-4" /> Reject Meal Plan
                 </h4>
                 <p className="text-xs text-brand-muted">
-                  Rejection triggers an immediate AI replacement query mapped against the patient&apos;s conditions and allergens. Please write a specific rejection reason.
+                  Rejection triggers an immediate AI replacement query mapped against the patient&apos;s conditions and
+                  allergens. Please write a specific rejection reason.
                 </p>
-                <textarea 
+                <textarea
                   value={rejectNote}
                   onChange={(e) => setRejectNote(e.target.value)}
                   placeholder="Rejection reason (required)..."
@@ -738,18 +777,21 @@ export default function ReviewsPage() {
                   className="bg-brand-bg text-brand-text border border-brand-border rounded-xl px-4 py-3 text-xs w-full focus:outline-none focus:border-red-500 resize-none"
                 />
                 <div className="flex gap-2">
-                  <Button 
-                    variant="primary" 
-                    onClick={handleReject} 
+                  <Button
+                    variant="primary"
+                    onClick={handleReject}
                     isLoading={actionLoading === selectedMealId}
                     disabled={!rejectNote.trim()}
                     className="text-xs px-6 py-2 bg-red-600 hover:bg-red-700 active:scale-[0.98]"
                   >
                     Confirm Rejection
                   </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => { setShowRejectForm(false); setRejectNote(''); }} 
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowRejectForm(false);
+                      setRejectNote('');
+                    }}
                     className="text-xs px-6 py-2"
                   >
                     Cancel
@@ -763,45 +805,49 @@ export default function ReviewsPage() {
               <div className="flex items-center gap-3 pt-2">
                 {isEditing ? (
                   <>
-                    <Button 
-                      variant="primary" 
-                      onClick={handleApprove} 
+                    <Button
+                      variant="primary"
+                      onClick={handleApprove}
                       isLoading={actionLoading === selectedMealId}
                       className="text-xs px-8 py-2.5 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                     >
                       <Check className="w-4 h-4" />
-                      <span>{detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0 ? 'Save first approval' : 'Save & Approve'}</span>
+                      <span>
+                        {detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0
+                          ? 'Save first approval'
+                          : 'Save & Approve'}
+                      </span>
                     </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={() => setIsEditing(false)} 
-                      className="text-xs px-8 py-2.5"
-                    >
+                    <Button variant="secondary" onClick={() => setIsEditing(false)} className="text-xs px-8 py-2.5">
                       Cancel Edit
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button 
-                      variant="primary" 
-                      onClick={handleApprove} 
+                    <Button
+                      variant="primary"
+                      onClick={handleApprove}
                       isLoading={actionLoading === selectedMealId}
                       className="text-xs px-8 py-2.5 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                     >
                       <Check className="w-4 h-4" />
-                      <span>{detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0 ? 'Submit first approval' : 'Approve'}</span>
+                      <span>
+                        {detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0
+                          ? 'Submit first approval'
+                          : 'Approve'}
+                      </span>
                     </Button>
-                    <Button 
-                      variant="secondary" 
+                    <Button
+                      variant="secondary"
                       onClick={startEditing}
                       className="text-xs px-8 py-2.5 flex items-center gap-1.5 border-brand-muted text-brand-muted hover:text-brand-text hover:border-brand-text active:scale-[0.98]"
                     >
                       <Edit className="w-4 h-4" />
                       <span>Edit & Approve</span>
                     </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={() => setShowRejectForm(true)} 
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowRejectForm(true)}
                       className="text-xs px-8 py-2.5 flex items-center gap-1.5 text-red-400 border-red-500/20 hover:bg-red-950/20 hover:border-red-500/40 active:scale-[0.98]"
                     >
                       <X className="w-4 h-4" />

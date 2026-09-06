@@ -124,18 +124,23 @@ html.dark {
  * border on the same quiet treatment used by the portal hero.
  */
 html.dark .border-brand-border,
-html.dark [class*="border-brand-border/"] {
+html.dark [class*='border-brand-border/'] {
   border-color: rgba(255, 255, 255, 0.09);
 }
 
-body, .bg-brand-bg {
+body,
+.bg-brand-bg {
   background-color: var(--background) !important;
   background-image:
     radial-gradient(circle at 12% 8%, var(--orb-green), transparent 27%),
     radial-gradient(circle at 88% 18%, var(--orb-cyan), transparent 24%),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) !important;
-  background-size: auto, auto, 32px 32px, 32px 32px !important;
+  background-size:
+    auto,
+    auto,
+    32px 32px,
+    32px 32px !important;
   background-attachment: fixed !important;
 }
 
@@ -151,8 +156,24 @@ body {
   color: #07100d;
 }
 
-body, header, aside, main, footer, button, input, select, textarea, a, tr, td, th {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+body,
+header,
+aside,
+main,
+footer,
+button,
+input,
+select,
+textarea,
+a,
+tr,
+td,
+th {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 /* Custom premium scrollbar */
@@ -194,8 +215,7 @@ body, header, aside, main, footer, button, input, select, textarea, a, tr, td, t
 .portal-shell {
   background:
     radial-gradient(circle at 78% -15%, var(--orb-cyan), transparent 32rem),
-    radial-gradient(circle at 18% 105%, var(--orb-green), transparent 34rem),
-    var(--brand-bg);
+    radial-gradient(circle at 18% 105%, var(--orb-green), transparent 34rem), var(--brand-bg);
   isolation: isolate;
   position: relative;
 }
@@ -241,8 +261,7 @@ body, header, aside, main, footer, button, input, select, textarea, a, tr, td, t
 .portal-page-header {
   background:
     radial-gradient(circle at 88% 12%, rgba(34, 211, 238, 0.13), transparent 13rem),
-    radial-gradient(circle at 7% 120%, rgba(184, 244, 95, 0.13), transparent 14rem),
-    #07100d;
+    radial-gradient(circle at 7% 120%, rgba(184, 244, 95, 0.13), transparent 14rem), #07100d;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 2rem;
   box-shadow: 0 26px 70px rgba(1, 8, 5, 0.22);
@@ -388,14 +407,28 @@ body, header, aside, main, footer, button, input, select, textarea, a, tr, td, t
 }
 
 @keyframes float-slow {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -8px, 0); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
 }
 
 @keyframes scan-line {
-  0% { transform: translateY(-100%); opacity: 0; }
-  15%, 85% { opacity: 0.55; }
-  100% { transform: translateY(500%); opacity: 0; }
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(500%);
+    opacity: 0;
+  }
 }
 
 .animate-float-slow {

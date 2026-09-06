@@ -67,7 +67,7 @@ export function useNotifications() {
   const markAllAsRead = async () => {
     const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
     await Promise.all(unreadIds.map((id) => api.patch(`/user/notifications/${id}/read`)));
-    
+
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
   };

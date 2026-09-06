@@ -51,7 +51,13 @@ test('[TEST-106] billing access defaults to Free with three swaps and exposes on
     cycleStartsAt: '2026-09-05T16:00:00.000Z',
     cycleEndsAtExclusive: '2026-09-12T16:00:00.000Z',
   });
-  assert.deepEqual(result.catalogue.map((plan) => [plan.tier, plan.weeklySwapCap]), [['FREE', 3], ['PREMIUM', 6]]);
+  assert.deepEqual(
+    result.catalogue.map((plan) => [plan.tier, plan.weeklySwapCap]),
+    [
+      ['FREE', 3],
+      ['PREMIUM', 6],
+    ]
+  );
   assert.deepEqual(result.catalogue[1].price, {
     amountMinor: 19_900,
     currency: 'PHP',
@@ -101,7 +107,10 @@ test('[TEST-109] checkout availability and verification status come only from se
     at: now,
     evidence: evidence({
       latestCheckout: {
-        status: 'SUCCEEDED', createdAt: new Date(now), completedAt: new Date(now), projected: false,
+        status: 'SUCCEEDED',
+        createdAt: new Date(now),
+        completedAt: new Date(now),
+        projected: false,
       },
     }),
     checkoutEnabled: true,
@@ -117,7 +126,9 @@ test('[TEST-109] checkout availability and verification status come only from se
   assert.equal(reconciliation.current.verification, 'RECONCILIATION_REQUIRED');
 
   const noPrice = buildUserBillingAccessView({
-    at: now, evidence: evidence({ activeTestPrice: null }), checkoutEnabled: true,
+    at: now,
+    evidence: evidence({ activeTestPrice: null }),
+    checkoutEnabled: true,
   });
   assert.deepEqual(noPrice.checkout, { available: false, reason: 'PRICE_UNAVAILABLE' });
 
@@ -128,23 +139,43 @@ test('[TEST-109] checkout availability and verification status come only from se
 test('[TEST-110] access service reads one authenticated owner at one server instant and rejects ineligible users', async () => {
   const reads: Array<{ userId: string; at: Date }> = [];
   const repository: BillingAccessRepository = {
-    async readForUser(userId, at) { reads.push({ userId, at }); return evidence(); },
+    async readForUser(userId, at) {
+      reads.push({ userId, at });
+      return evidence();
+    },
   };
   const service = new UserBillingAccessService(repository, true, () => new Date(now));
   const result = await service.getForUser('owner_1');
   assert.equal(result.serverTime, now.toISOString());
   assert.deepEqual(reads, [{ userId: 'owner_1', at: now }]);
 
-  const unavailable = new UserBillingAccessService({ async readForUser() { return null; } }, true, () => now);
+  const unavailable = new UserBillingAccessService(
+    {
+      async readForUser() {
+        return null;
+      },
+    },
+    true,
+    () => now
+  );
   await assert.rejects(() => unavailable.getForUser('missing'), BillingAccessUnavailableError);
   await assert.rejects(() => service.getForUser(''), BillingAccessUnavailableError);
 });
 
 test('[TEST-111] public billing serialization omits ledger, provider, and secret fields', () => {
-  const serialized = JSON.stringify(buildUserBillingAccessView({ at: now, evidence: evidence(), checkoutEnabled: true }));
+  const serialized = JSON.stringify(
+    buildUserBillingAccessView({ at: now, evidence: evidence(), checkoutEnabled: true })
+  );
   for (const privateField of [
-    'invoiceStatus', 'subscriptionId', 'providerSessionId', 'providerPaymentId',
-    'sanitizedPayload', 'requestHash', 'secret', 'healthConditions', 'allergies',
+    'invoiceStatus',
+    'subscriptionId',
+    'providerSessionId',
+    'providerPaymentId',
+    'sanitizedPayload',
+    'requestHash',
+    'secret',
+    'healthConditions',
+    'allergies',
   ]) {
     assert.equal(serialized.includes(privateField), false, privateField);
   }

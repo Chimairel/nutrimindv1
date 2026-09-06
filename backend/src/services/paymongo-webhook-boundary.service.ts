@@ -2,9 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { WebhookInboxRecord, WebhookInboxRepository, WebhookIngestDecision } from '@/billing/contracts';
 import { PaymongoWebhookConfig } from '@/domain/paymongo-config.policy';
 
-export const PAYMONGO_EVENT_ALLOW_LIST = new Set([
-  'checkout_session.payment.paid',
-]);
+export const PAYMONGO_EVENT_ALLOW_LIST = new Set(['checkout_session.payment.paid']);
 
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,190}$/;
 const EVENT_TYPE_PATTERN = /^[a-z][a-z0-9_.]{2,119}$/;
@@ -96,18 +94,31 @@ function parseEnvelope(rawBody: Buffer): {
   if (!data || typeof data !== 'object') throw new WebhookBoundaryError('WEBHOOK_BODY_INVALID');
   const event = data as Record<string, unknown>;
   const attributes = event.attributes;
-  if (event.type !== 'event' || !IDENTIFIER_PATTERN.test(String(event.id || '')) || !attributes || typeof attributes !== 'object') {
+  if (
+    event.type !== 'event' ||
+    !IDENTIFIER_PATTERN.test(String(event.id || '')) ||
+    !attributes ||
+    typeof attributes !== 'object'
+  ) {
     throw new WebhookBoundaryError('WEBHOOK_BODY_INVALID');
   }
   const values = attributes as Record<string, unknown>;
   const resource = values.data;
-  if (!EVENT_TYPE_PATTERN.test(String(values.type || '')) || typeof values.livemode !== 'boolean' ||
-      !Number.isSafeInteger(values.created_at) || Number(values.created_at) <= 0 ||
-      !resource || typeof resource !== 'object') {
+  if (
+    !EVENT_TYPE_PATTERN.test(String(values.type || '')) ||
+    typeof values.livemode !== 'boolean' ||
+    !Number.isSafeInteger(values.created_at) ||
+    Number(values.created_at) <= 0 ||
+    !resource ||
+    typeof resource !== 'object'
+  ) {
     throw new WebhookBoundaryError('WEBHOOK_BODY_INVALID');
   }
   const resourceValues = resource as Record<string, unknown>;
-  if (!IDENTIFIER_PATTERN.test(String(resourceValues.id || '')) || !IDENTIFIER_PATTERN.test(String(resourceValues.type || ''))) {
+  if (
+    !IDENTIFIER_PATTERN.test(String(resourceValues.id || '')) ||
+    !IDENTIFIER_PATTERN.test(String(resourceValues.type || ''))
+  ) {
     throw new WebhookBoundaryError('WEBHOOK_BODY_INVALID');
   }
   const providerCreatedAt = new Date(Number(values.created_at) * 1000);
@@ -131,7 +142,7 @@ export class PaymongoWebhookBoundary {
   constructor(
     private readonly config: PaymongoWebhookConfig,
     private readonly repository: WebhookInboxRepository,
-    private readonly clock: () => Date = () => new Date(),
+    private readonly clock: () => Date = () => new Date()
   ) {}
 
   async ingest(rawBody: Buffer, signatureHeader: string): Promise<WebhookBoundaryResult> {

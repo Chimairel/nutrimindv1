@@ -1,11 +1,11 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset, lookupIngredient } from '@/lib/fnri';
-import { 
-  MealType, 
-  MealPlanStatus, 
-  AIConfidenceFlag, 
-  HealthConditionType, 
+import {
+  MealType,
+  MealPlanStatus,
+  AIConfidenceFlag,
+  HealthConditionType,
   NotificationType,
   PlanType,
   ShoppingDayGroup,
@@ -32,9 +32,7 @@ import {
   type WeeklyCycleWindow,
 } from '@/domain/meal-plan-cycle.policy';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
-import {
-  evaluateMealLibrarySafetyEvidence,
-} from '@/domain/meal-library-safety-evidence.policy';
+import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
@@ -60,10 +58,13 @@ interface GeminiMealPlanResponse {
 
 export class MealGenerationService {
   private static readonly GENERATION_JOB_TTL_MS = 20 * 60 * 1000;
-  private static readonly rolloverRequests = new Map<string, Promise<{
-    rolledOver: boolean;
-    planGroupId: string | null;
-  }>>();
+  private static readonly rolloverRequests = new Map<
+    string,
+    Promise<{
+      rolledOver: boolean;
+      planGroupId: string | null;
+    }>
+  >();
 
   /**
    * Determines whether to generate a STARTER plan (partial days until next
@@ -72,10 +73,13 @@ export class MealGenerationService {
    */
   static async generatePlanForUser(userId: string, now: Date = new Date()): Promise<string> {
     const profile = await prisma.userProfile.findUnique({ where: { userId } });
-    const window = getOnDemandMealPlanWindow({
-      shoppingDayOfWeek: profile?.shoppingDayOfWeek,
-      shoppingDayGroup: profile?.shoppingDayGroup,
-    }, now);
+    const window = getOnDemandMealPlanWindow(
+      {
+        shoppingDayOfWeek: profile?.shoppingDayOfWeek,
+        shoppingDayGroup: profile?.shoppingDayGroup,
+      },
+      now
+    );
 
     console.log(
       `[Meal Generation] Generating ${window.planType} plan: ${window.numDays} day(s) from ${getManilaDateKey(window.startDate)}.`
@@ -102,16 +106,12 @@ export class MealGenerationService {
     return existingPlan?.planGroupId ?? null;
   }
 
-  private static async generateWindowOnce(
-    userId: string,
-    window: MealPlanGenerationWindow
-  ): Promise<string> {
+  private static async generateWindowOnce(userId: string, window: MealPlanGenerationWindow): Promise<string> {
     const endDate = getScheduledMealDate(window.startDate, Math.max(0, window.numDays - 1));
-    const existing = await MealGenerationService.findExistingPlan(
-      userId,
-      window.planType,
-      { startDate: window.startDate, endDate }
-    );
+    const existing = await MealGenerationService.findExistingPlan(userId, window.planType, {
+      startDate: window.startDate,
+      endDate,
+    });
     if (existing) return existing;
 
     let job = null;
@@ -145,11 +145,10 @@ export class MealGenerationService {
     if (!job) throw new Error('Unable to establish an idempotent meal-plan generation job.');
 
     if (!claimedNewJob) {
-      const completedByPeer = await MealGenerationService.findExistingPlan(
-        userId,
-        window.planType,
-        { startDate: window.startDate, endDate }
-      );
+      const completedByPeer = await MealGenerationService.findExistingPlan(userId, window.planType, {
+        startDate: window.startDate,
+        endDate,
+      });
       if (completedByPeer) return completedByPeer;
 
       const staleCutoff = new Date(Date.now() - MealGenerationService.GENERATION_JOB_TTL_MS);
@@ -295,7 +294,7 @@ export class MealGenerationService {
     planType: PlanType = PlanType.WEEKLY,
     numDays: number = 7,
     startDate: Date = new Date(),
-    generationJobId?: string,
+    generationJobId?: string
   ): Promise<string> {
     await MealGenerationService.updateGenerationProgress(
       generationJobId,
@@ -388,7 +387,7 @@ export class MealGenerationService {
       dayNumber: number;
       mealType: MealType;
       scheduledDate: Date;
-      libraryMeal: typeof libraryMeals[0];
+      libraryMeal: (typeof libraryMeals)[0];
     }[] = [];
 
     const unmatchedSlots: {
@@ -430,7 +429,7 @@ export class MealGenerationService {
           const candidates = matches.filter((m) => m.usageCount === minUsage);
           const selected = candidates[Math.floor(Math.random() * candidates.length)];
           selectedLibraryMealIds.add(selected.id);
-          
+
           matchedSlots.push({
             dayNumber: day + 1,
             mealType: slotType,
@@ -451,71 +450,84 @@ export class MealGenerationService {
     const aiMeals = await runMealGenerationFallbackForUnmatchedSlots(
       unmatchedSlots,
       async (fallbackSlots): Promise<GeneratedMeal[]> => {
-      await MealGenerationService.updateGenerationProgress(
-        generationJobId,
-        45,
-        'AI_GENERATION',
-        'Preparing safe options for unmatched meal slots.'
-      );
-      const totalMeals = fallbackSlots.length;
-      console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
+        await MealGenerationService.updateGenerationProgress(
+          generationJobId,
+          45,
+          'AI_GENERATION',
+          'Preparing safe options for unmatched meal slots.'
+        );
+        const totalMeals = fallbackSlots.length;
+        console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
 
-      // Fetch a balanced FNRI reference across common food categories.
-      const localFoodsContext = await getFNRISubset();
-      const formattedFoodsContext = localFoodsContext
-        .map((f) => `- ${f.name} (Cat: ${f.category}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g)`)
-        .join('\n');
+        // Fetch a balanced FNRI reference across common food categories.
+        const localFoodsContext = await getFNRISubset();
+        const formattedFoodsContext = localFoodsContext
+          .map(
+            (f) =>
+              `- ${f.name} (Cat: ${f.category}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g)`
+          )
+          .join('\n');
 
-      const { prompt, systemInstruction } = buildMealGenerationPrompt({
-        slots: fallbackSlots,
-        dailyCalorieTarget,
-        goal,
-        dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
-        carbPreference: profile.carbPreference || 'MODERATE',
-        foodCulture: profile.foodCulture || 'Filipino',
-        conditions: userConditions,
-        allergens: userAllergens,
-        otherConditions,
-        otherAllergies,
-        foodReference: formattedFoodsContext,
-      });
+        const { prompt, systemInstruction } = buildMealGenerationPrompt({
+          slots: fallbackSlots,
+          dailyCalorieTarget,
+          goal,
+          dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+          carbPreference: profile.carbPreference || 'MODERATE',
+          foodCulture: profile.foodCulture || 'Filipino',
+          conditions: userConditions,
+          allergens: userAllergens,
+          otherConditions,
+          otherAllergies,
+          foodReference: formattedFoodsContext,
+        });
 
-      // Define Zod response schema with refinement to guarantee exact slot matching
-      const MealResponseSchema = z.object({
-        meals: z.array(
-          z.object({
-            dayNumber: z.number(),
-            mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
-            mealName: z.string(),
-            description: z.string(),
-            calories: z.number(),
-            proteinG: z.number(),
-            carbsG: z.number(),
-            fatG: z.number(),
-            ingredients: z.array(z.object({
-              name: z.string().trim().min(1),
-              quantity: z.number().positive().max(10_000),
-              unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
-            })).min(1),
-          })
-        ).refine((meals) => {
-          if (meals.length !== fallbackSlots.length) return false;
-          return fallbackSlots.every((slot) =>
-            meals.some((m) => m.dayNumber === slot.dayNumber && m.mealType === slot.mealType)
-          );
-        }, {
-          message: `Must generate exactly the requested slots: ${JSON.stringify(fallbackSlots.map(s => ({ day: s.dayNumber, type: s.mealType })))}`,
-        }),
-      });
+        // Define Zod response schema with refinement to guarantee exact slot matching
+        const MealResponseSchema = z.object({
+          meals: z
+            .array(
+              z.object({
+                dayNumber: z.number(),
+                mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
+                mealName: z.string(),
+                description: z.string(),
+                calories: z.number(),
+                proteinG: z.number(),
+                carbsG: z.number(),
+                fatG: z.number(),
+                ingredients: z
+                  .array(
+                    z.object({
+                      name: z.string().trim().min(1),
+                      quantity: z.number().positive().max(10_000),
+                      unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
+                    })
+                  )
+                  .min(1),
+              })
+            )
+            .refine(
+              (meals) => {
+                if (meals.length !== fallbackSlots.length) return false;
+                return fallbackSlots.every((slot) =>
+                  meals.some((m) => m.dayNumber === slot.dayNumber && m.mealType === slot.mealType)
+                );
+              },
+              {
+                message: `Must generate exactly the requested slots: ${JSON.stringify(fallbackSlots.map((s) => ({ day: s.dayNumber, type: s.mealType })))}`,
+              }
+            ),
+        });
 
-      const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
-        prompt,
-        systemInstruction,
-        MealResponseSchema
-      );
+        const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
+          prompt,
+          systemInstruction,
+          MealResponseSchema
+        );
 
-      return aiResponse.meals;
-    });
+        return aiResponse.meals;
+      }
+    );
 
     const newPlanGroupId = randomUUID();
     const targetPlanEndDate = getScheduledMealDate(startDate, Math.max(0, numDays - 1));
@@ -544,9 +556,7 @@ export class MealGenerationService {
     }[] = [];
 
     for (const rawMeal of aiMeals) {
-      const slot = unmatchedSlots.find(
-        (s) => s.dayNumber === rawMeal.dayNumber && s.mealType === rawMeal.mealType
-      );
+      const slot = unmatchedSlots.find((s) => s.dayNumber === rawMeal.dayNumber && s.mealType === rawMeal.mealType);
       const scheduledDate = slot ? slot.scheduledDate : new Date(startDate);
 
       let hasEstimatedIngredient = false;
@@ -570,7 +580,8 @@ export class MealGenerationService {
             ingredientName: lookup.food.name || ingredientName,
             category: lookup.food.category || 'PANTRY',
             foodItemId: lookup.food.id || null,
-            dataSource: lookup.source === 'ESTIMATED' ? MealIngredientDataSource.GEMINI_ESTIMATED : MealIngredientDataSource.FNRI,
+            dataSource:
+              lookup.source === 'ESTIMATED' ? MealIngredientDataSource.GEMINI_ESTIMATED : MealIngredientDataSource.FNRI,
             quantity: ingredient.quantity,
             unit: ingredient.unit,
           });
@@ -601,10 +612,10 @@ export class MealGenerationService {
         mealType: rawMeal.mealType,
         mealName: rawMeal.mealName,
         description: rawMeal.description,
-        calories: parseFloat(rawMeal.calories as any || 0),
-        proteinG: parseFloat(rawMeal.proteinG as any || 0),
-        carbsG: parseFloat(rawMeal.carbsG as any || 0),
-        fatG: parseFloat(rawMeal.fatG as any || 0),
+        calories: parseFloat((rawMeal.calories as any) || 0),
+        proteinG: parseFloat((rawMeal.proteinG as any) || 0),
+        carbsG: parseFloat((rawMeal.carbsG as any) || 0),
+        fatG: parseFloat((rawMeal.fatG as any) || 0),
         scheduledDate,
         aiConfidenceFlag: flag,
         ingredientsData,
@@ -619,106 +630,109 @@ export class MealGenerationService {
     );
 
     // Save plans atomically in a Prisma Transaction (with a 30-second timeout to support sequential batch inserts)
-    await prisma.$transaction(async (tx) => {
-      // 1. Replace only plans that overlap this exact target window. A future
-      // pending plan must never cancel the user's currently active approved week.
-      await tx.mealPlan.updateMany({
-        where: {
-          userId,
-          status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
-          scheduledDate: { gte: startDate, lte: targetPlanEndDate },
-        },
-        data: { status: MealPlanStatus.CANCELLED },
-      });
+    await prisma.$transaction(
+      async (tx) => {
+        // 1. Replace only plans that overlap this exact target window. A future
+        // pending plan must never cancel the user's currently active approved week.
+        await tx.mealPlan.updateMany({
+          where: {
+            userId,
+            status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
+            scheduledDate: { gte: startDate, lte: targetPlanEndDate },
+          },
+          data: { status: MealPlanStatus.CANCELLED },
+        });
 
-      // 1b. Create swap tracker row for this new planGroupId
-      await tx.planSwapTracker.create({
-        data: {
-          planGroupId: newPlanGroupId,
-          userId,
-          swapsUsed: 0,
-        },
-      });
+        // 1b. Create swap tracker row for this new planGroupId
+        await tx.planSwapTracker.create({
+          data: {
+            planGroupId: newPlanGroupId,
+            userId,
+            swapsUsed: 0,
+          },
+        });
 
-      // 2. Create matched library meals from the exact certified library snapshot.
-      if (matchedSlots.length > 0) {
-        for (const slot of matchedSlots) {
-          const ingredientsData = slot.libraryMeal.ingredients.map((ing) => ({
-            ingredientName: ing.ingredientName,
-            category: ing.category,
-            foodItemId: ing.foodItemId,
-            dataSource: ing.dataSource,
-            quantity: ing.quantity,
-            unit: ing.unit,
-          }));
+        // 2. Create matched library meals from the exact certified library snapshot.
+        if (matchedSlots.length > 0) {
+          for (const slot of matchedSlots) {
+            const ingredientsData = slot.libraryMeal.ingredients.map((ing) => ({
+              ingredientName: ing.ingredientName,
+              category: ing.category,
+              foodItemId: ing.foodItemId,
+              dataSource: ing.dataSource,
+              quantity: ing.quantity,
+              unit: ing.unit,
+            }));
 
-          // A currently certified library revision is already staff-reviewed,
-          // so this clone is actionable without another queue round-trip.
+            // A currently certified library revision is already staff-reviewed,
+            // so this clone is actionable without another queue round-trip.
+            const createdPlan = await tx.mealPlan.create({
+              data: {
+                planGroupId: newPlanGroupId,
+                userId,
+                status: MealPlanStatus.APPROVED,
+                libraryMealId: slot.libraryMeal.id,
+                nutritionistId: slot.libraryMeal.safetyReviewedByNutritionistId,
+                planType,
+                mealType: slot.mealType,
+                mealName: slot.libraryMeal.mealName,
+                description: slot.libraryMeal.description,
+                calories: slot.libraryMeal.calories,
+                proteinG: slot.libraryMeal.proteinG,
+                carbsG: slot.libraryMeal.carbsG,
+                fatG: slot.libraryMeal.fatG,
+                aiConfidenceFlag: AIConfidenceFlag.SAFE,
+                scheduledDate: slot.scheduledDate,
+                reviewedAt: slot.libraryMeal.safetyReviewedAt,
+                requiresSafetyRevalidation: false,
+                safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                highRiskReviewRequired,
+                reviewApprovalCount: highRiskReviewRequired ? 2 : 1,
+                ingredients: {
+                  create: ingredientsData,
+                },
+              },
+            });
+            createdPlansList.push(createdPlan);
+
+            // Increment library entry usage count
+            await tx.mealLibrary.update({
+              where: { id: slot.libraryMeal.id },
+              data: { usageCount: { increment: 1 } },
+            });
+          }
+        }
+
+        // 3. Create newly AI generated meals using pre-resolved lookups
+        for (const meal of preparedAiMeals) {
           const createdPlan = await tx.mealPlan.create({
             data: {
               planGroupId: newPlanGroupId,
               userId,
-              status: MealPlanStatus.APPROVED,
-              libraryMealId: slot.libraryMeal.id,
-              nutritionistId: slot.libraryMeal.safetyReviewedByNutritionistId,
+              status: MealPlanStatus.PENDING_REVIEW,
               planType,
-              mealType: slot.mealType,
-              mealName: slot.libraryMeal.mealName,
-              description: slot.libraryMeal.description,
-              calories: slot.libraryMeal.calories,
-              proteinG: slot.libraryMeal.proteinG,
-              carbsG: slot.libraryMeal.carbsG,
-              fatG: slot.libraryMeal.fatG,
-              aiConfidenceFlag: AIConfidenceFlag.SAFE,
-              scheduledDate: slot.scheduledDate,
-            reviewedAt: slot.libraryMeal.safetyReviewedAt,
-            requiresSafetyRevalidation: false,
-            safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-            highRiskReviewRequired,
-            reviewApprovalCount: highRiskReviewRequired ? 2 : 1,
+              mealType: meal.mealType,
+              mealName: meal.mealName,
+              description: meal.description,
+              calories: meal.calories,
+              proteinG: meal.proteinG,
+              carbsG: meal.carbsG,
+              fatG: meal.fatG,
+              aiConfidenceFlag: meal.aiConfidenceFlag,
+              scheduledDate: meal.scheduledDate,
+              requiresSafetyRevalidation: true,
+              safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              highRiskReviewRequired,
               ingredients: {
-                create: ingredientsData,
+                create: meal.ingredientsData,
               },
             },
           });
           createdPlansList.push(createdPlan);
-
-          // Increment library entry usage count
-          await tx.mealLibrary.update({
-            where: { id: slot.libraryMeal.id },
-            data: { usageCount: { increment: 1 } },
-          });
         }
-      }
-
-      // 3. Create newly AI generated meals using pre-resolved lookups
-      for (const meal of preparedAiMeals) {
-        const createdPlan = await tx.mealPlan.create({
-          data: {
-            planGroupId: newPlanGroupId,
-            userId,
-            status: MealPlanStatus.PENDING_REVIEW,
-            planType,
-            mealType: meal.mealType,
-            mealName: meal.mealName,
-            description: meal.description,
-            calories: meal.calories,
-            proteinG: meal.proteinG,
-            carbsG: meal.carbsG,
-            fatG: meal.fatG,
-            aiConfidenceFlag: meal.aiConfidenceFlag,
-            scheduledDate: meal.scheduledDate,
-            requiresSafetyRevalidation: true,
-            safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-            highRiskReviewRequired,
-            ingredients: {
-              create: meal.ingredientsData,
-            },
-          },
-        });
-        createdPlansList.push(createdPlan);
-      }
-    }, { timeout: 30000 });
+      },
+      { timeout: 30000 }
+    );
 
     await MealGenerationService.updateGenerationProgress(
       generationJobId,
@@ -734,7 +748,8 @@ export class MealGenerationService {
         data: {
           userId,
           title: notificationTitle,
-          message: 'Your new AI meal plan contains clinical alerts and has been queued for Registered Dietitian review.',
+          message:
+            'Your new AI meal plan contains clinical alerts and has been queued for Registered Dietitian review.',
           type: NotificationType.REVIEW_REQUEST,
         },
       });

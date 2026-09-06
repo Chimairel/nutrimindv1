@@ -25,10 +25,7 @@ import {
   getCatalogueDietaryTags,
   type CommonMealDefinition,
 } from '../src/data/common-meal-catalogue';
-import {
-  calculateCatalogueNutrition,
-  type CatalogueFnriFoodEvidence,
-} from '../src/domain/catalogue-nutrition.policy';
+import { calculateCatalogueNutrition, type CatalogueFnriFoodEvidence } from '../src/domain/catalogue-nutrition.policy';
 import {
   CURRENT_CATALOGUE_REVIEW_REASON,
   MANAGED_CATALOGUE_REVIEW_REASONS,
@@ -46,15 +43,12 @@ const APPLY = process.argv.includes('--apply');
 const OFFLINE_DRY_RUN = process.argv.includes('--offline-dry-run');
 const SEED_REVIEW_REASON = CURRENT_CATALOGUE_REVIEW_REASON;
 const NUTRITIONIST_EMAIL = 'nutritionist@gmail.com';
-const COVERAGE_GAP_ADDITION_NAMES = [
-  'Tokwa Ampalaya Rice Bowl',
-  'Tokwa Sayote and Sitaw Dinner Plate',
-] as const;
+const COVERAGE_GAP_ADDITION_NAMES = ['Tokwa Ampalaya Rice Bowl', 'Tokwa Sayote and Sitaw Dinner Plate'] as const;
 
 async function resolveFnriFoods(): Promise<Map<string, CatalogueFnriFoodEvidence>> {
-  const requiredNames = [...new Set(
-    COMMON_MEAL_CATALOGUE.flatMap((meal) => meal.ingredients.map((item) => item.foodName))
-  )];
+  const requiredNames = [
+    ...new Set(COMMON_MEAL_CATALOGUE.flatMap((meal) => meal.ingredients.map((item) => item.foodName))),
+  ];
   const rows = await prisma.foodItem.findMany({
     where: { name: { in: requiredNames }, source: 'FNRI' },
     select: { id: true, name: true, calories: true, proteinG: true, carbsG: true, fatG: true, sodium: true },
@@ -101,9 +95,7 @@ function optionalNumber(value: string | undefined): number | null {
 }
 
 function resolveFnriFoodsFromCsv(): Map<string, CatalogueFnriFoodEvidence> {
-  const requiredNames = new Set(
-    COMMON_MEAL_CATALOGUE.flatMap((meal) => meal.ingredients.map((item) => item.foodName)),
-  );
+  const requiredNames = new Set(COMMON_MEAL_CATALOGUE.flatMap((meal) => meal.ingredients.map((item) => item.foodName)));
   const csvPath = path.join(__dirname, 'data', 'fnri.csv');
   const lines = fs.readFileSync(csvPath, 'utf8').split(/\r?\n/).filter(Boolean).slice(1);
   const grouped = new Map<string, CatalogueFnriFoodEvidence[]>();
@@ -131,14 +123,11 @@ function resolveFnriFoodsFromCsv(): Map<string, CatalogueFnriFoodEvidence> {
   return new Map([...requiredNames].map((name) => [name, grouped.get(name)![0]]));
 }
 
-function projectCertifiedMeal(
-  meal: CommonMealDefinition,
-  foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>,
-) {
+function projectCertifiedMeal(meal: CommonMealDefinition, foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>) {
   const nutrition = calculateCatalogueNutrition(meal, foods);
   const suitableConditions = deriveCatalogueConditionSuitability(nutrition);
   const allergensReviewedAbsent = SUPPORTED_LIBRARY_ALLERGENS.filter(
-    (allergen) => !meal.allergensPresent.includes(allergen),
+    (allergen) => !meal.allergensPresent.includes(allergen)
   );
   return {
     mealName: meal.mealName,
@@ -147,9 +136,7 @@ function projectCertifiedMeal(
     status: 'APPROVED',
     safetyEvidenceStatus: 'COMPLETE',
     safetyEvidenceOrigin: 'NUTRITIONIST_REVIEW',
-    conditionDeclarationState: suitableConditions.length > 0
-      ? 'REVIEWED_WITH_DECLARATIONS'
-      : 'REVIEWED_NONE_DECLARED',
+    conditionDeclarationState: suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
     allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
     crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
     safetyEvidenceRevision: 1,
@@ -191,86 +178,90 @@ function projectCertifiedMeal(
   };
 }
 
-function runOfflineDryRun(
-  counts: Record<string, number>,
-  foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>,
-) {
+function runOfflineDryRun(counts: Record<string, number>, foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>) {
   const projectedMeals = COMMON_MEAL_CATALOGUE.map((meal) => projectCertifiedMeal(meal, foods));
   const safetyEntries = [
     { domain: 'CONDITION', canonicalCode: 'DIABETES', displayName: 'Diabetes', supportState: 'SUPPORTED' },
     { domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' },
   ] as const;
-  const matching = projectedMeals.filter((meal) => isCertifiedLibraryMealCompatible(
-    meal,
-    [],
-    [],
-    {
+  const matching = projectedMeals.filter((meal) =>
+    isCertifiedLibraryMealCompatible(meal, [], [], {
       dietaryPreference: 'VEGETARIAN',
       goal: 'MAINTAIN',
       otherConditions: null,
       otherAllergies: null,
       safetyEntries,
-    },
-  ));
+    })
+  );
   const projectedCoverage = Object.fromEntries(
     ['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType) => [
       mealType,
       matching.filter((meal) => meal.mealType === mealType).length,
-    ]),
+    ])
   ) as Record<string, number>;
   if (Object.values(projectedCoverage).some((count) => count < 7)) {
     throw new Error(`Projected combined-profile coverage remains incomplete: ${JSON.stringify(projectedCoverage)}`);
   }
 
-  const repeatWrites = COMMON_MEAL_CATALOGUE.filter((meal) => !hasCurrentCatalogueDefinition(meal, {
-    safetyEvidenceStatus: 'COMPLETE',
-    safetyReviews: [{
-      reasonCode: CURRENT_CATALOGUE_REVIEW_REASON,
-      evidenceSnapshot: { signature: catalogueDefinitionSignature(meal) },
-    }],
-  })).length;
+  const repeatWrites = COMMON_MEAL_CATALOGUE.filter(
+    (meal) =>
+      !hasCurrentCatalogueDefinition(meal, {
+        safetyEvidenceStatus: 'COMPLETE',
+        safetyReviews: [
+          {
+            reasonCode: CURRENT_CATALOGUE_REVIEW_REASON,
+            evidenceSnapshot: { signature: catalogueDefinitionSignature(meal) },
+          },
+        ],
+      })
+  ).length;
   if (repeatWrites !== 0) throw new Error(`Idempotence projection requires ${repeatWrites} repeat writes.`);
 
   const additions = projectedMeals.filter((meal) =>
-    COVERAGE_GAP_ADDITION_NAMES.includes(meal.mealName as typeof COVERAGE_GAP_ADDITION_NAMES[number])
+    COVERAGE_GAP_ADDITION_NAMES.includes(meal.mealName as (typeof COVERAGE_GAP_ADDITION_NAMES)[number])
   );
   if (additions.length !== COVERAGE_GAP_ADDITION_NAMES.length) {
     throw new Error(`Expected ${COVERAGE_GAP_ADDITION_NAMES.length} bounded additions, found ${additions.length}.`);
   }
-  console.log(JSON.stringify({
-    mode: 'offline-dry-run',
-    databaseConnected: false,
-    catalogueMeals: COMMON_MEAL_CATALOGUE.length,
-    mealTypeCounts: counts,
-    exactFnriFoods: foods.size,
-    projectedAgainstRecorded49MealBaseline: {
-      creates: additions.length,
-      updates: 0,
-      skips: COMMON_MEAL_CATALOGUE.length - additions.length,
-    },
-    repeatRun: {
-      catalogueWrites: repeatWrites,
-      profileCounterWrites: Number(shouldUpdateCatalogueVerifiedCount(
-        COMMON_MEAL_CATALOGUE.length,
-        COMMON_MEAL_CATALOGUE.length,
-      )),
-      skips: COMMON_MEAL_CATALOGUE.length,
-    },
-    projectedProfile: {
-      restrictions: ['DIABETES', 'VEGETARIAN', 'EGGS'],
-      counts: projectedCoverage,
-      weekReady: true,
-    },
-    additions: additions.map((meal) => ({
-      mealName: meal.mealName,
-      mealType: meal.mealType,
-      nutrition: meal.nutrition,
-      ingredients: meal.ingredients,
-      suitableConditions: meal.suitableConditions,
-      allergensPresent: meal.allergensPresent,
-      allergensReviewedAbsent: meal.allergensReviewedAbsent,
-    })),
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        mode: 'offline-dry-run',
+        databaseConnected: false,
+        catalogueMeals: COMMON_MEAL_CATALOGUE.length,
+        mealTypeCounts: counts,
+        exactFnriFoods: foods.size,
+        projectedAgainstRecorded49MealBaseline: {
+          creates: additions.length,
+          updates: 0,
+          skips: COMMON_MEAL_CATALOGUE.length - additions.length,
+        },
+        repeatRun: {
+          catalogueWrites: repeatWrites,
+          profileCounterWrites: Number(
+            shouldUpdateCatalogueVerifiedCount(COMMON_MEAL_CATALOGUE.length, COMMON_MEAL_CATALOGUE.length)
+          ),
+          skips: COMMON_MEAL_CATALOGUE.length,
+        },
+        projectedProfile: {
+          restrictions: ['DIABETES', 'VEGETARIAN', 'EGGS'],
+          counts: projectedCoverage,
+          weekReady: true,
+        },
+        additions: additions.map((meal) => ({
+          mealName: meal.mealName,
+          mealType: meal.mealType,
+          nutrition: meal.nutrition,
+          ingredients: meal.ingredients,
+          suitableConditions: meal.suitableConditions,
+          allergensPresent: meal.allergensPresent,
+          allergensReviewedAbsent: meal.allergensReviewedAbsent,
+        })),
+      },
+      null,
+      2
+    )
+  );
 }
 
 async function main() {
@@ -303,7 +294,9 @@ async function main() {
   }
 
   const foods = await resolveFnriFoods();
-  console.log(`Validated ${COMMON_MEAL_CATALOGUE.length} meals (${JSON.stringify(counts)}) and ${foods.size} exact FNRI foods.`);
+  console.log(
+    `Validated ${COMMON_MEAL_CATALOGUE.length} meals (${JSON.stringify(counts)}) and ${foods.size} exact FNRI foods.`
+  );
   console.log(`Reviewer: ${nutritionist.user.name} (${nutritionist.prcLicenseNumber})`);
   if (!APPLY) {
     console.log('Dry run complete. Re-run with --apply to create and certify the catalogue.');
@@ -458,9 +451,8 @@ async function main() {
     );
     await NutritionistService.certifyLibraryMealSafety(nutritionist.id, mealId, {
       expectedRevision: expectedRevision!,
-      conditionDeclarationState: suitableConditions.length > 0
-        ? 'REVIEWED_WITH_DECLARATIONS'
-        : 'REVIEWED_NONE_DECLARED',
+      conditionDeclarationState:
+        suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
       allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
       crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
       suitableConditions,
@@ -491,7 +483,9 @@ async function main() {
         : false,
     });
     if (!evidence.complete || row.flags.length > 0) {
-      throw new Error(`Certification verification failed for ${row.mealName}: ${evidence.reasons.join(', ') || 'PENDING_FLAG'}`);
+      throw new Error(
+        `Certification verification failed for ${row.mealName}: ${evidence.reasons.join(', ') || 'PENDING_FLAG'}`
+      );
     }
     if (row.verifiedByNutritionistId !== nutritionist.id) {
       throw new Error(`Unexpected verifier for managed meal: ${row.mealName}`);
@@ -501,10 +495,7 @@ async function main() {
   const totalVerified = await prisma.mealLibrary.count({
     where: { verifiedByNutritionistId: nutritionist.id },
   });
-  const profileCounterUpdated = shouldUpdateCatalogueVerifiedCount(
-    nutritionist.totalVerified,
-    totalVerified,
-  );
+  const profileCounterUpdated = shouldUpdateCatalogueVerifiedCount(nutritionist.totalVerified, totalVerified);
   if (profileCounterUpdated) {
     await prisma.nutritionistProfile.update({
       where: { id: nutritionist.id },
@@ -513,7 +504,9 @@ async function main() {
   }
 
   console.log(`Finished: ${created} created, ${certified} certified, ${skipped} already current.`);
-  console.log(`Verified database state: ${verifiedRows.length} current catalogue meals; profile total ${totalVerified}; profile counter ${profileCounterUpdated ? 'updated' : 'unchanged'}.`);
+  console.log(
+    `Verified database state: ${verifiedRows.length} current catalogue meals; profile total ${totalVerified}; profile counter ${profileCounterUpdated ? 'updated' : 'unchanged'}.`
+  );
 }
 
 main()

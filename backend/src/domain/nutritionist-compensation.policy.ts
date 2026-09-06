@@ -1,10 +1,7 @@
 import { assertCurrency, assertPositiveMoney, sumMinorAmounts } from './billing-money.policy';
 
 export type WorkCreditKind =
-  | 'ORDINARY_PLAN_REVIEW'
-  | 'HIGH_RISK_SECOND_REVIEW'
-  | 'LIBRARY_SAFETY_CERTIFICATION'
-  | 'SAFETY_FLAG_RESOLUTION';
+  'ORDINARY_PLAN_REVIEW' | 'HIGH_RISK_SECOND_REVIEW' | 'LIBRARY_SAFETY_CERTIFICATION' | 'SAFETY_FLAG_RESOLUTION';
 
 export type ReviewOutcome = 'APPROVED' | 'REJECTED' | 'ESCALATED';
 
@@ -36,9 +33,7 @@ export function decideWorkCreditAward(input: {
   sourceActionKey: string;
   sourceOutcome: ReviewOutcome;
   existingSourceActionKeys: ReadonlySet<string>;
-}):
-  | { decision: 'DUPLICATE' }
-  | { decision: 'AWARD'; unitsMillis: number; sourceOutcome: ReviewOutcome } {
+}): { decision: 'DUPLICATE' } | { decision: 'AWARD'; unitsMillis: number; sourceOutcome: ReviewOutcome } {
   assertActionKey(input.sourceActionKey);
   if (!Object.prototype.hasOwnProperty.call(WORK_CREDIT_UNITS_MILLIS, input.creditKind)) {
     throw new TypeError('Unsupported work-credit kind.');
@@ -133,8 +128,8 @@ export function calculateCompensation(input: {
   const creditedUnitsMillis = Math.max(0, netCreditUnitsMillis);
   const cappedUnitsMillis = Math.min(creditedUnitsMillis, input.workloadUnitCapMillis);
   const workloadAllowanceMinor = sortedBands.reduce(
-    (allowance, band) => cappedUnitsMillis >= band.minimumUnitsMillis ? band.allowanceMinor : allowance,
-    0,
+    (allowance, band) => (cappedUnitsMillis >= band.minimumUnitsMillis ? band.allowanceMinor : allowance),
+    0
   );
   const adjustmentMinor = sumMinorAmounts(input.approvedAdjustmentsMinor ?? []);
   const grossMinor = sumMinorAmounts([input.baseRetainerMinor, workloadAllowanceMinor, adjustmentMinor]);

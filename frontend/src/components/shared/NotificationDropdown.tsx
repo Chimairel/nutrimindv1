@@ -28,11 +28,16 @@ export default function NotificationDropdown() {
 
   const getIconForType = (type: string) => {
     switch (type) {
-      case 'PLAN_APPROVED': return <CheckCircle className="w-4 h-4 text-brand-green" />;
-      case 'PLAN_REJECTED': return <AlertTriangle className="w-4 h-4 text-status-error-text" />;
-      case 'REVIEW_REQUEST': return <ClipboardList className="w-4 h-4 text-status-pending-text" />;
-      case 'WEEKLY_CHECKIN': return <Calendar className="w-4 h-4 text-brand-green" />;
-      default: return <Bell className="w-4 h-4 text-brand-muted" />;
+      case 'PLAN_APPROVED':
+        return <CheckCircle className="w-4 h-4 text-brand-green" />;
+      case 'PLAN_REJECTED':
+        return <AlertTriangle className="w-4 h-4 text-status-error-text" />;
+      case 'REVIEW_REQUEST':
+        return <ClipboardList className="w-4 h-4 text-status-pending-text" />;
+      case 'WEEKLY_CHECKIN':
+        return <Calendar className="w-4 h-4 text-brand-green" />;
+      default:
+        return <Bell className="w-4 h-4 text-brand-muted" />;
     }
   };
 
@@ -69,7 +74,9 @@ export default function NotificationDropdown() {
               <div className="min-w-0">
                 <h3 className="font-display text-sm font-bold text-brand-text">Notifications</h3>
                 <p className="mt-0.5 text-[11px] text-brand-muted">
-                  {unreadCount > 0 ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'You are all caught up'}
+                  {unreadCount > 0
+                    ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}`
+                    : 'You are all caught up'}
                 </p>
               </div>
             </div>
@@ -88,7 +95,10 @@ export default function NotificationDropdown() {
             {isLoading ? (
               <div className="space-y-2" aria-label="Loading notifications">
                 {[0, 1, 2].map((item) => (
-                  <div key={item} className="h-24 animate-pulse rounded-[18px] border border-brand-border/60 bg-brand-surface" />
+                  <div
+                    key={item}
+                    className="h-24 animate-pulse rounded-[18px] border border-brand-border/60 bg-brand-surface"
+                  />
                 ))}
               </div>
             ) : notifications.length === 0 ? (
@@ -98,7 +108,9 @@ export default function NotificationDropdown() {
                 </span>
                 <div>
                   <p className="text-sm font-bold text-brand-text">No new notifications</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-brand-muted">Meal-plan and account updates will appear here.</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-brand-muted">
+                    Meal-plan and account updates will appear here.
+                  </p>
                 </div>
               </div>
             ) : (
@@ -116,17 +128,23 @@ export default function NotificationDropdown() {
                         : 'border-brand-border/70 bg-brand-surface'
                     }`}
                   >
-                    <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                      !notif.isRead ? 'bg-brand-green/[0.12]' : 'bg-brand-bgAlt'
-                    }`}>
+                    <span
+                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                        !notif.isRead ? 'bg-brand-green/[0.12]' : 'bg-brand-bgAlt'
+                      }`}
+                    >
                       {getIconForType(notif.type)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-start justify-between gap-3">
-                        <span className={`text-xs font-bold leading-snug ${!notif.isRead ? 'text-brand-text' : 'text-brand-muted'}`}>
+                        <span
+                          className={`text-xs font-bold leading-snug ${!notif.isRead ? 'text-brand-text' : 'text-brand-muted'}`}
+                        >
                           {notif.title}
                         </span>
-                        {!notif.isRead && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-green shadow-[0_0_8px_rgba(8,112,91,0.35)]" />}
+                        {!notif.isRead && (
+                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-green shadow-[0_0_8px_rgba(8,112,91,0.35)]" />
+                        )}
                       </span>
                       <span className="mt-1.5 line-clamp-2 block text-[11px] leading-relaxed text-brand-muted">
                         {notif.message}

@@ -21,8 +21,7 @@ export interface EnabledBillingProcessingWorkerConfig {
 }
 
 export type BillingProcessingWorkerConfig =
-  | DisabledBillingProcessingWorkerConfig
-  | EnabledBillingProcessingWorkerConfig;
+  DisabledBillingProcessingWorkerConfig | EnabledBillingProcessingWorkerConfig;
 
 export class BillingProcessingWorkerConfigurationError extends Error {
   readonly code = 'BILLING_PROCESSING_WORKER_CONFIGURATION_INVALID';
@@ -47,7 +46,7 @@ function boundedInteger(
   fallback: number,
   minimum: number,
   maximum: number,
-  invalid: string[],
+  invalid: string[]
 ): number {
   const raw = env[key]?.trim();
   if (!raw) return fallback;
@@ -65,7 +64,7 @@ function boundedInteger(
 
 export function loadBillingProcessingWorkerConfig(
   env: NodeJS.ProcessEnv,
-  paymongoConfig: PaymongoConfig,
+  paymongoConfig: PaymongoConfig
 ): BillingProcessingWorkerConfig {
   if (!parseSwitch(env)) return { enabled: false };
 
@@ -76,20 +75,24 @@ export function loadBillingProcessingWorkerConfig(
   if (!paymongoConfig.reconciliation.enabled) invalid.push('PAYMONGO_RECONCILIATION_ENABLED');
 
   const pollIntervalMs = boundedInteger(
-    env, 'BILLING_PROCESSING_WORKER_POLL_INTERVAL_MS', DEFAULT_POLL_INTERVAL_MS, 1_000, 300_000, invalid,
+    env,
+    'BILLING_PROCESSING_WORKER_POLL_INTERVAL_MS',
+    DEFAULT_POLL_INTERVAL_MS,
+    1_000,
+    300_000,
+    invalid
   );
-  const batchSize = boundedInteger(
-    env, 'BILLING_PROCESSING_WORKER_BATCH_SIZE', DEFAULT_BATCH_SIZE, 1, 50, invalid,
-  );
-  const concurrency = boundedInteger(
-    env, 'BILLING_PROCESSING_WORKER_CONCURRENCY', DEFAULT_CONCURRENCY, 1, 8, invalid,
-  );
+  const batchSize = boundedInteger(env, 'BILLING_PROCESSING_WORKER_BATCH_SIZE', DEFAULT_BATCH_SIZE, 1, 50, invalid);
+  const concurrency = boundedInteger(env, 'BILLING_PROCESSING_WORKER_CONCURRENCY', DEFAULT_CONCURRENCY, 1, 8, invalid);
   const providerCallBudget = boundedInteger(
-    env, 'BILLING_PROCESSING_WORKER_PROVIDER_CALL_BUDGET', DEFAULT_PROVIDER_CALL_BUDGET, 1, 50, invalid,
+    env,
+    'BILLING_PROCESSING_WORKER_PROVIDER_CALL_BUDGET',
+    DEFAULT_PROVIDER_CALL_BUDGET,
+    1,
+    50,
+    invalid
   );
-  const jitterMs = boundedInteger(
-    env, 'BILLING_PROCESSING_WORKER_JITTER_MS', DEFAULT_JITTER_MS, 0, 30_000, invalid,
-  );
+  const jitterMs = boundedInteger(env, 'BILLING_PROCESSING_WORKER_JITTER_MS', DEFAULT_JITTER_MS, 0, 30_000, invalid);
 
   if (concurrency > batchSize) invalid.push('BILLING_PROCESSING_WORKER_CONCURRENCY');
   if (providerCallBudget > batchSize) invalid.push('BILLING_PROCESSING_WORKER_PROVIDER_CALL_BUDGET');

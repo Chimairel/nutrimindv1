@@ -16,7 +16,7 @@ function roundNutrient(value: number): number {
 
 export function calculateCatalogueNutrition(
   meal: CommonMealDefinition,
-  foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>,
+  foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>
 ) {
   let hasCompleteSodium = true;
   const totals = meal.ingredients.reduce(
@@ -32,7 +32,7 @@ export function calculateCatalogueNutrition(
       else result.sodiumMg += food.sodium * portion;
       return result;
     },
-    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 },
+    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 }
   );
 
   return {

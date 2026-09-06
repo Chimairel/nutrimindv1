@@ -58,9 +58,16 @@ class FakeCheckoutRepository implements CheckoutIntentRepository {
     this.seenUserId = input.userId;
     return this.price;
   }
-  async claim() { return this.claimDecision; }
-  async complete() { this.completed += 1; }
-  async release(input: { failureCode: string }) { this.released += 1; this.failureCode = input.failureCode; }
+  async claim() {
+    return this.claimDecision;
+  }
+  async complete() {
+    this.completed += 1;
+  }
+  async release(input: { failureCode: string }) {
+    this.released += 1;
+    this.failureCode = input.failureCode;
+  }
 }
 
 class FakeGateway implements BillingGateway {
@@ -79,8 +86,10 @@ test('[TEST-087] disabled checkout fails before repository or gateway access', a
   const repository = new FakeCheckoutRepository();
   const gateway = new FakeGateway();
   const service = new BillingCheckoutBoundary({ enabled: false, environment: 'TEST' }, repository, gateway);
-  await assert.rejects(() => service.create(input), (error: unknown) =>
-    error instanceof CheckoutBoundaryError && error.code === 'PAYMENTS_UNAVAILABLE');
+  await assert.rejects(
+    () => service.create(input),
+    (error: unknown) => error instanceof CheckoutBoundaryError && error.code === 'PAYMENTS_UNAVAILABLE'
+  );
   assert.equal(repository.seenUserId, undefined);
   assert.equal(gateway.calls, 0);
 });
@@ -113,8 +122,10 @@ test('[TEST-087] an idempotency-key payload collision fails closed', async () =>
   const repository = new FakeCheckoutRepository();
   repository.claimDecision = { decision: 'CONFLICT' };
   const gateway = new FakeGateway();
-  await assert.rejects(() => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
-    (error: unknown) => error instanceof CheckoutBoundaryError && error.code === 'CHECKOUT_IDEMPOTENCY_CONFLICT');
+  await assert.rejects(
+    () => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
+    (error: unknown) => error instanceof CheckoutBoundaryError && error.code === 'CHECKOUT_IDEMPOTENCY_CONFLICT'
+  );
   assert.equal(gateway.calls, 0);
 });
 
@@ -122,17 +133,28 @@ test('[TEST-087] unavailable prices and malformed identifiers fail without a pro
   const repository = new FakeCheckoutRepository();
   const gateway = new FakeGateway();
   repository.price = null as never;
-  await assert.rejects(() => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input), /CHECKOUT_PRICE_UNAVAILABLE/);
-  await assert.rejects(() => new BillingCheckoutBoundary(enabledConfig(), new FakeCheckoutRepository(), gateway).create({
-    ...input,
-    requestIdempotencyKey: 'short',
-  }), /CHECKOUT_REQUEST_INVALID/);
+  await assert.rejects(
+    () => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
+    /CHECKOUT_PRICE_UNAVAILABLE/
+  );
+  await assert.rejects(
+    () =>
+      new BillingCheckoutBoundary(enabledConfig(), new FakeCheckoutRepository(), gateway).create({
+        ...input,
+        requestIdempotencyKey: 'short',
+      }),
+    /CHECKOUT_REQUEST_INVALID/
+  );
   assert.equal(gateway.calls, 0);
 });
 
 test('[TEST-087] provider or repository failures are sanitized and release the claimed intent', async () => {
   const repository = new FakeCheckoutRepository();
-  const gateway: BillingGateway = { async createHostedCheckout() { throw new Error('sensitive provider body'); } };
+  const gateway: BillingGateway = {
+    async createHostedCheckout() {
+      throw new Error('sensitive provider body');
+    },
+  };
   let caught: unknown;
   try {
     await new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input);
@@ -152,8 +174,10 @@ test('[TEST-087] a gateway cannot smuggle a live or entitlement-granting respons
       return { ...session, entitlementGranted: true } as unknown as HostedCheckoutSession;
     },
   };
-  await assert.rejects(() => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
-    /CHECKOUT_TEMPORARILY_UNAVAILABLE/);
+  await assert.rejects(
+    () => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
+    /CHECKOUT_TEMPORARILY_UNAVAILABLE/
+  );
   assert.equal(repository.completed, 0);
   assert.equal(repository.released, 1);
 });
@@ -167,7 +191,7 @@ test('[TEST-100] provider rejection retains only its bounded code and becomes te
   };
   await assert.rejects(
     () => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
-    (error: unknown) => error instanceof CheckoutBoundaryError && error.code === 'CHECKOUT_PROVIDER_REJECTED',
+    (error: unknown) => error instanceof CheckoutBoundaryError && error.code === 'CHECKOUT_PROVIDER_REJECTED'
   );
   assert.equal(repository.failureCode, 'PROVIDER_REQUEST_REJECTED:payment_method_not_allowed');
 });

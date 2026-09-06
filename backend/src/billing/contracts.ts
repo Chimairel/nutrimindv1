@@ -65,11 +65,7 @@ export type CheckoutIntentClaim =
   | { decision: 'FAILED'; failureCode: string };
 
 export interface CheckoutIntentRepository {
-  findEligiblePrice(input: {
-    userId: string;
-    priceCode: string;
-    environment: 'TEST';
-  }): Promise<CheckoutPrice | null>;
+  findEligiblePrice(input: { userId: string; priceCode: string; environment: 'TEST' }): Promise<CheckoutPrice | null>;
   claim(input: {
     userId: string;
     priceId: string;
@@ -147,7 +143,7 @@ export type CheckoutReconciliationGatewayErrorCode =
 export class CheckoutReconciliationGatewayError extends Error {
   constructor(
     readonly code: CheckoutReconciliationGatewayErrorCode,
-    readonly retryable: boolean,
+    readonly retryable: boolean
   ) {
     super(code);
     this.name = 'CheckoutReconciliationGatewayError';
@@ -186,8 +182,7 @@ export interface PaymentProjectionBinding {
 }
 
 export type PaymentProjectionClaim =
-  | { decision: 'NO_WORK' }
-  | { decision: 'CLAIMED'; binding: PaymentProjectionBinding };
+  { decision: 'NO_WORK' } | { decision: 'CLAIMED'; binding: PaymentProjectionBinding };
 
 export interface PaymentProjectionResult {
   subscriptionId: string;
@@ -205,10 +200,10 @@ export interface PaymentProjectionRepository {
   project(
     binding: PaymentProjectionBinding,
     evidence: ReconciledPaymongoCheckout,
-    period: { effectiveFrom: Date; effectiveUntil: Date },
+    period: { effectiveFrom: Date; effectiveUntil: Date }
   ): Promise<PaymentProjectionResult>;
   fail(
     binding: PaymentProjectionBinding,
-    failure: { code: string; retryable: boolean; details?: Readonly<Record<string, string>> },
+    failure: { code: string; retryable: boolean; details?: Readonly<Record<string, string>> }
   ): Promise<void>;
 }

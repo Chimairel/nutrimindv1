@@ -98,9 +98,7 @@ function normalizeShoppingDay(
   return null;
 }
 
-export function getCycleStartDay(
-  schedule: ShoppingSchedule | ShoppingDayGroup | number
-): number {
+export function getCycleStartDay(schedule: ShoppingSchedule | ShoppingDayGroup | number): number {
   const shoppingDay = normalizeShoppingDay(schedule);
   if (shoppingDay === null) throw new Error('A valid shopping day is required.');
   return (shoppingDay + 1) % 7;

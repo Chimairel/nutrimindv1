@@ -74,9 +74,7 @@ function canonicalAllergyKey(value: unknown): string | null {
   const normalized = normalizeRestrictionComparisonToken(value);
   if (ALLERGY_KEYS.has(normalized)) return normalized;
   if (normalized in APPROVED_RESTRICTION_ALIASES) {
-    return APPROVED_RESTRICTION_ALIASES[
-      normalized as keyof typeof APPROVED_RESTRICTION_ALIASES
-    ];
+    return APPROVED_RESTRICTION_ALIASES[normalized as keyof typeof APPROVED_RESTRICTION_ALIASES];
   }
   return null;
 }
@@ -101,13 +99,10 @@ function positiveCanonicalUserAllergies(restrictions: UnknownRecord): string[] {
     }
   }
 
-  return [...keys].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  return [...keys].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-function adaptSafetyMetadata(
-  candidate: UnknownRecord,
-  restrictions: UnknownRecord
-): unknown {
+function adaptSafetyMetadata(candidate: UnknownRecord, restrictions: UnknownRecord): unknown {
   if (!hasOwn(candidate, 'suitableConditions') || !hasOwn(candidate, 'allergenFree')) {
     return undefined;
   }
@@ -134,12 +129,11 @@ function adaptSafetyMetadata(
 
   const suppliedEvidence = candidate.safetyEvidence;
   const declaredFreeKeys = new Set(
-    allergenFree
-      .map(canonicalAllergyKey)
-      .filter((key): key is string => key !== null && key !== 'NONE')
+    allergenFree.map(canonicalAllergyKey).filter((key): key is string => key !== null && key !== 'NONE')
   );
-  const declaredAllergiesCovered = positiveCanonicalUserAllergies(restrictions)
-    .every((key) => declaredFreeKeys.has(key));
+  const declaredAllergiesCovered = positiveCanonicalUserAllergies(restrictions).every((key) =>
+    declaredFreeKeys.has(key)
+  );
   const unknownCompatibilityKey =
     hasUnknownCompatibilityValue(suitableConditions, 'condition') ||
     hasUnknownCompatibilityValue(allergenFree, 'allergy');
@@ -229,11 +223,12 @@ export function filterEligibleMealGenerationLibraryCandidates<T>(
   userRestrictions: MealGenerationUserRestrictions,
   toEvidence: (candidate: T) => MealGenerationLibraryCandidateEvidence
 ): T[] {
-  return candidates.filter((candidate) =>
-    evaluateMealGenerationLibraryCompatibility({
-      userRestrictions,
-      candidate: toEvidence(candidate),
-    }).eligible
+  return candidates.filter(
+    (candidate) =>
+      evaluateMealGenerationLibraryCompatibility({
+        userRestrictions,
+        candidate: toEvidence(candidate),
+      }).eligible
   );
 }
 
@@ -242,5 +237,5 @@ export async function runMealGenerationFallbackForUnmatchedSlots<TSlot, TMeal>(
   fallback: (slots: readonly TSlot[]) => Promise<readonly TMeal[]>
 ): Promise<TMeal[]> {
   if (unmatchedSlots.length === 0) return [];
-  return [...await fallback(unmatchedSlots)];
+  return [...(await fallback(unmatchedSlots))];
 }

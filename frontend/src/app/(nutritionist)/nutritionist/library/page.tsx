@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, Utensils, Stethoscope, ShieldAlert, Flag, Salad } from 'lucide-react';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 
-
 interface Flag {
   id: string;
   reason: string;
@@ -156,10 +155,12 @@ export default function MealLibraryPage() {
   const [verifiedByMe, setVerifiedByMe] = useState(false);
 
   // Modal / Action States
-  const [activeModal, setActiveModal] = useState<'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | null>(null);
+  const [activeModal, setActiveModal] = useState<
+    'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | null
+  >(null);
   const [selectedMeal, setSelectedMeal] = useState<LibraryMeal | null>(null);
   const [selectedVerifier, setSelectedVerifier] = useState<Verifier | null>(null);
-  
+
   // Form input states
   const [editForm, setEditForm] = useState({
     mealName: '',
@@ -283,12 +284,9 @@ export default function MealLibraryPage() {
       const allergenCount = evidenceForm.allergensPresent.length + evidenceForm.allergensReviewedAbsent.length;
       const res = await api.post(`/nutritionist/library/${selectedMeal.id}/safety-evidence/certify`, {
         expectedRevision: selectedMeal.safetyEvidenceRevision,
-        conditionDeclarationState: evidenceForm.suitableConditions.length > 0
-          ? 'REVIEWED_WITH_DECLARATIONS'
-          : 'REVIEWED_NONE_DECLARED',
-        allergenDeclarationState: allergenCount > 0
-          ? 'REVIEWED_WITH_DECLARATIONS'
-          : 'REVIEWED_NONE_DECLARED',
+        conditionDeclarationState:
+          evidenceForm.suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
+        allergenDeclarationState: allergenCount > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
         crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
         suitableConditions: evidenceForm.suitableConditions,
         allergensPresent: evidenceForm.allergensPresent,
@@ -386,15 +384,18 @@ export default function MealLibraryPage() {
     try {
       const payload = {
         resolution,
-        updatedFields: resolution === 'edit' ? {
-          mealName: editForm.mealName,
-          description: editForm.description,
-          calories: editForm.calories,
-          proteinG: editForm.proteinG,
-          carbsG: editForm.carbsG,
-          fatG: editForm.fatG,
-          dietaryTags: editForm.dietaryTags,
-        } : undefined,
+        updatedFields:
+          resolution === 'edit'
+            ? {
+                mealName: editForm.mealName,
+                description: editForm.description,
+                calories: editForm.calories,
+                proteinG: editForm.proteinG,
+                carbsG: editForm.carbsG,
+                fatG: editForm.fatG,
+                dietaryTags: editForm.dietaryTags,
+              }
+            : undefined,
       };
       const res = await api.patch(`/nutritionist/library/${selectedMeal.id}/resolve-flag`, payload);
       if (res.data?.success) {
@@ -411,11 +412,11 @@ export default function MealLibraryPage() {
 
   // Helper toggle arrays
   const handleToggleDiet = (val: string) => {
-    setEditForm(prev => ({
+    setEditForm((prev) => ({
       ...prev,
       dietaryTags: prev.dietaryTags.includes(val)
-        ? prev.dietaryTags.filter(d => d !== val)
-        : [...prev.dietaryTags, val]
+        ? prev.dietaryTags.filter((d) => d !== val)
+        : [...prev.dietaryTags, val],
     }));
   };
 
@@ -431,29 +432,46 @@ export default function MealLibraryPage() {
   const setEvidenceAllergen = (value: string, mode: 'present' | 'absent' | 'clear') => {
     setEvidenceForm((current) => ({
       ...current,
-      allergensPresent: mode === 'present'
-        ? [...current.allergensPresent.filter((item) => item !== value), value]
-        : current.allergensPresent.filter((item) => item !== value),
-      allergensReviewedAbsent: mode === 'absent'
-        ? [...current.allergensReviewedAbsent.filter((item) => item !== value), value]
-        : current.allergensReviewedAbsent.filter((item) => item !== value),
+      allergensPresent:
+        mode === 'present'
+          ? [...current.allergensPresent.filter((item) => item !== value), value]
+          : current.allergensPresent.filter((item) => item !== value),
+      allergensReviewedAbsent:
+        mode === 'absent'
+          ? [...current.allergensReviewedAbsent.filter((item) => item !== value), value]
+          : current.allergensReviewedAbsent.filter((item) => item !== value),
     }));
   };
 
   return (
     <div className="portal-page space-y-6">
-      
       {/* Header */}
-      <PortalPageHeader icon={BookOpen} eyebrow="Meal intelligence" title="Verified meal library" description="Search, inspect, and maintain the reusable meal evidence available to compatible user plans." meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">{totalCount} records</span>} />
+      <PortalPageHeader
+        icon={BookOpen}
+        eyebrow="Meal intelligence"
+        title="Verified meal library"
+        description="Search, inspect, and maintain the reusable meal evidence available to compatible user plans."
+        meta={
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">
+            {totalCount} records
+          </span>
+        }
+      />
 
       {coverage && (
         <section aria-labelledby="coverage-heading" className="space-y-3">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">Coverage monitor</p>
-              <h2 id="coverage-heading" className="font-display text-lg font-black text-brand-text">Seven-day library readiness</h2>
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">
+                Coverage monitor
+              </p>
+              <h2 id="coverage-heading" className="font-display text-lg font-black text-brand-text">
+                Seven-day library readiness
+              </h2>
             </div>
-            <p className="text-xs text-brand-muted">{coverage.certifiedMeals} current certified meals · {coverage.requiredPerSlot} required per slot</p>
+            <p className="text-xs text-brand-muted">
+              {coverage.certifiedMeals} current certified meals · {coverage.requiredPerSlot} required per slot
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {coverage.profiles.map((profile) => (
@@ -481,22 +499,41 @@ export default function MealLibraryPage() {
           <Card className="overflow-hidden border-brand-border/60 bg-brand-surface/65 p-0">
             <div className="border-b border-brand-border/60 px-4 py-3">
               <h3 className="text-sm font-extrabold text-brand-text">Combined restriction matrix</h3>
-              <p className="mt-1 text-[11px] text-brand-muted">Each cell shows the lowest available main-meal slot. Hover or focus a cell for breakfast, lunch, and dinner counts.</p>
+              <p className="mt-1 text-[11px] text-brand-muted">
+                Each cell shows the lowest available main-meal slot. Hover or focus a cell for breakfast, lunch, and
+                dinner counts.
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] border-collapse text-left text-xs">
                 <thead>
                   <tr className="bg-brand-bg/45">
-                    <th scope="col" className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-bg px-4 py-3 font-mono text-[9px] uppercase tracking-wider text-brand-muted">Condition</th>
+                    <th
+                      scope="col"
+                      className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-bg px-4 py-3 font-mono text-[9px] uppercase tracking-wider text-brand-muted"
+                    >
+                      Condition
+                    </th>
                     {coverage.combinationColumns.map((column) => (
-                      <th key={column.key} scope="col" className="px-3 py-3 text-center text-[10px] font-extrabold text-brand-muted">{column.label}</th>
+                      <th
+                        key={column.key}
+                        scope="col"
+                        className="px-3 py-3 text-center text-[10px] font-extrabold text-brand-muted"
+                      >
+                        {column.label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {coverage.combinationMatrix.map((row) => (
                     <tr key={row.key} className="border-t border-brand-border/50">
-                      <th scope="row" className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-surface px-4 py-3 text-xs font-extrabold text-brand-text">{row.label}</th>
+                      <th
+                        scope="row"
+                        className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-surface px-4 py-3 text-xs font-extrabold text-brand-text"
+                      >
+                        {row.label}
+                      </th>
                       {row.cells.map((cell) => {
                         const detail = `Breakfast ${cell.counts.BREAKFAST}, lunch ${cell.counts.LUNCH}, dinner ${cell.counts.DINNER}`;
                         return (
@@ -524,7 +561,9 @@ export default function MealLibraryPage() {
               <Card key={profile.key} className="border-brand-border/60 bg-brand-surface/65 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-cyan">Structured profile</p>
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-cyan">
+                      Structured profile
+                    </p>
                     <p className="mt-1 text-sm font-extrabold text-brand-text">{profile.label}</p>
                   </div>
                   <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
@@ -548,10 +587,11 @@ export default function MealLibraryPage() {
       {/* Top Filter Panel */}
       <Card className="portal-filter-panel space-y-4 p-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          
           {/* Search bar */}
           <div className="md:col-span-2">
-            <label htmlFor="library-search" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Search meal name</label>
+            <label htmlFor="library-search" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">
+              Search meal name
+            </label>
             <div className="relative">
               <input
                 id="library-search"
@@ -566,7 +606,7 @@ export default function MealLibraryPage() {
                 <button
                   type="button"
                   aria-label="Clear meal search"
-                  onClick={() => setSearchVal('')} 
+                  onClick={() => setSearchVal('')}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text text-xs"
                 >
                   ✕
@@ -577,11 +617,16 @@ export default function MealLibraryPage() {
 
           {/* Meal Type */}
           <div>
-            <label htmlFor="library-meal-type" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Meal Type</label>
+            <label htmlFor="library-meal-type" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">
+              Meal Type
+            </label>
             <select
               id="library-meal-type"
               value={mealType}
-              onChange={(e) => { setMealType(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setMealType(e.target.value);
+                setPage(1);
+              }}
               className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
             >
               <option value="All">All Types</option>
@@ -594,32 +639,42 @@ export default function MealLibraryPage() {
 
           {/* Condition Tag */}
           <div>
-            <label htmlFor="library-condition" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Condition Tag</label>
+            <label htmlFor="library-condition" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">
+              Condition Tag
+            </label>
             <select
               id="library-condition"
               value={conditionTag}
-              onChange={(e) => { setConditionTag(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setConditionTag(e.target.value);
+                setPage(1);
+              }}
               className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-sm text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
             >
               <option value="All">All Conditions</option>
-              {AVAILABLE_CONDITIONS.map(c => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+              {AVAILABLE_CONDITIONS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
               ))}
             </select>
           </div>
-
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2 border-t border-brand-border/40">
-          
           <div className="flex gap-4">
             {/* Status Filter */}
             <div className="flex items-center gap-2">
-              <label htmlFor="library-status" className="text-xs font-bold text-brand-muted uppercase">Status:</label>
+              <label htmlFor="library-status" className="text-xs font-bold text-brand-muted uppercase">
+                Status:
+              </label>
               <select
                 id="library-status"
                 value={status}
-                onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
                 className="bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-brand-text focus:outline-none focus:border-brand-green/80"
               >
                 <option value="All">All Statuses</option>
@@ -636,17 +691,22 @@ export default function MealLibraryPage() {
               id="library-verified-by-me"
               type="checkbox"
               checked={verifiedByMe}
-              onChange={(e) => { setVerifiedByMe(e.target.checked); setPage(1); }}
+              onChange={(e) => {
+                setVerifiedByMe(e.target.checked);
+                setPage(1);
+              }}
               className="w-4.5 h-4.5 rounded border-brand-border text-brand-green focus:ring-brand-green bg-brand-bg"
             />
             <span className="text-xs font-bold text-brand-text">Show only meals verified by me</span>
           </label>
-          
         </div>
       </Card>
 
       {fetchError && (
-        <div role="alert" className="flex items-center gap-2 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
+        >
           <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{fetchError}</span>
         </div>
@@ -676,8 +736,8 @@ export default function MealLibraryPage() {
               const activeFlag = meal.flags?.[0];
 
               return (
-                <Card 
-                  key={meal.id} 
+                <Card
+                  key={meal.id}
                   className={`relative p-5 border-brand-border/60 overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-brand-border-hover hover:shadow-lg ${
                     isFlagged ? 'border-amber-900/60 bg-amber-950/5' : ''
                   }`}
@@ -690,19 +750,27 @@ export default function MealLibraryPage() {
                       </span>
                       <div className="flex gap-1.5">
                         {isFlagged ? (
-                          <Badge variant="pending" showIcon>Flagged</Badge>
+                          <Badge variant="pending" showIcon>
+                            Flagged
+                          </Badge>
                         ) : isArchived ? (
-                          <Badge variant="pending" showIcon>Archived</Badge>
+                          <Badge variant="pending" showIcon>
+                            Archived
+                          </Badge>
                         ) : (
-                          <Badge variant="verified" showIcon>Approved</Badge>
+                          <Badge variant="verified" showIcon>
+                            Approved
+                          </Badge>
                         )}
-                        <span className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${
-                          meal.safetyEvidenceStatus === 'COMPLETE'
-                            ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
-                            : meal.safetyEvidenceStatus === 'STALE'
-                              ? 'border-amber-700/50 bg-amber-950/20 text-amber-300'
-                              : 'border-brand-border/60 bg-brand-bg/60 text-brand-muted'
-                        }`}>
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${
+                            meal.safetyEvidenceStatus === 'COMPLETE'
+                              ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
+                              : meal.safetyEvidenceStatus === 'STALE'
+                                ? 'border-amber-700/50 bg-amber-950/20 text-amber-300'
+                                : 'border-brand-border/60 bg-brand-bg/60 text-brand-muted'
+                          }`}
+                        >
                           {meal.safetyEvidenceStatus === 'COMPLETE'
                             ? 'Evidence certified'
                             : meal.safetyEvidenceStatus === 'STALE'
@@ -715,9 +783,7 @@ export default function MealLibraryPage() {
                     {/* Meal details */}
                     <h3 className="text-base font-bold text-brand-text leading-snug">{meal.mealName}</h3>
                     {meal.description && (
-                      <p className="text-xs text-brand-muted line-clamp-2 mt-1.5 leading-relaxed">
-                        {meal.description}
-                      </p>
+                      <p className="text-xs text-brand-muted line-clamp-2 mt-1.5 leading-relaxed">{meal.description}</p>
                     )}
 
                     {/* Macros grid */}
@@ -742,14 +808,22 @@ export default function MealLibraryPage() {
 
                     {/* Suitability details */}
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      {normalizeExclusiveNone(meal.suitableConditions).map(cond => (
-                        <span key={cond} className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1">
-                          <Stethoscope className="w-3 h-3 text-brand-green" /> {AVAILABLE_CONDITIONS.find(c => c.value === cond)?.label || cond}
+                      {normalizeExclusiveNone(meal.suitableConditions).map((cond) => (
+                        <span
+                          key={cond}
+                          className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1"
+                        >
+                          <Stethoscope className="w-3 h-3 text-brand-green" />{' '}
+                          {AVAILABLE_CONDITIONS.find((c) => c.value === cond)?.label || cond}
                         </span>
                       ))}
-                      {normalizeExclusiveNone(meal.allergenFree).map(alg => (
-                        <span key={alg} className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1">
-                          <ShieldAlert className="w-3 h-3 text-brand-green" /> {AVAILABLE_ALLERGENS.find(a => a.value === alg)?.label || alg}
+                      {normalizeExclusiveNone(meal.allergenFree).map((alg) => (
+                        <span
+                          key={alg}
+                          className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1"
+                        >
+                          <ShieldAlert className="w-3 h-3 text-brand-green" />{' '}
+                          {AVAILABLE_ALLERGENS.find((a) => a.value === alg)?.label || alg}
                         </span>
                       ))}
                     </div>
@@ -760,14 +834,14 @@ export default function MealLibraryPage() {
                         <span className="font-bold flex items-center gap-1 mb-1">
                           <Flag className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Flagged for Re-Review:
                         </span>
-                        &quot;{activeFlag.reason}&quot; — <span className="font-semibold">{activeFlag.flaggedByNutritionist?.user?.name}</span>
+                        &quot;{activeFlag.reason}&quot; —{' '}
+                        <span className="font-semibold">{activeFlag.flaggedByNutritionist?.user?.name}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Verifier Badge & Actions footer */}
                   <div className="flex items-center justify-between border-t border-brand-border/40 pt-4 mt-2">
-                    
                     {/* Verifier credentials */}
                     <div className="text-[11px] text-brand-muted">
                       <span>Verifier: </span>
@@ -831,7 +905,8 @@ export default function MealLibraryPage() {
                           </Button>
                         </>
                       ) : (
-                        !isFlagged && !isArchived && (
+                        !isFlagged &&
+                        !isArchived && (
                           <Button
                             variant="secondary"
                             onClick={() => {
@@ -846,7 +921,6 @@ export default function MealLibraryPage() {
                         )
                       )}
                     </div>
-
                   </div>
                 </Card>
               );
@@ -863,7 +937,7 @@ export default function MealLibraryPage() {
                 <Button
                   variant="secondary"
                   disabled={page <= 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="!px-3 !py-1.5 !h-8 text-xs"
                 >
                   Previous
@@ -871,7 +945,7 @@ export default function MealLibraryPage() {
                 <Button
                   variant="secondary"
                   disabled={page >= totalPages}
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   className="!px-3 !py-1.5 !h-8 text-xs"
                 >
                   Next
@@ -888,12 +962,7 @@ export default function MealLibraryPage() {
 
       {/* View Meal Details Modal */}
       {selectedMeal && activeModal === 'view' && (
-        <Modal
-          isOpen={true}
-          onClose={() => setActiveModal(null)}
-          title={selectedMeal.mealName}
-          size="lg"
-        >
+        <Modal isOpen={true} onClose={() => setActiveModal(null)} title={selectedMeal.mealName} size="lg">
           <div className="space-y-4">
             <div>
               <span className="text-xs font-bold text-brand-muted uppercase">Description</span>
@@ -927,21 +996,23 @@ export default function MealLibraryPage() {
             <div>
               <span className="text-xs font-bold text-brand-muted uppercase">Pre-Verified Tags</span>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {normalizeExclusiveNone(selectedMeal.suitableConditions).map(cond => (
+                {normalizeExclusiveNone(selectedMeal.suitableConditions).map((cond) => (
                   <Badge key={cond} variant="verified" className="flex items-center gap-1">
-                    <Stethoscope className="w-3 h-3" /> {AVAILABLE_CONDITIONS.find(c => c.value === cond)?.label || cond}
+                    <Stethoscope className="w-3 h-3" />{' '}
+                    {AVAILABLE_CONDITIONS.find((c) => c.value === cond)?.label || cond}
                   </Badge>
                 ))}
-                {normalizeExclusiveNone(selectedMeal.allergenFree).map(alg => (
+                {normalizeExclusiveNone(selectedMeal.allergenFree).map((alg) => (
                   <Badge key={alg} variant="user" className="flex items-center gap-1">
-                    <ShieldAlert className="w-3 h-3" /> {AVAILABLE_ALLERGENS.find(a => a.value === alg)?.label || alg}
+                    <ShieldAlert className="w-3 h-3" /> {AVAILABLE_ALLERGENS.find((a) => a.value === alg)?.label || alg}
                   </Badge>
                 ))}
-                {selectedMeal.dietaryTags && (selectedMeal.dietaryTags as string[]).map(tag => (
-                  <Badge key={tag} variant="ai" className="flex items-center gap-1">
-                    <Salad className="w-3 h-3" /> {AVAILABLE_DIETS.find(d => d.value === tag)?.label || tag}
-                  </Badge>
-                ))}
+                {selectedMeal.dietaryTags &&
+                  (selectedMeal.dietaryTags as string[]).map((tag) => (
+                    <Badge key={tag} variant="ai" className="flex items-center gap-1">
+                      <Salad className="w-3 h-3" /> {AVAILABLE_DIETS.find((d) => d.value === tag)?.label || tag}
+                    </Badge>
+                  ))}
               </div>
             </div>
 
@@ -966,16 +1037,30 @@ export default function MealLibraryPage() {
               <div className="mt-2 space-y-2">
                 {(selectedMeal.ingredients || []).length === 0 ? (
                   <p className="rounded-xl border border-amber-800/40 bg-amber-950/15 p-3 text-xs text-amber-300">
-                    No library-owned ingredient snapshot is available. This legacy entry cannot be certified automatically.
+                    No library-owned ingredient snapshot is available. This legacy entry cannot be certified
+                    automatically.
                   </p>
-                ) : (selectedMeal.ingredients || []).map((ingredient) => (
-                  <div key={ingredient.id} className="flex items-center justify-between rounded-xl border border-brand-border/50 bg-brand-surface/50 px-3 py-2 text-xs">
-                    <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
-                    <span className={ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'text-brand-green' : 'text-amber-300'}>
-                      {ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'FNRI linked' : 'Unresolved evidence'}
-                    </span>
-                  </div>
-                ))}
+                ) : (
+                  (selectedMeal.ingredients || []).map((ingredient) => (
+                    <div
+                      key={ingredient.id}
+                      className="flex items-center justify-between rounded-xl border border-brand-border/50 bg-brand-surface/50 px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
+                      <span
+                        className={
+                          ingredient.dataSource === 'FNRI' && ingredient.foodItemId
+                            ? 'text-brand-green'
+                            : 'text-amber-300'
+                        }
+                      >
+                        {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
+                          ? 'FNRI linked'
+                          : 'Unresolved evidence'}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -984,7 +1069,9 @@ export default function MealLibraryPage() {
                 <span className="text-xs font-bold text-brand-muted uppercase block mb-1">Signed & Verified By</span>
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold text-brand-text">{selectedMeal.verifiedByNutritionist.user.name}</span>
-                  <span className="text-brand-muted">PRC License: {selectedMeal.verifiedByNutritionist.prcLicenseNumber}</span>
+                  <span className="text-brand-muted">
+                    PRC License: {selectedMeal.verifiedByNutritionist.prcLicenseNumber}
+                  </span>
                 </div>
               </div>
             )}
@@ -1014,7 +1101,9 @@ export default function MealLibraryPage() {
               </div>
               <div>
                 <span className="block font-bold text-brand-muted uppercase">Specialization</span>
-                <span className="text-brand-text font-semibold">{selectedVerifier.specialization || 'General Nutrition'}</span>
+                <span className="text-brand-text font-semibold">
+                  {selectedVerifier.specialization || 'General Nutrition'}
+                </span>
               </div>
               <div>
                 <span className="block font-bold text-brand-muted uppercase">Experience</span>
@@ -1041,12 +1130,7 @@ export default function MealLibraryPage() {
 
       {/* Independent reusable-evidence certification */}
       {selectedMeal && activeModal === 'certify' && (
-        <Modal
-          isOpen={true}
-          onClose={() => setActiveModal(null)}
-          title="Review reusable meal evidence"
-          size="lg"
-        >
+        <Modal isOpen={true} onClose={() => setActiveModal(null)} title="Review reusable meal evidence" size="lg">
           <form onSubmit={handleCertificationSubmit} className="space-y-5">
             {actionError && (
               <div className="rounded-xl border border-red-900/60 bg-red-950/20 p-3 text-xs text-red-400">
@@ -1055,9 +1139,10 @@ export default function MealLibraryPage() {
             )}
 
             <div className="rounded-xl border border-brand-green/25 bg-brand-green/5 p-4 text-xs leading-relaxed text-brand-muted">
-              This review applies only to revision <strong className="text-brand-text">{selectedMeal.safetyEvidenceRevision}</strong> of
-              {' '}<strong className="text-brand-text">{selectedMeal.mealName}</strong>. It does not label the meal universally safe.
-              NutriMind will still compare each user&apos;s current restrictions before reuse.
+              This review applies only to revision{' '}
+              <strong className="text-brand-text">{selectedMeal.safetyEvidenceRevision}</strong> of{' '}
+              <strong className="text-brand-text">{selectedMeal.mealName}</strong>. It does not label the meal
+              universally safe. NutriMind will still compare each user&apos;s current restrictions before reuse.
             </div>
 
             <div>
@@ -1070,27 +1155,46 @@ export default function MealLibraryPage() {
               <div className="space-y-2">
                 {(selectedMeal.ingredients || []).length === 0 ? (
                   <div className="rounded-xl border border-amber-800/50 bg-amber-950/20 p-3 text-xs text-amber-300">
-                    This legacy meal has no stable ingredient snapshot and cannot be certified. Recreate it through a reviewed meal plan first.
+                    This legacy meal has no stable ingredient snapshot and cannot be certified. Recreate it through a
+                    reviewed meal plan first.
                   </div>
-                ) : (selectedMeal.ingredients || []).map((ingredient) => (
-                  <div key={ingredient.id} className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2 text-xs">
-                    <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
-                    <span className={ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'text-brand-green' : 'text-amber-300'}>
-                      {ingredient.dataSource === 'FNRI' && ingredient.foodItemId ? 'FNRI linked' : 'Blocks certification'}
-                    </span>
-                  </div>
-                ))}
+                ) : (
+                  (selectedMeal.ingredients || []).map((ingredient) => (
+                    <div
+                      key={ingredient.id}
+                      className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
+                      <span
+                        className={
+                          ingredient.dataSource === 'FNRI' && ingredient.foodItemId
+                            ? 'text-brand-green'
+                            : 'text-amber-300'
+                        }
+                      >
+                        {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
+                          ? 'FNRI linked'
+                          : 'Blocks certification'}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
             <div>
               <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Condition review scope</span>
               <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
-                Record only conditions you explicitly considered. Current complete diabetes and hypertension declarations may authorize reusable matching; heart, kidney, pregnancy, custom, and incomplete cases remain individually review-gated.
+                Record only conditions you explicitly considered. Current complete diabetes and hypertension
+                declarations may authorize reusable matching; heart, kidney, pregnancy, custom, and incomplete cases
+                remain individually review-gated.
               </p>
               <div className="grid grid-cols-1 gap-2 rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 sm:grid-cols-2">
                 {AVAILABLE_CONDITIONS.map((condition) => (
-                  <label key={condition.value} className="flex cursor-pointer items-center gap-2 text-xs text-brand-text">
+                  <label
+                    key={condition.value}
+                    className="flex cursor-pointer items-center gap-2 text-xs text-brand-text"
+                  >
                     <input
                       type="checkbox"
                       checked={evidenceForm.suitableConditions.includes(condition.value)}
@@ -1106,7 +1210,8 @@ export default function MealLibraryPage() {
             <div>
               <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Allergen declarations</span>
               <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
-                Choose Present, Reviewed absent, or Not declared for every canonical allergen. Reviewed absent describes this evidence review only; it is not laboratory or manufacturing certification.
+                Choose Present, Reviewed absent, or Not declared for every canonical allergen. Reviewed absent describes
+                this evidence review only; it is not laboratory or manufacturing certification.
               </p>
               <div className="space-y-2">
                 {AVAILABLE_ALLERGENS.map((allergen) => {
@@ -1116,11 +1221,16 @@ export default function MealLibraryPage() {
                       ? 'absent'
                       : 'clear';
                   return (
-                    <div key={allergen.value} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2">
+                    <div
+                      key={allergen.value}
+                      className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2"
+                    >
                       <span className="text-xs font-semibold text-brand-text">{allergen.label}</span>
                       <select
                         value={mode}
-                        onChange={(event) => setEvidenceAllergen(allergen.value, event.target.value as 'present' | 'absent' | 'clear')}
+                        onChange={(event) =>
+                          setEvidenceAllergen(allergen.value, event.target.value as 'present' | 'absent' | 'clear')
+                        }
                         className="rounded-lg border border-brand-border bg-brand-surface px-2 py-1.5 text-xs text-brand-text outline-none focus:border-brand-green"
                       >
                         <option value="clear">Not declared</option>
@@ -1137,11 +1247,14 @@ export default function MealLibraryPage() {
               <input
                 type="checkbox"
                 checked={evidenceForm.crossContactAcknowledged}
-                onChange={(event) => setEvidenceForm((current) => ({ ...current, crossContactAcknowledged: event.target.checked }))}
+                onChange={(event) =>
+                  setEvidenceForm((current) => ({ ...current, crossContactAcknowledged: event.target.checked }))
+                }
                 className="mt-0.5 rounded border-brand-border bg-brand-bg text-brand-green focus:ring-brand-green"
               />
               <span className="text-xs leading-relaxed text-brand-muted">
-                I assessed the documented preparation information and found no known cross-contact risk in the evidence reviewed. This is not a guarantee about every kitchen or manufacturer.
+                I assessed the documented preparation information and found no known cross-contact risk in the evidence
+                reviewed. This is not a guarantee about every kitchen or manufacturer.
               </span>
             </label>
 
@@ -1155,7 +1268,9 @@ export default function MealLibraryPage() {
                   actionLoading ||
                   !evidenceForm.crossContactAcknowledged ||
                   (selectedMeal.ingredients || []).length === 0 ||
-                  (selectedMeal.ingredients || []).some((ingredient) => ingredient.dataSource !== 'FNRI' || !ingredient.foodItemId)
+                  (selectedMeal.ingredients || []).some(
+                    (ingredient) => ingredient.dataSource !== 'FNRI' || !ingredient.foodItemId
+                  )
                 }
               >
                 {actionLoading ? 'Certifying...' : 'Certify this revision'}
@@ -1185,7 +1300,7 @@ export default function MealLibraryPage() {
               type="text"
               required
               value={editForm.mealName}
-              onChange={(e) => setEditForm(prev => ({ ...prev, mealName: e.target.value }))}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, mealName: e.target.value }))}
             />
 
             <div>
@@ -1194,7 +1309,7 @@ export default function MealLibraryPage() {
                 required
                 rows={3}
                 value={editForm.description}
-                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
                 className="w-full bg-brand-bg border border-brand-border rounded-xl p-3 text-sm text-brand-text focus:outline-none focus:border-brand-green/80"
               />
             </div>
@@ -1205,41 +1320,43 @@ export default function MealLibraryPage() {
                 type="number"
                 required
                 value={editForm.calories}
-                onChange={(e) => setEditForm(prev => ({ ...prev, calories: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, calories: parseInt(e.target.value) || 0 }))}
               />
               <Input
                 label="Protein (g)"
                 type="number"
                 required
                 value={editForm.proteinG}
-                onChange={(e) => setEditForm(prev => ({ ...prev, proteinG: parseFloat(e.target.value) || 0 }))}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, proteinG: parseFloat(e.target.value) || 0 }))}
               />
               <Input
                 label="Carbs (g)"
                 type="number"
                 required
                 value={editForm.carbsG}
-                onChange={(e) => setEditForm(prev => ({ ...prev, carbsG: parseFloat(e.target.value) || 0 }))}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, carbsG: parseFloat(e.target.value) || 0 }))}
               />
               <Input
                 label="Fat (g)"
                 type="number"
                 required
                 value={editForm.fatG}
-                onChange={(e) => setEditForm(prev => ({ ...prev, fatG: parseFloat(e.target.value) || 0 }))}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, fatG: parseFloat(e.target.value) || 0 }))}
               />
             </div>
 
             {/* Checkboxes lists */}
             <div className="space-y-3 pt-2">
               <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 text-[11px] leading-relaxed text-brand-muted">
-                Condition and allergen declarations are controlled in <strong className="text-brand-text">Review evidence</strong>. Editing meal content invalidates any current certification and never silently changes clinical declarations.
+                Condition and allergen declarations are controlled in{' '}
+                <strong className="text-brand-text">Review evidence</strong>. Editing meal content invalidates any
+                current certification and never silently changes clinical declarations.
               </div>
 
               <div>
                 <span className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Dietary & Goal Tags</span>
                 <div className="grid grid-cols-2 gap-2 p-3 bg-brand-bg rounded-xl border border-brand-border/60">
-                  {AVAILABLE_DIETS.map(d => (
+                  {AVAILABLE_DIETS.map((d) => (
                     <label key={d.value} className="flex items-center gap-2 cursor-pointer text-xs text-brand-text">
                       <input
                         type="checkbox"
@@ -1256,11 +1373,7 @@ export default function MealLibraryPage() {
 
             {/* Resolve or edit actions footer */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-brand-border">
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => setActiveModal(null)}
-              >
+              <Button variant="secondary" type="button" onClick={() => setActiveModal(null)}>
                 Cancel
               </Button>
 
@@ -1275,19 +1388,12 @@ export default function MealLibraryPage() {
                   >
                     Dismiss Flag
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleResolveFlag('edit')}
-                    disabled={actionLoading}
-                  >
+                  <Button type="button" onClick={() => handleResolveFlag('edit')} disabled={actionLoading}>
                     {actionLoading ? 'Saving...' : 'Resolve: Keep with Edits'}
                   </Button>
                 </>
               ) : (
-                <Button
-                  type="submit"
-                  disabled={actionLoading}
-                >
+                <Button type="submit" disabled={actionLoading}>
                   {actionLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
               )}
@@ -1312,14 +1418,12 @@ export default function MealLibraryPage() {
             )}
 
             <p className="text-sm text-brand-muted leading-relaxed">
-              Archive <span className="font-bold text-brand-text">&quot;{selectedMeal.mealName}&quot;</span>? It will immediately stop appearing in user matching while its review history remains available for audit.
+              Archive <span className="font-bold text-brand-text">&quot;{selectedMeal.mealName}&quot;</span>? It will
+              immediately stop appearing in user matching while its review history remains available for audit.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-brand-border">
-              <Button
-                variant="secondary"
-                onClick={() => setActiveModal(null)}
-              >
+              <Button variant="secondary" onClick={() => setActiveModal(null)}>
                 Cancel
               </Button>
               <Button
@@ -1327,7 +1431,11 @@ export default function MealLibraryPage() {
                 disabled={actionLoading}
                 className="bg-red-900 hover:bg-red-800 text-brand-text border-transparent"
               >
-                {actionLoading ? 'Archiving...' : selectedMeal.status === 'FLAGGED' ? 'Resolve: Archive Meal' : 'Archive Meal'}
+                {actionLoading
+                  ? 'Archiving...'
+                  : selectedMeal.status === 'FLAGGED'
+                    ? 'Resolve: Archive Meal'
+                    : 'Archive Meal'}
               </Button>
             </div>
           </div>
@@ -1336,12 +1444,7 @@ export default function MealLibraryPage() {
 
       {/* Flag Modal */}
       {selectedMeal && activeModal === 'flag' && (
-        <Modal
-          isOpen={true}
-          onClose={() => setActiveModal(null)}
-          title="Flag Meal for Re-Review"
-          size="md"
-        >
+        <Modal isOpen={true} onClose={() => setActiveModal(null)} title="Flag Meal for Re-Review" size="md">
           <form onSubmit={handleFlagSubmit} className="space-y-4">
             {actionError && (
               <div className="p-3 bg-red-950/20 border border-red-900/60 rounded-xl text-xs text-red-400">
@@ -1350,8 +1453,9 @@ export default function MealLibraryPage() {
             )}
 
             <p className="text-xs text-brand-muted leading-relaxed">
-              Submit a flag to alert the original verifying nutritionist (<span className="font-bold">{selectedMeal.verifiedByNutritionist?.user.name}</span>) 
-              of clinical inaccuracies. Flagged meals will be immediately hidden from matching algorithms for new user plans.
+              Submit a flag to alert the original verifying nutritionist (
+              <span className="font-bold">{selectedMeal.verifiedByNutritionist?.user.name}</span>) of clinical
+              inaccuracies. Flagged meals will be immediately hidden from matching algorithms for new user plans.
             </p>
 
             <div>
@@ -1367,24 +1471,16 @@ export default function MealLibraryPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-brand-border">
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => setActiveModal(null)}
-              >
+              <Button variant="secondary" type="button" onClick={() => setActiveModal(null)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={actionLoading || !flagReason.trim()}
-              >
+              <Button type="submit" disabled={actionLoading || !flagReason.trim()}>
                 {actionLoading ? 'Flagging...' : 'Submit Flag'}
               </Button>
             </div>
           </form>
         </Modal>
       )}
-
     </div>
   );
 }

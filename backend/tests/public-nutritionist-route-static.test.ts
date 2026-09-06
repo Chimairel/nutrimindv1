@@ -14,8 +14,5 @@ test('[TEST-151][DEF-037] public nutritionist application routes cannot trigger 
 
 test('[TEST-151][DEF-037] public nutritionist routes are exempt from protected nutritionist role enforcement', () => {
   const guardSource = readFrontend('src/components/shared/RouteGuard.tsx');
-  assert.match(
-    guardSource,
-    /!isPublicRoute\s*&&\s*isNutritionistRoute\s*&&\s*user\.role\s*!==\s*['"]NUTRITIONIST['"]/
-  );
+  assert.match(guardSource, /!isPublicRoute\s*&&\s*isNutritionistRoute\s*&&\s*user\.role\s*!==\s*['"]NUTRITIONIST['"]/);
 });

@@ -19,23 +19,25 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://accounts.google.com",
   "img-src 'self' data: blob: https://api.dicebear.com https://lh3.googleusercontent.com",
   `connect-src 'self' ${apiOrigin} https://accounts.google.com${isDevelopment ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
-  "frame-src https://accounts.google.com",
+  'frame-src https://accounts.google.com',
   "font-src 'self' data:",
-  ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
+  ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
 
 const nextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{
-      source: '/(.*)',
-      headers: [
-        { key: 'Content-Security-Policy', value: contentSecurityPolicy },
-        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-        { key: 'X-Content-Type-Options', value: 'nosniff' },
-      ],
-    }];
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+    ];
   },
 };
 

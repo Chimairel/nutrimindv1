@@ -36,7 +36,9 @@
     "test:acceptance:premium-access-local": "tsx scripts/premium-access-local-acceptance.ts",
     "test:acceptance:compensation-local": "tsx scripts/compensation-local-acceptance.ts",
     "paymongo:test-webhook-admin": "tsx scripts/paymongo-test-webhook-admin.ts",
-    "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts"
+    "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts",
+    "lint": "eslint src tests scripts",
+    "lint:fix": "eslint src tests scripts --fix"
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.0",
@@ -65,10 +67,13 @@
     "@types/node": "^20.12.12",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.2.17",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.0",
     "nodemon": "^3.1.0",
     "prisma": "^5.14.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.10.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.59.3"
   }
 }

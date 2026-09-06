@@ -22,7 +22,6 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 
-
 interface GroceryItem {
   id: string;
   ingredientName: string;
@@ -85,14 +84,10 @@ export default function GroceryListPage() {
         // A grocery list is only actionable when at least one current meal has
         // completed nutritionist approval. Suppress any stale projection left
         // behind after a safety recheck moves the plan back into review.
-        const nextList = approvedMeals.length > 0
-          ? (groceryRes.data.data ?? null) as GroceryList | null
-          : null;
+        const nextList = approvedMeals.length > 0 ? ((groceryRes.data.data ?? null) as GroceryList | null) : null;
         setGroceryList(nextList);
         setExpandedCategories(
-          nextList?.groceryItems?.length
-            ? new Set([getInitialExpandedCategory(nextList.groceryItems)])
-            : new Set()
+          nextList?.groceryItems?.length ? new Set([getInitialExpandedCategory(nextList.groceryItems)]) : new Set()
         );
       }
     } catch (err: unknown) {
@@ -139,9 +134,9 @@ export default function GroceryListPage() {
     const previous = groceryList;
     setGroceryList({
       ...groceryList,
-      groceryItems: groceryList.groceryItems.map((item) => item.id === itemId
-        ? { ...item, isPantryStaple: !item.isPantryStaple }
-        : item),
+      groceryItems: groceryList.groceryItems.map((item) =>
+        item.id === itemId ? { ...item, isPantryStaple: !item.isPantryStaple } : item
+      ),
     });
     try {
       await api.patch(`/user/grocery/items/${itemId}/pantry`);
@@ -206,21 +201,25 @@ export default function GroceryListPage() {
       const visibleItems = items
         .filter((item) => {
           const matchesSearch = !normalizedQuery || item.ingredientName.toLowerCase().includes(normalizedQuery);
-          const matchesFilter = filter === 'all'
-            || (filter === 'remaining' && !item.isChecked && !item.isPantryStaple)
-            || (filter === 'packed' && item.isChecked && !item.isPantryStaple)
-            || (filter === 'pantry' && item.isPantryStaple);
+          const matchesFilter =
+            filter === 'all' ||
+            (filter === 'remaining' && !item.isChecked && !item.isPantryStaple) ||
+            (filter === 'packed' && item.isChecked && !item.isPantryStaple) ||
+            (filter === 'pantry' && item.isPantryStaple);
           return matchesSearch && matchesFilter;
         })
-        .sort((itemA, itemB) => Number(itemA.isChecked) - Number(itemB.isChecked)
-          || itemA.ingredientName.localeCompare(itemB.ingredientName));
+        .sort(
+          (itemA, itemB) =>
+            Number(itemA.isChecked) - Number(itemB.isChecked) ||
+            itemA.ingredientName.localeCompare(itemB.ingredientName)
+        );
 
       return { category, items, visibleItems };
     })
     .filter(({ visibleItems }) => visibleItems.length > 0);
   const visibleItemCount = visibleGroups.reduce((sum, group) => sum + group.visibleItems.length, 0);
-  const allVisibleCategoriesExpanded = visibleGroups.length > 0
-    && visibleGroups.every(({ category }) => expandedCategories.has(category));
+  const allVisibleCategoriesExpanded =
+    visibleGroups.length > 0 && visibleGroups.every(({ category }) => expandedCategories.has(category));
 
   const toggleCategory = (category: string) => {
     setExpandedCategories((current) => {
@@ -244,7 +243,6 @@ export default function GroceryListPage() {
 
   return (
     <div className="portal-page max-w-5xl text-brand-text">
-      
       {/* HEADER SECTION */}
       <PortalPageHeader
         icon={ShoppingCart}
@@ -252,16 +250,20 @@ export default function GroceryListPage() {
         title="Smart grocery list"
         description="A categorized shopping checklist compiled from your active meal plan."
         className="mb-6"
-        actions={groceryList ? <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-2 text-xs font-semibold py-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download PDF</span>
-            </Button>
-          </div> : undefined}
+        actions={
+          groceryList ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 text-xs font-semibold py-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download PDF</span>
+              </Button>
+            </div>
+          ) : undefined
+        }
       />
 
       {error && (
@@ -277,9 +279,11 @@ export default function GroceryListPage() {
           <EmptyState
             icon={<ShoppingCart className="h-8 w-8 text-brand-green" />}
             title="Grocery Checklist Pending"
-            description={pendingMealCount > 0
-              ? `Your ${pendingMealCount} planned meals are still being reviewed. Approved ingredients will appear here automatically—there is nothing else to generate.`
-              : 'Your checklist will appear automatically as meals in your current plan are approved by a nutritionist.'}
+            description={
+              pendingMealCount > 0
+                ? `Your ${pendingMealCount} planned meals are still being reviewed. Approved ingredients will appear here automatically—there is nothing else to generate.`
+                : 'Your checklist will appear automatically as meals in your current plan are approved by a nutritionist.'
+            }
           />
         </div>
       ) : (
@@ -288,7 +292,8 @@ export default function GroceryListPage() {
             <div className="flex items-start gap-3 rounded-2xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-xs text-status-pending-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p className="leading-5">
-                This checklist currently includes approved meals only. It updates automatically as the remaining {pendingMealCount} meal{pendingMealCount === 1 ? '' : 's'} complete review.
+                This checklist currently includes approved meals only. It updates automatically as the remaining{' '}
+                {pendingMealCount} meal{pendingMealCount === 1 ? '' : 's'} complete review.
               </p>
             </div>
           )}
@@ -308,9 +313,13 @@ export default function GroceryListPage() {
                     <p className="font-display text-2xl font-black tracking-tight text-brand-text sm:text-3xl">
                       {remainingItems === 0 ? 'Shopping complete' : `${remainingItems} left to pack`}
                     </p>
-                    <p className="mt-1 text-xs text-brand-muted">{checkedItems} of {totalItems} items packed</p>
+                    <p className="mt-1 text-xs text-brand-muted">
+                      {checkedItems} of {totalItems} items packed
+                    </p>
                   </div>
-                  <span className="font-display text-3xl font-black text-brand-green sm:text-4xl">{progressPercent}%</span>
+                  <span className="font-display text-3xl font-black text-brand-green sm:text-4xl">
+                    {progressPercent}%
+                  </span>
                 </div>
                 <Progress value={progressPercent} className="mt-4 h-2.5 bg-brand-bgAlt" />
               </div>
@@ -324,7 +333,10 @@ export default function GroceryListPage() {
                 ].map((metric) => {
                   const MetricIcon = metric.icon;
                   return (
-                    <div key={metric.label} className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/55 px-3 py-3.5">
+                    <div
+                      key={metric.label}
+                      className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/55 px-3 py-3.5"
+                    >
                       <MetricIcon className="h-4 w-4 text-brand-green" />
                       <p className="mt-3 font-display text-xl font-black text-brand-text">{metric.value}</p>
                       <p className="mt-0.5 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
@@ -349,13 +361,18 @@ export default function GroceryListPage() {
                 />
               </label>
 
-              <div className="flex min-w-0 items-center gap-1 rounded-2xl bg-brand-bgAlt/70 p-1" aria-label="Filter grocery items">
-                {([
-                  ['all', 'All', totalItems],
-                  ['remaining', 'To buy', remainingItems],
-                  ['packed', 'Packed', checkedItems],
-                  ['pantry', 'Pantry', pantryItems],
-                ] as const).map(([value, label, count]) => (
+              <div
+                className="flex min-w-0 items-center gap-1 rounded-2xl bg-brand-bgAlt/70 p-1"
+                aria-label="Filter grocery items"
+              >
+                {(
+                  [
+                    ['all', 'All', totalItems],
+                    ['remaining', 'To buy', remainingItems],
+                    ['packed', 'Packed', checkedItems],
+                    ['pantry', 'Pantry', pantryItems],
+                  ] as const
+                ).map(([value, label, count]) => (
                   <button
                     key={value}
                     type="button"
@@ -368,7 +385,9 @@ export default function GroceryListPage() {
                     }`}
                   >
                     {label}
-                    <span className={`rounded-full px-1.5 py-0.5 font-mono text-[8px] ${filter === value ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-border/50'}`}>
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 font-mono text-[8px] ${filter === value ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-border/50'}`}
+                    >
                       {count}
                     </span>
                   </button>
@@ -413,7 +432,10 @@ export default function GroceryListPage() {
                 const isExpanded = expandedCategories.has(category) || Boolean(normalizedQuery);
 
                 return (
-                  <section key={category} className="overflow-hidden rounded-[22px] border border-brand-border/70 bg-brand-surface shadow-sm transition hover:border-brand-green/20">
+                  <section
+                    key={category}
+                    className="overflow-hidden rounded-[22px] border border-brand-border/70 bg-brand-surface shadow-sm transition hover:border-brand-green/20"
+                  >
                     <button
                       type="button"
                       onClick={() => toggleCategory(category)}
@@ -426,13 +448,20 @@ export default function GroceryListPage() {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-3">
                           <span className="truncate font-display text-sm font-bold text-brand-text">{category}</span>
-                          <span className="shrink-0 text-[10px] font-bold text-brand-muted">{completedCount}/{items.length} packed</span>
+                          <span className="shrink-0 text-[10px] font-bold text-brand-muted">
+                            {completedCount}/{items.length} packed
+                          </span>
                         </span>
                         <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-brand-bgAlt">
-                          <span className="block h-full rounded-full bg-brand-green transition-all" style={{ width: `${categoryPercent}%` }} />
+                          <span
+                            className="block h-full rounded-full bg-brand-green transition-all"
+                            style={{ width: `${categoryPercent}%` }}
+                          />
                         </span>
                       </span>
-                      <ChevronDown className={`h-4 w-4 shrink-0 text-brand-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-brand-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      />
                     </button>
 
                     {isExpanded && (
@@ -461,11 +490,15 @@ export default function GroceryListPage() {
                                 {item.isChecked && <Check className="h-3.5 w-3.5 stroke-[3px]" />}
                               </button>
                               <span className="min-w-0 flex-1">
-                                <span className={`block text-xs font-semibold leading-snug ${item.isChecked ? 'line-through decoration-brand-green/50' : ''}`}>
+                                <span
+                                  className={`block text-xs font-semibold leading-snug ${item.isChecked ? 'line-through decoration-brand-green/50' : ''}`}
+                                >
                                   {item.ingredientName}
                                 </span>
                                 <span className="mt-0.5 block text-[9px] font-medium text-brand-muted">
-                                  {item.quantity && item.unit ? `${item.quantity} ${item.unit}` : `Used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}`}
+                                  {item.quantity && item.unit
+                                    ? `${item.quantity} ${item.unit}`
+                                    : `Used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}`}
                                 </span>
                               </span>
                               <button
@@ -489,7 +522,6 @@ export default function GroceryListPage() {
           )}
         </div>
       )}
-
     </div>
   );
 }

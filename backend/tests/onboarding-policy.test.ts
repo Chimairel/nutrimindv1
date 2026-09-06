@@ -7,10 +7,7 @@ import {
   hasCurrentConsent,
   type OnboardingSnapshot,
 } from '../src/domain/onboarding.policy';
-import {
-  canResendVerification,
-  getVerificationFailureState,
-} from '../src/domain/email-verification.policy';
+import { canResendVerification, getVerificationFailureState } from '../src/domain/email-verification.policy';
 import {
   consentSchema,
   onboardingAllergiesSchema,
@@ -83,35 +80,50 @@ test('legacy consent is grandfathered only for already-onboarded accounts', () =
 test('profile schema rejects minors, unknown fields, and contradictory targets', () => {
   assert.equal(onboardingProfileSchema.safeParse({ age: 17 }).success, false);
   assert.equal(onboardingProfileSchema.safeParse({ age: 25, onboardingDone: true }).success, false);
-  assert.equal(onboardingProfileSchema.safeParse({ weightKg: 60, targetWeightKg: 70, goal: 'LOSE_WEIGHT' }).success, false);
+  assert.equal(
+    onboardingProfileSchema.safeParse({ weightKg: 60, targetWeightKg: 70, goal: 'LOSE_WEIGHT' }).success,
+    false
+  );
   assert.equal(onboardingProfileSchema.safeParse({ weightKg: 60, targetWeightKg: 60, goal: 'MAINTAIN' }).success, true);
 });
 
 test('condition and allergy schemas reject NONE contradictions', () => {
   assert.equal(onboardingConditionsSchema.safeParse({ conditions: ['NONE', 'DIABETES'] }).success, false);
-  assert.equal(onboardingConditionsSchema.safeParse({ conditions: ['NONE'], otherConditions: 'asthma' }).success, false);
+  assert.equal(
+    onboardingConditionsSchema.safeParse({ conditions: ['NONE'], otherConditions: 'asthma' }).success,
+    false
+  );
   assert.equal(onboardingAllergiesSchema.safeParse({ allergies: ['NONE', 'DAIRY'] }).success, false);
   assert.equal(onboardingAllergiesSchema.safeParse({ allergies: ['NONE'], otherAllergies: 'banana' }).success, false);
 });
 
 test('combined safety schema validates one coherent conditions-and-allergies update', () => {
-  assert.equal(profileSafetySchema.safeParse({
-    conditions: ['HYPERTENSION'],
-    otherConditions: '',
-    allergies: ['DAIRY'],
-    otherAllergies: '',
-  }).success, true);
-  assert.equal(profileSafetySchema.safeParse({
-    conditions: ['NONE'],
-    otherConditions: '',
-    allergies: ['NONE', 'DAIRY'],
-    otherAllergies: '',
-  }).success, false);
-  assert.equal(profileSafetySchema.safeParse({
-    conditions: ['NONE'],
-    allergies: ['NONE'],
-    unexpected: true,
-  }).success, false);
+  assert.equal(
+    profileSafetySchema.safeParse({
+      conditions: ['HYPERTENSION'],
+      otherConditions: '',
+      allergies: ['DAIRY'],
+      otherAllergies: '',
+    }).success,
+    true
+  );
+  assert.equal(
+    profileSafetySchema.safeParse({
+      conditions: ['NONE'],
+      otherConditions: '',
+      allergies: ['NONE', 'DAIRY'],
+      otherAllergies: '',
+    }).success,
+    false
+  );
+  assert.equal(
+    profileSafetySchema.safeParse({
+      conditions: ['NONE'],
+      allergies: ['NONE'],
+      unexpected: true,
+    }).success,
+    false
+  );
 });
 
 test('[TEST-051] shopping day requires one exact Sunday-through-Saturday index', () => {
@@ -122,20 +134,26 @@ test('[TEST-051] shopping day requires one exact Sunday-through-Saturday index',
 });
 
 test('consent schema requires the current versions and all explicit acknowledgements', () => {
-  assert.equal(consentSchema.safeParse({
-    termsVersion: CURRENT_TERMS_VERSION,
-    privacyVersion: CURRENT_PRIVACY_VERSION,
-    medicalDisclaimerAccepted: true,
-    privacyPolicyAccepted: true,
-    healthDataProcessingAccepted: true,
-  }).success, true);
-  assert.equal(consentSchema.safeParse({
-    termsVersion: 'old',
-    privacyVersion: CURRENT_PRIVACY_VERSION,
-    medicalDisclaimerAccepted: true,
-    privacyPolicyAccepted: true,
-    healthDataProcessingAccepted: true,
-  }).success, false);
+  assert.equal(
+    consentSchema.safeParse({
+      termsVersion: CURRENT_TERMS_VERSION,
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      medicalDisclaimerAccepted: true,
+      privacyPolicyAccepted: true,
+      healthDataProcessingAccepted: true,
+    }).success,
+    true
+  );
+  assert.equal(
+    consentSchema.safeParse({
+      termsVersion: 'old',
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      medicalDisclaimerAccepted: true,
+      privacyPolicyAccepted: true,
+      healthDataProcessingAccepted: true,
+    }).success,
+    false
+  );
 });
 
 test('email verification policy enforces resend cooldown and persistent lock threshold', () => {

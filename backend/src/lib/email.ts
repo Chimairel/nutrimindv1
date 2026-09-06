@@ -4,7 +4,7 @@ import path from 'node:path';
 
 /**
  * Email service using Nodemailer + Gmail SMTP.
- * 
+ *
  * REQUIRED .env variables:
  *   SMTP_HOST=smtp.gmail.com
  *   SMTP_PORT=587
@@ -32,12 +32,13 @@ function getTransporter(): nodemailer.Transporter {
 }
 
 const getFromAddress = () => process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@nutrimind.app';
-const escapeHtml = (value: string) => value
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
 type CapturedMail = {
   type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET' | 'NUTRITIONIST_INVITATION';
@@ -116,11 +117,7 @@ export async function sendVerificationEmail(to: string, otp: string, userName: s
 /**
  * Sends a password reset email with a reset link containing the token.
  */
-export async function sendPasswordResetEmail(
-  to: string,
-  resetToken: string,
-  userName: string
-): Promise<void> {
+export async function sendPasswordResetEmail(to: string, resetToken: string, userName: string): Promise<void> {
   if (await captureTestMail({ type: 'PASSWORD_RESET', to, token: resetToken })) return;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;

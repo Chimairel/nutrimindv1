@@ -1,11 +1,4 @@
-export type PriceUnit =
-  | 'MILLIGRAM'
-  | 'GRAM'
-  | 'KILOGRAM'
-  | 'MILLILITER'
-  | 'LITER'
-  | 'PIECE'
-  | 'PACKAGE';
+export type PriceUnit = 'MILLIGRAM' | 'GRAM' | 'KILOGRAM' | 'MILLILITER' | 'LITER' | 'PIECE' | 'PACKAGE';
 
 export type PriceUnitFamily = 'MASS' | 'VOLUME' | 'COUNT' | 'PACKAGE';
 export type PriceMappingState = 'UNMAPPED' | 'EXACT' | 'AMBIGUOUS' | 'REJECTED';
@@ -69,7 +62,7 @@ export type QuantityConversion =
 export function convertPriceQuantity(
   quantity: number,
   fromUnitInput: string | PriceUnit | null | undefined,
-  toUnitInput: string | PriceUnit | null | undefined,
+  toUnitInput: string | PriceUnit | null | undefined
 ): QuantityConversion {
   if (!Number.isFinite(quantity) || quantity <= 0) return { status: 'INVALID_QUANTITY' };
 
@@ -84,7 +77,7 @@ export function convertPriceQuantity(
   }
   if (from.family !== to.family) return { status: 'INCOMPATIBLE_UNIT' };
 
-  return { status: 'CONVERTED', quantity: quantity * from.baseFactor / to.baseFactor, unit: toUnit };
+  return { status: 'CONVERTED', quantity: (quantity * from.baseFactor) / to.baseFactor, unit: toUnit };
 }
 
 function isPriceUnit(value: unknown): value is PriceUnit {
@@ -103,7 +96,9 @@ export interface MappingEvidence {
   evidenceReference?: string | null;
 }
 
-export function validateExactPriceMapping(mapping: MappingEvidence):
+export function validateExactPriceMapping(
+  mapping: MappingEvidence
+):
   | { eligible: true; foodItemId: string }
   | { eligible: false; reason: 'UNMAPPED' | 'AMBIGUOUS_MAPPING' | 'REJECTED_MAPPING' | 'MISSING_EXACT_EVIDENCE' } {
   if (mapping.state === 'UNMAPPED') return { eligible: false, reason: 'UNMAPPED' };
@@ -124,8 +119,11 @@ export function classifyPriceFreshness(input: {
 }): PriceFreshness {
   const { asOf, observedTo, validFrom, validUntil, maxAgeDays } = input;
   const timestamps = [asOf.getTime(), observedTo.getTime(), validFrom?.getTime(), validUntil?.getTime()];
-  if (timestamps.some((value) => value !== undefined && !Number.isFinite(value)) ||
-      !Number.isFinite(maxAgeDays) || maxAgeDays < 0) {
+  if (
+    timestamps.some((value) => value !== undefined && !Number.isFinite(value)) ||
+    !Number.isFinite(maxAgeDays) ||
+    maxAgeDays < 0
+  ) {
     return 'INVALID';
   }
   if (observedTo.getTime() > asOf.getTime()) return 'FUTURE';
@@ -152,7 +150,13 @@ export interface PriceObservationCandidate {
 }
 
 export type ObservationSelection =
-  | { status: 'SELECTED'; observation: PriceObservationCandidate; freshness: 'CURRENT' | 'STALE'; confidence: Exclude<PriceConfidence, 'NONE'>; competingObservationIds: string[] }
+  | {
+      status: 'SELECTED';
+      observation: PriceObservationCandidate;
+      freshness: 'CURRENT' | 'STALE';
+      confidence: Exclude<PriceConfidence, 'NONE'>;
+      competingObservationIds: string[];
+    }
   | { status: 'UNAVAILABLE'; reasons: string[] };
 
 function localityRank(match: PriceLocalityMatch): number {
@@ -161,9 +165,11 @@ function localityRank(match: PriceLocalityMatch): number {
 
 export function selectPriceObservation(
   candidates: readonly PriceObservationCandidate[],
-  options: { asOf: Date; maxAgeDays: number; sourcePrecedence: readonly string[] },
+  options: { asOf: Date; maxAgeDays: number; sourcePrecedence: readonly string[] }
 ): ObservationSelection {
-  const supersededIds = new Set(candidates.flatMap((item) => item.supersedesObservationId ? [item.supersedesObservationId] : []));
+  const supersededIds = new Set(
+    candidates.flatMap((item) => (item.supersedesObservationId ? [item.supersedesObservationId] : []))
+  );
   const reasons = new Set<string>();
   const eligible: Array<{ observation: PriceObservationCandidate; freshness: 'CURRENT' | 'STALE' }> = [];
   const seen = new Map<string, PriceObservationCandidate>();
@@ -174,9 +180,11 @@ export function selectPriceObservation(
       reasons.add('SUPERSEDED_OBSERVATION');
       continue;
     }
-    if (!isValidPhpCentavos(observation.amountMinCentavos) ||
-        !isValidPhpCentavos(observation.amountMaxCentavos) ||
-        observation.amountMinCentavos > observation.amountMaxCentavos) {
+    if (
+      !isValidPhpCentavos(observation.amountMinCentavos) ||
+      !isValidPhpCentavos(observation.amountMaxCentavos) ||
+      observation.amountMinCentavos > observation.amountMaxCentavos
+    ) {
       reasons.add('INVALID_PRICE_RANGE');
       continue;
     }
@@ -195,7 +203,11 @@ export function selectPriceObservation(
       reasons.add(freshness === 'FUTURE' ? 'FUTURE_OBSERVATION' : 'INVALID_FRESHNESS');
       continue;
     }
-    if (!observation.normalizedUnit || !Number.isFinite(observation.normalizedQuantity ?? NaN) || (observation.normalizedQuantity ?? 0) <= 0) {
+    if (
+      !observation.normalizedUnit ||
+      !Number.isFinite(observation.normalizedQuantity ?? NaN) ||
+      (observation.normalizedQuantity ?? 0) <= 0
+    ) {
       reasons.add('MISSING_NORMALIZED_UNIT');
       continue;
     }
@@ -203,7 +215,8 @@ export function selectPriceObservation(
     const duplicateKey = `${observation.sourceCode}|${observation.sourceObservationKey}`;
     const duplicate = seen.get(duplicateKey);
     if (duplicate) {
-      const isIdentical = duplicate.amountMinCentavos === observation.amountMinCentavos &&
+      const isIdentical =
+        duplicate.amountMinCentavos === observation.amountMinCentavos &&
         duplicate.amountMaxCentavos === observation.amountMaxCentavos &&
         duplicate.normalizedQuantity === observation.normalizedQuantity &&
         duplicate.normalizedUnit === observation.normalizedUnit;
@@ -217,27 +230,27 @@ export function selectPriceObservation(
     eligible.push({ observation, freshness });
   }
 
-  const conflictFree = eligible.filter(({ observation }) =>
-    !conflictingKeys.has(`${observation.sourceCode}|${observation.sourceObservationKey}`));
+  const conflictFree = eligible.filter(
+    ({ observation }) => !conflictingKeys.has(`${observation.sourceCode}|${observation.sourceObservationKey}`)
+  );
   if (conflictFree.length === 0) return { status: 'UNAVAILABLE', reasons: [...reasons].sort() };
 
   const sourceRank = (code: string) => {
     const index = options.sourcePrecedence.indexOf(code);
     return index === -1 ? options.sourcePrecedence.length : index;
   };
-  conflictFree.sort((left, right) =>
-    localityRank(left.observation.localityMatch) - localityRank(right.observation.localityMatch) ||
-    Number(left.freshness === 'STALE') - Number(right.freshness === 'STALE') ||
-    sourceRank(left.observation.sourceCode) - sourceRank(right.observation.sourceCode) ||
-    right.observation.observedTo.getTime() - left.observation.observedTo.getTime() ||
-    left.observation.id.localeCompare(right.observation.id));
+  conflictFree.sort(
+    (left, right) =>
+      localityRank(left.observation.localityMatch) - localityRank(right.observation.localityMatch) ||
+      Number(left.freshness === 'STALE') - Number(right.freshness === 'STALE') ||
+      sourceRank(left.observation.sourceCode) - sourceRank(right.observation.sourceCode) ||
+      right.observation.observedTo.getTime() - left.observation.observedTo.getTime() ||
+      left.observation.id.localeCompare(right.observation.id)
+  );
 
   const selected = conflictFree[0];
-  const confidence: Exclude<PriceConfidence, 'NONE'> = selected.freshness === 'STALE'
-    ? 'LOW'
-    : selected.observation.localityMatch === 'EXACT'
-      ? 'HIGH'
-      : 'MEDIUM';
+  const confidence: Exclude<PriceConfidence, 'NONE'> =
+    selected.freshness === 'STALE' ? 'LOW' : selected.observation.localityMatch === 'EXACT' ? 'HIGH' : 'MEDIUM';
   return {
     status: 'SELECTED',
     observation: selected.observation,
@@ -279,7 +292,7 @@ export type IngredientPriceEstimate =
 
 export function estimateIngredientPrice(
   request: IngredientPriceRequest,
-  options: { asOf: Date; maxAgeDays: number; sourcePrecedence: readonly string[] },
+  options: { asOf: Date; maxAgeDays: number; sourcePrecedence: readonly string[] }
 ): IngredientPriceEstimate {
   const unavailable = (reasons: string[]): IngredientPriceEstimate => ({
     ingredientId: request.ingredientId,
@@ -289,7 +302,8 @@ export function estimateIngredientPrice(
     reasons,
   });
 
-  if (!Number.isFinite(request.quantity ?? NaN) || (request.quantity ?? 0) <= 0) return unavailable(['INVALID_QUANTITY']);
+  if (!Number.isFinite(request.quantity ?? NaN) || (request.quantity ?? 0) <= 0)
+    return unavailable(['INVALID_QUANTITY']);
   const mapping = validateExactPriceMapping(request.mapping);
   if (!mapping.eligible) return unavailable([mapping.reason]);
   if (!request.foodItemId?.trim()) return unavailable(['INGREDIENT_NOT_FNRI_LINKED']);
@@ -298,13 +312,14 @@ export function estimateIngredientPrice(
 
   const selection = selectPriceObservation(
     request.observations.filter((observation) => observation.commodityId === request.mapping.commodityId),
-    options,
+    options
   );
-  if (selection.status === 'UNAVAILABLE') return unavailable(selection.reasons.length ? selection.reasons : ['NO_PRICE_OBSERVATION']);
+  if (selection.status === 'UNAVAILABLE')
+    return unavailable(selection.reasons.length ? selection.reasons : ['NO_PRICE_OBSERVATION']);
   const conversion = convertPriceQuantity(
     request.quantity as number,
     request.unit,
-    selection.observation.normalizedUnit,
+    selection.observation.normalizedUnit
   );
   if (conversion.status !== 'CONVERTED') return unavailable([conversion.status]);
 
@@ -348,19 +363,25 @@ export interface CostAggregate {
 const CONFIDENCE_RANK: Readonly<Record<PriceConfidence, number>> = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 };
 
 export function aggregatePriceEstimates(estimates: readonly IngredientPriceEstimate[]): CostAggregate {
-  const available = estimates.filter((item): item is Extract<IngredientPriceEstimate, { status: 'AVAILABLE' }> => item.status === 'AVAILABLE');
-  const unavailable = estimates.filter((item): item is Extract<IngredientPriceEstimate, { status: 'UNAVAILABLE' }> => item.status === 'UNAVAILABLE');
+  const available = estimates.filter(
+    (item): item is Extract<IngredientPriceEstimate, { status: 'AVAILABLE' }> => item.status === 'AVAILABLE'
+  );
+  const unavailable = estimates.filter(
+    (item): item is Extract<IngredientPriceEstimate, { status: 'UNAVAILABLE' }> => item.status === 'UNAVAILABLE'
+  );
   const total = estimates.length;
   const coverage = total === 0 ? 0 : Math.round((available.length / total) * 10_000) / 100;
-  const status: CostCoverageStatus = available.length === 0 ? 'UNAVAILABLE' : unavailable.length === 0 ? 'COMPLETE' : 'PARTIAL';
-  const confidence = available.length === 0
-    ? 'NONE'
-    : status === 'PARTIAL'
-      ? 'LOW'
-      : available.reduce<Exclude<PriceConfidence, 'NONE'>>(
-          (lowest, item) => CONFIDENCE_RANK[item.confidence] < CONFIDENCE_RANK[lowest] ? item.confidence : lowest,
-          'HIGH',
-        );
+  const status: CostCoverageStatus =
+    available.length === 0 ? 'UNAVAILABLE' : unavailable.length === 0 ? 'COMPLETE' : 'PARTIAL';
+  const confidence =
+    available.length === 0
+      ? 'NONE'
+      : status === 'PARTIAL'
+        ? 'LOW'
+        : available.reduce<Exclude<PriceConfidence, 'NONE'>>(
+            (lowest, item) => (CONFIDENCE_RANK[item.confidence] < CONFIDENCE_RANK[lowest] ? item.confidence : lowest),
+            'HIGH'
+          );
 
   return {
     status,
@@ -395,8 +416,11 @@ export function rankClinicallyCompatibleMeals(candidates: readonly BudgetRankCan
     .sort((left, right) => {
       const leftCoverage = left.cost.status === 'COMPLETE' ? 0 : left.cost.status === 'PARTIAL' ? 1 : 2;
       const rightCoverage = right.cost.status === 'COMPLETE' ? 0 : right.cost.status === 'PARTIAL' ? 1 : 2;
-      return leftCoverage - rightCoverage ||
-        (left.cost.amountMaxCentavos ?? Number.MAX_SAFE_INTEGER) - (right.cost.amountMaxCentavos ?? Number.MAX_SAFE_INTEGER) ||
-        left.id.localeCompare(right.id);
+      return (
+        leftCoverage - rightCoverage ||
+        (left.cost.amountMaxCentavos ?? Number.MAX_SAFE_INTEGER) -
+          (right.cost.amountMaxCentavos ?? Number.MAX_SAFE_INTEGER) ||
+        left.id.localeCompare(right.id)
+      );
     });
 }

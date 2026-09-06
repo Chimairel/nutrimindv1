@@ -31,12 +31,7 @@ function parseCSVLine(line: string): string[] {
 function parseFloatOrZero(val: string | undefined): number {
   if (!val) return 0;
   const cleaned = val.trim();
-  if (
-    cleaned === '' ||
-    cleaned === '-' ||
-    cleaned.toLowerCase() === 'tr' ||
-    cleaned.toLowerCase() === 'n/a'
-  ) {
+  if (cleaned === '' || cleaned === '-' || cleaned.toLowerCase() === 'tr' || cleaned.toLowerCase() === 'n/a') {
     return 0;
   }
   const parsed = parseFloat(cleaned);
@@ -47,12 +42,7 @@ function parseFloatOrZero(val: string | undefined): number {
 function parseFloatOrNull(val: string | undefined): number | null {
   if (!val) return null;
   const cleaned = val.trim();
-  if (
-    cleaned === '' ||
-    cleaned === '-' ||
-    cleaned.toLowerCase() === 'tr' ||
-    cleaned.toLowerCase() === 'n/a'
-  ) {
+  if (cleaned === '' || cleaned === '-' || cleaned.toLowerCase() === 'tr' || cleaned.toLowerCase() === 'n/a') {
     return null;
   }
   const parsed = parseFloat(cleaned);

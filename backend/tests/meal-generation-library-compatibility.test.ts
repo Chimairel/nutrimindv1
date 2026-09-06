@@ -38,10 +38,7 @@ test('[TEST-027] approved candidate with no restrictions and complete evidence i
 });
 
 test('[TEST-027] known allergy with complete non-conflicting evidence is eligible as ALLOW/CAUTION', () => {
-  const result = evaluate(
-    { allergies: ['DAIRY'] },
-    completeCandidate({ allergenFree: ['DAIRY'] })
-  );
+  const result = evaluate({ allergies: ['DAIRY'] }, completeCandidate({ allergenFree: ['DAIRY'] }));
 
   assert.equal(result.eligible, true);
   assert.equal(result.evaluation.decision, 'ALLOW');
@@ -78,10 +75,7 @@ test('[TEST-027] exact approved-alias conflict is ineligible with provenance', (
 });
 
 test('[TEST-027] resolved approved alias with complete non-conflicting evidence is eligible', () => {
-  const result = evaluate(
-    { customAllergies: 'egg' },
-    completeCandidate({ allergenFree: ['EGGS'] })
-  );
+  const result = evaluate({ customAllergies: 'egg' }, completeCandidate({ allergenFree: ['EGGS'] }));
 
   assert.equal(result.eligible, true);
   assert.equal(result.evaluation.decision, 'ALLOW');
@@ -116,10 +110,10 @@ test('[TEST-027] comma-stored unmapped custom restriction preserves provenance a
 
   assert.equal(result.eligible, false);
   assert.equal(result.evaluation.unknownOrCustomRestriction, true);
-  assert.deepEqual(
-    result.evaluation.normalizedRestrictions.map((item) => item.suppliedValue).sort(),
-    ['Sesame', 'Soy']
-  );
+  assert.deepEqual(result.evaluation.normalizedRestrictions.map((item) => item.suppliedValue).sort(), [
+    'Sesame',
+    'Soy',
+  ]);
 });
 
 test('[TEST-027] null compatibility metadata is incomplete and ineligible', () => {
@@ -157,9 +151,12 @@ test('[TEST-027] legacy arrays without explicit completeness evidence are inelig
 
 test('[TEST-027] unknown compatibility or safety metadata keys are ineligible', () => {
   const compatibilityUnknown = evaluate({}, completeCandidate({ allergenFree: ['FUTURE_ALLERGEN'] }));
-  const safetyUnknown = evaluate({}, completeCandidate({
-    safetyEvidence: { complete: true, detectedAllergens: [], futureMarker: true },
-  }));
+  const safetyUnknown = evaluate(
+    {},
+    completeCandidate({
+      safetyEvidence: { complete: true, detectedAllergens: [], futureMarker: true },
+    })
+  );
 
   assert.equal(compatibilityUnknown.eligible, false);
   assert.equal(safetyUnknown.eligible, false);
@@ -168,9 +165,12 @@ test('[TEST-027] unknown compatibility or safety metadata keys are ineligible', 
 });
 
 test('[TEST-027] Gemini-estimated ingredient provenance is ineligible', () => {
-  const result = evaluate({}, completeCandidate({
-    ingredients: [{ dataSource: 'GEMINI_ESTIMATED', foodItemId: 'synthetic-estimate-001' }],
-  }));
+  const result = evaluate(
+    {},
+    completeCandidate({
+      ingredients: [{ dataSource: 'GEMINI_ESTIMATED', foodItemId: 'synthetic-estimate-001' }],
+    })
+  );
 
   assert.equal(result.eligible, false);
   assert.equal(result.evaluation.estimatedOrUnresolvedIngredient, true);
@@ -178,9 +178,12 @@ test('[TEST-027] Gemini-estimated ingredient provenance is ineligible', () => {
 });
 
 test('[TEST-027] unresolved or unlinked ingredient provenance is ineligible', () => {
-  const result = evaluate({}, completeCandidate({
-    ingredients: [{ dataSource: 'FNRI', foodItemId: null }],
-  }));
+  const result = evaluate(
+    {},
+    completeCandidate({
+      ingredients: [{ dataSource: 'FNRI', foodItemId: null }],
+    })
+  );
 
   assert.equal(result.eligible, false);
   assert.equal(result.evaluation.estimatedOrUnresolvedIngredient, true);
@@ -188,10 +191,7 @@ test('[TEST-027] unresolved or unlinked ingredient provenance is ineligible', ()
 });
 
 test('[TEST-027] NONE combined with another restriction is ineligible', () => {
-  const result = evaluate(
-    { allergies: ['NONE', 'DAIRY'] },
-    completeCandidate({ allergenFree: ['DAIRY'] })
-  );
+  const result = evaluate({ allergies: ['NONE', 'DAIRY'] }, completeCandidate({ allergenFree: ['DAIRY'] }));
 
   assert.equal(result.eligible, false);
   assert.ok(result.reasonCodes.includes('NONE_WITH_POSITIVE_RESTRICTION'));
@@ -281,9 +281,7 @@ test('[TEST-028] rejected-original-shaped and flagged library records are not se
 });
 
 test('[TEST-028] no eligible candidate triggers one isolated fallback for the affected slot', async () => {
-  const candidates = eligibleCandidates([
-    { id: 'library-review', ...completeCandidate(), safetyEvidence: undefined },
-  ]);
+  const candidates = eligibleCandidates([{ id: 'library-review', ...completeCandidate(), safetyEvidence: undefined }]);
   const unmatchedSlots = candidates.length === 0 ? [{ dayNumber: 1, mealType: 'BREAKFAST' }] : [];
   let fallbackCalls = 0;
 
@@ -298,9 +296,7 @@ test('[TEST-028] no eligible candidate triggers one isolated fallback for the af
 });
 
 test('[TEST-028] fallback is not called when an eligible candidate fills the slot', async () => {
-  const candidates = eligibleCandidates([
-    { id: 'library-eligible', ...completeCandidate() },
-  ]);
+  const candidates = eligibleCandidates([{ id: 'library-eligible', ...completeCandidate() }]);
   const unmatchedSlots = candidates.length === 0 ? [{ dayNumber: 1, mealType: 'BREAKFAST' }] : [];
   let fallbackCalls = 0;
 

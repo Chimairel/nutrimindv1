@@ -15,14 +15,14 @@ import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
 import type { SafetyProfileEntry } from '@/types';
 import axios from 'axios';
-import { 
-  TrendingUp, 
-  Plus, 
-  CheckCircle, 
-  AlertTriangle, 
-  Lightbulb, 
-  BarChart3, 
-  Heart, 
+import {
+  TrendingUp,
+  Plus,
+  CheckCircle,
+  AlertTriangle,
+  Lightbulb,
+  BarChart3,
+  Heart,
   Settings,
   Scale,
   ChevronDown,
@@ -125,10 +125,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setIsLoading(true);
     setError(null);
     try {
-      const [historyRes, profileRes] = await Promise.all([
-        api.get('/user/progress/history'),
-        api.get('/user/profile'),
-      ]);
+      const [historyRes, profileRes] = await Promise.all([api.get('/user/progress/history'), api.get('/user/profile')]);
 
       if (historyRes.data && historyRes.data.success) {
         setHistory(historyRes.data.data);
@@ -152,7 +149,9 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           setShoppingDayOfWeek(
             typeof data.userProfile.shoppingDayOfWeek === 'number'
               ? data.userProfile.shoppingDayOfWeek
-              : data.userProfile.shoppingDayGroup === 'WEEKDAY' ? 0 : 6
+              : data.userProfile.shoppingDayGroup === 'WEEKDAY'
+                ? 0
+                : 6
           );
         }
       }
@@ -238,7 +237,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         setWeightInput('');
         setNoteInput('');
         setIsLogFormOpen(false);
-        
+
         // Reload history & profile info to update graphs and target labels
         const [historyRes, profileRes] = await Promise.all([
           api.get('/user/progress/history'),
@@ -265,10 +264,10 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
   const groupedLogs = React.useMemo(() => {
     if (!history?.weightLogs || history.weightLogs.length === 0) return [];
-    
+
     // Group logs
     const groups: Record<string, { sum: number; count: number; date: Date }> = {};
-    
+
     history.weightLogs.forEach((log) => {
       const d = new Date(log.loggedAt);
       let key = '';
@@ -283,7 +282,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       } else {
         key = `${d.getFullYear()}`;
       }
-      
+
       if (!groups[key]) {
         groups[key] = { sum: 0, count: 0, date: new Date(log.loggedAt) };
       }
@@ -306,7 +305,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       .map((key) => {
         const item = groups[key];
         const avgWeight = Math.round((item.sum / item.count) * 10) / 10;
-        
+
         let label = '';
         if (timeframe === 'week') {
           const sunday = new Date(key);
@@ -363,7 +362,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
     // Map logs to coordinates
     const points = groupedLogs.map((log, idx) => {
-      const ratio = groupedLogs.length > 1 ? (idx / (groupedLogs.length - 1)) : 0.5;
+      const ratio = groupedLogs.length > 1 ? idx / (groupedLogs.length - 1) : 0.5;
       const x = padding + ratio * (width - padding * 2);
       const y = height - padding - ((log.weightKg - minW) / rangeW) * (height - padding * 2);
       return { x, y, weight: log.weightKg, date: log.dateLabel };
@@ -373,13 +372,16 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     let linePath = '';
     let areaPath = '';
     if (points.length > 0) {
-      linePath = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
+      linePath =
+        `M ${points[0].x} ${points[0].y} ` +
+        points
+          .slice(1)
+          .map((p) => `L ${p.x} ${p.y}`)
+          .join(' ');
       areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
     }
 
-    const targetY = targetWeight > 0 
-      ? height - padding - ((targetWeight - minW) / rangeW) * (height - padding * 2)
-      : 0;
+    const targetY = targetWeight > 0 ? height - padding - ((targetWeight - minW) / rangeW) * (height - padding * 2) : 0;
 
     return (
       <div className="w-full bg-brand-surface/30 border border-brand-border/60 p-4 rounded-2xl shadow-inner relative overflow-hidden">
@@ -397,28 +399,48 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           </defs>
 
           {/* Dotted Grid lines */}
-          <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="var(--brand-border)" strokeDasharray="3" />
-          <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="var(--brand-border)" strokeDasharray="3" />
-          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="var(--brand-border)" />
+          <line
+            x1={padding}
+            y1={padding}
+            x2={width - padding}
+            y2={padding}
+            stroke="var(--brand-border)"
+            strokeDasharray="3"
+          />
+          <line
+            x1={padding}
+            y1={height / 2}
+            x2={width - padding}
+            y2={height / 2}
+            stroke="var(--brand-border)"
+            strokeDasharray="3"
+          />
+          <line
+            x1={padding}
+            y1={height - padding}
+            x2={width - padding}
+            y2={height - padding}
+            stroke="var(--brand-border)"
+          />
 
           {/* Target Weight Baseline */}
           {targetWeight > 0 && targetY > padding && targetY < height - padding && (
             <>
-              <line 
-                x1={padding} 
-                y1={targetY} 
-                x2={width - padding} 
-                y2={targetY} 
-                stroke="rgba(239, 68, 68, 0.45)" 
-                strokeDasharray="4 4" 
+              <line
+                x1={padding}
+                y1={targetY}
+                x2={width - padding}
+                y2={targetY}
+                stroke="rgba(239, 68, 68, 0.45)"
+                strokeDasharray="4 4"
                 strokeWidth="1.5"
               />
-              <text 
-                x={width - padding - 6} 
-                y={targetY - 5} 
-                fill="rgba(239, 68, 68, 0.7)" 
-                fontSize="8" 
-                fontWeight="black" 
+              <text
+                x={width - padding - 6}
+                y={targetY - 5}
+                fill="rgba(239, 68, 68, 0.7)"
+                fontSize="8"
+                fontWeight="black"
                 textAnchor="end"
               >
                 Target: {targetWeight} kg
@@ -431,44 +453,44 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
           {/* Stroke Line */}
           {linePath && (
-            <path 
-              d={linePath} 
-              fill="none" 
-              stroke="url(#lineGrad)" 
-              strokeWidth="3.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
+            <path
+              d={linePath}
+              fill="none"
+              stroke="url(#lineGrad)"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
           )}
 
           {/* Graph Nodes */}
           {points.map((p, idx) => (
             <g key={idx}>
-              <circle 
-                cx={p.x} 
-                cy={p.y} 
-                r="5" 
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r="5"
                 fill="var(--brand-surface)"
                 stroke="var(--brand-green)"
                 strokeWidth="2.5"
                 className="transition-all duration-200 hover:r-7 cursor-pointer"
               />
-              <text 
-                x={p.x} 
-                y={p.y - 9} 
+              <text
+                x={p.x}
+                y={p.y - 9}
                 fill="var(--brand-text)"
-                fontSize="8" 
-                fontWeight="extrabold" 
+                fontSize="8"
+                fontWeight="extrabold"
                 textAnchor="middle"
               >
                 {p.weight}
               </text>
-              <text 
-                x={p.x} 
-                y={height - padding + 13} 
+              <text
+                x={p.x}
+                y={height - padding + 13}
                 fill="var(--brand-muted)"
-                fontSize="7" 
-                fontWeight="bold" 
+                fontSize="7"
+                fontWeight="bold"
                 textAnchor="middle"
               >
                 {p.date}
@@ -482,35 +504,49 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
   return (
     <div className="portal-page max-w-5xl text-brand-text">
-      
       {/* HEADER SECTION */}
       <PortalPageHeader
         icon={mode === 'health' ? Heart : TrendingUp}
         eyebrow={mode === 'health' ? 'Personal health context' : 'Health trajectory'}
         title={mode === 'health' ? 'Health profile' : 'Progress and adherence'}
-        description={mode === 'health'
-          ? 'Keep the body, diet, medical-condition, allergy, and grocery-schedule information used for future plans current.'
-          : 'Track weight changes, nutrition adherence, and progress toward your goal over time.'}
+        description={
+          mode === 'health'
+            ? 'Keep the body, diet, medical-condition, allergy, and grocery-schedule information used for future plans current.'
+            : 'Track weight changes, nutrition adherence, and progress toward your goal over time.'
+        }
         className="mb-6"
-        actions={mode === 'progress' ? <Button
-          variant="primary"
-          onClick={() => {
-            setIsLogFormOpen(activeSection === 'overview' ? !isLogFormOpen : true);
-            setActiveSection('overview');
-            setWeightFormError(null);
-            setWeightSuccess(null);
-          }}
-          className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10 flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Log today&apos;s weight</span>
-        </Button> : undefined}
+        actions={
+          mode === 'progress' ? (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setIsLogFormOpen(activeSection === 'overview' ? !isLogFormOpen : true);
+                setActiveSection('overview');
+                setWeightFormError(null);
+                setWeightSuccess(null);
+              }}
+              className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10 flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Log today&apos;s weight</span>
+            </Button>
+          ) : undefined
+        }
       />
 
-      <nav className="mb-6 grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm" aria-label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}>
+      <nav
+        className="mb-6 grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm"
+        aria-label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}
+      >
         {(mode === 'health'
-          ? ([['profile', 'Body & diet', Settings], ['safety', 'Safety', Heart]] as const)
-          : ([['overview', 'Overview', TrendingUp], ['history', 'Adherence', ClipboardList]] as const)
+          ? ([
+              ['profile', 'Body & diet', Settings],
+              ['safety', 'Safety', Heart],
+            ] as const)
+          : ([
+              ['overview', 'Overview', TrendingUp],
+              ['history', 'Adherence', ClipboardList],
+            ] as const)
         ).map(([value, label, Icon]) => (
           <button
             key={value}
@@ -541,432 +577,472 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
       {activeSection === 'overview' && (
         <>
-      {/* WEIGHT LOGGER COLLAPSIBLE BLOCK */}
-      {isLogFormOpen && (
-        <Card className="p-5 border-brand-border bg-brand-surface/40 backdrop-blur-md text-left mb-8 shadow-2xl transition-all duration-300">
-          <h3 className="text-base font-bold text-brand-text mb-4">LOG TODAY&apos;S WEIGHT</h3>
-          
-          {weightFormError && (
-            <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-              <span>{weightFormError}</span>
+          {/* WEIGHT LOGGER COLLAPSIBLE BLOCK */}
+          {isLogFormOpen && (
+            <Card className="p-5 border-brand-border bg-brand-surface/40 backdrop-blur-md text-left mb-8 shadow-2xl transition-all duration-300">
+              <h3 className="text-base font-bold text-brand-text mb-4">LOG TODAY&apos;S WEIGHT</h3>
+
+              {weightFormError && (
+                <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+                  <span>{weightFormError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleLogWeightSubmit} className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Weight (kg)"
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 68.5"
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Note / Comments (Optional)"
+                    type="text"
+                    placeholder="e.g. Logged empty stomach in the morning"
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 justify-end mt-2">
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={() => setIsLogFormOpen(false)}
+                    className="text-xs py-2 px-4"
+                  >
+                    Cancel
+                  </Button>
+                  <Button variant="primary" type="submit" disabled={isSubmittingWeight} className="text-xs py-2 px-4">
+                    {isSubmittingWeight ? 'Recording...' : 'Save Reading'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: 'Current weight', value: currentWeight ? `${currentWeight} kg` : '--', icon: Scale },
+              { label: 'Target weight', value: targetWeight ? `${targetWeight} kg` : '--', icon: TrendingUp },
+              {
+                label: 'Distance to goal',
+                value: currentWeight && targetWeight ? `${Math.abs(targetWeight - currentWeight).toFixed(1)} kg` : '--',
+                icon: Activity,
+              },
+              {
+                label: 'Daily budget',
+                value: dailyCalorieTarget ? `${dailyCalorieTarget} kcal` : '--',
+                icon: Lightbulb,
+              },
+            ].map((metric) => {
+              const MetricIcon = metric.icon;
+              return (
+                <div
+                  key={metric.label}
+                  className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm"
+                >
+                  <MetricIcon className="h-4 w-4 text-brand-green" />
+                  <p className="mt-4 font-display text-xl font-black text-brand-text">{metric.value}</p>
+                  <p className="mt-1 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* GRAPH & SUMMARY BLOCKS */}
+          <div className="mb-8 text-left">
+            {/* Graph Card */}
+            <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide font-display flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 text-brand-green" />
+                  <span>Weight Progress Chart</span>
+                </h3>
+                <div className="relative inline-block text-left select-none">
+                  <button
+                    type="button"
+                    onClick={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
+                    className="inline-flex justify-between items-center w-40 rounded-xl border border-brand-border bg-brand-bgAlt px-3 py-1.5 text-xs font-extrabold text-brand-text shadow-sm hover:border-brand-border/80 focus:outline-none transition-all"
+                    aria-haspopup="true"
+                    aria-expanded={isTimeframeDropdownOpen}
+                  >
+                    <span>
+                      {timeframe === 'week' && 'Weekly Progress'}
+                      {timeframe === 'month' && 'Monthly Progress'}
+                      {timeframe === 'year' && 'Yearly Progress'}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-brand-muted ml-1" />
+                  </button>
+
+                  {isTimeframeDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setIsTimeframeDropdownOpen(false)} />
+                      <div className="origin-top-right absolute right-0 mt-1.5 w-40 rounded-xl shadow-xl bg-brand-bgAlt border border-brand-border focus:outline-none z-20 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              setTimeframe('week');
+                              setIsTimeframeDropdownOpen(false);
+                            }}
+                            className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
+                              timeframe === 'week'
+                                ? 'bg-brand-green/10 text-brand-green'
+                                : 'text-brand-text hover:bg-brand-surface/80'
+                            }`}
+                          >
+                            <span>Weekly Progress</span>
+                            {timeframe === 'week' && <Check className="w-3 h-3 text-brand-green" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTimeframe('month');
+                              setIsTimeframeDropdownOpen(false);
+                            }}
+                            className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
+                              timeframe === 'month'
+                                ? 'bg-brand-green/10 text-brand-green'
+                                : 'text-brand-text hover:bg-brand-surface/80'
+                            }`}
+                          >
+                            <span>Monthly Progress</span>
+                            {timeframe === 'month' && <Check className="w-3 h-3 text-brand-green" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTimeframe('year');
+                              setIsTimeframeDropdownOpen(false);
+                            }}
+                            className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
+                              timeframe === 'year'
+                                ? 'bg-brand-green/10 text-brand-green'
+                                : 'text-brand-text hover:bg-brand-surface/80'
+                            }`}
+                          >
+                            <span>Yearly Progress</span>
+                            {timeframe === 'year' && <Check className="w-3 h-3 text-brand-green" />}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              {renderWeightGraph()}
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* EDITABLE BIOMETRICS & PREFERENCES */}
+      {activeSection === 'profile' && (
+        <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
+          <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
+            <Settings className="w-4 h-4 text-brand-green" />
+            <span>Biometrics & Dietary Preferences</span>
+          </h3>
+
+          {biometricsSuccess && (
+            <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
+              <span>{biometricsSuccess}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogWeightSubmit} className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {biometricsError && (
+            <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+              <span>{biometricsError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleBiometricsSubmit} className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Input
-                label="Weight (kg)"
+                id="profile-age"
+                label="Age (Years)"
                 type="number"
-                step="0.1"
-                placeholder="e.g. 68.5"
-                value={weightInput}
-                onChange={(e) => setWeightInput(e.target.value)}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
                 required
               />
               <Input
-                label="Note / Comments (Optional)"
-                type="text"
-                placeholder="e.g. Logged empty stomach in the morning"
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
+                id="profile-height"
+                label="Height (cm)"
+                type="number"
+                step="0.1"
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value)}
+                required
+              />
+              <Input
+                id="profile-weight"
+                label="Weight (kg)"
+                type="number"
+                step="0.1"
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                required
+              />
+              <Input
+                id="profile-target-weight"
+                label="Target Weight (kg)"
+                type="number"
+                step="0.1"
+                value={targetWeightKg}
+                onChange={(e) => setTargetWeightKg(e.target.value)}
+                required
               />
             </div>
-            <div className="flex gap-2 justify-end mt-2">
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => setIsLogFormOpen(false)}
-                className="text-xs py-2 px-4"
-              >
-                Cancel
-              </Button>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label
+                  htmlFor="profile-biological-sex"
+                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                >
+                  Biological Sex
+                </label>
+                <select
+                  id="profile-biological-sex"
+                  value={biologicalSex}
+                  onChange={(e) => setBiologicalSex(e.target.value)}
+                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                >
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-goal"
+                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                >
+                  Primary Goal
+                </label>
+                <select
+                  id="profile-goal"
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                >
+                  <option value="LOSE_WEIGHT">Lose Weight</option>
+                  <option value="GAIN_WEIGHT">Gain Weight</option>
+                  <option value="MAINTAIN">Maintain Weight</option>
+                  <option value="BUILD_MUSCLE">Build Muscle</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-activity"
+                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                >
+                  Activity Level
+                </label>
+                <select
+                  id="profile-activity"
+                  value={activityLevel}
+                  onChange={(e) => setActivityLevel(e.target.value)}
+                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                >
+                  <option value="SEDENTARY">Sedentary (Little/no exercise)</option>
+                  <option value="LIGHTLY_ACTIVE">Lightly Active (1-3 days/week)</option>
+                  <option value="ACTIVE">Active (3-5 days/week)</option>
+                  <option value="VERY_ACTIVE">Very Active (6-7 days/week)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label
+                  htmlFor="profile-diet"
+                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                >
+                  Dietary Preference
+                </label>
+                <select
+                  id="profile-diet"
+                  value={dietaryPreference}
+                  onChange={(e) => setDietaryPreference(e.target.value)}
+                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                >
+                  <option value="OMNIVORE">Omnivore</option>
+                  <option value="VEGETARIAN">Vegetarian</option>
+                  <option value="VEGAN">Vegan</option>
+                  <option value="PESCATARIAN">Pescatarian</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-carb"
+                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                >
+                  Carb Preference
+                </label>
+                <select
+                  id="profile-carb"
+                  value={carbPreference}
+                  onChange={(e) => setCarbPreference(e.target.value)}
+                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                >
+                  <option value="LOW">Low Carb</option>
+                  <option value="MODERATE">Moderate Carb</option>
+                  <option value="HIGH">High Carb</option>
+                </select>
+              </div>
+              <Input
+                id="profile-food-culture"
+                label="Cooking/Food Culture"
+                type="text"
+                value={foodCulture}
+                onChange={(e) => setFoodCulture(e.target.value)}
+                placeholder="e.g. Filipino, Asian"
+              />
+              <div>
+                <label
+                  htmlFor="profile-shopping-day"
+                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                >
+                  Grocery Shopping Day
+                </label>
+                <select
+                  id="profile-shopping-day"
+                  value={shoppingDayOfWeek}
+                  onChange={(e) => setShoppingDayOfWeek(Number(e.target.value))}
+                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                >
+                  <option value={0}>Sunday (Monday - Sunday plan)</option>
+                  <option value={1}>Monday (Tuesday - Monday plan)</option>
+                  <option value={2}>Tuesday (Wednesday - Tuesday plan)</option>
+                  <option value={3}>Wednesday (Thursday - Wednesday plan)</option>
+                  <option value={4}>Thursday (Friday - Thursday plan)</option>
+                  <option value={5}>Friday (Saturday - Friday plan)</option>
+                  <option value={6}>Saturday (Sunday - Saturday plan)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-2">
               <Button
                 variant="primary"
                 type="submit"
-                disabled={isSubmittingWeight}
-                className="text-xs py-2 px-4"
+                disabled={isSavingBiometrics}
+                className="text-xs font-bold py-2.5 px-6 shadow-md"
               >
-                {isSubmittingWeight ? 'Recording...' : 'Save Reading'}
+                {isSavingBiometrics ? 'Saving Profile...' : 'Save Profile Details'}
               </Button>
             </div>
           </form>
         </Card>
       )}
 
-      <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { label: 'Current weight', value: currentWeight ? `${currentWeight} kg` : '--', icon: Scale },
-          { label: 'Target weight', value: targetWeight ? `${targetWeight} kg` : '--', icon: TrendingUp },
-          { label: 'Distance to goal', value: currentWeight && targetWeight ? `${Math.abs(targetWeight - currentWeight).toFixed(1)} kg` : '--', icon: Activity },
-          { label: 'Daily budget', value: dailyCalorieTarget ? `${dailyCalorieTarget} kcal` : '--', icon: Lightbulb },
-        ].map((metric) => {
-          const MetricIcon = metric.icon;
-          return (
-            <div key={metric.label} className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
-              <MetricIcon className="h-4 w-4 text-brand-green" />
-              <p className="mt-4 font-display text-xl font-black text-brand-text">{metric.value}</p>
-              <p className="mt-1 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
-            </div>
-          );
-        })}
-      </section>
-
-      {/* GRAPH & SUMMARY BLOCKS */}
-      <div className="mb-8 text-left">
-        {/* Graph Card */}
-        <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide font-display flex items-center gap-1.5">
-              <Scale className="w-4 h-4 text-brand-green" />
-              <span>Weight Progress Chart</span>
-            </h3>
-            <div className="relative inline-block text-left select-none">
-              <button
-                type="button"
-                onClick={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
-                className="inline-flex justify-between items-center w-40 rounded-xl border border-brand-border bg-brand-bgAlt px-3 py-1.5 text-xs font-extrabold text-brand-text shadow-sm hover:border-brand-border/80 focus:outline-none transition-all"
-                aria-haspopup="true"
-                aria-expanded={isTimeframeDropdownOpen}
-              >
-                <span>
-                  {timeframe === 'week' && 'Weekly Progress'}
-                  {timeframe === 'month' && 'Monthly Progress'}
-                  {timeframe === 'year' && 'Yearly Progress'}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-brand-muted ml-1" />
-              </button>
-
-              {isTimeframeDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setIsTimeframeDropdownOpen(false)}
-                  />
-                  <div className="origin-top-right absolute right-0 mt-1.5 w-40 rounded-xl shadow-xl bg-brand-bgAlt border border-brand-border focus:outline-none z-20 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setTimeframe('week');
-                          setIsTimeframeDropdownOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
-                          timeframe === 'week' 
-                            ? 'bg-brand-green/10 text-brand-green' 
-                            : 'text-brand-text hover:bg-brand-surface/80'
-                        }`}
-                      >
-                        <span>Weekly Progress</span>
-                        {timeframe === 'week' && <Check className="w-3 h-3 text-brand-green" />}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTimeframe('month');
-                          setIsTimeframeDropdownOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
-                          timeframe === 'month' 
-                            ? 'bg-brand-green/10 text-brand-green' 
-                            : 'text-brand-text hover:bg-brand-surface/80'
-                        }`}
-                      >
-                        <span>Monthly Progress</span>
-                        {timeframe === 'month' && <Check className="w-3 h-3 text-brand-green" />}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTimeframe('year');
-                          setIsTimeframeDropdownOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
-                          timeframe === 'year' 
-                            ? 'bg-brand-green/10 text-brand-green' 
-                            : 'text-brand-text hover:bg-brand-surface/80'
-                        }`}
-                      >
-                        <span>Yearly Progress</span>
-                        {timeframe === 'year' && <Check className="w-3 h-3 text-brand-green" />}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          {renderWeightGraph()}
-        </Card>
-      </div>
-        </>
-      )}
-
-      {/* EDITABLE BIOMETRICS & PREFERENCES */}
-      {activeSection === 'profile' && (
-      <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
-        <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
-          <Settings className="w-4 h-4 text-brand-green" />
-          <span>Biometrics & Dietary Preferences</span>
-        </h3>
-
-        {biometricsSuccess && (
-          <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
-            <span>{biometricsSuccess}</span>
-          </div>
-        )}
-
-        {biometricsError && (
-          <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-            <span>{biometricsError}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleBiometricsSubmit} className="flex flex-col gap-5">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Input
-              id="profile-age"
-              label="Age (Years)"
-              type="number"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              required
-            />
-            <Input
-              id="profile-height"
-              label="Height (cm)"
-              type="number"
-              step="0.1"
-              value={heightCm}
-              onChange={(e) => setHeightCm(e.target.value)}
-              required
-            />
-            <Input
-              id="profile-weight"
-              label="Weight (kg)"
-              type="number"
-              step="0.1"
-              value={weightKg}
-              onChange={(e) => setWeightKg(e.target.value)}
-              required
-            />
-            <Input
-              id="profile-target-weight"
-              label="Target Weight (kg)"
-              type="number"
-              step="0.1"
-              value={targetWeightKg}
-              onChange={(e) => setTargetWeightKg(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="profile-biological-sex" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Biological Sex</label>
-              <select
-                id="profile-biological-sex"
-                value={biologicalSex}
-                onChange={(e) => setBiologicalSex(e.target.value)}
-                className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-              >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="profile-goal" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Primary Goal</label>
-              <select
-                id="profile-goal"
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-              >
-                <option value="LOSE_WEIGHT">Lose Weight</option>
-                <option value="GAIN_WEIGHT">Gain Weight</option>
-                <option value="MAINTAIN">Maintain Weight</option>
-                <option value="BUILD_MUSCLE">Build Muscle</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="profile-activity" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Activity Level</label>
-              <select
-                id="profile-activity"
-                value={activityLevel}
-                onChange={(e) => setActivityLevel(e.target.value)}
-                className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-              >
-                <option value="SEDENTARY">Sedentary (Little/no exercise)</option>
-                <option value="LIGHTLY_ACTIVE">Lightly Active (1-3 days/week)</option>
-                <option value="ACTIVE">Active (3-5 days/week)</option>
-                <option value="VERY_ACTIVE">Very Active (6-7 days/week)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label htmlFor="profile-diet" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Dietary Preference</label>
-              <select
-                id="profile-diet"
-                value={dietaryPreference}
-                onChange={(e) => setDietaryPreference(e.target.value)}
-                className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-              >
-                <option value="OMNIVORE">Omnivore</option>
-                <option value="VEGETARIAN">Vegetarian</option>
-                <option value="VEGAN">Vegan</option>
-                <option value="PESCATARIAN">Pescatarian</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="profile-carb" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Carb Preference</label>
-              <select
-                id="profile-carb"
-                value={carbPreference}
-                onChange={(e) => setCarbPreference(e.target.value)}
-                className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-              >
-                <option value="LOW">Low Carb</option>
-                <option value="MODERATE">Moderate Carb</option>
-                <option value="HIGH">High Carb</option>
-              </select>
-            </div>
-            <Input
-              id="profile-food-culture"
-              label="Cooking/Food Culture"
-              type="text"
-              value={foodCulture}
-              onChange={(e) => setFoodCulture(e.target.value)}
-              placeholder="e.g. Filipino, Asian"
-            />
-            <div>
-              <label htmlFor="profile-shopping-day" className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2">Grocery Shopping Day</label>
-              <select
-                id="profile-shopping-day"
-                value={shoppingDayOfWeek}
-                onChange={(e) => setShoppingDayOfWeek(Number(e.target.value))}
-                className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-              >
-                <option value={0}>Sunday (Monday - Sunday plan)</option>
-                <option value={1}>Monday (Tuesday - Monday plan)</option>
-                <option value={2}>Tuesday (Wednesday - Tuesday plan)</option>
-                <option value={3}>Wednesday (Thursday - Wednesday plan)</option>
-                <option value={4}>Thursday (Friday - Thursday plan)</option>
-                <option value={5}>Friday (Saturday - Friday plan)</option>
-                <option value={6}>Saturday (Sunday - Saturday plan)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end mt-2">
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={isSavingBiometrics}
-              className="text-xs font-bold py-2.5 px-6 shadow-md"
-            >
-              {isSavingBiometrics ? 'Saving Profile...' : 'Save Profile Details'}
-            </Button>
-          </div>
-        </form>
-      </Card>
-      )}
-
       {/* HEALTH CONDITIONS & CLINICAL SAFETY */}
       {activeSection === 'safety' && (
-      <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
-        <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-2 font-display flex items-center gap-1.5">
-          <Heart className="w-4 h-4 text-brand-green" />
-          <span>Clinical Safety Safeguards</span>
-        </h3>
-        <p className="text-xs text-brand-muted mb-6 leading-relaxed">
-          Conditions, allergies, intolerances, and avoided foods are saved together. A real change invalidates stale guidance and runs one backend safety scan.
-        </p>
+        <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
+          <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-2 font-display flex items-center gap-1.5">
+            <Heart className="w-4 h-4 text-brand-green" />
+            <span>Clinical Safety Safeguards</span>
+          </h3>
+          <p className="text-xs text-brand-muted mb-6 leading-relaxed">
+            Conditions, allergies, intolerances, and avoided foods are saved together. A real change invalidates stale
+            guidance and runs one backend safety scan.
+          </p>
 
-        {healthSuccess && (
-          <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
-            <span>{healthSuccess}</span>
-          </div>
-        )}
+          {healthSuccess && (
+            <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
+              <span>{healthSuccess}</span>
+            </div>
+          )}
 
-        <StructuredSafetyIntake
-          initialEntries={safetyInputsFromProfile(profileData)}
-          editableDomains={['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']}
-          submitLabel="Save safety changes"
-          onSaved={async (_entries, changed) => {
-            setHealthSuccess(changed
-              ? 'Safety settings saved. Your current plan was scanned and your nutrition report must be refreshed.'
-              : 'Your safety settings are already up to date.');
-            if (changed) {
-              router.push('/nutrition-report');
-              return;
-            }
-            const response = await api.get('/user/profile');
-            if (response.data?.success) setProfileData(response.data.data);
-          }}
-        />
-      </Card>
+          <StructuredSafetyIntake
+            initialEntries={safetyInputsFromProfile(profileData)}
+            editableDomains={['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']}
+            submitLabel="Save safety changes"
+            onSaved={async (_entries, changed) => {
+              setHealthSuccess(
+                changed
+                  ? 'Safety settings saved. Your current plan was scanned and your nutrition report must be refreshed.'
+                  : 'Your safety settings are already up to date.'
+              );
+              if (changed) {
+                router.push('/nutrition-report');
+                return;
+              }
+              const response = await api.get('/user/profile');
+              if (response.data?.success) setProfileData(response.data.data);
+            }}
+          />
+        </Card>
       )}
 
       {/* ADHERENCE CALENDAR BLOCK */}
       {activeSection === 'history' && (
-      <div className="text-left">
-        <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
-          <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
-            <BarChart3 className="w-4 h-4 text-brand-green" />
-            <span>Historical Calorie Adherence</span>
-          </h3>
-          
-          {history?.dailyNutritionLogs.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-brand-border rounded-xl text-brand-muted text-xs font-bold flex items-center justify-center gap-1.5">
-              <BarChart3 className="w-4 h-4 text-brand-green shrink-0" />
-              <span>Yesterday&apos;s adherence scores compile automatically overnight</span>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
-                    <th className="pb-3 px-3">Date</th>
-                    <th className="pb-3 px-3">Calories Consumed</th>
-                    <th className="pb-3 px-3">Daily Target</th>
-                    <th className="pb-3 px-3 text-center">Adherence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history?.dailyNutritionLogs.map((log) => {
-                    let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
-                    if (log.adherencePct < 70) badgeVar = 'rejected';
-                    else if (log.adherencePct < 90) badgeVar = 'pending';
+        <div className="text-left">
+          <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
+            <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4 text-brand-green" />
+              <span>Historical Calorie Adherence</span>
+            </h3>
 
-                    return (
-                      <tr key={log.id} className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150">
-                        <td className="py-3 px-3 font-semibold">
-                          {new Date(log.logDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                        </td>
-                        <td className="py-3 px-3 font-bold text-brand-text">
-                          {Math.round(log.totalCalories)} kcal
-                        </td>
-                        <td className="py-3 px-3 font-bold text-brand-muted">
-                          {Math.round(log.targetCalories)} kcal
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
-                            {Math.round(log.adherencePct)}% Adherence
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-      </div>
+            {history?.dailyNutritionLogs.length === 0 ? (
+              <div className="p-8 text-center border border-dashed border-brand-border rounded-xl text-brand-muted text-xs font-bold flex items-center justify-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-brand-green shrink-0" />
+                <span>Yesterday&apos;s adherence scores compile automatically overnight</span>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
+                      <th className="pb-3 px-3">Date</th>
+                      <th className="pb-3 px-3">Calories Consumed</th>
+                      <th className="pb-3 px-3">Daily Target</th>
+                      <th className="pb-3 px-3 text-center">Adherence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history?.dailyNutritionLogs.map((log) => {
+                      let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
+                      if (log.adherencePct < 70) badgeVar = 'rejected';
+                      else if (log.adherencePct < 90) badgeVar = 'pending';
+
+                      return (
+                        <tr
+                          key={log.id}
+                          className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150"
+                        >
+                          <td className="py-3 px-3 font-semibold">
+                            {new Date(log.logDate).toLocaleDateString(undefined, {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td className="py-3 px-3 font-bold text-brand-text">{Math.round(log.totalCalories)} kcal</td>
+                          <td className="py-3 px-3 font-bold text-brand-muted">
+                            {Math.round(log.targetCalories)} kcal
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
+                              {Math.round(log.adherencePct)}% Adherence
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
-
     </div>
   );
 }

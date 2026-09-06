@@ -12,11 +12,10 @@ export async function recordCompletedMealPlanReviewCredit(
     stage: 'ORDINARY_FINAL' | 'HIGH_RISK_ESCALATION' | 'HIGH_RISK_SECOND';
     outcome: ReviewOutcome;
     earnedAt: Date;
-  },
+  }
 ): Promise<{ id: string }> {
-  const creditKind: WorkCreditKind = input.stage === 'HIGH_RISK_SECOND'
-    ? 'HIGH_RISK_SECOND_REVIEW'
-    : 'ORDINARY_PLAN_REVIEW';
+  const creditKind: WorkCreditKind =
+    input.stage === 'HIGH_RISK_SECOND' ? 'HIGH_RISK_SECOND_REVIEW' : 'ORDINARY_PLAN_REVIEW';
   const sourceActionKey = `meal-plan-review:${input.mealPlanId}:${input.stage.toLowerCase()}`;
   const existing = await tx.nutritionistWorkCredit.findUnique({ where: { sourceActionKey } });
   const decision = decideWorkCreditAward({
@@ -26,7 +25,13 @@ export async function recordCompletedMealPlanReviewCredit(
     existingSourceActionKeys: new Set(existing ? [sourceActionKey] : []),
   });
   if (decision.decision === 'DUPLICATE') {
-    if (!existing || existing.nutritionistProfileId !== input.nutritionistProfileId || existing.creditKind !== creditKind || existing.sourceOutcome !== input.outcome || existing.sourceEntityId !== input.mealPlanId) {
+    if (
+      !existing ||
+      existing.nutritionistProfileId !== input.nutritionistProfileId ||
+      existing.creditKind !== creditKind ||
+      existing.sourceOutcome !== input.outcome ||
+      existing.sourceEntityId !== input.mealPlanId
+    ) {
       throw new Error('The completed-review action key is already bound to different credit evidence.');
     }
     return { id: existing.id };

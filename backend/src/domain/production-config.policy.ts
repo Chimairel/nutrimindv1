@@ -10,7 +10,14 @@ export interface ProductionConfigIssue {
 export function validateProductionConfig(env: NodeJS.ProcessEnv): ProductionConfigIssue[] {
   if (env.NODE_ENV !== 'production') return [];
   const issues: ProductionConfigIssue[] = [];
-  const required = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'CRON_SECRET', 'CORS_ORIGINS', 'CLINICAL_POLICY_APPROVED_VERSION'];
+  const required = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'JWT_REFRESH_SECRET',
+    'CRON_SECRET',
+    'CORS_ORIGINS',
+    'CLINICAL_POLICY_APPROVED_VERSION',
+  ];
   for (const key of required) {
     const value = env[key]?.trim();
     if (!value) issues.push({ key, reason: 'is required in production' });
@@ -38,6 +45,8 @@ export function validateProductionConfig(env: NodeJS.ProcessEnv): ProductionConf
 export function assertProductionConfig(env: NodeJS.ProcessEnv): void {
   const issues = validateProductionConfig(env);
   if (issues.length > 0) {
-    throw new Error(`Unsafe production configuration: ${issues.map((issue) => `${issue.key} ${issue.reason}`).join('; ')}`);
+    throw new Error(
+      `Unsafe production configuration: ${issues.map((issue) => `${issue.key} ${issue.reason}`).join('; ')}`
+    );
   }
 }

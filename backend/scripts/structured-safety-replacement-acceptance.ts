@@ -4,10 +4,7 @@ import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '../src/domain/meal-plan-production-safety.policy';
-import {
-  certifiedLibraryMealInclude,
-  isCertifiedLibraryMealCompatible,
-} from '../src/services/meal-swap.service';
+import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { UserService } from '../src/services/user.service';
@@ -45,22 +42,25 @@ async function main() {
     goal: 'MAINTAIN',
     otherConditions: null,
     otherAllergies: null,
-    safetyEntries: [
-      { domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' },
-    ],
+    safetyEntries: [{ domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' }],
   } as const;
-  const original = managedMeals.find((meal) =>
-    meal.safetyDeclarations.some((declaration) =>
-      declaration.declarationType === 'ALLERGEN_PRESENT' && declaration.canonicalKey === 'EGGS'
-    ) && meal.ingredients.length > 0
+  const original = managedMeals.find(
+    (meal) =>
+      meal.safetyDeclarations.some(
+        (declaration) => declaration.declarationType === 'ALLERGEN_PRESENT' && declaration.canonicalKey === 'EGGS'
+      ) && meal.ingredients.length > 0
   );
   assert.ok(original, 'Acceptance requires one certified managed meal with an explicit EGGS-present declaration.');
-  const replacements = managedMeals.filter((meal) =>
-    meal.mealType === original.mealType &&
-    meal.id !== original.id &&
-    isCertifiedLibraryMealCompatible(meal, [], [], eggProfile)
+  const replacements = managedMeals.filter(
+    (meal) =>
+      meal.mealType === original.mealType &&
+      meal.id !== original.id &&
+      isCertifiedLibraryMealCompatible(meal, [], [], eggProfile)
   );
-  assert.ok(replacements.length > 0, 'Acceptance requires one certified egg-compatible replacement in the same meal slot.');
+  assert.ok(
+    replacements.length > 0,
+    'Acceptance requires one certified egg-compatible replacement in the same meal slot.'
+  );
 
   let userId: string | null = null;
   let planId: string | null = null;
@@ -178,16 +178,22 @@ async function main() {
     assert.equal(groceryFinal?.id, groceryAfter.id);
     assert.equal(revisionCountFinal, 1);
 
-    console.log(JSON.stringify({
-      passed: true,
-      fixture: FIXTURE_EMAIL,
-      originalMealId: original.id,
-      replacementMealId: planAfter.libraryMealId,
-      groceryRefreshed: groceryAfter.id !== groceryBefore.id,
-      revisionHistoryPreserved: revisionsAfter.length === 1,
-      replacementEvidencePreserved: replacementLog?.source === 'SAFETY_REPLACED',
-      idempotent: !secondSave.changed && groceryFinal?.id === groceryAfter.id,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          passed: true,
+          fixture: FIXTURE_EMAIL,
+          originalMealId: original.id,
+          replacementMealId: planAfter.libraryMealId,
+          groceryRefreshed: groceryAfter.id !== groceryBefore.id,
+          revisionHistoryPreserved: revisionsAfter.length === 1,
+          replacementEvidencePreserved: replacementLog?.source === 'SAFETY_REPLACED',
+          idempotent: !secondSave.changed && groceryFinal?.id === groceryAfter.id,
+        },
+        null,
+        2
+      )
+    );
   } finally {
     const cleanupFailures: string[] = [];
 
@@ -202,7 +208,9 @@ async function main() {
         });
         selectedReplacementId = planForCleanup?.libraryMealId ?? null;
       } catch (error) {
-        cleanupFailures.push(`could not resolve selected replacement: ${error instanceof Error ? error.message : String(error)}`);
+        cleanupFailures.push(
+          `could not resolve selected replacement: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
@@ -232,7 +240,9 @@ async function main() {
           );
         }
       } catch (error) {
-        cleanupFailures.push(`selected counter restoration failed safely: ${error instanceof Error ? error.message : String(error)}`);
+        cleanupFailures.push(
+          `selected counter restoration failed safely: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
@@ -245,7 +255,15 @@ async function main() {
     }
 
     try {
-      const [residualUsers, residualPlans, residualGroceries, residualEntries, residualRevisions, residualLogs, selectedAfter] = await Promise.all([
+      const [
+        residualUsers,
+        residualPlans,
+        residualGroceries,
+        residualEntries,
+        residualRevisions,
+        residualLogs,
+        selectedAfter,
+      ] = await Promise.all([
         prisma.user.count({ where: { email: FIXTURE_EMAIL } }),
         prisma.mealPlan.count({ where: { planGroupId: FIXTURE_PLAN_GROUP } }),
         userId ? prisma.groceryList.count({ where: { userId } }) : Promise.resolve(0),
@@ -256,12 +274,29 @@ async function main() {
           ? prisma.mealLibrary.findUnique({ where: { id: selectedReplacementId }, select: { usageCount: true } })
           : Promise.resolve(null),
       ]);
-      const selectedCounterDrift = selectedAfter && selectedReplacementId
-        ? Number(selectedAfter.usageCount !== usageSnapshot.get(selectedReplacementId))
-        : 0;
+      const selectedCounterDrift =
+        selectedAfter && selectedReplacementId
+          ? Number(selectedAfter.usageCount !== usageSnapshot.get(selectedReplacementId))
+          : 0;
       assert.deepEqual(
-        { residualUsers, residualPlans, residualGroceries, residualEntries, residualRevisions, residualLogs, selectedCounterDrift },
-        { residualUsers: 0, residualPlans: 0, residualGroceries: 0, residualEntries: 0, residualRevisions: 0, residualLogs: 0, selectedCounterDrift: 0 }
+        {
+          residualUsers,
+          residualPlans,
+          residualGroceries,
+          residualEntries,
+          residualRevisions,
+          residualLogs,
+          selectedCounterDrift,
+        },
+        {
+          residualUsers: 0,
+          residualPlans: 0,
+          residualGroceries: 0,
+          residualEntries: 0,
+          residualRevisions: 0,
+          residualLogs: 0,
+          selectedCounterDrift: 0,
+        }
       );
     } catch (error) {
       cleanupFailures.push(`cleanup verification failed: ${error instanceof Error ? error.message : String(error)}`);

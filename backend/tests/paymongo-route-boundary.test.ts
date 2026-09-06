@@ -21,21 +21,33 @@ async function loadBillingRoutes() {
 function responseRecorder() {
   const state: { status?: number; body?: unknown } = {};
   const response = {
-    status(code: number) { state.status = code; return this; },
-    json(body: unknown) { state.body = body; return this; },
+    status(code: number) {
+      state.status = code;
+      return this;
+    },
+    json(body: unknown) {
+      state.body = body;
+      return this;
+    },
   } as unknown as Response;
   return { state, response };
 }
 
 test('[TEST-089] checkout route returns a stable disabled response without secret or provider detail', async () => {
   const { createCheckoutHandler } = await loadBillingRoutes();
-  const service = { async create() { throw new CheckoutBoundaryError('PAYMENTS_UNAVAILABLE'); } } as unknown as BillingCheckoutBoundary;
+  const service = {
+    async create() {
+      throw new CheckoutBoundaryError('PAYMENTS_UNAVAILABLE');
+    },
+  } as unknown as BillingCheckoutBoundary;
   const handler = createCheckoutHandler(service);
   const { state, response } = responseRecorder();
   const request = {
     user: { userId: 'user_1', email: 'synthetic@example.invalid', role: 'USER' },
     body: { priceCode: 'PREMIUM' },
-    header(name: string) { return name.toLowerCase() === 'idempotency-key' ? 'request-key-1234' : undefined; },
+    header(name: string) {
+      return name.toLowerCase() === 'idempotency-key' ? 'request-key-1234' : undefined;
+    },
   } as unknown as Request;
   await handler(request, response, () => undefined);
   assert.equal(state.status, 503);
@@ -48,17 +60,25 @@ test('[TEST-089] checkout route returns a stable disabled response without secre
 
 test('[TEST-089] successful checkout route responses explicitly deny redirect-based entitlement', async () => {
   const { createCheckoutHandler } = await loadBillingRoutes();
-  const service = { async create() {
-    return {
-      provider: 'PAYMONGO', environment: 'TEST', providerSessionId: 'cs_synthetic_12345678',
-      checkoutUrl: 'https://checkout.paymongo.com/synthetic', livemode: false, entitlementGranted: false,
-    };
-  } } as unknown as BillingCheckoutBoundary;
+  const service = {
+    async create() {
+      return {
+        provider: 'PAYMONGO',
+        environment: 'TEST',
+        providerSessionId: 'cs_synthetic_12345678',
+        checkoutUrl: 'https://checkout.paymongo.com/synthetic',
+        livemode: false,
+        entitlementGranted: false,
+      };
+    },
+  } as unknown as BillingCheckoutBoundary;
   const { state, response } = responseRecorder();
   const request = {
     user: { userId: 'user_1', email: 'synthetic@example.invalid', role: 'USER' },
     body: { priceCode: 'PREMIUM' },
-    header() { return 'request-key-1234'; },
+    header() {
+      return 'request-key-1234';
+    },
   } as unknown as Request;
   await createCheckoutHandler(service)(request, response, () => undefined);
   assert.equal(state.status, 201);
@@ -67,12 +87,18 @@ test('[TEST-089] successful checkout route responses explicitly deny redirect-ba
 
 test('[TEST-100] provider capability rejection returns a sanitized 422 contract', async () => {
   const { createCheckoutHandler } = await loadBillingRoutes();
-  const service = { async create() { throw new CheckoutBoundaryError('CHECKOUT_PROVIDER_REJECTED'); } } as unknown as BillingCheckoutBoundary;
+  const service = {
+    async create() {
+      throw new CheckoutBoundaryError('CHECKOUT_PROVIDER_REJECTED');
+    },
+  } as unknown as BillingCheckoutBoundary;
   const { state, response } = responseRecorder();
   const request = {
     user: { userId: 'user_1', email: 'synthetic@example.invalid', role: 'USER' },
     body: { priceCode: 'PREMIUM' },
-    header() { return 'request-key-1234'; },
+    header() {
+      return 'request-key-1234';
+    },
   } as unknown as Request;
   await createCheckoutHandler(service)(request, response, () => undefined);
   assert.equal(state.status, 422);
@@ -86,10 +112,27 @@ test('[TEST-100] provider capability rejection returns a sanitized 422 contract'
 test('[TEST-089] checkout route requires an authenticated owner and request idempotency key', async () => {
   const { createCheckoutHandler } = await loadBillingRoutes();
   let calls = 0;
-  const service = { async create() { calls += 1; throw new Error('must not run'); } } as unknown as BillingCheckoutBoundary;
+  const service = {
+    async create() {
+      calls += 1;
+      throw new Error('must not run');
+    },
+  } as unknown as BillingCheckoutBoundary;
   for (const request of [
-    { user: undefined, body: { priceCode: 'PREMIUM' }, header() { return 'request-key-1234'; } },
-    { user: { userId: 'user_1' }, body: { priceCode: 'PREMIUM' }, header() { return undefined; } },
+    {
+      user: undefined,
+      body: { priceCode: 'PREMIUM' },
+      header() {
+        return 'request-key-1234';
+      },
+    },
+    {
+      user: { userId: 'user_1' },
+      body: { priceCode: 'PREMIUM' },
+      header() {
+        return undefined;
+      },
+    },
   ]) {
     const { state, response } = responseRecorder();
     await createCheckoutHandler(service)(request as unknown as Request, response, () => undefined);
@@ -103,8 +146,16 @@ test('[TEST-089] billing router orders authentication, USER authorization, and r
   const { createBillingRouter } = await loadBillingRoutes();
   const noop = ((_request: Request, _response: Response, next: () => void) => next()) as never;
   const router = createBillingRouter({
-    checkoutService: { async create() { throw new Error('unused'); } } as unknown as BillingCheckoutBoundary,
-    accessService: { async getForUser() { throw new Error('unused'); } } as unknown as UserBillingAccessService,
+    checkoutService: {
+      async create() {
+        throw new Error('unused');
+      },
+    } as unknown as BillingCheckoutBoundary,
+    accessService: {
+      async getForUser() {
+        throw new Error('unused');
+      },
+    } as unknown as UserBillingAccessService,
     authenticate: noop,
     authorizeUser: noop,
     requirePrerequisites: noop,
@@ -126,23 +177,36 @@ test('[TEST-105] billing access route is owner-scoped and sanitizes service fail
     checkout: { available: false, reason: 'DISABLED' },
   };
   const service = {
-    async getForUser(userId: string) { seen.push(userId); return expected; },
+    async getForUser(userId: string) {
+      seen.push(userId);
+      return expected;
+    },
   } as unknown as UserBillingAccessService;
   const { state, response } = responseRecorder();
-  await createBillingAccessHandler(service)({
-    user: { userId: 'owner_1', email: 'owner@example.invalid', role: 'USER' },
-  } as unknown as Request, response, () => undefined);
+  await createBillingAccessHandler(service)(
+    {
+      user: { userId: 'owner_1', email: 'owner@example.invalid', role: 'USER' },
+    } as unknown as Request,
+    response,
+    () => undefined
+  );
   assert.equal(state.status, 200);
   assert.deepEqual(seen, ['owner_1']);
   assert.deepEqual((state.body as { data: unknown }).data, expected);
 
   const unavailable = {
-    async getForUser() { throw new Error('database DSN and provider detail must stay private'); },
+    async getForUser() {
+      throw new Error('database DSN and provider detail must stay private');
+    },
   } as unknown as UserBillingAccessService;
   const failed = responseRecorder();
-  await createBillingAccessHandler(unavailable)({
-    user: { userId: 'owner_1', email: 'owner@example.invalid', role: 'USER' },
-  } as unknown as Request, failed.response, () => undefined);
+  await createBillingAccessHandler(unavailable)(
+    {
+      user: { userId: 'owner_1', email: 'owner@example.invalid', role: 'USER' },
+    } as unknown as Request,
+    failed.response,
+    () => undefined
+  );
   assert.equal(failed.state.status, 503);
   assert.deepEqual(failed.state.body, {
     success: false,
@@ -154,7 +218,12 @@ test('[TEST-105] billing access route is owner-scoped and sanitizes service fail
 test('[TEST-105] billing access handler rejects absent authentication before service work', async () => {
   const { createBillingAccessHandler } = await loadBillingRoutes();
   let calls = 0;
-  const service = { async getForUser() { calls += 1; throw new Error('unused'); } } as unknown as UserBillingAccessService;
+  const service = {
+    async getForUser() {
+      calls += 1;
+      throw new Error('unused');
+    },
+  } as unknown as UserBillingAccessService;
   const { state, response } = responseRecorder();
   await createBillingAccessHandler(service)({} as Request, response, () => undefined);
   assert.equal(state.status, 401);
@@ -163,10 +232,25 @@ test('[TEST-105] billing access handler rejects absent authentication before ser
 
 test('[TEST-089] webhook route rejects non-JSON and absent raw-body authentication before service work', async () => {
   let calls = 0;
-  const service = { async ingest() { calls += 1; throw new Error('must not run'); } } as unknown as PaymongoWebhookBoundary;
+  const service = {
+    async ingest() {
+      calls += 1;
+      throw new Error('must not run');
+    },
+  } as unknown as PaymongoWebhookBoundary;
   for (const request of [
-    { body: Buffer.from('{}'), header(name: string) { return name === 'content-type' ? 'text/plain' : 'signature'; } },
-    { body: {}, header(name: string) { return name === 'content-type' ? 'application/json' : 'signature'; } },
+    {
+      body: Buffer.from('{}'),
+      header(name: string) {
+        return name === 'content-type' ? 'text/plain' : 'signature';
+      },
+    },
+    {
+      body: {},
+      header(name: string) {
+        return name === 'content-type' ? 'application/json' : 'signature';
+      },
+    },
   ]) {
     const { state, response } = responseRecorder();
     await createPaymongoWebhookHandler(service)(request as unknown as Request, response, () => undefined);
@@ -182,31 +266,53 @@ test('[TEST-089] webhook route maps accepted, duplicate, quarantined, and confli
     [{ decision: 'OUT_OF_ORDER', knownEvent: true, entitlementGranted: false }, 202, 'QUARANTINED'],
   ] as const;
   for (const [result, status, expectedStatus] of cases) {
-    const service = { async ingest() { return result; } } as unknown as PaymongoWebhookBoundary;
+    const service = {
+      async ingest() {
+        return result;
+      },
+    } as unknown as PaymongoWebhookBoundary;
     const { state, response } = responseRecorder();
     const request = {
       body: Buffer.from('{}'),
-      header(name: string) { return name === 'content-type' ? 'application/json; charset=utf-8' : 'signed'; },
+      header(name: string) {
+        return name === 'content-type' ? 'application/json; charset=utf-8' : 'signed';
+      },
     } as unknown as Request;
     await createPaymongoWebhookHandler(service)(request, response, () => undefined);
     assert.equal(state.status, status);
     assert.equal((state.body as { status: string }).status, expectedStatus);
     assert.equal((state.body as { entitlementGranted: boolean }).entitlementGranted, false);
   }
-  const conflict = { async ingest() { throw new WebhookBoundaryError('WEBHOOK_EVENT_CONFLICT'); } } as unknown as PaymongoWebhookBoundary;
+  const conflict = {
+    async ingest() {
+      throw new WebhookBoundaryError('WEBHOOK_EVENT_CONFLICT');
+    },
+  } as unknown as PaymongoWebhookBoundary;
   const { state, response } = responseRecorder();
-  await createPaymongoWebhookHandler(conflict)({
-    body: Buffer.from('{}'), header(name: string) { return name === 'content-type' ? 'application/json' : 'signed'; },
-  } as unknown as Request, response, () => undefined);
+  await createPaymongoWebhookHandler(conflict)(
+    {
+      body: Buffer.from('{}'),
+      header(name: string) {
+        return name === 'content-type' ? 'application/json' : 'signed';
+      },
+    } as unknown as Request,
+    response,
+    () => undefined
+  );
   assert.equal(state.status, 409);
 });
 
 test('[TEST-089] raw parser is route-scoped before the webhook handler and before global JSON parsing', () => {
-  const router = createPaymongoWebhookRouter({ async ingest() { throw new Error('unused'); } } as unknown as PaymongoWebhookBoundary);
-  const layers = (router as unknown as { stack: Array<{ route: { stack: Array<{ handle: unknown }> } }> }).stack[0].route.stack;
+  const router = createPaymongoWebhookRouter({
+    async ingest() {
+      throw new Error('unused');
+    },
+  } as unknown as PaymongoWebhookBoundary);
+  const layers = (router as unknown as { stack: Array<{ route: { stack: Array<{ handle: unknown }> } }> }).stack[0]
+    .route.stack;
   assert.equal(layers[0].handle, paymongoRawBodyParser);
   const appSource = readFileSync('src/app.ts', 'utf8');
-  assert.ok(appSource.indexOf("app.use('/api/webhooks/paymongo'") < appSource.indexOf("app.use(express.json"));
+  assert.ok(appSource.indexOf("app.use('/api/webhooks/paymongo'") < appSource.indexOf('app.use(express.json'));
 });
 
 test('[TEST-089] oversized raw-body parser failures use a sanitized 413 contract', () => {
@@ -215,7 +321,7 @@ test('[TEST-089] oversized raw-body parser failures use a sanitized 413 contract
     { type: 'entity.too.large', message: 'raw body detail' },
     {} as Request,
     response,
-    () => undefined,
+    () => undefined
   );
   assert.equal(state.status, 413);
   assert.deepEqual(state.body, {

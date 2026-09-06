@@ -9,9 +9,11 @@ import validateZodBody from '@/middleware/validateZod';
 import { AuthenticatedRequest } from '@/types';
 import { UserBillingAccessService } from '@/services/user-billing-access.service';
 
-const checkoutBodySchema = z.object({
-  priceCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{1,63}$/, 'A valid price code is required.'),
-}).strict();
+const checkoutBodySchema = z
+  .object({
+    priceCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{1,63}$/, 'A valid price code is required.'),
+  })
+  .strict();
 
 function checkoutErrorStatus(code: CheckoutBoundaryError['code']): number {
   if (code === 'CHECKOUT_REQUEST_INVALID') return 400;
@@ -43,14 +45,13 @@ export function createCheckoutHandler(service: BillingCheckoutBoundary): Request
         data: session,
       });
     } catch (error) {
-      const code = error instanceof CheckoutBoundaryError
-        ? error.code
-        : 'CHECKOUT_TEMPORARILY_UNAVAILABLE';
+      const code = error instanceof CheckoutBoundaryError ? error.code : 'CHECKOUT_TEMPORARILY_UNAVAILABLE';
       return response.status(checkoutErrorStatus(code)).json({
         success: false,
-        error: code === 'PAYMENTS_UNAVAILABLE'
-          ? 'Payments are currently unavailable.'
-          : 'Checkout is currently unavailable.',
+        error:
+          code === 'PAYMENTS_UNAVAILABLE'
+            ? 'Payments are currently unavailable.'
+            : 'Checkout is currently unavailable.',
         errorCode: code,
       });
     }

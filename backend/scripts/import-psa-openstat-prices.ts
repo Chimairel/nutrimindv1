@@ -1,24 +1,20 @@
 import 'dotenv/config';
 import { resolve } from 'node:path';
 import { prisma } from '@/lib/prisma';
-import {
-  buildPsaCoverageReport,
-  loadPsaOpenStatSnapshot,
-} from '@/domain/psa-openstat-price-ingestion';
+import { buildPsaCoverageReport, loadPsaOpenStatSnapshot } from '@/domain/psa-openstat-price-ingestion';
 import { importPsaOpenStatSnapshot } from '@/services/psa-openstat-price-ingestion.service';
 
-const DEFAULT_MANIFEST = resolve(
-  __dirname,
-  '../data/psa-openstat/2026-09-06-cebu-city/manifest.json',
-);
+const DEFAULT_MANIFEST = resolve(__dirname, '../data/psa-openstat/2026-09-06-cebu-city/manifest.json');
 
 function readArguments(argv: string[]): { apply: boolean; manifestPath: string } {
   const apply = argv.includes('--apply');
   if (apply && argv.includes('--dry-run')) throw new Error('Choose either --apply or --dry-run');
   const snapshotIndex = argv.indexOf('--snapshot');
   if (snapshotIndex >= 0 && !argv[snapshotIndex + 1]) throw new Error('--snapshot requires a manifest path');
-  const unknown = argv.filter((value, index) =>
-    value !== '--apply' && value !== '--dry-run' && value !== '--snapshot' && argv[index - 1] !== '--snapshot');
+  const unknown = argv.filter(
+    (value, index) =>
+      value !== '--apply' && value !== '--dry-run' && value !== '--snapshot' && argv[index - 1] !== '--snapshot'
+  );
   if (unknown.length > 0) throw new Error(`Unknown arguments: ${unknown.join(', ')}`);
   return {
     apply,

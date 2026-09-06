@@ -20,17 +20,17 @@ interface CalorieResult {
 /**
  * Calculates BMR, TDEE, and daily calorie target using Mifflin-St Jeor formula
  * adjusted for daily activity level and fitness objectives.
- * 
+ *
  * BMR Calculation (Mifflin-St Jeor as per specifications):
  *   Male:   10 * weight(kg) + 6.25 * height(cm) - 5 * age + 5
  *   Female: 10 * weight(kg) + 6.25 * height(cm) - 5 * age - 161
- * 
+ *
  * Activity Multipliers:
  *   SEDENTARY:      * 1.2
  *   LIGHTLY_ACTIVE:  * 1.375
  *   ACTIVE:          * 1.55
  *   VERY_ACTIVE:     * 1.725
- * 
+ *
  * Daily Targets:
  *   LOSE_WEIGHT:   TDEE - 500
  *   GAIN_WEIGHT:   TDEE + 500
@@ -38,15 +38,7 @@ interface CalorieResult {
  *   BUILD_MUSCLE:  TDEE + 300
  */
 export function calculateDailyTarget(input: CalorieInput): CalorieResult {
-  const {
-    age,
-    heightCm,
-    weightKg,
-    goal,
-    activityLevel,
-    biologicalSex,
-    hasPregnantCondition
-  } = input;
+  const { age, heightCm, weightKg, goal, activityLevel, biologicalSex, hasPregnantCondition } = input;
 
   // Determine sex: if PREGNANT condition exists, force FEMALE.
   // Otherwise, default to biologicalSex parameter or FEMALE as a safe baseline.
@@ -57,7 +49,7 @@ export function calculateDailyTarget(input: CalorieInput): CalorieResult {
   if (isFemale) {
     bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161; // Female: -161
   } else {
-    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;   // Male: +5
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5; // Male: +5
   }
 
   // 2. Calculate Total Daily Energy Expenditure (TDEE) based on Activity level
@@ -104,9 +96,6 @@ export function calculateDailyTarget(input: CalorieInput): CalorieResult {
   return {
     bmr: Math.round(Math.max(0, bmr)),
     tdee: Math.round(Math.max(0, tdee)),
-    dailyCalorieTarget: Math.round(Math.max(
-      CLINICAL_NUTRITION_POLICY.minimumDailyCalories,
-      dailyCalorieTarget
-    )),
+    dailyCalorieTarget: Math.round(Math.max(CLINICAL_NUTRITION_POLICY.minimumDailyCalories, dailyCalorieTarget)),
   };
 }

@@ -83,9 +83,10 @@ async function main() {
               dietaryPreference: profileCase.diet,
               dailyCalorieTarget: 1900,
               shoppingDayOfWeek,
-              shoppingDayGroup: shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6
-                ? ShoppingDayGroup.WEEKEND
-                : ShoppingDayGroup.WEEKDAY,
+              shoppingDayGroup:
+                shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6
+                  ? ShoppingDayGroup.WEEKEND
+                  : ShoppingDayGroup.WEEKDAY,
             },
           },
           healthConditions: { create: { condition: profileCase.condition } },
@@ -103,15 +104,35 @@ async function main() {
         },
       });
       assert.equal(plan.length, 21, `${profileCase.label} did not receive 21 plan slots.`);
-      assert.ok(plan.every((meal) => meal.status === 'APPROVED' && meal.libraryMealId), `${profileCase.label} received a non-library or non-approved slot.`);
-      assert.equal(new Set(plan.map((meal) => meal.libraryMealId)).size, 21, `${profileCase.label} repeated a library meal.`);
-      assert.ok(plan.every((meal) => meal.ingredients.length > 0), `${profileCase.label} received a meal without grocery ingredients.`);
-      assert.ok(plan.every((meal) => meal.libraryMeal?.suitableConditions.includes(profileCase.condition)), `${profileCase.label} received a meal without its condition declaration.`);
+      assert.ok(
+        plan.every((meal) => meal.status === 'APPROVED' && meal.libraryMealId),
+        `${profileCase.label} received a non-library or non-approved slot.`
+      );
+      assert.equal(
+        new Set(plan.map((meal) => meal.libraryMealId)).size,
+        21,
+        `${profileCase.label} repeated a library meal.`
+      );
+      assert.ok(
+        plan.every((meal) => meal.ingredients.length > 0),
+        `${profileCase.label} received a meal without grocery ingredients.`
+      );
+      assert.ok(
+        plan.every((meal) => meal.libraryMeal?.suitableConditions.includes(profileCase.condition)),
+        `${profileCase.label} received a meal without its condition declaration.`
+      );
 
       if (profileCase.allergy !== AllergenType.NONE) {
-        assert.ok(plan.every((meal) => !meal.libraryMeal?.safetyDeclarations.some(
-          (declaration) => declaration.declarationType === 'ALLERGEN_PRESENT' && declaration.canonicalKey === profileCase.allergy
-        )), `${profileCase.label} received an allergen conflict.`);
+        assert.ok(
+          plan.every(
+            (meal) =>
+              !meal.libraryMeal?.safetyDeclarations.some(
+                (declaration) =>
+                  declaration.declarationType === 'ALLERGEN_PRESENT' && declaration.canonicalKey === profileCase.allergy
+              )
+          ),
+          `${profileCase.label} received an allergen conflict.`
+        );
       }
 
       const grocery = await prisma.groceryList.findFirst({
@@ -131,10 +152,14 @@ async function main() {
     console.log(JSON.stringify({ passed: true, geminiCallsRecorded: 0, profiles: results }, null, 2));
   } finally {
     await cleanup();
-    await prisma.$transaction([...usageSnapshot].map(([id, usageCount]) => prisma.mealLibrary.update({
-      where: { id },
-      data: { usageCount },
-    })));
+    await prisma.$transaction(
+      [...usageSnapshot].map(([id, usageCount]) =>
+        prisma.mealLibrary.update({
+          where: { id },
+          data: { usageCount },
+        })
+      )
+    );
   }
 }
 

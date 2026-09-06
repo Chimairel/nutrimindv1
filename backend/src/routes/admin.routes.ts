@@ -39,7 +39,9 @@ router.get('/analytics', async (req: AuthenticatedRequest, res: Response) => {
     const analytics = await AdminService.getAnalytics();
     return res.status(200).json({ success: true, data: analytics });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve analytics.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve analytics.') });
   }
 });
 
@@ -69,7 +71,9 @@ router.get('/nutritionists', async (req: AuthenticatedRequest, res: Response) =>
     const nutritionists = await AdminService.getNutritionists();
     return res.status(200).json({ success: true, data: nutritionists });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionists.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionists.') });
   }
 });
 
@@ -82,7 +86,9 @@ router.patch('/nutritionists/:id/verify', async (req: AuthenticatedRequest, res:
     const result = await AdminService.verifyNutritionist(req.user!.userId, req.params.id);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to verify nutritionist.') });
+    return res
+      .status(400)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to verify nutritionist.') });
   }
 });
 
@@ -91,7 +97,9 @@ router.get('/nutritionist-applications', async (_req: AuthenticatedRequest, res:
     const data = await NutritionistApplicationService.listForAdmin();
     return res.json({ success: true, data });
   } catch (error: unknown) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist applications.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist applications.') });
   }
 });
 
@@ -108,7 +116,9 @@ router.patch(
       );
       return res.json({ success: true, data });
     } catch (error: unknown) {
-      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to advance application.') });
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to advance application.') });
     }
   }
 );
@@ -121,7 +131,9 @@ router.patch(
       const data = await NutritionistApplicationService.scheduleCall(req.user!.userId, req.params.id, req.body);
       return res.json({ success: true, data });
     } catch (error: unknown) {
-      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to schedule verification call.') });
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to schedule verification call.') });
     }
   }
 );
@@ -134,7 +146,9 @@ router.patch(
       const data = await NutritionistApplicationService.decide(req.user!.userId, req.params.id, req.body);
       return res.json({ success: true, data });
     } catch (error: unknown) {
-      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to record application decision.') });
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to record application decision.') });
     }
   }
 );
@@ -165,7 +179,9 @@ router.patch('/users/:id/suspension', async (req: AuthenticatedRequest, res: Res
     );
     return res.json({ success: true, data: result });
   } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update account status.') });
+    return res
+      .status(400)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update account status.') });
   }
 });
 
@@ -188,113 +204,243 @@ router.get('/compensation', async (_req: AuthenticatedRequest, res: Response) =>
   try {
     return res.json({ success: true, data: await CompensationAdminService.getWorkspace() });
   } catch (error: unknown) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve compensation operations.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve compensation operations.') });
   }
 });
 
-router.post('/compensation/policies', validateZodBody(createCompensationPolicySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.status(201).json({ success: true, data: await CompensationAdminService.createPolicy(req.user!.userId, req.body) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to draft compensation policy.') });
+router.post(
+  '/compensation/policies',
+  validateZodBody(createCompensationPolicySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res
+        .status(201)
+        .json({ success: true, data: await CompensationAdminService.createPolicy(req.user!.userId, req.body) });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to draft compensation policy.') });
+    }
   }
-});
+);
 
-router.post('/compensation/policies/:id/activate', validateZodBody(emptyBodySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.activatePolicy(req.user!.userId, req.params.id) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to activate compensation policy.') });
+router.post(
+  '/compensation/policies/:id/activate',
+  validateZodBody(emptyBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.activatePolicy(req.user!.userId, req.params.id),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to activate compensation policy.') });
+    }
   }
-});
+);
 
-router.post('/compensation/periods', validateZodBody(createCompensationPeriodSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.status(201).json({ success: true, data: await CompensationAdminService.openPeriod(req.user!.userId, req.body) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to open compensation period.') });
+router.post(
+  '/compensation/periods',
+  validateZodBody(createCompensationPeriodSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res
+        .status(201)
+        .json({ success: true, data: await CompensationAdminService.openPeriod(req.user!.userId, req.body) });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to open compensation period.') });
+    }
   }
-});
+);
 
-router.post('/compensation/periods/:id/close', validateZodBody(emptyBodySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.closePeriod(req.user!.userId, req.params.id) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to close compensation period.') });
+router.post(
+  '/compensation/periods/:id/close',
+  validateZodBody(emptyBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.closePeriod(req.user!.userId, req.params.id),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to close compensation period.') });
+    }
   }
-});
+);
 
-router.post('/compensation/periods/:id/statements', validateZodBody(emptyBodySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.status(201).json({ success: true, data: await CompensationAdminService.generateStatements(req.user!.userId, req.params.id) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to calculate compensation statements.') });
+router.post(
+  '/compensation/periods/:id/statements',
+  validateZodBody(emptyBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.status(201).json({
+        success: true,
+        data: await CompensationAdminService.generateStatements(req.user!.userId, req.params.id),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to calculate compensation statements.') });
+    }
   }
-});
+);
 
-router.post('/compensation/statements/:id/adjustments', validateZodBody(createCompensationAdjustmentSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.status(201).json({ success: true, data: await CompensationAdminService.createAdjustment(req.user!.userId, req.params.id, req.body) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to propose compensation adjustment.') });
+router.post(
+  '/compensation/statements/:id/adjustments',
+  validateZodBody(createCompensationAdjustmentSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.status(201).json({
+        success: true,
+        data: await CompensationAdminService.createAdjustment(req.user!.userId, req.params.id, req.body),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to propose compensation adjustment.') });
+    }
   }
-});
+);
 
-router.post('/compensation/adjustments/:id/decision', validateZodBody(decideCompensationAdjustmentSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.decideAdjustment(req.user!.userId, req.params.id, req.body) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to decide compensation adjustment.') });
+router.post(
+  '/compensation/adjustments/:id/decision',
+  validateZodBody(decideCompensationAdjustmentSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.decideAdjustment(req.user!.userId, req.params.id, req.body),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to decide compensation adjustment.') });
+    }
   }
-});
+);
 
-router.post('/compensation/statements/:id/review', validateZodBody(emptyBodySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.reviewStatement(req.user!.userId, req.params.id) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to review compensation statement.') });
+router.post(
+  '/compensation/statements/:id/review',
+  validateZodBody(emptyBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.reviewStatement(req.user!.userId, req.params.id),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to review compensation statement.') });
+    }
   }
-});
+);
 
-router.post('/compensation/statements/:id/approve', validateZodBody(emptyBodySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.approveStatement(req.user!.userId, req.params.id) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to approve compensation statement.') });
+router.post(
+  '/compensation/statements/:id/approve',
+  validateZodBody(emptyBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.approveStatement(req.user!.userId, req.params.id),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to approve compensation statement.') });
+    }
   }
-});
+);
 
-router.post('/compensation/statements/:id/payouts', validateZodBody(prepareCompensationPayoutSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.status(201).json({ success: true, data: await CompensationAdminService.prepareManualPayout(req.user!.userId, req.params.id, req.body.idempotencyKey) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to prepare manual payout evidence.') });
+router.post(
+  '/compensation/statements/:id/payouts',
+  validateZodBody(prepareCompensationPayoutSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.status(201).json({
+        success: true,
+        data: await CompensationAdminService.prepareManualPayout(
+          req.user!.userId,
+          req.params.id,
+          req.body.idempotencyKey
+        ),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to prepare manual payout evidence.') });
+    }
   }
-});
+);
 
-router.post('/compensation/payouts/:id/approve', validateZodBody(emptyBodySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.approveManualPayout(req.user!.userId, req.params.id) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to approve manual payout evidence.') });
+router.post(
+  '/compensation/payouts/:id/approve',
+  validateZodBody(emptyBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.approveManualPayout(req.user!.userId, req.params.id),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to approve manual payout evidence.') });
+    }
   }
-});
+);
 
-router.post('/compensation/payouts/:id/record', validateZodBody(recordManualPayoutSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await CompensationAdminService.recordManualPayout(req.user!.userId, req.params.id, req.body.externalReference) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to record off-platform payout evidence.') });
+router.post(
+  '/compensation/payouts/:id/record',
+  validateZodBody(recordManualPayoutSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await CompensationAdminService.recordManualPayout(
+          req.user!.userId,
+          req.params.id,
+          req.body.externalReference
+        ),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to record off-platform payout evidence.') });
+    }
   }
-});
+);
 
-router.post('/compensation/work-credits/:id/reverse', validateZodBody(reverseWorkCreditSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.status(201).json({ success: true, data: await CompensationAdminService.reverseWorkCredit(req.user!.userId, req.params.id, req.body.reversalActionKey, req.body.reasonCode) });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to reverse work credit.') });
+router.post(
+  '/compensation/work-credits/:id/reverse',
+  validateZodBody(reverseWorkCreditSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.status(201).json({
+        success: true,
+        data: await CompensationAdminService.reverseWorkCredit(
+          req.user!.userId,
+          req.params.id,
+          req.body.reversalActionKey,
+          req.body.reasonCode
+        ),
+      });
+    } catch (error: unknown) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to reverse work credit.') });
+    }
   }
-});
+);
 
 router.get('/billing-operations', async (_req: AuthenticatedRequest, res: Response) => {
   try {

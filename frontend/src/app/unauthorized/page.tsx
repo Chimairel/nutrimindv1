@@ -28,15 +28,12 @@ export default function UnauthorizedPage() {
         <ShieldAlert className="w-16 h-16 text-status-error-text mx-auto mb-6" />
 
         {/* Heading */}
-        <h1 className="text-3xl font-extrabold text-brand-text font-display mb-3">
-          Access Denied
-        </h1>
+        <h1 className="text-3xl font-extrabold text-brand-text font-display mb-3">Access Denied</h1>
 
         {/* Description */}
         <p className="text-brand-muted text-sm mb-8 leading-relaxed">
-          You don&apos;t have permission to access this page. 
-          This area is restricted to a different account role.
-          If you believe this is a mistake, please contact support.
+          You don&apos;t have permission to access this page. This area is restricted to a different account role. If
+          you believe this is a mistake, please contact support.
         </p>
 
         {/* Actions */}
@@ -58,4 +55,3 @@ export default function UnauthorizedPage() {
     </div>
   );
 }
-

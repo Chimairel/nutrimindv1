@@ -1,33 +1,13 @@
 export type BillingSubscriptionState =
-  | 'INCOMPLETE'
-  | 'INCOMPLETE_CANCELLED'
-  | 'ACTIVE'
-  | 'PAST_DUE'
-  | 'UNPAID'
-  | 'CANCELLED'
-  | 'NON_RENEWING'
-  | 'UNKNOWN';
+  'INCOMPLETE' | 'INCOMPLETE_CANCELLED' | 'ACTIVE' | 'PAST_DUE' | 'UNPAID' | 'CANCELLED' | 'NON_RENEWING' | 'UNKNOWN';
 
 export type BillingInvoiceState = 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNKNOWN';
 
 export type BillingPaymentAttemptState =
-  | 'CREATED'
-  | 'REQUIRES_ACTION'
-  | 'PROCESSING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'UNKNOWN';
+  'CREATED' | 'REQUIRES_ACTION' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN';
 
 export type BillingRefundState =
-  | 'REQUESTED'
-  | 'REVIEWED'
-  | 'APPROVED'
-  | 'SUBMITTED'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'REJECTED'
-  | 'CANCELLED';
+  'REQUESTED' | 'REVIEWED' | 'APPROVED' | 'SUBMITTED' | 'SUCCEEDED' | 'FAILED' | 'REJECTED' | 'CANCELLED';
 
 export type TransitionDecision = 'APPLY' | 'IDEMPOTENT' | 'STALE' | 'INVALID';
 
@@ -50,15 +30,16 @@ const INVOICE_TRANSITIONS: Readonly<Record<BillingInvoiceState, readonly Billing
   UNKNOWN: [],
 };
 
-const PAYMENT_ATTEMPT_TRANSITIONS: Readonly<Record<BillingPaymentAttemptState, readonly BillingPaymentAttemptState[]>> = {
-  CREATED: ['REQUIRES_ACTION', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED'],
-  REQUIRES_ACTION: ['PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED'],
-  PROCESSING: ['SUCCEEDED', 'FAILED', 'CANCELLED'],
-  SUCCEEDED: [],
-  FAILED: [],
-  CANCELLED: [],
-  UNKNOWN: [],
-};
+const PAYMENT_ATTEMPT_TRANSITIONS: Readonly<Record<BillingPaymentAttemptState, readonly BillingPaymentAttemptState[]>> =
+  {
+    CREATED: ['REQUIRES_ACTION', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED'],
+    REQUIRES_ACTION: ['PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED'],
+    PROCESSING: ['SUCCEEDED', 'FAILED', 'CANCELLED'],
+    SUCCEEDED: [],
+    FAILED: [],
+    CANCELLED: [],
+    UNKNOWN: [],
+  };
 
 const REFUND_TRANSITIONS: Readonly<Record<BillingRefundState, readonly BillingRefundState[]>> = {
   REQUESTED: ['REVIEWED', 'REJECTED', 'CANCELLED'],

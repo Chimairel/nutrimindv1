@@ -23,7 +23,9 @@ export function useBillingAccess() {
     }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   return { data, isLoading, error, refresh };
 }

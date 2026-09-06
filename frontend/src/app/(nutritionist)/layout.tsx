@@ -25,9 +25,7 @@ export default function NutritionistLayout({ children }: { children: React.React
         <Sidebar />
         <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
           <Navbar />
-          <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-24 md:pb-4">
-            {children}
-          </main>
+          <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-24 md:pb-4">{children}</main>
         </div>
 
         {/* Mobile Nav */}
@@ -40,7 +38,9 @@ export default function NutritionistLayout({ children }: { children: React.React
                 key={item.href}
                 href={item.href}
                 className={`flex h-[52px] min-w-16 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-[10px] font-bold transition ${
-                  isActive ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-white/45 hover:bg-white/5 hover:text-white'
+                  isActive
+                    ? 'bg-brand-accent text-[#07100d] shadow-neon'
+                    : 'text-white/45 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <Icon className="h-5 w-5 shrink-0" />

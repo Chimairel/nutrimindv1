@@ -15,9 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 const options = dayNames.map((day, index) => ({
   value: index as ShoppingDayOfWeek,
-  icon: index === 0 || index === 6
-    ? <ShoppingCart className="h-5 w-5" />
-    : <Calendar className="h-5 w-5" />,
+  icon: index === 0 || index === 6 ? <ShoppingCart className="h-5 w-5" /> : <Calendar className="h-5 w-5" />,
   title: day,
   desc: `Your 7-day meal cycle starts ${dayNames[(index + 1) % 7]}`,
 }));
@@ -86,7 +84,8 @@ export default function OnboardingShoppingDayPage() {
               GROCERY SHOPPING DAY
             </h2>
             <p className="text-xs text-brand-muted">
-              This helps us time your weekly meal plan so it&apos;s ready before you shop — keeping your grocery list perfectly in sync.
+              This helps us time your weekly meal plan so it&apos;s ready before you shop — keeping your grocery list
+              perfectly in sync.
             </p>
           </div>
 
@@ -121,20 +120,27 @@ export default function OnboardingShoppingDayPage() {
                     onClick={() => setSelected(opt.value)}
                     className={`
                       flex items-center gap-3 px-4 py-4 rounded-xl border-2 text-left transition-all duration-200 outline-none
-                      ${isSelected
-                        ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
-                        : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
+                      ${
+                        isSelected
+                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                          : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                       }
                     `}
                   >
-                    <span className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-brand-border/30 text-brand-green'}`}>
+                    <span
+                      className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-brand-border/30 text-brand-green'}`}
+                    >
                       {opt.icon}
                     </span>
                     <div className="flex-1">
-                      <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}>
+                      <h4
+                        className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}
+                      >
                         {opt.title}
                       </h4>
-                      <p className={`text-[11px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{opt.desc}</p>
+                      <p className={`text-[11px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>
+                        {opt.desc}
+                      </p>
                     </div>
                     {isSelected && (
                       <span className="text-white text-sm font-bold bg-white/20 h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0">
@@ -151,7 +157,9 @@ export default function OnboardingShoppingDayPage() {
               <p className="text-[11px] text-brand-muted leading-relaxed flex items-start gap-1.5">
                 <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  <span className="font-semibold text-brand-text/70">How this works:</span> Your starter plan bridges the days until your first full cycle. Future plans are prepared three days before your grocery day so staff have time to review any newly generated meals.
+                  <span className="font-semibold text-brand-text/70">How this works:</span> Your starter plan bridges
+                  the days until your first full cycle. Future plans are prepared three days before your grocery day so
+                  staff have time to review any newly generated meals.
                 </span>
               </p>
             </div>

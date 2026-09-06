@@ -77,9 +77,8 @@ test('[TEST-015] explicitly rejected semantic mappings remain unmapped custom re
   ];
 
   for (const supplied of rejected) {
-    const category = supplied === 'Lactation' || supplied === 'Type 2 diabetes'
-      ? 'customConditions'
-      : 'customAllergies';
+    const category =
+      supplied === 'Lactation' || supplied === 'Type 2 diabetes' ? 'customConditions' : 'customAllergies';
     const result = evaluateRestrictions({
       restrictions: { [category]: [supplied] },
       evidence: completeEvidence(),
@@ -133,7 +132,10 @@ test('[TEST-015] NONE with a custom restriction is contradictory and the custom 
 
   assert.equal(result.decision, 'REVIEW');
   assert.ok(result.reasonCodes.includes('NONE_WITH_POSITIVE_RESTRICTION'));
-  assert.equal(result.normalizedRestrictions.find((item) => item.category === 'CUSTOM_ALLERGY')?.suppliedValue, 'Sesame');
+  assert.equal(
+    result.normalizedRestrictions.find((item) => item.category === 'CUSTOM_ALLERGY')?.suppliedValue,
+    'Sesame'
+  );
 });
 
 test('[TEST-015] comparison normalization is mechanical across case, separators, and whitespace', () => {
@@ -149,10 +151,7 @@ test('[TEST-015] NFKC normalization supports mechanically equivalent enum and al
     evidence: completeEvidence(),
   });
 
-  assert.deepEqual(
-    result.normalizedRestrictions.map((item) => item.canonicalKey).sort(),
-    ['DIABETES', 'EGGS']
-  );
+  assert.deepEqual(result.normalizedRestrictions.map((item) => item.canonicalKey).sort(), ['DIABETES', 'EGGS']);
 });
 
 test('[TEST-015] deduplication uses identical normalized keys and preserves the first sanitized display value', () => {
@@ -310,9 +309,7 @@ test('[TEST-016] malformed restriction and safety metadata require review', () =
 
 test('[TEST-016] Gemini-estimated ingredients force review and uncertainty', () => {
   const result = evaluateRestrictions({
-    evidence: completeEvidence([], [
-      { dataSource: 'GEMINI_ESTIMATED', resolved: true, linked: true },
-    ]),
+    evidence: completeEvidence([], [{ dataSource: 'GEMINI_ESTIMATED', resolved: true, linked: true }]),
   });
 
   assert.equal(result.decision, 'REVIEW');
@@ -390,7 +387,10 @@ test('[TEST-016] reason-code order is stable and follows the documented constant
   });
   const indexes = result.reasonCodes.map((code) => RESTRICTION_REASON_CODE_ORDER.indexOf(code));
 
-  assert.deepEqual(indexes, [...indexes].sort((a, b) => a - b));
+  assert.deepEqual(
+    indexes,
+    [...indexes].sort((a, b) => a - b)
+  );
 });
 
 test('[TEST-016] identical input produces deeply identical output without mutation', () => {

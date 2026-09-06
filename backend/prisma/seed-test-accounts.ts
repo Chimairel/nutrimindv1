@@ -1,12 +1,12 @@
 /**
  * Seed script to create ADMIN and NUTRITIONIST test accounts.
- * 
+ *
  * Usage: npx tsx prisma/seed-test-accounts.ts
- * 
+ *
  * Accounts created:
  *   - admin@gmail.com / Admin123 (ADMIN role)
  *   - nutritionist@gmail.com / Nutritionist123 (NUTRITIONIST role, with a complete fictional professional profile)
- * 
+ *
  * Both accounts skip email verification and onboarding so you can log in directly.
  */
 

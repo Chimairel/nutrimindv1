@@ -10,10 +10,13 @@ import { structuredSafetyPreviewSchema, structuredSafetySaveSchema } from '../sr
 import { buildLegacySafetyProjection, SafetyIntakeService } from '../src/services/safety-intake.service';
 
 test('structured intake splits documented separators but preserves ordinary spaces', () => {
-  assert.deepEqual(
-    splitSafetyInput('chronic kidney disease, gout; soy / sesame\nlactose intolerance'),
-    ['chronic kidney disease', 'gout', 'soy', 'sesame', 'lactose intolerance']
-  );
+  assert.deepEqual(splitSafetyInput('chronic kidney disease, gout; soy / sesame\nlactose intolerance'), [
+    'chronic kidney disease',
+    'gout',
+    'soy',
+    'sesame',
+    'lactose intolerance',
+  ]);
 });
 
 test('mixed predefined and custom values normalize approved aliases and retain provenance', () => {
@@ -22,7 +25,10 @@ test('mixed predefined and custom values normalize approved aliases and retain p
     { domain: 'CONDITION', value: 'high blood pressure', provenance: 'CUSTOM' },
     { domain: 'ALLERGY', value: 'peanuts', provenance: 'CUSTOM' },
   ]);
-  assert.deepEqual(entries.map((entry) => entry.canonicalCode), ['DIABETES', 'HYPERTENSION', 'NUTS']);
+  assert.deepEqual(
+    entries.map((entry) => entry.canonicalCode),
+    ['DIABETES', 'HYPERTENSION', 'NUTS']
+  );
   assert.equal(entries[1]?.originalText, 'high blood pressure');
   assert.equal(entries[1]?.provenance, 'CUSTOM');
 });
@@ -63,22 +69,35 @@ test('invalid and vague entries cannot be saved while unsupported and unknown te
     { domain: 'CONDITION', value: 'Gout', provenance: 'CUSTOM' },
     { domain: 'AVOIDED_INGREDIENT', value: 'bitter melon leaves', provenance: 'CUSTOM' },
   ]);
-  assert.deepEqual(entries.map((entry) => entry.supportState), [
-    'INVALID', 'NEEDS_CLARIFICATION', 'RECOGNIZED_UNSUPPORTED', 'PENDING_REVIEW',
-  ]);
+  assert.deepEqual(
+    entries.map((entry) => entry.supportState),
+    ['INVALID', 'NEEDS_CLARIFICATION', 'RECOGNIZED_UNSUPPORTED', 'PENDING_REVIEW']
+  );
   assert.equal(validateResolvedSafetyEntries(entries).length, 2);
 });
 
 test('oversized, whitespace-only, and separator-only values cannot become persisted entries', () => {
-  assert.equal(structuredSafetyPreviewSchema.safeParse({ entries: [{
-    domain: 'ALLERGY', value: '   ', provenance: 'CUSTOM',
-  }] }).success, false);
+  assert.equal(
+    structuredSafetyPreviewSchema.safeParse({
+      entries: [
+        {
+          domain: 'ALLERGY',
+          value: '   ',
+          provenance: 'CUSTOM',
+        },
+      ],
+    }).success,
+    false
+  );
   const oversized = resolveSafetyEntries([{ domain: 'ALLERGY', value: 'x'.repeat(121), provenance: 'CUSTOM' }]);
   assert.equal(oversized[0]?.supportState, 'INVALID');
   assert.ok(validateResolvedSafetyEntries(oversized).length > 0);
   const separators = resolveSafetyEntries([{ domain: 'ALLERGY', value: ', ; /\n', provenance: 'CUSTOM' }]);
   assert.equal(separators.length, 0);
-  assert.equal(SafetyIntakeService.preview([{ domain: 'ALLERGY', value: ', ; /\n', provenance: 'CUSTOM' }]).canSave, false);
+  assert.equal(
+    SafetyIntakeService.preview([{ domain: 'ALLERGY', value: ', ; /\n', provenance: 'CUSTOM' }]).canSave,
+    false
+  );
 });
 
 test('NONE contradictions are rejected per domain but separate domains remain independent', () => {
@@ -96,12 +115,33 @@ test('NONE contradictions are rejected per domain but separate domains remain in
 });
 
 test('strict API schemas reject forged codes, status, classifications, and unconfirmed saves', () => {
-  assert.equal(structuredSafetyPreviewSchema.safeParse({ entries: [{
-    domain: 'CONDITION', value: 'DIABETES', provenance: 'PREDEFINED', supportState: 'SUPPORTED',
-  }] }).success, false);
-  assert.equal(structuredSafetySaveSchema.safeParse({ entries: [{
-    domain: 'CONDITION', value: 'FORGED_CODE', provenance: 'PREDEFINED', canonicalCode: 'DIABETES',
-  }], confirmed: true }).success, false);
+  assert.equal(
+    structuredSafetyPreviewSchema.safeParse({
+      entries: [
+        {
+          domain: 'CONDITION',
+          value: 'DIABETES',
+          provenance: 'PREDEFINED',
+          supportState: 'SUPPORTED',
+        },
+      ],
+    }).success,
+    false
+  );
+  assert.equal(
+    structuredSafetySaveSchema.safeParse({
+      entries: [
+        {
+          domain: 'CONDITION',
+          value: 'FORGED_CODE',
+          provenance: 'PREDEFINED',
+          canonicalCode: 'DIABETES',
+        },
+      ],
+      confirmed: true,
+    }).success,
+    false
+  );
   assert.equal(structuredSafetySaveSchema.safeParse({ entries: [], confirmed: false }).success, false);
   const forged = resolveSafetyEntries([{ domain: 'CONDITION', value: 'FORGED_CODE', provenance: 'PREDEFINED' }]);
   assert.equal(forged[0]?.supportState, 'INVALID');
@@ -113,9 +153,11 @@ test('catalogue exposes stable evidence-bearing entries without merging conditio
   assert.match(catalogue.version, /^NUTRIMIND_SAFETY_INTAKE_/);
   assert.ok(catalogue.conditions.every((entry) => entry.domains.every((domain) => domain === 'CONDITION')));
   assert.ok(catalogue.foodSafety.every((entry) => entry.domains.every((domain) => domain !== 'CONDITION')));
-  assert.ok([...catalogue.conditions, ...catalogue.foodSafety].every((entry) =>
-    entry.code && entry.displayName && entry.policyReference && entry.supportState
-  ));
+  assert.ok(
+    [...catalogue.conditions, ...catalogue.foodSafety].every(
+      (entry) => entry.code && entry.displayName && entry.policyReference && entry.supportState
+    )
+  );
 });
 
 test('legacy projection keeps every restriction in the authoritative intersection', () => {

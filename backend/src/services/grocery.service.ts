@@ -1,12 +1,6 @@
 import prisma from '@/lib/prisma';
-import {
-  filterUserActionableMealPlans,
-  getUserActionableMealPlanWhere,
-} from '@/domain/meal-actionability.policy';
-import {
-  aggregateGroceryIngredients,
-  groceryItemKey,
-} from '@/domain/grocery-quantity.policy';
+import { filterUserActionableMealPlans, getUserActionableMealPlanWhere } from '@/domain/meal-actionability.policy';
+import { aggregateGroceryIngredients, groceryItemKey } from '@/domain/grocery-quantity.policy';
 
 export class GroceryService {
   /**
@@ -56,14 +50,14 @@ export class GroceryService {
     // 3. Consolidate normalized quantities while keeping incompatible units
     // separate rather than inventing conversions.
     const uniqueIngredients = aggregateGroceryIngredients(
-      mealPlans.flatMap((plan) => plan.ingredients.map((ingredient) => ({
-        ingredientName: ingredient.ingredientName,
-        category: this.standardizeCategory(
-          ingredient.category || ingredient.foodItem?.category || 'Other'
-        ),
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-      })))
+      mealPlans.flatMap((plan) =>
+        plan.ingredients.map((ingredient) => ({
+          ingredientName: ingredient.ingredientName,
+          category: this.standardizeCategory(ingredient.category || ingredient.foodItem?.category || 'Other'),
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+        }))
+      )
     );
 
     if (uniqueIngredients.length === 0) {
@@ -83,36 +77,39 @@ export class GroceryService {
       ])
     );
 
-    const groceryList = await prisma.$transaction(async (tx) => {
-      // Delete existing grocery lists (cascade deletes items)
-      await tx.groceryList.deleteMany({
-        where: { userId },
-      });
+    const groceryList = await prisma.$transaction(
+      async (tx) => {
+        // Delete existing grocery lists (cascade deletes items)
+        await tx.groceryList.deleteMany({
+          where: { userId },
+        });
 
-      // Create new list
-      const newList = await tx.groceryList.create({
-        data: {
-          userId,
-          weekLabel: 'Weekly Plan Grocery List',
-          groceryItems: {
-            create: uniqueIngredients.map((item) => ({
-              ingredientName: item.ingredientName,
-              category: item.category,
-              quantity: item.quantity,
-              unit: item.unit,
-              sourceMealCount: item.sourceMealCount,
-              isChecked: previousState.get(item.key)?.isChecked ?? false,
-              isPantryStaple: previousState.get(item.key)?.isPantryStaple ?? false,
-            })),
+        // Create new list
+        const newList = await tx.groceryList.create({
+          data: {
+            userId,
+            weekLabel: 'Weekly Plan Grocery List',
+            groceryItems: {
+              create: uniqueIngredients.map((item) => ({
+                ingredientName: item.ingredientName,
+                category: item.category,
+                quantity: item.quantity,
+                unit: item.unit,
+                sourceMealCount: item.sourceMealCount,
+                isChecked: previousState.get(item.key)?.isChecked ?? false,
+                isPantryStaple: previousState.get(item.key)?.isPantryStaple ?? false,
+              })),
+            },
           },
-        },
-        include: {
-          groceryItems: true,
-        },
-      });
+          include: {
+            groceryItems: true,
+          },
+        });
 
-      return newList;
-    }, { timeout: 30_000 });
+        return newList;
+      },
+      { timeout: 30_000 }
+    );
 
     return groceryList;
   }
@@ -179,26 +176,61 @@ export class GroceryService {
    */
   private static standardizeCategory(cat: string): string {
     const trimmed = cat.trim().toLowerCase();
-    
-    if (trimmed.includes('vegetable') || trimmed.includes('produce') || trimmed.includes('greens') || trimmed.includes('herb')) {
+
+    if (
+      trimmed.includes('vegetable') ||
+      trimmed.includes('produce') ||
+      trimmed.includes('greens') ||
+      trimmed.includes('herb')
+    ) {
       return 'Vegetables & Herbs';
     }
-    if (trimmed.includes('meat') || trimmed.includes('pork') || trimmed.includes('beef') || trimmed.includes('chicken') || trimmed.includes('poultry')) {
+    if (
+      trimmed.includes('meat') ||
+      trimmed.includes('pork') ||
+      trimmed.includes('beef') ||
+      trimmed.includes('chicken') ||
+      trimmed.includes('poultry')
+    ) {
       return 'Meat & Poultry';
     }
-    if (trimmed.includes('seafood') || trimmed.includes('fish') || trimmed.includes('shrimp') || trimmed.includes('crab')) {
+    if (
+      trimmed.includes('seafood') ||
+      trimmed.includes('fish') ||
+      trimmed.includes('shrimp') ||
+      trimmed.includes('crab')
+    ) {
       return 'Seafood';
     }
-    if (trimmed.includes('dairy') || trimmed.includes('milk') || trimmed.includes('cheese') || trimmed.includes('butter') || trimmed.includes('yogurt')) {
+    if (
+      trimmed.includes('dairy') ||
+      trimmed.includes('milk') ||
+      trimmed.includes('cheese') ||
+      trimmed.includes('butter') ||
+      trimmed.includes('yogurt')
+    ) {
       return 'Dairy & Alternatives';
     }
-    if (trimmed.includes('grain') || trimmed.includes('rice') || trimmed.includes('cereal') || trimmed.includes('pasta') || trimmed.includes('bread') || trimmed.includes('carb')) {
+    if (
+      trimmed.includes('grain') ||
+      trimmed.includes('rice') ||
+      trimmed.includes('cereal') ||
+      trimmed.includes('pasta') ||
+      trimmed.includes('bread') ||
+      trimmed.includes('carb')
+    ) {
       return 'Grains, Cereals & Carbs';
     }
-    if (trimmed.includes('condiment') || trimmed.includes('sauce') || trimmed.includes('seasoning') || trimmed.includes('spice') || trimmed.includes('oil')) {
+    if (
+      trimmed.includes('condiment') ||
+      trimmed.includes('sauce') ||
+      trimmed.includes('seasoning') ||
+      trimmed.includes('spice') ||
+      trimmed.includes('oil')
+    ) {
       return 'Seasonings, Oils & Condiments';
     }
-    
+
     // Capitalize custom category
     return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
   }

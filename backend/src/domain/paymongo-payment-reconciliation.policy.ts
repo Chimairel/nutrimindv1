@@ -44,28 +44,38 @@ export function thirtyDaysFrom(start: Date): Date {
 export function validatePaymongoPayment(
   binding: PaymentProjectionBinding,
   evidence: ReconciledPaymongoCheckout,
-  now: Date,
+  now: Date
 ): { effectiveFrom: Date; effectiveUntil: Date } {
   validateLocalPaymentBinding(binding);
   if (evidence.provider !== 'PAYMONGO' || evidence.livemode || evidence.environment !== 'TEST') {
     throw new PaymentReconciliationError('LIVE_MODE_REJECTED');
   }
-  if (evidence.providerSessionId !== binding.providerSessionId) throw new PaymentReconciliationError('SESSION_MISMATCH');
+  if (evidence.providerSessionId !== binding.providerSessionId)
+    throw new PaymentReconciliationError('SESSION_MISMATCH');
   if (evidence.referenceNumber !== binding.referenceNumber) throw new PaymentReconciliationError('REFERENCE_MISMATCH');
-  if (evidence.paymentStatus !== 'PAID' || evidence.paymentIntentStatus !== 'SUCCEEDED' ||
-      !ID.test(evidence.providerPaymentId) || !ID.test(evidence.providerPaymentIntentId)) {
+  if (
+    evidence.paymentStatus !== 'PAID' ||
+    evidence.paymentIntentStatus !== 'SUCCEEDED' ||
+    !ID.test(evidence.providerPaymentId) ||
+    !ID.test(evidence.providerPaymentIntentId)
+  ) {
     throw new PaymentReconciliationError('PAYMENT_NOT_SUCCEEDED');
   }
   if (evidence.amountMinor !== binding.priceAmountMinor) throw new PaymentReconciliationError('AMOUNT_MISMATCH');
-  if (evidence.currency !== 'PHP' || binding.priceCurrency !== 'PHP') throw new PaymentReconciliationError('CURRENCY_MISMATCH');
-  if (!validDate(evidence.paidAt) || !validDate(evidence.providerUpdatedAt) || !validDate(now) ||
-      evidence.paidAt.getTime() < binding.checkoutCreatedAt.getTime() - CLOCK_SKEW_MS ||
-      evidence.paidAt.getTime() < binding.checkoutCompletedAt!.getTime() - CLOCK_SKEW_MS ||
-      evidence.paidAt.getTime() > now.getTime() + CLOCK_SKEW_MS ||
-      evidence.providerUpdatedAt.getTime() < evidence.paidAt.getTime() ||
-      evidence.providerUpdatedAt.getTime() > now.getTime() + CLOCK_SKEW_MS ||
-      binding.eventProviderCreatedAt.getTime() < evidence.paidAt.getTime() - CLOCK_SKEW_MS ||
-      binding.eventProviderCreatedAt.getTime() > binding.eventReceivedAt.getTime() + CLOCK_SKEW_MS) {
+  if (evidence.currency !== 'PHP' || binding.priceCurrency !== 'PHP')
+    throw new PaymentReconciliationError('CURRENCY_MISMATCH');
+  if (
+    !validDate(evidence.paidAt) ||
+    !validDate(evidence.providerUpdatedAt) ||
+    !validDate(now) ||
+    evidence.paidAt.getTime() < binding.checkoutCreatedAt.getTime() - CLOCK_SKEW_MS ||
+    evidence.paidAt.getTime() < binding.checkoutCompletedAt!.getTime() - CLOCK_SKEW_MS ||
+    evidence.paidAt.getTime() > now.getTime() + CLOCK_SKEW_MS ||
+    evidence.providerUpdatedAt.getTime() < evidence.paidAt.getTime() ||
+    evidence.providerUpdatedAt.getTime() > now.getTime() + CLOCK_SKEW_MS ||
+    binding.eventProviderCreatedAt.getTime() < evidence.paidAt.getTime() - CLOCK_SKEW_MS ||
+    binding.eventProviderCreatedAt.getTime() > binding.eventReceivedAt.getTime() + CLOCK_SKEW_MS
+  ) {
     throw new PaymentReconciliationError('TIMESTAMP_INVALID');
   }
   if (binding.latestProviderUpdatedAt && evidence.providerUpdatedAt < binding.latestProviderUpdatedAt) {
@@ -75,7 +85,8 @@ export function validatePaymongoPayment(
 }
 
 export function validateLocalPaymentBinding(binding: PaymentProjectionBinding): void {
-  if (binding.eventType !== 'checkout_session.payment.paid') throw new PaymentReconciliationError('EVENT_NOT_SUPPORTED');
+  if (binding.eventType !== 'checkout_session.payment.paid')
+    throw new PaymentReconciliationError('EVENT_NOT_SUPPORTED');
   if (binding.eventLivemode || binding.priceEnvironment !== 'TEST') {
     throw new PaymentReconciliationError('LIVE_MODE_REJECTED');
   }
@@ -91,14 +102,22 @@ export function validateLocalPaymentBinding(binding: PaymentProjectionBinding): 
   if (binding.checkoutStatus !== 'SUCCEEDED' || !validDate(binding.checkoutCompletedAt)) {
     throw new PaymentReconciliationError('CHECKOUT_NOT_COMPLETED');
   }
-  if (!validDate(binding.checkoutCreatedAt) || !validDate(binding.eventProviderCreatedAt) || !validDate(binding.eventReceivedAt)) {
+  if (
+    !validDate(binding.checkoutCreatedAt) ||
+    !validDate(binding.eventProviderCreatedAt) ||
+    !validDate(binding.eventReceivedAt)
+  ) {
     throw new PaymentReconciliationError('TIMESTAMP_INVALID');
   }
   if (binding.checkoutCompletedAt.getTime() < binding.checkoutCreatedAt.getTime() - CLOCK_SKEW_MS) {
     throw new PaymentReconciliationError('TIMESTAMP_INVALID');
   }
-  if (binding.productCode !== 'PREMIUM' ||
-      binding.priceInterval !== 'MONTH' || binding.priceIntervalCount !== 1 || binding.priceAmountMinor <= 0) {
+  if (
+    binding.productCode !== 'PREMIUM' ||
+    binding.priceInterval !== 'MONTH' ||
+    binding.priceIntervalCount !== 1 ||
+    binding.priceAmountMinor <= 0
+  ) {
     throw new PaymentReconciliationError('PRICE_BINDING_MISMATCH');
   }
 }

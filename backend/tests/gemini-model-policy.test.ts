@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  buildGeminiGenerationConfig,
-  GEMINI_MODEL_SEQUENCE,
-} from '../src/domain/gemini-model.policy';
+import { buildGeminiGenerationConfig, GEMINI_MODEL_SEQUENCE } from '../src/domain/gemini-model.policy';
 
 test('[TEST-150] Gemini fallback policy uses explicit current GA model IDs', () => {
   assert.deepEqual(GEMINI_MODEL_SEQUENCE, [

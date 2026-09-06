@@ -5,13 +5,9 @@ export const MEAL_ACTIONABILITY_BUSINESS_TIME_ZONE = 'Asia/Manila';
 
 const ASIA_MANILA_UTC_OFFSET = '+08:00';
 
-export const USER_ACTIONABLE_MEAL_PLAN_STATUSES = Object.freeze([
-  MealPlanStatus.APPROVED,
-] as const);
+export const USER_ACTIONABLE_MEAL_PLAN_STATUSES = Object.freeze([MealPlanStatus.APPROVED] as const);
 
-export const APPROVED_MEAL_LIBRARY_STATUSES = Object.freeze([
-  MealLibraryStatus.APPROVED,
-] as const);
+export const APPROVED_MEAL_LIBRARY_STATUSES = Object.freeze([MealLibraryStatus.APPROVED] as const);
 
 export class MealPlanNotActionableError extends Error {
   readonly code = 'MEAL_PLAN_NOT_ACTIONABLE';
@@ -39,9 +35,7 @@ function toValidDate(value: Date | string | number | null | undefined): Date | n
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function getManilaBusinessDateKey(
-  value: Date | string | number
-): string | null {
+export function getManilaBusinessDateKey(value: Date | string | number): string | null {
   const date = toValidDate(value);
   if (!date) return null;
 
@@ -68,9 +62,7 @@ export function getStartOfManilaBusinessDay(now: Date = new Date()): Date {
   return new Date(`${dateKey}T00:00:00${ASIA_MANILA_UTC_OFFSET}`);
 }
 
-export function isUserActionableMealPlanStatus(
-  status: unknown
-): status is typeof MealPlanStatus.APPROVED {
+export function isUserActionableMealPlanStatus(status: unknown): status is typeof MealPlanStatus.APPROVED {
   switch (status) {
     case MealPlanStatus.APPROVED:
       return true;
@@ -86,31 +78,22 @@ export function isMealPlanScheduleCurrent(
   scheduledDate: MealPlanCandidate['scheduledDate'],
   now: Date = new Date()
 ): boolean {
-  const scheduledDateKey = scheduledDate === null || scheduledDate === undefined
-    ? null
-    : getManilaBusinessDateKey(scheduledDate);
+  const scheduledDateKey =
+    scheduledDate === null || scheduledDate === undefined ? null : getManilaBusinessDateKey(scheduledDate);
   const currentDateKey = getManilaBusinessDateKey(now);
 
-  return Boolean(
-    scheduledDateKey &&
-    currentDateKey &&
-    scheduledDateKey >= currentDateKey
+  return Boolean(scheduledDateKey && currentDateKey && scheduledDateKey >= currentDateKey);
+}
+
+export function isUserActionableMealPlan(mealPlan: MealPlanCandidate, now: Date = new Date()): boolean {
+  return (
+    isUserActionableMealPlanStatus(mealPlan.status) &&
+    mealPlan.requiresSafetyRevalidation === false &&
+    isMealPlanScheduleCurrent(mealPlan.scheduledDate, now)
   );
 }
 
-export function isUserActionableMealPlan(
-  mealPlan: MealPlanCandidate,
-  now: Date = new Date()
-): boolean {
-  return isUserActionableMealPlanStatus(mealPlan.status) &&
-    mealPlan.requiresSafetyRevalidation === false &&
-    isMealPlanScheduleCurrent(mealPlan.scheduledDate, now);
-}
-
-export function assertUserActionableMealPlan(
-  mealPlan: MealPlanCandidate,
-  now: Date = new Date()
-): void {
+export function assertUserActionableMealPlan(mealPlan: MealPlanCandidate, now: Date = new Date()): void {
   if (!isUserActionableMealPlan(mealPlan, now)) {
     throw new MealPlanNotActionableError();
   }
@@ -130,9 +113,7 @@ export function getApprovedMealPlanStatusWhere(): Prisma.MealPlanWhereInput {
   };
 }
 
-export function getCurrentMealPlanScheduleWhere(
-  now: Date = new Date()
-): Prisma.MealPlanWhereInput {
+export function getCurrentMealPlanScheduleWhere(now: Date = new Date()): Prisma.MealPlanWhereInput {
   return {
     scheduledDate: {
       gte: getStartOfManilaBusinessDay(now),
@@ -140,28 +121,21 @@ export function getCurrentMealPlanScheduleWhere(
   };
 }
 
-export function getUserActionableMealPlanWhere(
-  now: Date = new Date()
-): Prisma.MealPlanWhereInput {
+export function getUserActionableMealPlanWhere(now: Date = new Date()): Prisma.MealPlanWhereInput {
   return {
     ...getApprovedMealPlanStatusWhere(),
     ...getCurrentMealPlanScheduleWhere(now),
   };
 }
 
-export function getOwnedMealPlanWhere(
-  userId: string,
-  mealPlanId: string
-): Prisma.MealPlanWhereInput {
+export function getOwnedMealPlanWhere(userId: string, mealPlanId: string): Prisma.MealPlanWhereInput {
   return {
     id: mealPlanId,
     userId,
   };
 }
 
-export function isApprovedMealLibraryStatus(
-  status: unknown
-): status is typeof MealLibraryStatus.APPROVED {
+export function isApprovedMealLibraryStatus(status: unknown): status is typeof MealLibraryStatus.APPROVED {
   switch (status) {
     case MealLibraryStatus.APPROVED:
       return true;
@@ -178,18 +152,17 @@ export function getApprovedMealLibraryWhere(): Prisma.MealLibraryWhereInput {
 }
 
 export function isNutritionEligibleMealLog(log: MealLogCandidate): boolean {
-  return log.mealPlan === null ||
+  return (
+    log.mealPlan === null ||
     (log.mealPlan !== undefined &&
       isUserActionableMealPlanStatus(log.mealPlan.status) &&
-      log.mealPlan.requiresSafetyRevalidation === false);
+      log.mealPlan.requiresSafetyRevalidation === false)
+  );
 }
 
 export function getNutritionEligibleMealLogWhere(): Prisma.MealLogWhereInput {
   return {
-    OR: [
-      { mealPlanId: null },
-      { mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } },
-    ],
+    OR: [{ mealPlanId: null }, { mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } }],
   };
 }
 
@@ -215,8 +188,6 @@ export function isMealPlanHistoryVisible(status: unknown): boolean {
   }
 }
 
-export function isMealPlanNotActionableError(
-  error: unknown
-): error is MealPlanNotActionableError {
+export function isMealPlanNotActionableError(error: unknown): error is MealPlanNotActionableError {
   return error instanceof MealPlanNotActionableError;
 }

@@ -28,14 +28,21 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const listboxId = `${inputId}-listbox`;
 
   // Parse chips from comma-separated value string
-  const chips = value ? value.split(',').map((c) => c.trim()).filter(Boolean) : [];
+  const chips = value
+    ? value
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean)
+    : [];
 
   // Filter suggestions based on input value and already selected chips
-  const filteredSuggestions = suggestions.filter((item) => {
-    const isAlreadySelected = chips.some((chip) => chip.toLowerCase() === item.toLowerCase());
-    const matchesInput = item.toLowerCase().includes(inputValue.toLowerCase());
-    return !isAlreadySelected && matchesInput;
-  }).slice(0, 8); // Limit suggestions dropdown to 8 items
+  const filteredSuggestions = suggestions
+    .filter((item) => {
+      const isAlreadySelected = chips.some((chip) => chip.toLowerCase() === item.toLowerCase());
+      const matchesInput = item.toLowerCase().includes(inputValue.toLowerCase());
+      return !isAlreadySelected && matchesInput;
+    })
+    .slice(0, 8); // Limit suggestions dropdown to 8 items
 
   // Close dropdown if user clicks outside of container
   useEffect(() => {
@@ -79,9 +86,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setIsOpen(true);
-      setHighlightedIndex((prev) => 
-        prev < filteredSuggestions.length - 1 ? prev + 1 : prev
-      );
+      setHighlightedIndex((prev) => (prev < filteredSuggestions.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
@@ -182,9 +187,10 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                   onClick={() => addChip(item)}
                   className={`
                     w-full px-4 py-2.5 text-left text-xs font-semibold transition-colors outline-none cursor-pointer flex items-center justify-between
-                    ${isHighlighted 
-                      ? 'bg-brand-green/15 text-brand-green' 
-                      : 'text-brand-text hover:bg-brand-border/40 hover:text-brand-text'
+                    ${
+                      isHighlighted
+                        ? 'bg-brand-green/15 text-brand-green'
+                        : 'text-brand-text hover:bg-brand-border/40 hover:text-brand-text'
                     }
                   `}
                 >
@@ -193,24 +199,30 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                 </button>
               );
             })}
-            
+
             {/* Direct custom entry preview if input is custom */}
-            {inputValue.trim() && !filteredSuggestions.some(s => s.toLowerCase() === inputValue.trim().toLowerCase()) && (
-              <button
-                type="button"
-                onClick={() => addChip(inputValue)}
-                className={`
+            {inputValue.trim() &&
+              !filteredSuggestions.some((s) => s.toLowerCase() === inputValue.trim().toLowerCase()) && (
+                <button
+                  type="button"
+                  onClick={() => addChip(inputValue)}
+                  className={`
                   w-full px-4 py-2.5 text-left text-xs font-semibold transition-colors outline-none border-t border-brand-border/30 cursor-pointer flex items-center justify-between
-                  ${highlightedIndex === -1 && filteredSuggestions.length === 0
-                    ? 'bg-brand-green/10 text-brand-green'
-                    : 'text-brand-text/80 hover:bg-brand-border/40'
+                  ${
+                    highlightedIndex === -1 && filteredSuggestions.length === 0
+                      ? 'bg-brand-green/10 text-brand-green'
+                      : 'text-brand-text/80 hover:bg-brand-border/40'
                   }
                 `}
-              >
-                <span className="truncate">Add custom: <strong className="text-brand-green">&quot;{inputValue.trim()}&quot;</strong></span>
-                <span className="text-[10px] text-brand-green font-bold bg-brand-green/10 px-1.5 py-0.5 rounded">Enter ↵</span>
-              </button>
-            )}
+                >
+                  <span className="truncate">
+                    Add custom: <strong className="text-brand-green">&quot;{inputValue.trim()}&quot;</strong>
+                  </span>
+                  <span className="text-[10px] text-brand-green font-bold bg-brand-green/10 px-1.5 py-0.5 rounded">
+                    Enter ↵
+                  </span>
+                </button>
+              )}
           </div>
         )}
       </div>

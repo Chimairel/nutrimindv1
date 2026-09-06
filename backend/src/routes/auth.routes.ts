@@ -58,13 +58,8 @@ router.post(
   '/login',
   authLimiter,
   [
-    body('email')
-      .trim()
-      .isEmail()
-      .withMessage('Please provide a valid email address.'),
-    body('password')
-      .notEmpty()
-      .withMessage('Password is required.'),
+    body('email').trim().isEmail().withMessage('Please provide a valid email address.'),
+    body('password').notEmpty().withMessage('Password is required.'),
     validate,
   ],
   AuthController.login
@@ -74,11 +69,7 @@ router.post(
  * Route: POST /api/auth/google
  * Description: Authenticates using a Google ID token (OAuth).
  */
-router.post(
-  '/google',
-  authLimiter,
-  AuthController.googleAuth
-);
+router.post('/google', authLimiter, AuthController.googleAuth);
 
 /**
  * Route: POST /api/auth/verify-email
@@ -113,13 +104,7 @@ router.post('/resend-verification', verificationResendLimiter, authenticate, Aut
 router.post(
   '/forgot-password',
   authLimiter,
-  [
-    body('email')
-      .trim()
-      .isEmail()
-      .withMessage('Please provide a valid email address.'),
-    validate,
-  ],
+  [body('email').trim().isEmail().withMessage('Please provide a valid email address.'), validate],
   AuthController.forgotPassword
 );
 
@@ -130,9 +115,7 @@ router.post(
 router.post(
   '/reset-password',
   [
-    body('token')
-      .notEmpty()
-      .withMessage('Reset token is required.'),
+    body('token').notEmpty().withMessage('Reset token is required.'),
     body('password')
       .isLength({ min: 8, max: 128 })
       .withMessage('Password must be between 8 and 128 characters long.')

@@ -27,7 +27,7 @@ function requireSafeEnvironment() {
 
 async function request(
   route: string,
-  options: { method?: string; token?: string; body?: JsonObject } = {},
+  options: { method?: string; token?: string; body?: JsonObject } = {}
 ): Promise<JsonObject> {
   const response = await fetch(`${API_BASE}${route}`, {
     method: options.method || (options.body ? 'POST' : 'GET'),
@@ -37,9 +37,11 @@ async function request(
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  const payload = await response.json() as JsonObject;
+  const payload = (await response.json()) as JsonObject;
   if (!response.ok) {
-    throw new Error(`${options.method || (options.body ? 'POST' : 'GET')} ${route} returned ${response.status}: ${payload.error || 'unknown error'}`);
+    throw new Error(
+      `${options.method || (options.body ? 'POST' : 'GET')} ${route} returned ${response.status}: ${payload.error || 'unknown error'}`
+    );
   }
   return payload.data;
 }
@@ -55,7 +57,9 @@ async function waitForMail(type: string, to: string): Promise<CapturedMail> {
   while (Date.now() < deadline) {
     try {
       const lines = (await readFile(capturePath!, 'utf8')).trim().split('\n').filter(Boolean);
-      const match = lines.map((line) => JSON.parse(line) as CapturedMail).reverse()
+      const match = lines
+        .map((line) => JSON.parse(line) as CapturedMail)
+        .reverse()
         .find((message) => message.type === type && message.to === to);
       if (match) return match;
     } catch {
@@ -84,7 +88,8 @@ async function main() {
       specialization: 'Clinical and Community Nutrition',
       yearsOfExperience: 5,
       university: 'University of San Carlos',
-      professionalBio: 'Fictional capstone test professional focused on practical Filipino meal planning and evidence-aware nutrition review.',
+      professionalBio:
+        'Fictional capstone test professional focused on practical Filipino meal planning and evidence-aware nutrition review.',
       availableCallSlots: [new Date(now + 3_600_000).toISOString(), new Date(now + 7_200_000).toISOString()],
       consent: true,
     },
@@ -102,19 +107,26 @@ async function main() {
   const applicationId = applicationRecord.id;
 
   await request(`/admin/nutritionist-applications/${applicationId}/stage`, {
-    method: 'PATCH', token: adminToken, body: { status: 'UNDER_REVIEW' },
+    method: 'PATCH',
+    token: adminToken,
+    body: { status: 'UNDER_REVIEW' },
   });
   await request(`/admin/nutritionist-applications/${applicationId}/stage`, {
-    method: 'PATCH', token: adminToken, body: { status: 'CALL_REQUIRED' },
+    method: 'PATCH',
+    token: adminToken,
+    body: { status: 'CALL_REQUIRED' },
   });
   const scheduledCallAt = new Date(Date.now() + 1_200).toISOString();
   await request(`/admin/nutritionist-applications/${applicationId}/schedule`, {
-    method: 'PATCH', token: adminToken,
+    method: 'PATCH',
+    token: adminToken,
     body: { scheduledCallAt, meetingUrl: 'https://meet.example.com/nutrimind-capstone-test' },
   });
   await new Promise((resolve) => setTimeout(resolve, 1_500));
   const decision = await request(`/admin/nutritionist-applications/${applicationId}/decision`, {
-    method: 'PATCH', token: adminToken, body: { decision: 'approve' },
+    method: 'PATCH',
+    token: adminToken,
+    body: { decision: 'approve' },
   });
   assert.equal(decision.application.status, 'APPROVED');
   assert.equal(decision.invitationEmailSent, true);
@@ -182,7 +194,10 @@ async function main() {
 
   const generation = await request('/user/meals/generate', { token: userToken, body: {} });
   assert.ok(generation.generatedMealCount > 0);
-  assert.ok(generation.pendingReview?.mealCount > 0, 'The custom restriction should require generated meals to enter review.');
+  assert.ok(
+    generation.pendingReview?.mealCount > 0,
+    'The custom restriction should require generated meals to enter review.'
+  );
 
   const pendingMeal = await prisma.mealPlan.findFirst({
     where: { user: { email: userEmail }, planGroupId: generation.planGroupId, status: 'PENDING_REVIEW' },
@@ -193,7 +208,8 @@ async function main() {
   const reviewDetail = await request(`/nutritionist/queue/${pendingMeal.id}`, { token: nutritionistToken });
   assert.equal(reviewDetail.user.name, 'Journey User');
   await request(`/nutritionist/review/${pendingMeal.id}`, {
-    method: 'PATCH', token: nutritionistToken,
+    method: 'PATCH',
+    token: nutritionistToken,
     body: { action: 'approve', note: 'Reviewed in the isolated role-journey acceptance test.' },
   });
 
@@ -202,8 +218,16 @@ async function main() {
   assert.equal(mealDetail.verifier?.name, 'Mara Santos RND');
   assert.match(mealDetail.verifier?.prcLicenseNumber || '', /^PRC-JOURNEY-/);
   const publicPayload = JSON.stringify(mealDetail);
-  assert.equal(publicPayload.includes(applicantEmail), false, 'The user meal payload must not expose the nutritionist email.');
-  assert.equal(publicPayload.includes('+63 917 555 0123'), false, 'The user meal payload must not expose the nutritionist phone number.');
+  assert.equal(
+    publicPayload.includes(applicantEmail),
+    false,
+    'The user meal payload must not expose the nutritionist email.'
+  );
+  assert.equal(
+    publicPayload.includes('+63 917 555 0123'),
+    false,
+    'The user meal payload must not expose the nutritionist phone number.'
+  );
 
   const nutritionist = await prisma.user.findUnique({
     where: { email: applicantEmail },
@@ -211,28 +235,38 @@ async function main() {
   });
   const user = await prisma.user.findUnique({ where: { email: userEmail } });
   assert.ok(nutritionist?.nutritionistProfile && user);
-  await writeFile(statePath!, JSON.stringify({
-    runId,
-    applicationId,
-    applicantEmail,
-    applicantUserId: nutritionist.id,
-    nutritionistProfileId: nutritionist.nutritionistProfile.id,
-    userEmail,
-    userId: user.id,
-    planGroupId: generation.planGroupId,
-    reviewedMealId: pendingMeal.id,
-  }, null, 2), { encoding: 'utf8', flag: 'wx' });
+  await writeFile(
+    statePath!,
+    JSON.stringify(
+      {
+        runId,
+        applicationId,
+        applicantEmail,
+        applicantUserId: nutritionist.id,
+        nutritionistProfileId: nutritionist.nutritionistProfile.id,
+        userEmail,
+        userId: user.id,
+        planGroupId: generation.planGroupId,
+        reviewedMealId: pendingMeal.id,
+      },
+      null,
+      2
+    ),
+    { encoding: 'utf8', flag: 'wx' }
+  );
 
-  console.log(JSON.stringify({
-    outcome: 'PASSED',
-    application: 'SUBMITTED_TO_ACTIVATED',
-    firstUserJourney: 'REGISTERED_VERIFIED_ONBOARDED',
-    geminiNutritionReport: 'GENERATED',
-    mealPlan: { generated: generation.generatedMealCount, pendingReview: generation.pendingReview.mealCount },
-    sameNutritionistReview: 'APPROVED',
-    userVerifierAttribution: 'VISIBLE_AND_PRIVACY_ALLOWLISTED',
-    stateRecordedForExactCleanup: true,
-  }));
+  console.log(
+    JSON.stringify({
+      outcome: 'PASSED',
+      application: 'SUBMITTED_TO_ACTIVATED',
+      firstUserJourney: 'REGISTERED_VERIFIED_ONBOARDED',
+      geminiNutritionReport: 'GENERATED',
+      mealPlan: { generated: generation.generatedMealCount, pendingReview: generation.pendingReview.mealCount },
+      sameNutritionistReview: 'APPROVED',
+      userVerifierAttribution: 'VISIBLE_AND_PRIVACY_ALLOWLISTED',
+      stateRecordedForExactCleanup: true,
+    })
+  );
 }
 
 main()

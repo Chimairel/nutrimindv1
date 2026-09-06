@@ -25,7 +25,9 @@ function formatOnboardingValue(value?: string | number | null) {
 }
 
 function joinSelections(values: string[], custom?: string) {
-  const selections = normalizeExclusiveNone(values).filter((value) => value !== 'NONE').map(formatOnboardingValue);
+  const selections = normalizeExclusiveNone(values)
+    .filter((value) => value !== 'NONE')
+    .map(formatOnboardingValue);
   if (custom) selections.push(custom);
   return selections.length > 0 ? selections.join(', ') : 'None declared';
 }
@@ -104,10 +106,7 @@ export default function OnboardingTosPage() {
     {
       title: 'Plan schedule',
       editPath: '/onboarding/shopping-day',
-      items: [[
-        'Weekly cycle',
-        formatPlanSchedule(userProfile?.shoppingDayOfWeek, userProfile?.shoppingDayGroup),
-      ]],
+      items: [['Weekly cycle', formatPlanSchedule(userProfile?.shoppingDayOfWeek, userProfile?.shoppingDayGroup)]],
     },
   ];
 
@@ -135,7 +134,7 @@ export default function OnboardingTosPage() {
         privacyPolicyAccepted: true,
         healthDataProcessingAccepted: true,
       });
-      
+
       // 2. Complete Onboarding (Backend calculates targets & updates profiles)
       await api.post('/user/onboarding/complete');
 
@@ -146,10 +145,7 @@ export default function OnboardingTosPage() {
       router.push('/nutrition-report');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(
-          err.response?.data?.error || 
-          'An error occurred while finalizing onboarding. Please try again.'
-        );
+        setError(err.response?.data?.error || 'An error occurred while finalizing onboarding. Please try again.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -179,17 +175,24 @@ export default function OnboardingTosPage() {
                 <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <h1 id="onboarding-review-heading" className="font-display text-xl font-extrabold tracking-tight text-brand-text">
+                <h1
+                  id="onboarding-review-heading"
+                  className="font-display text-xl font-extrabold tracking-tight text-brand-text"
+                >
                   Review your onboarding details
                 </h1>
                 <p className="mt-1 text-xs leading-relaxed text-brand-muted">
-                  Confirm the information used for your calorie target, safety checks, nutrition report, and meal-plan recommendations before giving consent.
+                  Confirm the information used for your calorie target, safety checks, nutrition report, and meal-plan
+                  recommendations before giving consent.
                 </p>
               </div>
             </div>
 
             {isHydrating ? (
-              <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 px-4 py-6 text-center text-xs text-brand-muted" role="status">
+              <div
+                className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 px-4 py-6 text-center text-xs text-brand-muted"
+                role="status"
+              >
                 Loading your saved onboarding details…
               </div>
             ) : (
@@ -197,7 +200,9 @@ export default function OnboardingTosPage() {
                 {reviewSections.map((section) => (
                   <div key={section.title} className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/45 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <h2 className="text-xs font-extrabold uppercase tracking-[0.12em] text-brand-text">{section.title}</h2>
+                      <h2 className="text-xs font-extrabold uppercase tracking-[0.12em] text-brand-text">
+                        {section.title}
+                      </h2>
                       <button
                         type="button"
                         onClick={() => router.push(section.editPath)}
@@ -210,9 +215,14 @@ export default function OnboardingTosPage() {
                     </div>
                     <dl className="space-y-2">
                       {section.items.map(([label, value]) => (
-                        <div key={label} className="flex items-start justify-between gap-4 border-t border-brand-border/35 pt-2 first:border-0 first:pt-0">
+                        <div
+                          key={label}
+                          className="flex items-start justify-between gap-4 border-t border-brand-border/35 pt-2 first:border-0 first:pt-0"
+                        >
                           <dt className="text-[11px] text-brand-muted">{label}</dt>
-                          <dd className="max-w-[62%] text-right text-[11px] font-semibold leading-relaxed text-brand-text">{value}</dd>
+                          <dd className="max-w-[62%] text-right text-[11px] font-semibold leading-relaxed text-brand-text">
+                            {value}
+                          </dd>
                         </div>
                       ))}
                     </dl>
@@ -235,15 +245,25 @@ export default function OnboardingTosPage() {
           <div className="w-full h-48 overflow-y-auto bg-brand-bgAlt border border-brand-border rounded-xl p-4 text-xs text-brand-muted leading-relaxed mb-6">
             <h4 className="font-bold text-brand-text mb-2">1. AI NUTRITION-PLANNING LIMITATIONS</h4>
             <p className="mb-4">
-              NutriMind uses software calculations, FNRI food data, and Google Gemini-generated content to prepare nutrition reports and meal suggestions. These outputs are estimates awaiting the review states shown in the application. They are not a diagnosis, prescription, or replacement for a physician or Registered Nutritionist-Dietitian.
+              NutriMind uses software calculations, FNRI food data, and Google Gemini-generated content to prepare
+              nutrition reports and meal suggestions. These outputs are estimates awaiting the review states shown in
+              the application. They are not a diagnosis, prescription, or replacement for a physician or Registered
+              Nutritionist-Dietitian.
             </p>
             <h4 className="font-bold text-brand-text mb-2">2. HEALTH DATA PRIVACY & COMPLIANCE</h4>
             <p className="mb-4">
-              NutriMind stores the profile and health information you provide to calculate targets, apply safety restrictions, generate reports and meal plans, and support nutritionist review. Selected profile and health details are transmitted to Google Gemini when AI generation is required. NutriMind does not sell this information. Read this notice before consenting to processing under the <strong>Philippine Data Privacy Act of 2012 (R.A. 10173)</strong>.
+              NutriMind stores the profile and health information you provide to calculate targets, apply safety
+              restrictions, generate reports and meal plans, and support nutritionist review. Selected profile and
+              health details are transmitted to Google Gemini when AI generation is required. NutriMind does not sell
+              this information. Read this notice before consenting to processing under the{' '}
+              <strong>Philippine Data Privacy Act of 2012 (R.A. 10173)</strong>.
             </p>
             <h4 className="font-bold text-brand-text mb-2">3. MEDICAL CONSULTATION DISCLAIMER</h4>
             <p>
-              If you suffer from chronic conditions (such as severe renal failure, heart diseases, or high-risk pregnancies), you must consult a licensed Registered Nutritionist-Dietitian (RND) or Physician (MD) before implementing our generated layouts. You acknowledge that you use our recommendations entirely at your own risk.
+              If you suffer from chronic conditions (such as severe renal failure, heart diseases, or high-risk
+              pregnancies), you must consult a licensed Registered Nutritionist-Dietitian (RND) or Physician (MD) before
+              implementing our generated layouts. You acknowledge that you use our recommendations entirely at your own
+              risk.
             </p>
           </div>
 
@@ -282,7 +302,8 @@ export default function OnboardingTosPage() {
             />
 
             <p className="rounded-xl border border-brand-border/50 bg-brand-bgAlt/40 px-4 py-3 text-[11px] leading-relaxed text-brand-muted">
-              Consent versions: Terms {profile?.onboardingStatus?.currentTermsVersion || 'loading'} · Privacy {profile?.onboardingStatus?.currentPrivacyVersion || 'loading'}
+              Consent versions: Terms {profile?.onboardingStatus?.currentTermsVersion || 'loading'} · Privacy{' '}
+              {profile?.onboardingStatus?.currentPrivacyVersion || 'loading'}
             </p>
 
             <Checkbox

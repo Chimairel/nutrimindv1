@@ -10,12 +10,8 @@ import {
   getOwnedMealPlanWhere,
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
-import {
-  evaluateMealLibrarySafetyEvidence,
-} from '@/domain/meal-library-safety-evidence.policy';
-import {
-  evaluateMealGenerationLibraryCompatibility,
-} from '@/domain/meal-generation-library-compatibility.adapter';
+import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
+import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import {
@@ -38,7 +34,7 @@ type SwapReservationClient = Pick<Prisma.TransactionClient, 'planSwapTracker'>;
 
 export async function reserveWeeklySwap(
   transaction: SwapReservationClient,
-  input: { trackerId: string; userId: string; cap: number },
+  input: { trackerId: string; userId: string; cap: number }
 ): Promise<number> {
   const reserved = await transaction.planSwapTracker.updateMany({
     where: { id: input.trackerId, userId: input.userId, swapsUsed: { lt: input.cap } },
@@ -46,7 +42,8 @@ export async function reserveWeeklySwap(
   });
   if (reserved.count !== 1) throw new SwapLimitReachedError(input.cap);
   const tracker = await transaction.planSwapTracker.findUniqueOrThrow({
-    where: { id: input.trackerId }, select: { swapsUsed: true },
+    where: { id: input.trackerId },
+    select: { swapsUsed: true },
   });
   return tracker.swapsUsed;
 }
@@ -130,9 +127,7 @@ export class MealSwapService {
     assertUserActionableMealPlan(mealPlan);
 
     // Check if slot has already been logged as DONE or SKIPPED
-    const isLogged = mealPlan.mealLogs.some(
-      (log) => log.status === 'DONE' || log.status === 'SKIPPED'
-    );
+    const isLogged = mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED');
     if (isLogged) {
       throw new Error('Cannot swap a meal that has already been eaten or skipped.');
     }
@@ -193,19 +188,18 @@ export class MealSwapService {
       select: { libraryMealId: true },
     });
     const usedLibraryMealIds = new Set(
-      usedLibraryMeals
-        .map((item) => item.libraryMealId)
-        .filter((id): id is string => Boolean(id))
+      usedLibraryMeals.map((item) => item.libraryMealId).filter((id): id is string => Boolean(id))
     );
 
     // 5. Only first-class, current, independently reviewed evidence can authorize a swap.
-    const eligibleMeals = libraryMeals.filter((meal) =>
-      meal.id !== mealPlan.libraryMealId &&
-      !usedLibraryMealIds.has(meal.id) &&
-      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
-        ...userProfile,
-        safetyEntries: user.safetyProfileEntries,
-      })
+    const eligibleMeals = libraryMeals.filter(
+      (meal) =>
+        meal.id !== mealPlan.libraryMealId &&
+        !usedLibraryMealIds.has(meal.id) &&
+        isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+          ...userProfile,
+          safetyEntries: user.safetyProfileEntries,
+        })
     );
 
     return {
@@ -220,15 +214,17 @@ export class MealSwapService {
         fatG: m.fatG,
         verifiedBy: m.verifiedByNutritionist?.user.name || 'System',
         prcLicenseNumber: m.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
-        verifier: m.verifiedByNutritionist ? {
-          name: m.verifiedByNutritionist.user.name,
-          prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
-          prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
-          specialization: m.verifiedByNutritionist.specialization,
-          yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
-          university: m.verifiedByNutritionist.university,
-          bio: m.verifiedByNutritionist.bio,
-        } : null,
+        verifier: m.verifiedByNutritionist
+          ? {
+              name: m.verifiedByNutritionist.user.name,
+              prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
+              prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
+              specialization: m.verifiedByNutritionist.specialization,
+              yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
+              university: m.verifiedByNutritionist.university,
+              bio: m.verifiedByNutritionist.bio,
+            }
+          : null,
       })),
       swapsUsed: swapTracker.swapsUsed,
       swapCap,
@@ -261,12 +257,14 @@ export class MealSwapService {
       include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
     });
     if (!user?.userProfile) throw new Error('User profile not found.');
-    if (!isCertifiedLibraryMealCompatible(
-      libraryMeal,
-      user.healthConditions.map((item) => item.condition),
-      user.allergies.map((item) => item.allergen),
-      { ...user.userProfile, safetyEntries: user.safetyProfileEntries }
-    )) {
+    if (
+      !isCertifiedLibraryMealCompatible(
+        libraryMeal,
+        user.healthConditions.map((item) => item.condition),
+        user.allergies.map((item) => item.allergen),
+        { ...user.userProfile, safetyEntries: user.safetyProfileEntries }
+      )
+    ) {
       throw new Error('Selected replacement meal is not certified for your current health profile.');
     }
 
@@ -344,9 +342,7 @@ export class MealSwapService {
       assertUserActionableMealPlan(mealPlan);
 
       // Check if slot has already been logged as DONE or SKIPPED
-      const isLogged = mealPlan.mealLogs.some(
-        (log) => log.status === 'DONE' || log.status === 'SKIPPED'
-      );
+      const isLogged = mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED');
       if (isLogged) {
         throw new Error('Cannot swap a meal that has already been eaten or skipped.');
       }
@@ -408,12 +404,12 @@ export class MealSwapService {
         throw new Error('Selected replacement meal is already used in this plan.');
       }
 
-      if (!isCertifiedLibraryMealCompatible(
-        libraryMeal,
-        userConditions,
-        userAllergens,
-        { ...userProfile, safetyEntries: user.safetyProfileEntries }
-      )) {
+      if (
+        !isCertifiedLibraryMealCompatible(libraryMeal, userConditions, userAllergens, {
+          ...userProfile,
+          safetyEntries: user.safetyProfileEntries,
+        })
+      ) {
         throw new Error('Selected meal is not certified for your current health profile.');
       }
 
@@ -640,12 +636,14 @@ export class MealSwapService {
         ...getApprovedMealLibraryWhere(),
         safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
         ...(mealType ? { mealType } : {}),
-        ...(search ? {
-          mealName: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        } : {}),
+        ...(search
+          ? {
+              mealName: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            }
+          : {}),
       },
       include: certifiedLibraryMealInclude,
     });
@@ -669,15 +667,17 @@ export class MealSwapService {
       fatG: m.fatG,
       verifiedBy: m.verifiedByNutritionist?.user.name || 'System',
       prcLicenseNumber: m.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
-      verifier: m.verifiedByNutritionist ? {
-        name: m.verifiedByNutritionist.user.name,
-        prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
-        prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
-        specialization: m.verifiedByNutritionist.specialization,
-        yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
-        university: m.verifiedByNutritionist.university,
-        bio: m.verifiedByNutritionist.bio,
-      } : null,
+      verifier: m.verifiedByNutritionist
+        ? {
+            name: m.verifiedByNutritionist.user.name,
+            prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
+            prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
+            specialization: m.verifiedByNutritionist.specialization,
+            yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
+            university: m.verifiedByNutritionist.university,
+            bio: m.verifiedByNutritionist.bio,
+          }
+        : null,
     }));
   }
 }

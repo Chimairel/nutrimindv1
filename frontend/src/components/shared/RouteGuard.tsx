@@ -18,7 +18,7 @@ const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
 /**
  * RouteGuard is a layout wrapper component that enforces roles,
  * authentication statuses, and system completion parameters before loading pages.
- * 
+ *
  * Guard chain:
  * 1. Is user logged in? No → /login
  * 2. Is email verified? No → /verify-email
@@ -32,7 +32,15 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const publicRoutes = ['/login', '/register', '/unauthorized', '/forgot-password', '/reset-password', '/nutritionist-apply', '/nutritionist-invitation'];
+  const publicRoutes = [
+    '/login',
+    '/register',
+    '/unauthorized',
+    '/forgot-password',
+    '/reset-password',
+    '/nutritionist-apply',
+    '/nutritionist-invitation',
+  ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
@@ -94,7 +102,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
   // Double-check authorization matching before rendering sensitive components
   const isProtectedPath = !isPublicRoute;
-  
+
   if (isProtectedPath && !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-brand-bg">

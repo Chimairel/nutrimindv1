@@ -11,10 +11,14 @@ export const paymongoRawBodyParser = express.raw({
 export const paymongoRawBodyErrorHandler: ErrorRequestHandler = (error, _request, response, next) => {
   const type = error && typeof error === 'object' ? (error as { type?: string }).type : undefined;
   if (type === 'entity.too.large') {
-    return response.status(413).json({ success: false, error: 'Webhook body is too large.', errorCode: 'WEBHOOK_BODY_TOO_LARGE' });
+    return response
+      .status(413)
+      .json({ success: false, error: 'Webhook body is too large.', errorCode: 'WEBHOOK_BODY_TOO_LARGE' });
   }
   if (error) {
-    return response.status(400).json({ success: false, error: 'Webhook body is invalid.', errorCode: 'WEBHOOK_BODY_INVALID' });
+    return response
+      .status(400)
+      .json({ success: false, error: 'Webhook body is invalid.', errorCode: 'WEBHOOK_BODY_INVALID' });
   }
   return next();
 };
@@ -30,11 +34,17 @@ export function createPaymongoWebhookHandler(service: PaymongoWebhookBoundary): 
   return async (request, response: Response) => {
     const contentType = request.header('content-type')?.split(';', 1)[0].trim().toLowerCase();
     if (contentType !== 'application/json') {
-      return response.status(415).json({ success: false, error: 'Webhook content type is unsupported.', errorCode: 'WEBHOOK_CONTENT_TYPE_INVALID' });
+      return response.status(415).json({
+        success: false,
+        error: 'Webhook content type is unsupported.',
+        errorCode: 'WEBHOOK_CONTENT_TYPE_INVALID',
+      });
     }
     const signature = request.header('paymongo-signature');
     if (!signature || !Buffer.isBuffer(request.body)) {
-      return response.status(401).json({ success: false, error: 'Webhook authentication failed.', errorCode: 'WEBHOOK_SIGNATURE_INVALID' });
+      return response
+        .status(401)
+        .json({ success: false, error: 'Webhook authentication failed.', errorCode: 'WEBHOOK_SIGNATURE_INVALID' });
     }
     try {
       const result = await service.ingest(request.body, signature);
@@ -50,7 +60,9 @@ export function createPaymongoWebhookHandler(service: PaymongoWebhookBoundary): 
       const code = error instanceof WebhookBoundaryError ? error.code : 'WEBHOOK_INGESTION_UNAVAILABLE';
       return response.status(webhookErrorStatus(code)).json({
         success: false,
-        error: code.startsWith('WEBHOOK_SIGNATURE') ? 'Webhook authentication failed.' : 'Webhook could not be accepted.',
+        error: code.startsWith('WEBHOOK_SIGNATURE')
+          ? 'Webhook authentication failed.'
+          : 'Webhook could not be accepted.',
         errorCode: code,
       });
     }

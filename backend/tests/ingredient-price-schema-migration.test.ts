@@ -6,11 +6,11 @@ import test from 'node:test';
 const schema = readFileSync(resolve(process.cwd(), 'prisma/schema.prisma'), 'utf8');
 const migration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260906120000_ingredient_price_foundation/migration.sql'),
-  'utf8',
+  'utf8'
 );
 const normalizationHardeningMigration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260906150000_harden_ingredient_price_normalization/migration.sql'),
-  'utf8',
+  'utf8'
 );
 
 const models = [
@@ -30,7 +30,10 @@ test('[TEST-095] price foundation is additive and has no timeless FoodItem price
   const foodItem = schema.match(/model FoodItem \{[\s\S]*?\n\}/)?.[0] ?? '';
   assert.doesNotMatch(foodItem, /\b(price|cost|amountCentavos)\b/i);
   assert.doesNotMatch(migration, /^\s*(DROP|DELETE|UPDATE|INSERT|TRUNCATE)\b/im);
-  assert.doesNotMatch(migration, /ALTER TABLE "(User|FoodItem|MealPlan|MealIngredient|MealLibrary|MealLibraryIngredient|GroceryList|GroceryItem)"/);
+  assert.doesNotMatch(
+    migration,
+    /ALTER TABLE "(User|FoodItem|MealPlan|MealIngredient|MealLibrary|MealLibraryIngredient|GroceryList|GroceryItem)"/
+  );
 });
 
 test('[TEST-095] observations preserve source, geography, dates, units, mappings, and PHP ranges', () => {
@@ -60,5 +63,8 @@ test('[TEST-096] normalization hardening closes SQL NULL half-states additively'
   assert.match(normalizationHardeningMigration, /IngredientPriceObservation_normalization_pair_strict/);
   assert.match(normalizationHardeningMigration, /"normalizedQuantity" IS NOT NULL[\s\S]*?"normalizedUnit" IS NOT NULL/);
   assert.doesNotMatch(normalizationHardeningMigration, /^\s*(DROP|DELETE|UPDATE|INSERT|TRUNCATE)\b/im);
-  assert.doesNotMatch(normalizationHardeningMigration, /ALTER TABLE "(User|FoodItem|MealPlan|MealIngredient|MealLibrary|MealLibraryIngredient|GroceryList|GroceryItem)"/);
+  assert.doesNotMatch(
+    normalizationHardeningMigration,
+    /ALTER TABLE "(User|FoodItem|MealPlan|MealIngredient|MealLibrary|MealLibraryIngredient|GroceryList|GroceryItem)"/
+  );
 });

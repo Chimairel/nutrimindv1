@@ -36,7 +36,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'NutriMind | AI Nutrition & Meal Planning',
-  description: 'AI-powered, culturally aware meal planning validated against the FNRI Philippine Food Composition Table. Personalized nutrition for health-conscious Filipinos.',
+  description:
+    'AI-powered, culturally aware meal planning validated against the FNRI Philippine Food Composition Table. Personalized nutrition for health-conscious Filipinos.',
   keywords: ['nutrition', 'meal planning', 'Filipino food', 'FNRI', 'diet', 'health', 'AI nutrition'],
   authors: [{ name: 'NutriMind Team' }],
   manifest: '/manifest.json',
@@ -66,7 +67,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body className={`${dmSans.variable} ${plusJakartaSans.variable} ${outfit.variable} ${jetbrainsMono.variable} bg-brand-bg font-sans text-brand-text antialiased`}>
+      <body
+        className={`${dmSans.variable} ${plusJakartaSans.variable} ${outfit.variable} ${jetbrainsMono.variable} bg-brand-bg font-sans text-brand-text antialiased`}
+      >
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>

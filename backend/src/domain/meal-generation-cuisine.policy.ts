@@ -65,9 +65,7 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
   systemInstruction: string;
   prompt: string;
 } {
-  const requestedSlots = input.slots
-    .map((slot) => `- Day ${slot.dayNumber}: ${slot.mealType}`)
-    .join('\n');
+  const requestedSlots = input.slots.map((slot) => `- Day ${slot.dayNumber}: ${slot.mealType}`).join('\n');
 
   const conditions = input.conditions.join(', ') || 'NONE';
   const allergens = input.allergens.join(', ') || 'NONE';

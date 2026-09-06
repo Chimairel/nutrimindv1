@@ -1,10 +1,18 @@
 export type ConversionBasis = 'PURCHASED_AS_SOLD' | 'RAW_EDIBLE' | 'COOKED_EDIBLE';
-export type ConversionUnit = 'MILLIGRAM' | 'GRAM' | 'KILOGRAM' | 'MILLILITER' | 'LITER' | 'TEASPOON' | 'TABLESPOON' | 'CUP' | 'PIECE';
-export type ConversionKind = 'PURCHASED_TO_RAW_YIELD' | 'RAW_TO_COOKED_YIELD' | 'PURCHASED_TO_COOKED_YIELD' | 'HOUSEHOLD_MEASURE_TO_MASS';
+export type ConversionUnit =
+  'MILLIGRAM' | 'GRAM' | 'KILOGRAM' | 'MILLILITER' | 'LITER' | 'TEASPOON' | 'TABLESPOON' | 'CUP' | 'PIECE';
+export type ConversionKind =
+  'PURCHASED_TO_RAW_YIELD' | 'RAW_TO_COOKED_YIELD' | 'PURCHASED_TO_COOKED_YIELD' | 'HOUSEHOLD_MEASURE_TO_MASS';
 export type ClinicalCompatibility = 'ALLOW' | 'REVIEW' | 'BLOCK';
 
-export interface RationalInput { numerator: number; denominator: number }
-interface Rational { numerator: bigint; denominator: bigint }
+export interface RationalInput {
+  numerator: number;
+  denominator: number;
+}
+interface Rational {
+  numerator: bigint;
+  denominator: bigint;
+}
 
 export interface ConversionNode {
   basis: ConversionBasis;
@@ -53,21 +61,23 @@ export type ConversionReasonCode =
   | 'DUPLICATE_EVIDENCE_CONFLICT'
   | 'UNSAFE_ARITHMETIC';
 
-export type ConversionEvaluation = {
-  status: 'AVAILABLE';
-  coverage: 'COMPLETE';
-  confidence: 'HIGH' | 'MEDIUM';
-  factorMin: RationalInput;
-  factorMax: RationalInput;
-  evidenceIds: string[];
-  reasons: [];
-} | {
-  status: 'UNAVAILABLE';
-  coverage: 'UNAVAILABLE';
-  confidence: 'NONE';
-  evidenceIds: [];
-  reasons: ConversionReasonCode[];
-};
+export type ConversionEvaluation =
+  | {
+      status: 'AVAILABLE';
+      coverage: 'COMPLETE';
+      confidence: 'HIGH' | 'MEDIUM';
+      factorMin: RationalInput;
+      factorMax: RationalInput;
+      evidenceIds: string[];
+      reasons: [];
+    }
+  | {
+      status: 'UNAVAILABLE';
+      coverage: 'UNAVAILABLE';
+      confidence: 'NONE';
+      evidenceIds: [];
+      reasons: ConversionReasonCode[];
+    };
 
 const MAX_FACTOR_COMPONENT = 1_000_000_000;
 const MASS_SCALE: Partial<Record<ConversionUnit, bigint>> = {
@@ -94,9 +104,15 @@ function rational(numerator: bigint, denominator: bigint): Rational {
 }
 
 function fromInput(value: RationalInput): Rational | null {
-  if (!Number.isSafeInteger(value.numerator) || !Number.isSafeInteger(value.denominator) ||
-      value.numerator <= 0 || value.denominator <= 0 ||
-      value.numerator > MAX_FACTOR_COMPONENT || value.denominator > MAX_FACTOR_COMPONENT) return null;
+  if (
+    !Number.isSafeInteger(value.numerator) ||
+    !Number.isSafeInteger(value.denominator) ||
+    value.numerator <= 0 ||
+    value.denominator <= 0 ||
+    value.numerator > MAX_FACTOR_COMPONENT ||
+    value.denominator > MAX_FACTOR_COMPONENT
+  )
+    return null;
   return rational(BigInt(value.numerator), BigInt(value.denominator));
 }
 
@@ -121,7 +137,13 @@ function toOutput(value: Rational): RationalInput {
 }
 
 function nodeIdentity(node: ConversionNode): string {
-  return [node.basis, node.foodIdentity.trim(), node.preparationCode.trim(), node.foodItemId ?? '', node.priceCommodityId ?? ''].join('|');
+  return [
+    node.basis,
+    node.foodIdentity.trim(),
+    node.preparationCode.trim(),
+    node.foodItemId ?? '',
+    node.priceCommodityId ?? '',
+  ].join('|');
 }
 
 function nodeKey(node: ConversionNode): string {
@@ -165,7 +187,8 @@ function hasExactIdentity(node: ConversionNode): boolean {
 }
 
 function canonicalCandidate(candidate: ConversionEvidenceCandidate): string {
-  const dateText = (value: Date | null | undefined) => value && Number.isFinite(value.getTime()) ? value.toISOString() : value ? 'INVALID_DATE' : null;
+  const dateText = (value: Date | null | undefined) =>
+    value && Number.isFinite(value.getTime()) ? value.toISOString() : value ? 'INVALID_DATE' : null;
   return JSON.stringify({
     ...candidate,
     effectiveFrom: dateText(candidate.effectiveFrom),
@@ -182,8 +205,11 @@ function validateCandidate(candidate: ConversionEvidenceCandidate): ConversionRe
   const minValue = Number(min.numerator) / Number(min.denominator);
   const maxValue = Number(max.numerator) / Number(max.denominator);
   if (candidate.kind === 'PURCHASED_TO_RAW_YIELD' && maxValue > 1) return 'IMPLAUSIBLE_FACTOR';
-  if ((candidate.kind === 'RAW_TO_COOKED_YIELD' || candidate.kind === 'PURCHASED_TO_COOKED_YIELD') &&
-      (minValue < 0.05 || maxValue > 10)) return 'IMPLAUSIBLE_FACTOR';
+  if (
+    (candidate.kind === 'RAW_TO_COOKED_YIELD' || candidate.kind === 'PURCHASED_TO_COOKED_YIELD') &&
+    (minValue < 0.05 || maxValue > 10)
+  )
+    return 'IMPLAUSIBLE_FACTOR';
   if (candidate.kind === 'HOUSEHOLD_MEASURE_TO_MASS' && (minValue < 0.001 || maxValue > 5_000_000)) {
     return 'IMPLAUSIBLE_FACTOR';
   }
@@ -207,17 +233,43 @@ export function evaluateConversionChain(input: {
   maxEdges?: number;
 }): ConversionEvaluation {
   if (input.clinicalCompatibility !== 'ALLOW') {
-    return { status: 'UNAVAILABLE', coverage: 'UNAVAILABLE', confidence: 'NONE', evidenceIds: [], reasons: ['CLINICAL_EXCLUDED'] };
+    return {
+      status: 'UNAVAILABLE',
+      coverage: 'UNAVAILABLE',
+      confidence: 'NONE',
+      evidenceIds: [],
+      reasons: ['CLINICAL_EXCLUDED'],
+    };
   }
   if (!Number.isFinite(input.asOf.getTime())) {
-    return { status: 'UNAVAILABLE', coverage: 'UNAVAILABLE', confidence: 'NONE', evidenceIds: [], reasons: ['UNSAFE_ARITHMETIC'] };
+    return {
+      status: 'UNAVAILABLE',
+      coverage: 'UNAVAILABLE',
+      confidence: 'NONE',
+      evidenceIds: [],
+      reasons: ['UNSAFE_ARITHMETIC'],
+    };
   }
   const direct = nodesCompatible(input.from, input.to);
   if (direct) {
     try {
-      return { status: 'AVAILABLE', coverage: 'COMPLETE', confidence: 'HIGH', factorMin: toOutput(direct), factorMax: toOutput(direct), evidenceIds: [], reasons: [] };
+      return {
+        status: 'AVAILABLE',
+        coverage: 'COMPLETE',
+        confidence: 'HIGH',
+        factorMin: toOutput(direct),
+        factorMax: toOutput(direct),
+        evidenceIds: [],
+        reasons: [],
+      };
     } catch {
-      return { status: 'UNAVAILABLE', coverage: 'UNAVAILABLE', confidence: 'NONE', evidenceIds: [], reasons: ['UNSAFE_ARITHMETIC'] };
+      return {
+        status: 'UNAVAILABLE',
+        coverage: 'UNAVAILABLE',
+        confidence: 'NONE',
+        evidenceIds: [],
+        reasons: ['UNSAFE_ARITHMETIC'],
+      };
     }
   }
 
@@ -232,41 +284,79 @@ export function evaluateConversionChain(input: {
   }
   if (conflictingIds.size > 0) reasons.add('DUPLICATE_EVIDENCE_CONFLICT');
 
-  const supersededIds = new Set(input.evidence.flatMap((item) => item.supersedesEvidenceId ? [item.supersedesEvidenceId] : []));
+  const supersededIds = new Set(
+    input.evidence.flatMap((item) => (item.supersedesEvidenceId ? [item.supersedesEvidenceId] : []))
+  );
   const edges: Edge[] = [];
   const included = new Set<string>();
   for (const candidate of input.evidence) {
     if (included.has(candidate.id) || conflictingIds.has(candidate.id)) continue;
     included.add(candidate.id);
-    if (supersededIds.has(candidate.id)) { reasons.add('SUPERSEDED_EVIDENCE'); continue; }
-    if (candidate.reviewStatus === 'DRAFT') { reasons.add('EVIDENCE_NOT_REVIEWED'); continue; }
-    if (candidate.reviewStatus === 'REJECTED') { reasons.add('EVIDENCE_REJECTED'); continue; }
-    if ((candidate.effectiveFrom && !Number.isFinite(candidate.effectiveFrom.getTime())) ||
-        (candidate.effectiveUntil && !Number.isFinite(candidate.effectiveUntil.getTime())) ||
-        (candidate.effectiveFrom && candidate.effectiveUntil && candidate.effectiveFrom > candidate.effectiveUntil)) {
-      reasons.add('INVALID_EFFECTIVE_PERIOD'); continue;
+    if (supersededIds.has(candidate.id)) {
+      reasons.add('SUPERSEDED_EVIDENCE');
+      continue;
     }
-    if (candidate.effectiveFrom && candidate.effectiveFrom.getTime() > input.asOf.getTime()) { reasons.add('EVIDENCE_NOT_YET_EFFECTIVE'); continue; }
-    if (candidate.effectiveUntil && candidate.effectiveUntil.getTime() < input.asOf.getTime()) { reasons.add('STALE_EVIDENCE'); continue; }
+    if (candidate.reviewStatus === 'DRAFT') {
+      reasons.add('EVIDENCE_NOT_REVIEWED');
+      continue;
+    }
+    if (candidate.reviewStatus === 'REJECTED') {
+      reasons.add('EVIDENCE_REJECTED');
+      continue;
+    }
+    if (
+      (candidate.effectiveFrom && !Number.isFinite(candidate.effectiveFrom.getTime())) ||
+      (candidate.effectiveUntil && !Number.isFinite(candidate.effectiveUntil.getTime())) ||
+      (candidate.effectiveFrom && candidate.effectiveUntil && candidate.effectiveFrom > candidate.effectiveUntil)
+    ) {
+      reasons.add('INVALID_EFFECTIVE_PERIOD');
+      continue;
+    }
+    if (candidate.effectiveFrom && candidate.effectiveFrom.getTime() > input.asOf.getTime()) {
+      reasons.add('EVIDENCE_NOT_YET_EFFECTIVE');
+      continue;
+    }
+    if (candidate.effectiveUntil && candidate.effectiveUntil.getTime() < input.asOf.getTime()) {
+      reasons.add('STALE_EVIDENCE');
+      continue;
+    }
     const invalid = validateCandidate(candidate);
-    if (invalid) { reasons.add(invalid); continue; }
+    if (invalid) {
+      reasons.add(invalid);
+      continue;
+    }
     const min = fromInput(candidate.factorMin) as Rational;
     const max = fromInput(candidate.factorMax) as Rational;
-    const basisUnitScale = candidate.kind === 'HOUSEHOLD_MEASURE_TO_MASS'
-      ? rational(1n, 1n)
-      : unitFactor(candidate.from.unit, candidate.to.unit) as Rational;
+    const basisUnitScale =
+      candidate.kind === 'HOUSEHOLD_MEASURE_TO_MASS'
+        ? rational(1n, 1n)
+        : (unitFactor(candidate.from.unit, candidate.to.unit) as Rational);
     const scaledMin = multiply(basisUnitScale, min);
     const scaledMax = multiply(basisUnitScale, max);
     edges.push({ evidenceId: candidate.id, from: candidate.from, to: candidate.to, min: scaledMin, max: scaledMax });
     if (candidate.direction === 'BIDIRECTIONAL') {
-      edges.push({ evidenceId: candidate.id, from: candidate.to, to: candidate.from, min: invert(scaledMax), max: invert(scaledMin) });
+      edges.push({
+        evidenceId: candidate.id,
+        from: candidate.to,
+        to: candidate.from,
+        min: invert(scaledMax),
+        max: invert(scaledMin),
+      });
     } else if (nodesCompatible(input.from, candidate.to) || nodesCompatible(input.to, candidate.from)) {
       reasons.add('UNAUTHORIZED_REVERSE');
     }
   }
 
   type Path = { node: ConversionNode; min: Rational; max: Rational; ids: string[]; visited: Set<string> };
-  const queue: Path[] = [{ node: input.from, min: rational(1n, 1n), max: rational(1n, 1n), ids: [], visited: new Set([nodeKey(input.from)]) }];
+  const queue: Path[] = [
+    {
+      node: input.from,
+      min: rational(1n, 1n),
+      max: rational(1n, 1n),
+      ids: [],
+      visited: new Set([nodeKey(input.from)]),
+    },
+  ];
   const paths: Array<{ min: Rational; max: Rational; ids: string[] }> = [];
   const maxEdges = Math.max(1, Math.min(input.maxEdges ?? 4, 8));
   while (queue.length > 0) {
@@ -280,9 +370,15 @@ export function evaluateConversionChain(input: {
     for (const edge of edges) {
       const entryUnit = nodesCompatible(path.node, edge.from);
       if (!entryUnit) continue;
-      if (path.ids.includes(edge.evidenceId)) { reasons.add('DOUBLE_APPLICATION'); continue; }
+      if (path.ids.includes(edge.evidenceId)) {
+        reasons.add('DOUBLE_APPLICATION');
+        continue;
+      }
       const destinationKey = nodeKey(edge.to);
-      if (path.visited.has(destinationKey)) { reasons.add('CYCLE_DETECTED'); continue; }
+      if (path.visited.has(destinationKey)) {
+        reasons.add('CYCLE_DETECTED');
+        continue;
+      }
       queue.push({
         node: edge.to,
         min: multiply(multiply(path.min, entryUnit), edge.min),
@@ -295,31 +391,64 @@ export function evaluateConversionChain(input: {
 
   const uniquePaths = new Map(paths.map((path) => [path.ids.join('>'), path]));
   if (uniquePaths.size > 1) {
-    return { status: 'UNAVAILABLE', coverage: 'UNAVAILABLE', confidence: 'NONE', evidenceIds: [], reasons: ['AMBIGUOUS_CONVERSION_CHAIN'] };
+    return {
+      status: 'UNAVAILABLE',
+      coverage: 'UNAVAILABLE',
+      confidence: 'NONE',
+      evidenceIds: [],
+      reasons: ['AMBIGUOUS_CONVERSION_CHAIN'],
+    };
   }
   if (uniquePaths.size === 0) {
     if (edges.length === 0 && reasons.size === 0) reasons.add('NO_CONVERSION_EVIDENCE');
     else if (reasons.size === 0) reasons.add('IDENTITY_OR_PREPARATION_MISMATCH');
-    return { status: 'UNAVAILABLE', coverage: 'UNAVAILABLE', confidence: 'NONE', evidenceIds: [], reasons: [...reasons].sort() };
+    return {
+      status: 'UNAVAILABLE',
+      coverage: 'UNAVAILABLE',
+      confidence: 'NONE',
+      evidenceIds: [],
+      reasons: [...reasons].sort(),
+    };
   }
   const path = [...uniquePaths.values()][0];
   try {
     const ranged = compare(path.min, path.max) !== 0;
     return {
-      status: 'AVAILABLE', coverage: 'COMPLETE', confidence: ranged || path.ids.length > 1 ? 'MEDIUM' : 'HIGH',
-      factorMin: toOutput(path.min), factorMax: toOutput(path.max), evidenceIds: path.ids, reasons: [],
+      status: 'AVAILABLE',
+      coverage: 'COMPLETE',
+      confidence: ranged || path.ids.length > 1 ? 'MEDIUM' : 'HIGH',
+      factorMin: toOutput(path.min),
+      factorMax: toOutput(path.max),
+      evidenceIds: path.ids,
+      reasons: [],
     };
   } catch {
-    return { status: 'UNAVAILABLE', coverage: 'UNAVAILABLE', confidence: 'NONE', evidenceIds: [], reasons: ['UNSAFE_ARITHMETIC'] };
+    return {
+      status: 'UNAVAILABLE',
+      coverage: 'UNAVAILABLE',
+      confidence: 'NONE',
+      evidenceIds: [],
+      reasons: ['UNSAFE_ARITHMETIC'],
+    };
   }
 }
 
-function floorRatio(numerator: bigint, denominator: bigint): bigint { return numerator / denominator; }
-function ceilRatio(numerator: bigint, denominator: bigint): bigint { return (numerator + denominator - 1n) / denominator; }
+function floorRatio(numerator: bigint, denominator: bigint): bigint {
+  return numerator / denominator;
+}
+function ceilRatio(numerator: bigint, denominator: bigint): bigint {
+  return (numerator + denominator - 1n) / denominator;
+}
 
-export type ConservativeCost = {
-  status: 'AVAILABLE'; amountMinCentavos: number; amountMaxCentavos: number; confidence: 'HIGH' | 'MEDIUM'; evidenceIds: string[];
-} | { status: 'UNAVAILABLE'; reasons: ConversionReasonCode[] };
+export type ConservativeCost =
+  | {
+      status: 'AVAILABLE';
+      amountMinCentavos: number;
+      amountMaxCentavos: number;
+      confidence: 'HIGH' | 'MEDIUM';
+      evidenceIds: string[];
+    }
+  | { status: 'UNAVAILABLE'; reasons: ConversionReasonCode[] };
 
 export function estimateConservativeConvertedCost(input: {
   targetQuantity: number;
@@ -328,9 +457,17 @@ export function estimateConservativeConvertedCost(input: {
   pricePurchasedQuantity: number;
   conversion: ConversionEvaluation;
 }): ConservativeCost {
-  const integers = [input.targetQuantity, input.priceAmountMinCentavos, input.priceAmountMaxCentavos, input.pricePurchasedQuantity];
+  const integers = [
+    input.targetQuantity,
+    input.priceAmountMinCentavos,
+    input.priceAmountMaxCentavos,
+    input.pricePurchasedQuantity,
+  ];
   if (input.conversion.status !== 'AVAILABLE') return { status: 'UNAVAILABLE', reasons: input.conversion.reasons };
-  if (integers.some((value) => !Number.isSafeInteger(value) || value <= 0) || input.priceAmountMinCentavos > input.priceAmountMaxCentavos) {
+  if (
+    integers.some((value) => !Number.isSafeInteger(value) || value <= 0) ||
+    input.priceAmountMinCentavos > input.priceAmountMaxCentavos
+  ) {
     return { status: 'UNAVAILABLE', reasons: ['UNSAFE_ARITHMETIC'] };
   }
   try {
@@ -338,10 +475,22 @@ export function estimateConservativeConvertedCost(input: {
     const priceBasis = BigInt(input.pricePurchasedQuantity);
     const minFactor = fromInput(input.conversion.factorMin) as Rational;
     const maxFactor = fromInput(input.conversion.factorMax) as Rational;
-    const minCost = floorRatio(BigInt(input.priceAmountMinCentavos) * target * maxFactor.denominator, priceBasis * maxFactor.numerator);
-    const maxCost = ceilRatio(BigInt(input.priceAmountMaxCentavos) * target * minFactor.denominator, priceBasis * minFactor.numerator);
+    const minCost = floorRatio(
+      BigInt(input.priceAmountMinCentavos) * target * maxFactor.denominator,
+      priceBasis * maxFactor.numerator
+    );
+    const maxCost = ceilRatio(
+      BigInt(input.priceAmountMaxCentavos) * target * minFactor.denominator,
+      priceBasis * minFactor.numerator
+    );
     if (minCost < 0n || maxCost < minCost || maxCost > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('unsafe cost');
-    return { status: 'AVAILABLE', amountMinCentavos: Number(minCost), amountMaxCentavos: Number(maxCost), confidence: input.conversion.confidence, evidenceIds: input.conversion.evidenceIds };
+    return {
+      status: 'AVAILABLE',
+      amountMinCentavos: Number(minCost),
+      amountMaxCentavos: Number(maxCost),
+      confidence: input.conversion.confidence,
+      evidenceIds: input.conversion.evidenceIds,
+    };
   } catch {
     return { status: 'UNAVAILABLE', reasons: ['UNSAFE_ARITHMETIC'] };
   }

@@ -15,21 +15,43 @@ export interface AggregatedGroceryIngredient {
 }
 
 const UNIT_ALIASES: Record<string, string> = {
-  g: 'g', gram: 'g', grams: 'g',
-  kg: 'kg', kilogram: 'kg', kilograms: 'kg',
-  ml: 'mL', milliliter: 'mL', milliliters: 'mL',
-  l: 'L', liter: 'L', liters: 'L', litre: 'L', litres: 'L',
-  piece: 'piece', pieces: 'piece', pc: 'piece', pcs: 'piece',
-  tbsp: 'tbsp', tablespoon: 'tbsp', tablespoons: 'tbsp',
-  tsp: 'tsp', teaspoon: 'tsp', teaspoons: 'tsp',
-  cup: 'cup', cups: 'cup',
-  can: 'can', cans: 'can',
-  pack: 'pack', packs: 'pack', package: 'pack', packages: 'pack',
+  g: 'g',
+  gram: 'g',
+  grams: 'g',
+  kg: 'kg',
+  kilogram: 'kg',
+  kilograms: 'kg',
+  ml: 'mL',
+  milliliter: 'mL',
+  milliliters: 'mL',
+  l: 'L',
+  liter: 'L',
+  liters: 'L',
+  litre: 'L',
+  litres: 'L',
+  piece: 'piece',
+  pieces: 'piece',
+  pc: 'piece',
+  pcs: 'piece',
+  tbsp: 'tbsp',
+  tablespoon: 'tbsp',
+  tablespoons: 'tbsp',
+  tsp: 'tsp',
+  teaspoon: 'tsp',
+  teaspoons: 'tsp',
+  cup: 'cup',
+  cups: 'cup',
+  can: 'can',
+  cans: 'can',
+  pack: 'pack',
+  packs: 'pack',
+  package: 'pack',
+  packages: 'pack',
 };
 
 export function normalizeGroceryUnit(unit?: string | null): string | null {
   const normalized = unit?.trim().toLowerCase();
-  return normalized ? (UNIT_ALIASES[normalized] || normalized.slice(0, 32)) : null;
+  return normalized ? UNIT_ALIASES[normalized] || normalized.slice(0, 32) : null;
 }
 
 export function groceryItemKey(name: string, unit?: string | null): string {
@@ -46,10 +68,10 @@ export function aggregateGroceryIngredients(
     if (!cleanName) continue;
     const unit = normalizeGroceryUnit(ingredient.unit);
     const key = groceryItemKey(cleanName, unit);
-    const validQuantity = typeof ingredient.quantity === 'number' &&
-      Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
-      ? ingredient.quantity
-      : null;
+    const validQuantity =
+      typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
+        ? ingredient.quantity
+        : null;
     const current = aggregated.get(key);
     if (!current) {
       aggregated.set(key, {
@@ -75,4 +97,3 @@ export function aggregateGroceryIngredients(
 
   return [...aggregated.values()].map(({ hasUnknownQuantity: _ignored, ...item }) => item);
 }
-

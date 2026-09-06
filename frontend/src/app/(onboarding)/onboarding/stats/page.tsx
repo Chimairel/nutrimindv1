@@ -72,26 +72,30 @@ export default function OnboardingStatsPage() {
   })();
 
   const targetWeightHint = (() => {
-    if (goal === 'MAINTAIN') return (
-      <span className="flex items-center gap-1">
-        <Lock className="w-3 h-3 text-brand-muted shrink-0" /> Locked to your current weight
-      </span>
-    );
-    if (goal === 'GAIN_WEIGHT') return (
-      <span className="flex items-center gap-1">
-        <TrendingUp className="w-3 h-3 text-brand-green shrink-0" /> Must be ≥ current weight
-      </span>
-    );
-    if (goal === 'BUILD_MUSCLE') return (
-      <span className="flex items-center gap-1">
-        <Dumbbell className="w-3 h-3 text-brand-green shrink-0" /> Must be ≥ current weight
-      </span>
-    );
-    if (goal === 'LOSE_WEIGHT') return (
-      <span className="flex items-center gap-1">
-        <TrendingDown className="w-3 h-3 text-brand-green shrink-0" /> Must be ≤ current weight
-      </span>
-    );
+    if (goal === 'MAINTAIN')
+      return (
+        <span className="flex items-center gap-1">
+          <Lock className="w-3 h-3 text-brand-muted shrink-0" /> Locked to your current weight
+        </span>
+      );
+    if (goal === 'GAIN_WEIGHT')
+      return (
+        <span className="flex items-center gap-1">
+          <TrendingUp className="w-3 h-3 text-brand-green shrink-0" /> Must be ≥ current weight
+        </span>
+      );
+    if (goal === 'BUILD_MUSCLE')
+      return (
+        <span className="flex items-center gap-1">
+          <Dumbbell className="w-3 h-3 text-brand-green shrink-0" /> Must be ≥ current weight
+        </span>
+      );
+    if (goal === 'LOSE_WEIGHT')
+      return (
+        <span className="flex items-center gap-1">
+          <TrendingDown className="w-3 h-3 text-brand-green shrink-0" /> Must be ≤ current weight
+        </span>
+      );
     return '';
   })();
 
@@ -159,10 +163,7 @@ export default function OnboardingStatsPage() {
       router.push('/onboarding/preferences');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(
-          err.response?.data?.error || 
-          'Failed to save stats. Please verify your connection.'
-        );
+        setError(err.response?.data?.error || 'Failed to save stats. Please verify your connection.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -201,9 +202,7 @@ export default function OnboardingStatsPage() {
 
         <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
           <div className="flex flex-col gap-1 mb-8">
-            <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">
-              PERSONAL METRICS
-            </h2>
+            <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">PERSONAL METRICS</h2>
             <p className="text-xs text-brand-muted">
               Specify your primary fitness objective and body stats to calculate your targets.
             </p>
@@ -219,9 +218,7 @@ export default function OnboardingStatsPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {/* Goal Chips */}
             <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">
-                Primary Goal
-              </label>
+              <label className="text-sm font-bold tracking-wide text-brand-text/90">Primary Goal</label>
               <div className="grid grid-cols-2 gap-3">
                 {goalsList.map((item) => {
                   const isSelected = goal === item.value;
@@ -233,9 +230,10 @@ export default function OnboardingStatsPage() {
                       onClick={() => handleGoalChange(item.value)}
                       className={`
                         flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 outline-none
-                        ${isSelected 
-                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
-                          : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
+                        ${
+                          isSelected
+                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >
@@ -252,7 +250,8 @@ export default function OnboardingStatsPage() {
                 Biological sex used for energy calculation
               </legend>
               <p className="text-xs leading-relaxed text-brand-muted">
-                This input is required by the Mifflin–St Jeor equation and is used only for nutrition-target calculations.
+                This input is required by the Mifflin–St Jeor equation and is used only for nutrition-target
+                calculations.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {(['MALE', 'FEMALE'] as const).map((value) => {
@@ -340,20 +339,25 @@ export default function OnboardingStatsPage() {
                       goal === 'MAINTAIN'
                         ? 'border-brand-border/40 opacity-50 cursor-not-allowed text-brand-muted'
                         : targetWeightState === 'invalid'
-                        ? 'border-status-error-text/60 bg-status-error-bg/5 focus:border-status-error-text'
-                        : targetWeightState === 'valid'
-                        ? 'border-brand-green/60 bg-brand-green/5 focus:border-brand-green'
-                        : 'border-brand-border focus:border-brand-green'
+                          ? 'border-status-error-text/60 bg-status-error-bg/5 focus:border-status-error-text'
+                          : targetWeightState === 'valid'
+                            ? 'border-brand-green/60 bg-brand-green/5 focus:border-brand-green'
+                            : 'border-brand-border focus:border-brand-green'
                     }
                   `}
                 />
                 {/* Hint text below the field */}
-                <p className={`text-[10px] font-semibold leading-tight ${
-                  goal === 'MAINTAIN' ? 'text-brand-muted' :
-                  targetWeightState === 'invalid' ? 'text-status-error-text' :
-                  targetWeightState === 'valid' ? 'text-brand-green' :
-                  'text-brand-muted'
-                }`}>
+                <p
+                  className={`text-[10px] font-semibold leading-tight ${
+                    goal === 'MAINTAIN'
+                      ? 'text-brand-muted'
+                      : targetWeightState === 'invalid'
+                        ? 'text-status-error-text'
+                        : targetWeightState === 'valid'
+                          ? 'text-brand-green'
+                          : 'text-brand-muted'
+                  }`}
+                >
                   {targetWeightHint}
                 </p>
               </div>
@@ -361,9 +365,7 @@ export default function OnboardingStatsPage() {
 
             {/* Activity Level Selector */}
             <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">
-                Daily Activity Level
-              </label>
+              <label className="text-sm font-bold tracking-wide text-brand-text/90">Daily Activity Level</label>
               <div className="flex flex-col gap-2.5">
                 {activityLevelsList.map((item) => {
                   const isSelected = activityLevel === item.value;
@@ -375,17 +377,24 @@ export default function OnboardingStatsPage() {
                       onClick={() => setActivityLevel(item.value)}
                       className={`
                         flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
-                        ${isSelected 
-                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
-                          : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
+                        ${
+                          isSelected
+                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
                     >
                       <div>
-                        <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}>
+                        <h4
+                          className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}
+                        >
                           {item.label}
                         </h4>
-                        <p className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{item.desc}</p>
+                        <p
+                          className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}
+                        >
+                          {item.desc}
+                        </p>
                       </div>
                       {isSelected && <Check className="w-4 h-4 text-white stroke-[3px] shrink-0" />}
                     </button>

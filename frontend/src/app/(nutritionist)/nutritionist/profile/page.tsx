@@ -67,19 +67,38 @@ export default function NutritionistProfilePage() {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><span className="text-brand-muted animate-pulse">Loading...</span></div>;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <span className="text-brand-muted animate-pulse">Loading...</span>
+      </div>
+    );
   }
 
   return (
     <div className="portal-page max-w-4xl space-y-6 text-left">
-      <PortalPageHeader icon={UserRound} eyebrow="Professional identity" title="Nutritionist profile" description="Maintain the professional details shown alongside your clinical review activity." />
+      <PortalPageHeader
+        icon={UserRound}
+        eyebrow="Professional identity"
+        title="Nutritionist profile"
+        description="Maintain the professional details shown alongside your clinical review activity."
+      />
 
       <Card className="grid gap-4 p-6 text-sm sm:grid-cols-2">
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4"><span className="text-[10px] uppercase tracking-wider text-brand-muted">PRC License</span><span className="mt-2 block font-mono font-bold text-brand-text">{profile?.prcLicenseNumber}</span></div>
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4"><span className="text-[10px] uppercase tracking-wider text-brand-muted">License expiry</span><span className="mt-2 block font-bold text-brand-text">{profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}</span></div>
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-brand-muted">PRC License</span>
+          <span className="mt-2 block font-mono font-bold text-brand-text">{profile?.prcLicenseNumber}</span>
+        </div>
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-brand-muted">License expiry</span>
+          <span className="mt-2 block font-bold text-brand-text">
+            {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
+          </span>
+        </div>
         <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
           <span className="text-brand-muted">Verified</span>
-          <span className={`mt-2 flex font-bold ${profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}`}>
+          <span
+            className={`mt-2 flex font-bold ${profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}`}
+          >
             {profile?.isVerified ? (
               <span className="inline-flex items-center gap-1">
                 <Check className="w-3.5 h-3.5 stroke-[3px]" />
@@ -93,7 +112,10 @@ export default function NutritionistProfilePage() {
             )}
           </span>
         </div>
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4"><span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span><span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span></div>
+        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span>
+          <span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span>
+        </div>
         <div className="rounded-2xl bg-brand-bgAlt/55 p-4 sm:col-span-2">
           <span className="text-[10px] uppercase tracking-wider text-brand-muted">Rating</span>
           <span className="mt-2 inline-flex items-center gap-1 font-bold text-brand-text">
@@ -105,10 +127,26 @@ export default function NutritionistProfilePage() {
 
       <Card className="space-y-5 p-6">
         <p className="portal-section-label">Edit profile</p>
-        {error && <p role="alert" className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text">{error}</p>}
-        {success && <p role="status" className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text">{success}</p>}
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text"
+          >
+            {error}
+          </p>
+        )}
+        {success && (
+          <p
+            role="status"
+            className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text"
+          >
+            {success}
+          </p>
+        )}
         <div>
-          <label htmlFor="nutritionist-specialization" className="mb-2 block text-xs font-bold text-brand-text">Specialization</label>
+          <label htmlFor="nutritionist-specialization" className="mb-2 block text-xs font-bold text-brand-text">
+            Specialization
+          </label>
           <input
             id="nutritionist-specialization"
             name="specialization"
@@ -119,7 +157,9 @@ export default function NutritionistProfilePage() {
           />
         </div>
         <div>
-          <label htmlFor="nutritionist-bio" className="mb-2 block text-xs font-bold text-brand-text">Bio</label>
+          <label htmlFor="nutritionist-bio" className="mb-2 block text-xs font-bold text-brand-text">
+            Bio
+          </label>
           <textarea
             id="nutritionist-bio"
             name="bio"

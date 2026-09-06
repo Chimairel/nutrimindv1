@@ -67,11 +67,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         }
 
         if (snapshot.start !== null && snapshot.end !== null) {
-          input.setSelectionRange(
-            snapshot.start,
-            snapshot.end,
-            snapshot.direction ?? undefined
-          );
+          input.setSelectionRange(snapshot.start, snapshot.end, snapshot.direction ?? undefined);
         }
       };
 

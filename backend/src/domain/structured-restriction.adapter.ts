@@ -56,7 +56,10 @@ function asStrings(value: unknown): string[] {
 
 function splitLegacy(value: unknown): string[] {
   if (typeof value !== 'string') return [];
-  return value.split(',').map((item) => item.trim()).filter(Boolean);
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function cleaned(value: unknown, fallback: string): string {
@@ -64,7 +67,11 @@ function cleaned(value: unknown, fallback: string): string {
 }
 
 function addUnique(target: string[], seen: Set<string>, value: string): void {
-  const key = value.normalize('NFKC').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const key = value
+    .normalize('NFKC')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
   if (!key || key === 'NONE' || seen.has(key)) return;
   seen.add(key);
   target.push(value);
@@ -76,9 +83,7 @@ function addUnique(target: string[], seen: Set<string>, value: string): void {
  * legacy enum/custom fields are retained only as an explicit fallback for
  * profiles that have not yet acquired structured rows.
  */
-export function adaptUserSafetyRestrictions(
-  source: UserSafetyRestrictionSource
-): CanonicalUserSafetyRestrictions {
+export function adaptUserSafetyRestrictions(source: UserSafetyRestrictionSource): CanonicalUserSafetyRestrictions {
   const structured = Array.isArray(source.safetyEntries) && source.safetyEntries.length > 0;
   const conditions: string[] = [];
   const allergies: string[] = [];
@@ -93,12 +98,14 @@ export function adaptUserSafetyRestrictions(
 
   if (structured) {
     for (const entry of source.safetyEntries!) {
-      const domain = typeof entry.domain === 'string' && DOMAINS.has(entry.domain as StructuredSafetyDomain)
-        ? entry.domain as StructuredSafetyDomain
-        : 'UNKNOWN';
-      const supportState = typeof entry.supportState === 'string' && SUPPORT_STATES.has(entry.supportState)
-        ? entry.supportState as StructuredSafetySupportState
-        : 'UNKNOWN';
+      const domain =
+        typeof entry.domain === 'string' && DOMAINS.has(entry.domain as StructuredSafetyDomain)
+          ? (entry.domain as StructuredSafetyDomain)
+          : 'UNKNOWN';
+      const supportState =
+        typeof entry.supportState === 'string' && SUPPORT_STATES.has(entry.supportState)
+          ? (entry.supportState as StructuredSafetySupportState)
+          : 'UNKNOWN';
       const canonicalCode = cleaned(entry.canonicalCode, '');
       const label = cleaned(entry.displayName, cleaned(entry.originalText, '[INVALID_RESTRICTION]'));
       if (canonicalCode === 'NONE' || label.toUpperCase() === 'NONE') continue;
@@ -112,9 +119,7 @@ export function adaptUserSafetyRestrictions(
           addUnique(customConditions, seenCustomConditions, canonicalCode);
           requiresReview = true;
         }
-      } else if (
-        domain !== 'CONDITION' && domain !== 'UNKNOWN' && ALLERGY_KEYS.has(canonicalCode)
-      ) {
+      } else if (domain !== 'CONDITION' && domain !== 'UNKNOWN' && ALLERGY_KEYS.has(canonicalCode)) {
         // A supported avoided ingredient uses the same exact declaration
         // evidence as an allergy, without claiming the user has an allergy.
         addUnique(allergies, seenAllergies, canonicalCode);
@@ -144,8 +149,16 @@ export function adaptUserSafetyRestrictions(
     displayEntries.push(
       ...conditions.map((label) => ({ domain: 'CONDITION' as const, label, supportState: 'SUPPORTED' as const })),
       ...allergies.map((label) => ({ domain: 'ALLERGY' as const, label, supportState: 'SUPPORTED' as const })),
-      ...customConditions.map((label) => ({ domain: 'CONDITION' as const, label, supportState: 'PENDING_REVIEW' as const })),
-      ...customFoodRestrictions.map((label) => ({ domain: 'ALLERGY' as const, label, supportState: 'PENDING_REVIEW' as const })),
+      ...customConditions.map((label) => ({
+        domain: 'CONDITION' as const,
+        label,
+        supportState: 'PENDING_REVIEW' as const,
+      })),
+      ...customFoodRestrictions.map((label) => ({
+        domain: 'ALLERGY' as const,
+        label,
+        supportState: 'PENDING_REVIEW' as const,
+      }))
     );
   }
 

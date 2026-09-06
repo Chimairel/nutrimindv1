@@ -10,7 +10,6 @@ import { AlertTriangle } from 'lucide-react';
  * Loads the GIS script, renders the button, and handles the callback.
  */
 
-
 declare global {
   interface Window {
     google?: {

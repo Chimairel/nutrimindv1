@@ -7,7 +7,7 @@ import { NodeHttpsBillingTransport } from '../src/services/node-https-billing.tr
 const schema = readFileSync(resolve(process.cwd(), 'prisma/schema.prisma'), 'utf8');
 const migration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260906193000_paymongo_sandbox_checkout/migration.sql'),
-  'utf8',
+  'utf8'
 );
 
 test('[TEST-100] checkout persistence is additive, TEST-only, owner-scoped, and auditable', () => {
@@ -27,15 +27,19 @@ test('[TEST-100] checkout persistence is additive, TEST-only, owner-scoped, and 
 
 test('[TEST-100] native transport rejects non-HTTPS targets before network access', async () => {
   const transport = new NodeHttpsBillingTransport();
-  await assert.rejects(() => transport.send({
-    method: 'POST',
-    url: 'http://127.0.0.1:9/checkout',
-    headers: {},
-    body: '{}',
-    timeoutMs: 50,
-    maxResponseBytes: 64,
-    redirect: 'error',
-  }), /rejected the request target/);
+  await assert.rejects(
+    () =>
+      transport.send({
+        method: 'POST',
+        url: 'http://127.0.0.1:9/checkout',
+        headers: {},
+        body: '{}',
+        timeoutMs: 50,
+        maxResponseBytes: 64,
+        redirect: 'error',
+      }),
+    /rejected the request target/
+  );
 });
 
 test('[TEST-100] runtime wires real checkout adapters only behind the checkout switch', () => {

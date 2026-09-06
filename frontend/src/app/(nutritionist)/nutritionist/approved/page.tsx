@@ -65,7 +65,17 @@ export default function NutritionistApprovedPage() {
   return (
     <div className="portal-page max-w-5xl space-y-6 text-left">
       {/* Header */}
-      <PortalPageHeader icon={CheckCircle} eyebrow="Clinical archive" title="Approved plans" description="A traceable view of meals you reviewed and approved for user plans." meta={<span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">{meals.length} approved</span>} />
+      <PortalPageHeader
+        icon={CheckCircle}
+        eyebrow="Clinical archive"
+        title="Approved plans"
+        description="A traceable view of meals you reviewed and approved for user plans."
+        meta={
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">
+            {meals.length} approved
+          </span>
+        }
+      />
 
       {meals.length === 0 ? (
         <EmptyState
@@ -76,18 +86,28 @@ export default function NutritionistApprovedPage() {
       ) : (
         <div className="space-y-3">
           {meals.map((meal) => {
-            const type = mealTypeLabels[meal.mealType] || { label: meal.mealType, icon: <Utensils className="w-4 h-4 text-brand-muted" /> };
+            const type = mealTypeLabels[meal.mealType] || {
+              label: meal.mealType,
+              icon: <Utensils className="w-4 h-4 text-brand-muted" />,
+            };
             const reviewDate = new Date(meal.reviewedAt);
             const isValidDate = !isNaN(reviewDate.getTime());
 
             return (
-              <Card key={meal.id} className="p-5 border border-brand-green/20 hover:border-brand-green/40 transition-all duration-300">
+              <Card
+                key={meal.id}
+                className="p-5 border border-brand-green/20 hover:border-brand-green/40 transition-all duration-300"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {type.icon}
-                      <span className="text-xs font-extrabold tracking-wider text-brand-muted uppercase">{type.label}</span>
-                      <Badge variant="verified" className="text-[10px]">Approved</Badge>
+                      <span className="text-xs font-extrabold tracking-wider text-brand-muted uppercase">
+                        {type.label}
+                      </span>
+                      <Badge variant="verified" className="text-[10px]">
+                        Approved
+                      </Badge>
                     </div>
 
                     <h3 className="text-sm font-bold text-brand-text mb-2">{meal.mealName}</h3>
@@ -97,22 +117,47 @@ export default function NutritionistApprovedPage() {
                       <span className="rounded-full border border-brand-border bg-brand-bgAlt px-2 py-0.5 text-[10px] font-bold text-brand-green">
                         {Math.round(meal.calories)} kcal
                       </span>
-                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--macro-protein-bg)', borderColor: 'var(--macro-protein-border)', color: 'var(--macro-protein)' }}>
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                        style={{
+                          backgroundColor: 'var(--macro-protein-bg)',
+                          borderColor: 'var(--macro-protein-border)',
+                          color: 'var(--macro-protein)',
+                        }}
+                      >
                         {Math.round(meal.proteinG)}g P
                       </span>
-                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--macro-carbs-bg)', borderColor: 'var(--macro-carbs-border)', color: 'var(--macro-carbs)' }}>
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                        style={{
+                          backgroundColor: 'var(--macro-carbs-bg)',
+                          borderColor: 'var(--macro-carbs-border)',
+                          color: 'var(--macro-carbs)',
+                        }}
+                      >
                         {Math.round(meal.carbsG)}g C
                       </span>
-                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--macro-fat-bg)', borderColor: 'var(--macro-fat-border)', color: 'var(--macro-fat)' }}>
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                        style={{
+                          backgroundColor: 'var(--macro-fat-bg)',
+                          borderColor: 'var(--macro-fat-border)',
+                          color: 'var(--macro-fat)',
+                        }}
+                      >
                         {Math.round(meal.fatG)}g F
                       </span>
                     </div>
 
                     {/* Patient Info */}
                     <div className="text-[10px] text-brand-muted">
-                      <span>Patient: <strong className="text-brand-text">{meal.user.name}</strong></span>
+                      <span>
+                        Patient: <strong className="text-brand-text">{meal.user.name}</strong>
+                      </span>
                       {meal.nutritionistNote && (
-                        <span className="ml-3">Note: <em>{meal.nutritionistNote}</em></span>
+                        <span className="ml-3">
+                          Note: <em>{meal.nutritionistNote}</em>
+                        </span>
                       )}
                     </div>
                   </div>
@@ -122,14 +167,12 @@ export default function NutritionistApprovedPage() {
                     <div className="text-[10px] text-brand-muted">
                       {isValidDate
                         ? reviewDate.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-                        : 'Not dated'
-                      }
+                        : 'Not dated'}
                     </div>
                     <div className="text-[10px] text-brand-muted">
                       {isValidDate
                         ? reviewDate.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
-                        : ''
-                      }
+                        : ''}
                     </div>
                   </div>
                 </div>

@@ -25,7 +25,7 @@ export const MEAL_LIBRARY_SAFETY_REASON_ORDER = Object.freeze([
   'DECLARATION_STATE_MISMATCH',
 ] as const);
 
-export type MealLibrarySafetyReason = typeof MEAL_LIBRARY_SAFETY_REASON_ORDER[number];
+export type MealLibrarySafetyReason = (typeof MEAL_LIBRARY_SAFETY_REASON_ORDER)[number];
 
 export interface MealLibrarySafetyCandidate {
   status?: unknown;
@@ -57,12 +57,8 @@ export interface MealLibrarySafetyEvaluation {
 
 type UnknownRecord = Record<string, unknown>;
 
-const CONDITION_KEYS = new Set<string>(
-  RESTRICTION_CONDITION_KEYS.filter((key) => key !== 'NONE')
-);
-const ALLERGY_KEYS = new Set<string>(
-  RESTRICTION_ALLERGY_KEYS.filter((key) => key !== 'NONE')
-);
+const CONDITION_KEYS = new Set<string>(RESTRICTION_CONDITION_KEYS.filter((key) => key !== 'NONE'));
+const ALLERGY_KEYS = new Set<string>(RESTRICTION_ALLERGY_KEYS.filter((key) => key !== 'NONE'));
 const REASON_ORDER = new Map<MealLibrarySafetyReason, number>(
   MEAL_LIBRARY_SAFETY_REASON_ORDER.map((reason, index) => [reason, index])
 );
@@ -79,9 +75,7 @@ function hasReviewedState(value: unknown): boolean {
   return value === 'REVIEWED_NONE_DECLARED' || value === 'REVIEWED_WITH_DECLARATIONS';
 }
 
-export function evaluateMealLibrarySafetyEvidence(
-  candidate: MealLibrarySafetyCandidate
-): MealLibrarySafetyEvaluation {
+export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCandidate): MealLibrarySafetyEvaluation {
   const reasons = new Set<MealLibrarySafetyReason>();
 
   if (!isRecord(candidate)) {

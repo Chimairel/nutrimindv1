@@ -40,9 +40,7 @@ export interface GeneratedMealPlanSummary {
   pendingReview: PendingMealPlanSummary | null;
 }
 
-export function summarizePendingMealPlan(
-  rows: readonly MealGenerationResultRow[]
-): PendingMealPlanSummary | null {
+export function summarizePendingMealPlan(rows: readonly MealGenerationResultRow[]): PendingMealPlanSummary | null {
   const pendingRows = rows.filter((row) => row.status === 'PENDING_REVIEW');
   if (pendingRows.length === 0) return null;
 
@@ -53,9 +51,7 @@ export function summarizePendingMealPlan(
   };
 }
 
-export function buildPendingMealPlanPreview(
-  rows: readonly PendingMealPreviewInput[]
-): PendingMealPlanPreview | null {
+export function buildPendingMealPlanPreview(rows: readonly PendingMealPreviewInput[]): PendingMealPlanPreview | null {
   const pendingRows = rows.filter((row) => row.status === 'PENDING_REVIEW');
   const summary = summarizePendingMealPlan(pendingRows);
   if (!summary) return null;
@@ -79,9 +75,7 @@ export function buildPendingMealPlanPreview(
   };
 }
 
-export function summarizeGeneratedMealPlan(
-  rows: readonly MealGenerationResultRow[]
-): GeneratedMealPlanSummary {
+export function summarizeGeneratedMealPlan(rows: readonly MealGenerationResultRow[]): GeneratedMealPlanSummary {
   if (rows.length === 0) {
     throw new Error('Meal generation completed without creating any meal records.');
   }

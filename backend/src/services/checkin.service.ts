@@ -37,9 +37,10 @@ export class CheckinService {
       shoppingDayOfWeek: profile.shoppingDayOfWeek,
       shoppingDayGroup: profile.shoppingDayGroup,
     };
-    const cycle = profile.shoppingDayOfWeek !== null || profile.shoppingDayGroup
-      ? getCurrentWeeklyCycleWindow(schedule, now)
-      : null;
+    const cycle =
+      profile.shoppingDayOfWeek !== null || profile.shoppingDayGroup
+        ? getCurrentWeeklyCycleWindow(schedule, now)
+        : null;
     const submittedThisCycle = cycle
       ? await prisma.weeklyCheckin.findUnique({
           where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
@@ -51,8 +52,7 @@ export class CheckinService {
     // user first enters the product. A first-time user needs a full week of
     // real activity before NutriMind asks what changed; a null lastCheckinAt
     // must not mean "due immediately".
-    const firstCheckinAnchor = profile.user.nutritionReport?.acknowledgedAt
-      ?? profile.user.createdAt;
+    const firstCheckinAnchor = profile.user.nutritionReport?.acknowledgedAt ?? profile.user.createdAt;
     const checkinAnchor = profile.lastCheckinAt ?? firstCheckinAnchor;
     const nextDueAt = new Date(checkinAnchor.getTime() + 7 * 86_400_000);
     return {
@@ -136,62 +136,65 @@ export class CheckinService {
     const daysSincePreviousCheckin = profile.lastCheckinAt
       ? (now.getTime() - profile.lastCheckinAt.getTime()) / 86_400_000
       : null;
-    const nextStreak = daysSincePreviousCheckin !== null && daysSincePreviousCheckin <= 14
-      ? profile.checkinStreak + 1
-      : 1;
+    const nextStreak =
+      daysSincePreviousCheckin !== null && daysSincePreviousCheckin <= 14 ? profile.checkinStreak + 1 : 1;
 
     try {
-      const checkin = await prisma.$transaction(async (tx) => {
-        const created = await tx.weeklyCheckin.create({
-          data: {
-            userId,
-            cycleStartDate: cycle.startDate,
-            changed: data.changed,
-            submittedWeightKg,
-            submittedGoal: updates.goal as Goal | undefined,
-            submittedActivityLevel: updates.activityLevel as ActivityLevel | undefined,
-            weightTrendKg: adaptation.weightTrendKg,
-            averageAdherencePct: adaptation.averageAdherencePct,
-            observationDays: adaptation.observationDays,
-            adaptationState: adaptation.state as WeeklyAdaptationState,
-            profileSnapshot: {
-              weightKg: effectiveWeightKg,
-              goal: effectiveGoal,
-              activityLevel: effectiveActivityLevel,
-              dailyCalorieTarget,
-              automaticCalorieAdjustment: adaptation.automaticCalorieAdjustment,
-            },
-          },
-        });
-
-        await tx.userProfile.update({
-          where: { userId },
-          data: {
-            ...(submittedWeightKg !== undefined ? { weightKg: submittedWeightKg } : {}),
-            ...(updates.goal !== undefined ? { goal: updates.goal as Goal } : {}),
-            ...(updates.activityLevel !== undefined ? { activityLevel: updates.activityLevel as ActivityLevel } : {}),
-            dailyCalorieTarget,
-            lastCheckinAt: now,
-            checkinStreak: nextStreak,
-          },
-        });
-
-        if (submittedWeightKg !== undefined) {
-          await tx.weightLog.create({ data: { userId, weightKg: submittedWeightKg, note: 'Weekly check-in' } });
-        }
-
-        if (adaptation.state === 'REVIEW_RECOMMENDED') {
-          await tx.notification.create({
+      const checkin = await prisma.$transaction(
+        async (tx) => {
+          const created = await tx.weeklyCheckin.create({
             data: {
               userId,
-              title: 'Progress review recommended',
-              message: 'Your recent trend and recorded adherence suggest that a nutritionist should review the next adjustment. NutriMind did not automatically change your calorie target from trend data alone.',
-              type: NotificationType.REVIEW_REQUEST,
+              cycleStartDate: cycle.startDate,
+              changed: data.changed,
+              submittedWeightKg,
+              submittedGoal: updates.goal as Goal | undefined,
+              submittedActivityLevel: updates.activityLevel as ActivityLevel | undefined,
+              weightTrendKg: adaptation.weightTrendKg,
+              averageAdherencePct: adaptation.averageAdherencePct,
+              observationDays: adaptation.observationDays,
+              adaptationState: adaptation.state as WeeklyAdaptationState,
+              profileSnapshot: {
+                weightKg: effectiveWeightKg,
+                goal: effectiveGoal,
+                activityLevel: effectiveActivityLevel,
+                dailyCalorieTarget,
+                automaticCalorieAdjustment: adaptation.automaticCalorieAdjustment,
+              },
             },
           });
-        }
-        return created;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+          await tx.userProfile.update({
+            where: { userId },
+            data: {
+              ...(submittedWeightKg !== undefined ? { weightKg: submittedWeightKg } : {}),
+              ...(updates.goal !== undefined ? { goal: updates.goal as Goal } : {}),
+              ...(updates.activityLevel !== undefined ? { activityLevel: updates.activityLevel as ActivityLevel } : {}),
+              dailyCalorieTarget,
+              lastCheckinAt: now,
+              checkinStreak: nextStreak,
+            },
+          });
+
+          if (submittedWeightKg !== undefined) {
+            await tx.weightLog.create({ data: { userId, weightKg: submittedWeightKg, note: 'Weekly check-in' } });
+          }
+
+          if (adaptation.state === 'REVIEW_RECOMMENDED') {
+            await tx.notification.create({
+              data: {
+                userId,
+                title: 'Progress review recommended',
+                message:
+                  'Your recent trend and recorded adherence suggest that a nutritionist should review the next adjustment. NutriMind did not automatically change your calorie target from trend data alone.',
+                type: NotificationType.REVIEW_REQUEST,
+              },
+            });
+          }
+          return created;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
 
       return {
         ...checkin,

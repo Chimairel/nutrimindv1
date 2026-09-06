@@ -11,11 +11,7 @@ import {
   normalizeWeightNote,
 } from '../src/policies/weight-entry.policy';
 import { isNutritionistReviewConflict } from '../src/domain/nutritionist-review-http.policy';
-import {
-  sendNutritionistInvitationEmail,
-  sendPasswordResetEmail,
-  sendVerificationEmail,
-} from '../src/lib/email';
+import { sendNutritionistInvitationEmail, sendPasswordResetEmail, sendVerificationEmail } from '../src/lib/email';
 import {
   MAX_PAGE_SIZE,
   MAX_SEARCH_LENGTH,
@@ -57,7 +53,8 @@ test('[TEST-145][DEF-033] expected review contention and replay failures map to 
     'Unable to acquire an active claim for this meal plan.',
     'Only PENDING_REVIEW plans can be approved.',
     'A different nutritionist must perform the second review.',
-  ]) assert.equal(isNutritionistReviewConflict(message), true, message);
+  ])
+    assert.equal(isNutritionistReviewConflict(message), true, message);
   assert.equal(isNutritionistReviewConflict('Database connection failed.'), false);
 });
 
@@ -73,24 +70,24 @@ test('[TEST-146] local mail capture is test-only, absolute-path-only, and avoids
     await sendPasswordResetEmail('reset@example.invalid', 'reset-token', 'Audit');
     await sendNutritionistInvitationEmail('invite@example.invalid', 'invite-token', 'Audit');
 
-    const messages = (await readFile(capturePath, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
-    assert.deepEqual(messages.map(({ type, to, token }) => ({ type, to, token })), [
-      { type: 'EMAIL_VERIFICATION', to: 'verify@example.invalid', token: '123456' },
-      { type: 'PASSWORD_RESET', to: 'reset@example.invalid', token: 'reset-token' },
-      { type: 'NUTRITIONIST_INVITATION', to: 'invite@example.invalid', token: 'invite-token' },
-    ]);
+    const messages = (await readFile(capturePath, 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    assert.deepEqual(
+      messages.map(({ type, to, token }) => ({ type, to, token })),
+      [
+        { type: 'EMAIL_VERIFICATION', to: 'verify@example.invalid', token: '123456' },
+        { type: 'PASSWORD_RESET', to: 'reset@example.invalid', token: 'reset-token' },
+        { type: 'NUTRITIONIST_INVITATION', to: 'invite@example.invalid', token: 'invite-token' },
+      ]
+    );
 
     process.env.NODE_ENV = 'production';
-    await assert.rejects(
-      sendVerificationEmail('blocked@example.invalid', '000000', 'Audit'),
-      /requires NODE_ENV=test/,
-    );
+    await assert.rejects(sendVerificationEmail('blocked@example.invalid', '000000', 'Audit'), /requires NODE_ENV=test/);
     process.env.NODE_ENV = 'test';
     process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH = 'relative.jsonl';
-    await assert.rejects(
-      sendVerificationEmail('blocked@example.invalid', '000000', 'Audit'),
-      /must be absolute/,
-    );
+    await assert.rejects(sendVerificationEmail('blocked@example.invalid', '000000', 'Audit'), /must be absolute/);
   } finally {
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;

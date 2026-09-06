@@ -31,8 +31,6 @@ export class NotificationService {
     });
   }
 
-
-
   /**
    * Creates a notification for a user.
    */

@@ -2,10 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ZodType } from 'zod';
 import prisma from '@/lib/prisma';
 import { AiUsageStatus } from '@prisma/client';
-import {
-  buildGeminiGenerationConfig,
-  GEMINI_MODEL_SEQUENCE,
-} from '@/domain/gemini-model.policy';
+import { buildGeminiGenerationConfig, GEMINI_MODEL_SEQUENCE } from '@/domain/gemini-model.policy';
 
 // Retrieve API Key
 const apiKey = process.env.GEMINI_API_KEY;
@@ -44,17 +41,17 @@ async function recordAiUsage(event: {
  */
 function cleanJsonString(rawText: string): string {
   let cleaned = rawText.trim();
-  
+
   // Strip opening markdown tags
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(json)?\s*/i, '');
   }
-  
+
   // Strip closing markdown tags
   if (cleaned.endsWith('```')) {
     cleaned = cleaned.replace(/\s*```$/i, '');
   }
-  
+
   return cleaned.trim();
 }
 
@@ -62,7 +59,7 @@ function cleanJsonString(rawText: string): string {
  * Executes a generative content prompt requesting a strict JSON response.
  * Implements a 4-model cascade rotation fallback sequence in case of rate limits,
  * API faults, or regional quota limitations.
- * 
+ *
  * @param prompt The main text prompt to analyze
  * @param systemInstruction Optional system directives to enforce role behavior
  * @param schema Optional Zod schema to validate response against
@@ -108,16 +105,16 @@ export async function generateGenerativeJSON<T = any>(
 
       const response = result.response;
       const rawText = response.text();
-      
+
       if (!rawText) {
         throw new Error(`Model ${modelName} returned an empty response.`);
       }
 
       const cleanedText = cleanJsonString(rawText);
-      
+
       try {
         const parsed = JSON.parse(cleanedText);
-        
+
         if (schema) {
           const zodResult = schema.safeParse(parsed);
           if (!zodResult.success) {
@@ -146,11 +143,12 @@ export async function generateGenerativeJSON<T = any>(
         console.warn(`[Gemini AI] JSON parsing or response validation failed for model ${modelName}.`);
         throw new Error(`Failed to parse or validate the response from model ${modelName}.`);
       }
-
     } catch {
       const err = new Error('The AI service could not generate a valid meal plan. Please try again later.');
       lastError = err;
-      console.warn(`⚠️ [Gemini AI] Call failed for model ${modelName}. Error: ${err.message || err}. Attempting fallback...`);
+      console.warn(
+        `⚠️ [Gemini AI] Call failed for model ${modelName}. Error: ${err.message || err}. Attempting fallback...`
+      );
     }
   }
 

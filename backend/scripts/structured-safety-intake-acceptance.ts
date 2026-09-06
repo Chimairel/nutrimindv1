@@ -94,9 +94,12 @@ async function main() {
       prisma.mealPlan.findUnique({ where: { id: plan.id } }),
       GroceryService.getGroceryList(user.id),
     ]);
-    if (planAfter?.status !== 'APPROVED' || planAfter.requiresSafetyRevalidation ||
-        groceryAfter?.id !== groceryBefore.id ||
-        groceryAfter.groceryItems.length !== groceryBefore.groceryItems.length) {
+    if (
+      planAfter?.status !== 'APPROVED' ||
+      planAfter.requiresSafetyRevalidation ||
+      groceryAfter?.id !== groceryBefore.id ||
+      groceryAfter.groceryItems.length !== groceryBefore.groceryItems.length
+    ) {
       throw new Error('A still-compatible active plan or its derived grocery list changed during safety recheck.');
     }
 
@@ -110,8 +113,14 @@ async function main() {
       { domain: 'AVOIDED_INGREDIENT' as const, value: 'pork', provenance: 'CUSTOM' as const },
     ];
     const first = await SafetyIntakeService.save(user.id, inputs);
-    if (!first.changed || first.entries.length !== 7 || !first.requiresReview ||
-        !first.entries.some((entry) => entry.canonicalCode === 'HYPERTENSION' && entry.originalText === 'high blood pressure')) {
+    if (
+      !first.changed ||
+      first.entries.length !== 7 ||
+      !first.requiresReview ||
+      !first.entries.some(
+        (entry) => entry.canonicalCode === 'HYPERTENSION' && entry.originalText === 'high blood pressure'
+      )
+    ) {
       throw new Error('Structured save did not retain the complete restriction set with canonical alias resolution.');
     }
 
@@ -131,7 +140,9 @@ async function main() {
       reportInvalidated: profile.nutritionReport?.acknowledgedAt === null,
     };
     if (Object.values(compatibilityEvidence).some((value) => !value)) {
-      throw new Error(`Legacy projection or nutrition-report invalidation is incomplete: ${JSON.stringify(compatibilityEvidence)}`);
+      throw new Error(
+        `Legacy projection or nutrition-report invalidation is incomplete: ${JSON.stringify(compatibilityEvidence)}`
+      );
     }
 
     const second = await SafetyIntakeService.save(user.id, inputs);
@@ -142,17 +153,19 @@ async function main() {
       throw new Error('Identical structured safety submission was not idempotent.');
     }
 
-    console.log(JSON.stringify({
-      success: true,
-      entriesReloaded: profile.safetyEntries.length,
-      canonicalAlias: 'HYPERTENSION',
-      semanticChangeRevisionDelta: secondRevisionCount - firstRevisionCount,
-      totalRevisions: finalRevisionCount,
-      reportInvalidated: compatibilityEvidence.reportInvalidated,
-      activePlanRemainedActionable: planAfter?.status === 'APPROVED' && !planAfter.requiresSafetyRevalidation,
-      groceryProjectionUnchanged: groceryAfter?.id === groceryBefore.id,
-      idempotent: !second.changed,
-    }));
+    console.log(
+      JSON.stringify({
+        success: true,
+        entriesReloaded: profile.safetyEntries.length,
+        canonicalAlias: 'HYPERTENSION',
+        semanticChangeRevisionDelta: secondRevisionCount - firstRevisionCount,
+        totalRevisions: finalRevisionCount,
+        reportInvalidated: compatibilityEvidence.reportInvalidated,
+        activePlanRemainedActionable: planAfter?.status === 'APPROVED' && !planAfter.requiresSafetyRevalidation,
+        groceryProjectionUnchanged: groceryAfter?.id === groceryBefore.id,
+        idempotent: !second.changed,
+      })
+    );
   } finally {
     await prisma.user.deleteMany({ where: { id: user.id, email } });
     const [residualUsers, residualEntries, residualPlans, residualGroceryLists] = await Promise.all([
@@ -161,14 +174,16 @@ async function main() {
       prisma.mealPlan.count({ where: { userId: user.id } }),
       prisma.groceryList.count({ where: { userId: user.id } }),
     ]);
-    console.log(JSON.stringify({
-      cleanup: true,
-      fixture: email,
-      residualUsers,
-      residualEntries,
-      residualPlans,
-      residualGroceryLists,
-    }));
+    console.log(
+      JSON.stringify({
+        cleanup: true,
+        fixture: email,
+        residualUsers,
+        residualEntries,
+        residualPlans,
+        residualGroceryLists,
+      })
+    );
   }
 }
 

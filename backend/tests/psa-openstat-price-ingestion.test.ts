@@ -28,8 +28,9 @@ test('[TEST-099] committed PSA snapshot has verified checksums, attribution, and
 
 test('[TEST-099] parser preserves official values as integer PHP centavos and missing markers', () => {
   const cells = snapshot.parsedFiles.flatMap((file) => file.cells);
-  const riceJanuary = cells.find((cell) =>
-    cell.sourceLabel === 'RICE, WELL-MILLED, 1 KG' && cell.periodLabel === '2026 January');
+  const riceJanuary = cells.find(
+    (cell) => cell.sourceLabel === 'RICE, WELL-MILLED, 1 KG' && cell.periodLabel === '2026 January'
+  );
   assert.deepEqual(riceJanuary, {
     matrixId: '0042M4ARN01.px',
     sourceCommodityKey: '0042M4ARN01.px:0',
@@ -42,8 +43,9 @@ test('[TEST-099] parser preserves official values as integer PHP centavos and mi
     status: 'AVAILABLE',
     amountCentavos: 5933,
   });
-  const missing = cells.find((cell) =>
-    cell.sourceLabel === 'MONGGO, GREEN, 1 KG' && cell.periodLabel === '2026 January');
+  const missing = cells.find(
+    (cell) => cell.sourceLabel === 'MONGGO, GREEN, 1 KG' && cell.periodLabel === '2026 January'
+  );
   assert.equal(missing?.status, 'MISSING');
   if (missing?.status === 'MISSING') assert.equal(missing.missingMarker, '..');
   assert.equal(cells.filter((cell) => cell.status === 'AVAILABLE').length, 40);
@@ -65,16 +67,27 @@ test('[TEST-099] parser refuses geography substitution, unreviewed commodities, 
   assert.ok(file);
   const header = '"Geolocation","Commodity","2026 August"\r\n';
   assert.throws(
-    () => parsePsaOpenStatCsv(`${header}"....Cebu","RICE, WELL-MILLED, 1 KG",64.12\r\n`, file, snapshot.manifest.geography),
-    /unexpected geography label/,
+    () =>
+      parsePsaOpenStatCsv(`${header}"....Cebu","RICE, WELL-MILLED, 1 KG",64.12\r\n`, file, snapshot.manifest.geography),
+    /unexpected geography label/
   );
   assert.throws(
-    () => parsePsaOpenStatCsv(`${header}"....City of Cebu","RICE, SPECIAL, 1 KG",64.12\r\n`, file, snapshot.manifest.geography),
-    /unreviewed commodity row/,
+    () =>
+      parsePsaOpenStatCsv(
+        `${header}"....City of Cebu","RICE, SPECIAL, 1 KG",64.12\r\n`,
+        file,
+        snapshot.manifest.geography
+      ),
+    /unreviewed commodity row/
   );
   assert.throws(
-    () => parsePsaOpenStatCsv(`${header}"....City of Cebu","RICE, WELL-MILLED, 1 KG",\r\n`, file, snapshot.manifest.geography),
-    /Invalid PHP price cell/,
+    () =>
+      parsePsaOpenStatCsv(
+        `${header}"....City of Cebu","RICE, WELL-MILLED, 1 KG",\r\n`,
+        file,
+        snapshot.manifest.geography
+      ),
+    /Invalid PHP price cell/
   );
 });
 
@@ -83,16 +96,27 @@ test('[TEST-099] parser rejects file-shape drift and duplicate commodity rows', 
   assert.ok(file);
   const validRow = '"....City of Cebu","RICE, WELL-MILLED, 1 KG",64.12';
   assert.throws(
-    () => parsePsaOpenStatCsv(`"Location","Commodity","2026 August"\r\n${validRow}\r\n`, file, snapshot.manifest.geography),
-    /first columns must be Geolocation and Commodity/,
+    () =>
+      parsePsaOpenStatCsv(`"Location","Commodity","2026 August"\r\n${validRow}\r\n`, file, snapshot.manifest.geography),
+    /first columns must be Geolocation and Commodity/
   );
   assert.throws(
-    () => parsePsaOpenStatCsv(`"Geolocation","Commodity","2026 August"\r\n${validRow}\r\n${validRow}\r\n`, file, snapshot.manifest.geography),
-    /duplicate commodity row/,
+    () =>
+      parsePsaOpenStatCsv(
+        `"Geolocation","Commodity","2026 August"\r\n${validRow}\r\n${validRow}\r\n`,
+        file,
+        snapshot.manifest.geography
+      ),
+    /duplicate commodity row/
   );
   assert.throws(
-    () => parsePsaOpenStatCsv(`"Geolocation","Commodity","2026 Annual"\r\n${validRow}\r\n`, file, snapshot.manifest.geography),
-    /Unsupported OpenSTAT period header/,
+    () =>
+      parsePsaOpenStatCsv(
+        `"Geolocation","Commodity","2026 Annual"\r\n${validRow}\r\n`,
+        file,
+        snapshot.manifest.geography
+      ),
+    /Unsupported OpenSTAT period header/
   );
 });
 
@@ -105,13 +129,13 @@ test('[TEST-099] request validation binds exact geography and reviewed commodity
   regionalRequest.query.find((item: { code: string }) => item.code === 'Geolocation').selection.values = ['070000000'];
   assert.throws(
     () => validatePsaOpenStatRequest(regionalRequest, file, snapshot.manifest.geography),
-    /request must select only exact geography/,
+    /request must select only exact geography/
   );
   const extraCommodityRequest = structuredClone(request);
   extraCommodityRequest.query.find((item: { code: string }) => item.code === 'Commodity').selection.values.push('4');
   assert.throws(
     () => validatePsaOpenStatRequest(extraCommodityRequest, file, snapshot.manifest.geography),
-    /commodity selection differs from reviewed manifest/,
+    /commodity selection differs from reviewed manifest/
   );
 });
 
@@ -153,10 +177,7 @@ test('[TEST-099] munggo remains ambiguous while reviewed exact mappings carry ev
   const munggo = commodities.find((commodity) => commodity.sourceLabel === 'MONGGO, GREEN, 1 KG');
   assert.equal(munggo?.mapping.state, 'AMBIGUOUS');
   if (munggo?.mapping.state === 'AMBIGUOUS') {
-    assert.deepEqual(munggo.mapping.candidateFoodNames, [
-      'Mung bean seed, green, dried',
-      'Mung bean seed, fresh',
-    ]);
+    assert.deepEqual(munggo.mapping.candidateFoodNames, ['Mung bean seed, green, dried', 'Mung bean seed, fresh']);
   }
   for (const commodity of commodities.filter((item) => item.mapping.state === 'EXACT')) {
     assert.equal(commodity.mapping.state, 'EXACT');

@@ -9,7 +9,6 @@ import Button from '@/components/ui/Button';
 import axios from 'axios';
 import { AlertTriangle, ArrowLeft, Ban, CheckCircle, Download, GlassWater } from 'lucide-react';
 
-
 interface MealPlan {
   id: string;
   mealName: string;
@@ -54,13 +53,17 @@ interface ProfileDetails {
 }
 
 const normalizeContext = (values: string[] | undefined) =>
-  Array.from(new Set((values || []).map((value) => value.trim().toUpperCase()).filter((value) => value && value !== 'NONE'))).sort();
+  Array.from(
+    new Set((values || []).map((value) => value.trim().toUpperCase()).filter((value) => value && value !== 'NONE'))
+  ).sort();
 
 const hasSameContext = (left: string[] | undefined, right: string[] | undefined) => {
   const normalizedLeft = normalizeContext(left);
   const normalizedRight = normalizeContext(right);
-  return normalizedLeft.length === normalizedRight.length
-    && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((value, index) => value === normalizedRight[index])
+  );
 };
 
 export default function NutritionExportPage() {
@@ -111,7 +114,7 @@ export default function NutritionExportPage() {
                   id: `pending-${meal.scheduledDate}-${meal.mealType}-${index}`,
                   status: 'PENDING_REVIEW' as const,
                 }))
-              : [],
+              : []
         );
       }
     } catch (err: unknown) {
@@ -191,17 +194,15 @@ export default function NutritionExportPage() {
   const conditions = normalizeContext(profileData?.healthConditions);
   const allergies = normalizeContext(profileData?.allergies);
   const isReportCurrent = reportData
-    ? hasSameContext(reportData.basedOnConditions, conditions)
-      && hasSameContext(reportData.basedOnAllergies, allergies)
+    ? hasSameContext(reportData.basedOnConditions, conditions) && hasSameContext(reportData.basedOnAllergies, allergies)
     : false;
 
   return (
     <div className="mx-auto my-4 min-h-screen max-w-4xl overflow-hidden rounded-[30px] bg-white p-8 font-sans leading-relaxed text-slate-900 shadow-card-lg md:p-12 print:m-0 print:rounded-none print:p-0 print:shadow-none">
-      
       {/* SCREEN-ONLY TOOLBAR */}
       <div className="mb-8 flex items-center justify-between rounded-[24px] bg-[#07100d] p-5 text-white shadow-card print:hidden">
         <div>
-          <button 
+          <button
             onClick={() => router.back()}
             className="flex items-center gap-1 text-xs font-semibold text-white/45 transition-colors hover:text-brand-cyan"
           >
@@ -218,7 +219,7 @@ export default function NutritionExportPage() {
             <Download className="h-4 w-4" />
             Export JSON
           </button>
-          <button 
+          <button
             onClick={() => window.print()}
             className="cursor-pointer rounded-2xl bg-brand-accent px-6 py-2.5 text-xs font-extrabold text-[#07100d] shadow-neon transition-all hover:-translate-y-0.5"
           >
@@ -254,7 +255,7 @@ export default function NutritionExportPage() {
         <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-300 pb-1 mb-3">
           1. Patient Demographics & Baseline Metrics
         </h2>
-        
+
         <table className="w-full text-xs border-collapse">
           <tbody>
             <tr className="border-b border-slate-100">
@@ -267,7 +268,9 @@ export default function NutritionExportPage() {
               <td className="py-2 font-bold text-slate-500">Age</td>
               <td className="py-2 text-slate-800">{profile?.age} yrs</td>
               <td className="py-2 font-bold text-slate-500">Height / Weight</td>
-              <td className="py-2 text-slate-800">{profile?.heightCm} cm / {profile?.weightKg} kg</td>
+              <td className="py-2 text-slate-800">
+                {profile?.heightCm} cm / {profile?.weightKg} kg
+              </td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 font-bold text-slate-500">Target Goal</td>
@@ -298,7 +301,10 @@ export default function NutritionExportPage() {
           ) : (
             <div className="flex flex-wrap gap-1.5 mt-1">
               {conditions.map((c: string) => (
-                <span key={c} className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[10px] font-black uppercase">
+                <span
+                  key={c}
+                  className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[10px] font-black uppercase"
+                >
                   {c}
                 </span>
               ))}
@@ -314,7 +320,10 @@ export default function NutritionExportPage() {
           ) : (
             <div className="flex flex-wrap gap-1.5 mt-1">
               {allergies.map((a: string) => (
-                <span key={a} className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded text-[10px] font-black uppercase">
+                <span
+                  key={a}
+                  className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded text-[10px] font-black uppercase"
+                >
                   {a}
                 </span>
               ))}
@@ -333,10 +342,10 @@ export default function NutritionExportPage() {
           </h2>
 
           <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900">
-            Generated {new Date(reportData.generatedAt).toLocaleDateString()}. This guidance is informational, has not been
-            independently verified by a nutritionist, and is not medical advice.
+            Generated {new Date(reportData.generatedAt).toLocaleDateString()}. This guidance is informational, has not
+            been independently verified by a nutritionist, and is not medical advice.
           </p>
-          
+
           <p className="text-xs text-slate-600 italic mb-4 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
             &ldquo;{reportData.generalSummary}&rdquo;
           </p>
@@ -348,7 +357,9 @@ export default function NutritionExportPage() {
                 <span>Avoid Categories</span>
               </span>
               <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
-                {(reportData.foodsToAvoid || []).map((food, i) => <li key={i}>{food}</li>)}
+                {(reportData.foodsToAvoid || []).map((food, i) => (
+                  <li key={i}>{food}</li>
+                ))}
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
@@ -357,7 +368,9 @@ export default function NutritionExportPage() {
                 <span>Limit Categories</span>
               </span>
               <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
-                {(reportData.foodsToLimit || []).map((food, i) => <li key={i}>{food}</li>)}
+                {(reportData.foodsToLimit || []).map((food, i) => (
+                  <li key={i}>{food}</li>
+                ))}
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
@@ -366,7 +379,9 @@ export default function NutritionExportPage() {
                 <span>Recommended Categories</span>
               </span>
               <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
-                {(reportData.foodsRecommended || []).map((food, i) => <li key={i}>{food}</li>)}
+                {(reportData.foodsRecommended || []).map((food, i) => (
+                  <li key={i}>{food}</li>
+                ))}
               </ul>
             </div>
             <div className="border border-slate-200 p-3 rounded-lg">
@@ -375,7 +390,9 @@ export default function NutritionExportPage() {
                 <span>Drinks & Hydration</span>
               </span>
               <ul className="list-disc list-inside text-[11px] text-slate-700 flex flex-col gap-0.5 mt-1">
-                {(reportData.drinksGuidance || []).map((food, i) => <li key={i}>{food}</li>)}
+                {(reportData.drinksGuidance || []).map((food, i) => (
+                  <li key={i}>{food}</li>
+                ))}
               </ul>
             </div>
           </div>
@@ -404,11 +421,15 @@ export default function NutritionExportPage() {
 
         <div className="flex flex-col gap-6">
           {groupedDays.map((day) => (
-            <div key={day.dateStr} className="border border-slate-300 rounded-lg overflow-hidden page-break-inside-avoid shadow-sm">
-              
+            <div
+              key={day.dateStr}
+              className="border border-slate-300 rounded-lg overflow-hidden page-break-inside-avoid shadow-sm"
+            >
               {/* Day Title bar */}
               <div className="bg-slate-100 border-b border-slate-300 px-4 py-2 flex justify-between items-center text-xs font-black text-slate-800">
-                <span className="uppercase">{day.weekday} — {day.dateStr}</span>
+                <span className="uppercase">
+                  {day.weekday} — {day.dateStr}
+                </span>
                 <span className="text-[10px] text-slate-500 font-mono">CALORIE CAP TARGET ACTIVE</span>
               </div>
 
@@ -426,9 +447,7 @@ export default function NutritionExportPage() {
                 <tbody>
                   {day.mealsList.map((meal) => (
                     <tr key={meal.id} className="border-b border-slate-100 align-top hover:bg-slate-50/50">
-                      <td className="py-3 px-3 font-bold text-slate-700 uppercase">
-                        {meal.mealType}
-                      </td>
+                      <td className="py-3 px-3 font-bold text-slate-700 uppercase">{meal.mealType}</td>
                       <td className="py-3 px-3">
                         <div className="font-extrabold text-slate-900">{meal.mealName}</div>
                         {meal.description && (
@@ -451,7 +470,6 @@ export default function NutritionExportPage() {
                   ))}
                 </tbody>
               </table>
-
             </div>
           ))}
         </div>
@@ -490,7 +508,11 @@ export default function NutritionExportPage() {
             break-before: always !important;
           }
           /* Ensure headers display black in printing */
-          h1, h2, h3, td, th {
+          h1,
+          h2,
+          h3,
+          td,
+          th {
             color: #0f172a !important;
             text-shadow: none !important;
           }
@@ -503,7 +525,6 @@ export default function NutritionExportPage() {
           }
         }
       `}</style>
-
     </div>
   );
 }

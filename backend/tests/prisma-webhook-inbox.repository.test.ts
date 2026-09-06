@@ -25,7 +25,9 @@ function fakePrisma(initialHash?: string) {
   let createData: Record<string, unknown> | undefined;
   let transactionOptions: unknown;
   const providerWebhookEvent = {
-    async findUnique() { return storedHash ? { payloadHash: storedHash } : null; },
+    async findUnique() {
+      return storedHash ? { payloadHash: storedHash } : null;
+    },
     async create(input: { data: Record<string, unknown> }) {
       createData = input.data;
       storedHash = String(input.data.payloadHash);
@@ -34,7 +36,10 @@ function fakePrisma(initialHash?: string) {
   };
   const prisma = {
     providerWebhookEvent,
-    async $transaction<T>(callback: (transaction: { providerWebhookEvent: typeof providerWebhookEvent }) => Promise<T>, options: unknown) {
+    async $transaction<T>(
+      callback: (transaction: { providerWebhookEvent: typeof providerWebhookEvent }) => Promise<T>,
+      options: unknown
+    ) {
       transactionOptions = options;
       return callback({ providerWebhookEvent });
     },

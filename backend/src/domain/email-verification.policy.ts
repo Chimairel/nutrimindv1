@@ -20,8 +20,7 @@ export function getVerificationFailureState(currentFailedAttempts: number, now =
   const failedAttempts = currentFailedAttempts + 1;
   return {
     failedAttempts,
-    lockedUntil: failedAttempts >= EMAIL_VERIFICATION_MAX_ATTEMPTS
-      ? new Date(now.getTime() + EMAIL_VERIFICATION_LOCK_MS)
-      : null,
+    lockedUntil:
+      failedAttempts >= EMAIL_VERIFICATION_MAX_ATTEMPTS ? new Date(now.getTime() + EMAIL_VERIFICATION_LOCK_MS) : null,
   };
 }

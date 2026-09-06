@@ -8,26 +8,26 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({
-    label,
-    error,
-    helperText,
-    className = '',
-    id,
-    'aria-describedby': ariaDescribedBy,
-    'aria-invalid': ariaInvalid,
-    ...props
-  }, ref) => {
+  (
+    {
+      label,
+      error,
+      helperText,
+      className = '',
+      id,
+      'aria-describedby': ariaDescribedBy,
+      'aria-invalid': ariaInvalid,
+      ...props
+    },
+    ref
+  ) => {
     const messageId = id && (error || helperText) ? `${id}-${error ? 'error' : 'help'}` : undefined;
     const describedBy = [ariaDescribedBy, messageId].filter(Boolean).join(' ') || undefined;
 
     return (
       <div className="flex w-full flex-col gap-2">
         {label && (
-          <label 
-            htmlFor={id} 
-            className="font-display text-xs font-bold tracking-wide text-brand-text/90"
-          >
+          <label htmlFor={id} className="font-display text-xs font-bold tracking-wide text-brand-text/90">
             {label}
           </label>
         )}
@@ -47,7 +47,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error ? (
-          <span id={messageId} role="alert" className="text-xs font-semibold text-status-error-text inline-flex items-center gap-1">
+          <span
+            id={messageId}
+            role="alert"
+            className="text-xs font-semibold text-status-error-text inline-flex items-center gap-1"
+          >
             <AlertCircle className="w-3.5 h-3.5" />
             <span>{error}</span>
           </span>
@@ -60,7 +64,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     );
   }
 );
-
 
 Input.displayName = 'Input';
 

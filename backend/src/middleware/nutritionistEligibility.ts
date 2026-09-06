@@ -4,11 +4,7 @@ import { AuthenticatedRequest } from '@/types';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
-export async function requireEligibleNutritionist(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) {
+export async function requireEligibleNutritionist(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     if (!req.user) {
       return res.status(401).json({ success: false, error: 'Authentication is required.' });

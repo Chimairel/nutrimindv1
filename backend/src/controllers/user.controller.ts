@@ -71,7 +71,7 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const profile = await UserService.updateUserProfile(userId, req.body);
+      await UserService.updateUserProfile(userId, req.body);
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user?.onboardingDone) {
@@ -106,12 +106,20 @@ export class UserController {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of conditions.' });
       }
 
-      const savedConditions = await SafetyIntakeService.replaceDomains(userId, ['CONDITION'], [
-        ...conditions.map((value: string) => ({ domain: 'CONDITION' as const, value, provenance: 'PREDEFINED' as const })),
-        ...(typeof otherConditions === 'string' && otherConditions.trim()
-          ? [{ domain: 'CONDITION' as const, value: otherConditions, provenance: 'CUSTOM' as const }]
-          : []),
-      ]);
+      const savedConditions = await SafetyIntakeService.replaceDomains(
+        userId,
+        ['CONDITION'],
+        [
+          ...conditions.map((value: string) => ({
+            domain: 'CONDITION' as const,
+            value,
+            provenance: 'PREDEFINED' as const,
+          })),
+          ...(typeof otherConditions === 'string' && otherConditions.trim()
+            ? [{ domain: 'CONDITION' as const, value: otherConditions, provenance: 'CUSTOM' as const }]
+            : []),
+        ]
+      );
 
       if (savedConditions.changed) await UserService.runSafetyRecheck(userId);
 
@@ -141,12 +149,20 @@ export class UserController {
         return res.status(400).json({ success: false, error: 'Request body must contain an array of allergies.' });
       }
 
-      const savedAllergies = await SafetyIntakeService.replaceDomains(userId, ['ALLERGY'], [
-        ...allergies.map((value: string) => ({ domain: 'ALLERGY' as const, value, provenance: 'PREDEFINED' as const })),
-        ...(typeof otherAllergies === 'string' && otherAllergies.trim()
-          ? [{ domain: 'ALLERGY' as const, value: otherAllergies, provenance: 'CUSTOM' as const }]
-          : []),
-      ]);
+      const savedAllergies = await SafetyIntakeService.replaceDomains(
+        userId,
+        ['ALLERGY'],
+        [
+          ...allergies.map((value: string) => ({
+            domain: 'ALLERGY' as const,
+            value,
+            provenance: 'PREDEFINED' as const,
+          })),
+          ...(typeof otherAllergies === 'string' && otherAllergies.trim()
+            ? [{ domain: 'ALLERGY' as const, value: otherAllergies, provenance: 'CUSTOM' as const }]
+            : []),
+        ]
+      );
 
       if (savedAllergies.changed) await UserService.runSafetyRecheck(userId);
 
@@ -172,12 +188,28 @@ export class UserController {
       }
 
       const { conditions, otherConditions, allergies, otherAllergies } = req.body;
-      const saved = await SafetyIntakeService.replaceDomains(userId, ['CONDITION', 'ALLERGY'], [
-        ...conditions.map((value: string) => ({ domain: 'CONDITION' as const, value, provenance: 'PREDEFINED' as const })),
-        ...(otherConditions?.trim() ? [{ domain: 'CONDITION' as const, value: otherConditions, provenance: 'CUSTOM' as const }] : []),
-        ...allergies.map((value: string) => ({ domain: 'ALLERGY' as const, value, provenance: 'PREDEFINED' as const })),
-        ...(otherAllergies?.trim() ? [{ domain: 'ALLERGY' as const, value: otherAllergies, provenance: 'CUSTOM' as const }] : []),
-      ]);
+      const saved = await SafetyIntakeService.replaceDomains(
+        userId,
+        ['CONDITION', 'ALLERGY'],
+        [
+          ...conditions.map((value: string) => ({
+            domain: 'CONDITION' as const,
+            value,
+            provenance: 'PREDEFINED' as const,
+          })),
+          ...(otherConditions?.trim()
+            ? [{ domain: 'CONDITION' as const, value: otherConditions, provenance: 'CUSTOM' as const }]
+            : []),
+          ...allergies.map((value: string) => ({
+            domain: 'ALLERGY' as const,
+            value,
+            provenance: 'PREDEFINED' as const,
+          })),
+          ...(otherAllergies?.trim()
+            ? [{ domain: 'ALLERGY' as const, value: otherAllergies, provenance: 'CUSTOM' as const }]
+            : []),
+        ]
+      );
       if (saved.changed) await UserService.runSafetyRecheck(userId);
 
       return res.status(200).json({ success: true, data: saved });
@@ -321,7 +353,9 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] generateReport error:', error);
-      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to generate nutrition report.') });
+      return res
+        .status(500)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to generate nutrition report.') });
     }
   }
 
@@ -386,7 +420,9 @@ export class UserController {
             where: { email: sanitizedEmail },
           });
           if (existingUser) {
-            return res.status(400).json({ success: false, error: 'An account with this email address already exists.' });
+            return res
+              .status(400)
+              .json({ success: false, error: 'An account with this email address already exists.' });
           }
           updateData.email = sanitizedEmail;
         }
@@ -395,7 +431,10 @@ export class UserController {
       // Handle password change if requested
       if (currentPassword || newPassword) {
         if (!currentPassword || !newPassword) {
-          return res.status(400).json({ success: false, error: 'Both current password and new password are required to change your password.' });
+          return res.status(400).json({
+            success: false,
+            error: 'Both current password and new password are required to change your password.',
+          });
         }
 
         // Verify current password
@@ -409,7 +448,8 @@ export class UserController {
         if (!passwordRegex.test(newPassword)) {
           return res.status(400).json({
             success: false,
-            error: 'New password must be 8 to 128 characters long, contain at least one uppercase letter and number, and contain no control characters.',
+            error:
+              'New password must be 8 to 128 characters long, contain at least one uppercase letter and number, and contain no control characters.',
           });
         }
 

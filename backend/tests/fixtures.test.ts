@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  syntheticMealPlans,
-  syntheticProfiles,
-  syntheticUsers,
-} from './fixtures/synthetic';
+import { syntheticMealPlans, syntheticProfiles, syntheticUsers } from './fixtures/synthetic';
 
 test('[FIXTURE-INTEGRITY] synthetic identities use reserved domains and fixture identifiers', () => {
   for (const user of Object.values(syntheticUsers)) {

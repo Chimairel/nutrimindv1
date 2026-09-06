@@ -43,7 +43,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get('/user/profile');
       if (response.data && response.data.success) {
-        const { id, name, email, role, emailVerified, onboardingDone, tosAccepted, image, nutritionReport, onboardingStatus } = response.data.data;
+        const {
+          id,
+          name,
+          email,
+          role,
+          emailVerified,
+          onboardingDone,
+          tosAccepted,
+          image,
+          nutritionReport,
+          onboardingStatus,
+        } = response.data.data;
         const refreshedUser: UserSession = {
           userId: id,
           name,
@@ -81,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Initial verification on mount
     const checkAuthCookie = async () => {
       const clientToken = cookieHelper.get('nutrimind_session');
-      
+
       if (clientToken) {
         const decoded = decodeToken(clientToken);
         if (decoded) {
@@ -98,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             reportAcknowledged: false,
             onboardingNextPath: '/onboarding/stats',
           });
-          
+
           // Pull full profile to get exact onboarding/ToS variables
           await refreshSession();
         } else {
@@ -117,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Refresh token is now stored as an HttpOnly cookie by the backend
     cookieHelper.set('nutrimind_session', token, 7);
     const decoded = decodeToken(token);
-    
+
     if (decoded) {
       setIsLoading(true);
       setUser({
@@ -132,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         reportAcknowledged: false,
         onboardingNextPath: '/onboarding/stats',
       });
-      
+
       // Load the authoritative profile before navigating. The request id inside
       // refreshSession prevents an older hydration response from restoring the
       // role that was active before this login.

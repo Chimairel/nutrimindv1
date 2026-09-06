@@ -17,12 +17,15 @@ test('[TEST-080] subscription state transitions allow activation, retry recovery
 
 test('[TEST-080] duplicate transitions are idempotent and older provider evidence is stale', () => {
   assert.equal(decideSubscriptionTransition({ current: 'ACTIVE', incoming: 'ACTIVE' }), 'IDEMPOTENT');
-  assert.equal(decideSubscriptionTransition({
-    current: 'PAST_DUE',
-    incoming: 'ACTIVE',
-    currentProviderUpdatedAt: new Date('2026-09-05T10:00:00Z'),
-    incomingProviderUpdatedAt: new Date('2026-09-05T09:59:59Z'),
-  }), 'STALE');
+  assert.equal(
+    decideSubscriptionTransition({
+      current: 'PAST_DUE',
+      incoming: 'ACTIVE',
+      currentProviderUpdatedAt: new Date('2026-09-05T10:00:00Z'),
+      incomingProviderUpdatedAt: new Date('2026-09-05T09:59:59Z'),
+    }),
+    'STALE'
+  );
 });
 
 test('[TEST-080] terminal and out-of-order subscription regressions are invalid', () => {

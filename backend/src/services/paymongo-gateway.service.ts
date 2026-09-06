@@ -21,7 +21,10 @@ export type PaymongoGatewayErrorCode =
   | 'PROVIDER_RESPONSE_INVALID';
 
 export class PaymongoGatewayError extends Error {
-  constructor(readonly code: PaymongoGatewayErrorCode, readonly providerCode?: string) {
+  constructor(
+    readonly code: PaymongoGatewayErrorCode,
+    readonly providerCode?: string
+  ) {
     super(code);
     this.name = 'PaymongoGatewayError';
   }
@@ -46,7 +49,12 @@ function parseCheckoutResponse(body: Uint8Array, checkoutOrigin: string): Hosted
   if (!data || typeof data !== 'object') throw new PaymongoGatewayError('PROVIDER_RESPONSE_INVALID');
   const record = data as Record<string, unknown>;
   const attributes = record.attributes;
-  if (record.type !== 'checkout_session' || !PROVIDER_ID_PATTERN.test(String(record.id || '')) || !attributes || typeof attributes !== 'object') {
+  if (
+    record.type !== 'checkout_session' ||
+    !PROVIDER_ID_PATTERN.test(String(record.id || '')) ||
+    !attributes ||
+    typeof attributes !== 'object'
+  ) {
     throw new PaymongoGatewayError('PROVIDER_RESPONSE_INVALID');
   }
   const values = attributes as Record<string, unknown>;
@@ -59,7 +67,12 @@ function parseCheckoutResponse(body: Uint8Array, checkoutOrigin: string): Hosted
   } catch {
     throw new PaymongoGatewayError('PROVIDER_RESPONSE_INVALID');
   }
-  if (checkoutUrl.protocol !== 'https:' || checkoutUrl.origin !== checkoutOrigin || checkoutUrl.username || checkoutUrl.password) {
+  if (
+    checkoutUrl.protocol !== 'https:' ||
+    checkoutUrl.origin !== checkoutOrigin ||
+    checkoutUrl.username ||
+    checkoutUrl.password
+  ) {
     throw new PaymongoGatewayError('PROVIDER_RESPONSE_INVALID');
   }
   return {
@@ -85,18 +98,20 @@ function parseProviderErrorCode(body: Uint8Array): string | undefined {
 export class PaymongoGateway implements BillingGateway {
   constructor(
     private readonly config: EnabledPaymongoCheckoutConfig,
-    private readonly transport: BillingHttpTransport,
+    private readonly transport: BillingHttpTransport
   ) {}
 
   async createHostedCheckout(request: HostedCheckoutRequest): Promise<HostedCheckoutSession> {
     assertPositiveMoney(request.item, 'PHP');
-    if (!OUTBOUND_ID_PATTERN.test(request.idempotencyKey) ||
-        !OUTBOUND_ID_PATTERN.test(request.referenceNumber) ||
-        !SAFE_ITEM_NAME_PATTERN.test(request.item.name) ||
-        request.successUrl !== this.config.checkoutSuccessUrl ||
-        request.cancelUrl !== this.config.checkoutCancelUrl ||
-        request.paymentMethods.length === 0 ||
-        request.paymentMethods.some((method) => method !== 'card' && method !== 'paymaya')) {
+    if (
+      !OUTBOUND_ID_PATTERN.test(request.idempotencyKey) ||
+      !OUTBOUND_ID_PATTERN.test(request.referenceNumber) ||
+      !SAFE_ITEM_NAME_PATTERN.test(request.item.name) ||
+      request.successUrl !== this.config.checkoutSuccessUrl ||
+      request.cancelUrl !== this.config.checkoutCancelUrl ||
+      request.paymentMethods.length === 0 ||
+      request.paymentMethods.some((method) => method !== 'card' && method !== 'paymaya')
+    ) {
       throw new PaymongoGatewayError('PROVIDER_CONFIGURATION_ERROR');
     }
     const url = `${this.config.apiOrigin}${CHECKOUT_PATH}`;
@@ -113,12 +128,14 @@ export class PaymongoGateway implements BillingGateway {
       body: JSON.stringify({
         data: {
           attributes: {
-            line_items: [{
-              name: request.item.name,
-              amount: request.item.amountMinor,
-              currency: request.item.currency,
-              quantity: 1,
-            }],
+            line_items: [
+              {
+                name: request.item.name,
+                amount: request.item.amountMinor,
+                currency: request.item.currency,
+                quantity: 1,
+              },
+            ],
             payment_method_types: [...request.paymentMethods],
             success_url: request.successUrl,
             cancel_url: request.cancelUrl,

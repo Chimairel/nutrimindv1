@@ -9,7 +9,11 @@ function trackerClient(initial: { id: string; userId: string; swapsUsed: number 
     client: {
       planSwapTracker: {
         async updateMany(input: any) {
-          if (state.id !== input.where.id || state.userId !== input.where.userId || state.swapsUsed >= input.where.swapsUsed.lt) {
+          if (
+            state.id !== input.where.id ||
+            state.userId !== input.where.userId ||
+            state.swapsUsed >= input.where.swapsUsed.lt
+          ) {
             return { count: 0 };
           }
           state.swapsUsed += input.data.swapsUsed.increment;
@@ -26,9 +30,11 @@ function trackerClient(initial: { id: string; userId: string; swapsUsed: number 
 
 test('[TEST-112] atomic reservation enforces the Free cap under concurrent attempts', async () => {
   const fake = trackerClient({ id: 'tracker_1', userId: 'owner_1', swapsUsed: 0 });
-  const results = await Promise.allSettled(Array.from({ length: 10 }, () =>
-    reserveWeeklySwap(fake.client as any, { trackerId: 'tracker_1', userId: 'owner_1', cap: 3 }),
-  ));
+  const results = await Promise.allSettled(
+    Array.from({ length: 10 }, () =>
+      reserveWeeklySwap(fake.client as any, { trackerId: 'tracker_1', userId: 'owner_1', cap: 3 })
+    )
+  );
   assert.equal(results.filter((item) => item.status === 'fulfilled').length, 3);
   assert.equal(results.filter((item) => item.status === 'rejected').length, 7);
   assert.equal(fake.state.swapsUsed, 3);
@@ -45,11 +51,11 @@ test('[TEST-113] atomic reservation permits Premium through six and is owner-sco
   assert.equal(await reserveWeeklySwap(fake.client as any, { trackerId: 'tracker_2', userId: 'owner_1', cap: 6 }), 6);
   await assert.rejects(
     () => reserveWeeklySwap(fake.client as any, { trackerId: 'tracker_2', userId: 'owner_1', cap: 6 }),
-    (error: unknown) => error instanceof SwapLimitReachedError && error.cap === 6,
+    (error: unknown) => error instanceof SwapLimitReachedError && error.cap === 6
   );
   await assert.rejects(
     () => reserveWeeklySwap(fake.client as any, { trackerId: 'tracker_2', userId: 'other_user', cap: 7 }),
-    SwapLimitReachedError,
+    SwapLimitReachedError
   );
   assert.equal(fake.state.swapsUsed, 6);
 });

@@ -26,7 +26,7 @@ for (const filePath of walk(distRoot).filter((file) => file.endsWith('.js'))) {
   const original = fs.readFileSync(filePath, 'utf8');
   const rewritten = original.replace(
     /(["'])@\/([^"']+)\1/g,
-    (_match, quote, aliasTarget) => `${quote}${relativeModuleSpecifier(filePath, aliasTarget)}${quote}`,
+    (_match, quote, aliasTarget) => `${quote}${relativeModuleSpecifier(filePath, aliasTarget)}${quote}`
   );
 
   if (rewritten !== original) {

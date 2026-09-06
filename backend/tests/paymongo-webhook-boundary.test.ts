@@ -25,18 +25,28 @@ function enabledConfig(): EnabledPaymongoWebhookConfig {
 }
 
 function body(eventType = 'checkout_session.payment.paid', livemode = false): Buffer {
-  return Buffer.from(JSON.stringify({
-    data: {
-      id: 'evt_synthetic_12345678',
-      type: 'event',
-      attributes: {
-        type: eventType,
-        livemode,
-        created_at: NOW_SECONDS - 30,
-        data: { id: 'cs_synthetic_12345678', type: 'checkout_session', attributes: { ignored: 'provider payload' } },
+  return Buffer.from(
+    JSON.stringify(
+      {
+        data: {
+          id: 'evt_synthetic_12345678',
+          type: 'event',
+          attributes: {
+            type: eventType,
+            livemode,
+            created_at: NOW_SECONDS - 30,
+            data: {
+              id: 'cs_synthetic_12345678',
+              type: 'checkout_session',
+              attributes: { ignored: 'provider payload' },
+            },
+          },
+        },
       },
-    },
-  }, null, 2));
+      null,
+      2
+    )
+  );
 }
 
 function signature(raw: Buffer, mode: 'TEST' | 'LIVE' = 'TEST', timestamp = NOW_SECONDS): string {
@@ -75,8 +85,10 @@ test('[TEST-088] raw-body tampering fails signature verification before reposito
   const original = body();
   const tampered = Buffer.concat([original, Buffer.from(' ')]);
   const repository = new FakeWebhookRepository();
-  await assert.rejects(() => service(repository).ingest(tampered, signature(original)),
-    (error: unknown) => error instanceof WebhookBoundaryError && error.code === 'WEBHOOK_SIGNATURE_INVALID');
+  await assert.rejects(
+    () => service(repository).ingest(tampered, signature(original)),
+    (error: unknown) => error instanceof WebhookBoundaryError && error.code === 'WEBHOOK_SIGNATURE_INVALID'
+  );
   assert.equal(repository.record, undefined);
 });
 
@@ -94,37 +106,51 @@ test('[TEST-088] missing-mode, malformed, duplicate-part, and incorrect signatur
 
 test('[TEST-088] stale and excessively future timestamps are rejected with bounded tolerance', async () => {
   const raw = body();
-  await assert.rejects(() => service().ingest(raw, signature(raw, 'TEST', NOW_SECONDS - 301)), /WEBHOOK_SIGNATURE_STALE/);
-  await assert.rejects(() => service().ingest(raw, signature(raw, 'TEST', NOW_SECONDS + 301)), /WEBHOOK_SIGNATURE_STALE/);
+  await assert.rejects(
+    () => service().ingest(raw, signature(raw, 'TEST', NOW_SECONDS - 301)),
+    /WEBHOOK_SIGNATURE_STALE/
+  );
+  await assert.rejects(
+    () => service().ingest(raw, signature(raw, 'TEST', NOW_SECONDS + 301)),
+    /WEBHOOK_SIGNATURE_STALE/
+  );
 });
 
 test('[TEST-088] signature selection distinguishes official test and live header slots', () => {
   const raw = body();
   const config = enabledConfig();
-  assert.doesNotThrow(() => verifyPaymongoSignature({
-    rawBody: raw,
-    signatureHeader: signature(raw, 'TEST'),
-    environment: 'TEST',
-    secret: config.webhookSecret,
-    now: new Date(NOW_SECONDS * 1000),
-    toleranceSeconds: 300,
-  }));
-  assert.doesNotThrow(() => verifyPaymongoSignature({
-    rawBody: raw,
-    signatureHeader: signature(raw, 'LIVE'),
-    environment: 'LIVE',
-    secret: config.webhookSecret,
-    now: new Date(NOW_SECONDS * 1000),
-    toleranceSeconds: 300,
-  }));
-  assert.throws(() => verifyPaymongoSignature({
-    rawBody: raw,
-    signatureHeader: signature(raw, 'LIVE'),
-    environment: 'TEST',
-    secret: config.webhookSecret,
-    now: new Date(NOW_SECONDS * 1000),
-    toleranceSeconds: 300,
-  }), /WEBHOOK_SIGNATURE_INVALID/);
+  assert.doesNotThrow(() =>
+    verifyPaymongoSignature({
+      rawBody: raw,
+      signatureHeader: signature(raw, 'TEST'),
+      environment: 'TEST',
+      secret: config.webhookSecret,
+      now: new Date(NOW_SECONDS * 1000),
+      toleranceSeconds: 300,
+    })
+  );
+  assert.doesNotThrow(() =>
+    verifyPaymongoSignature({
+      rawBody: raw,
+      signatureHeader: signature(raw, 'LIVE'),
+      environment: 'LIVE',
+      secret: config.webhookSecret,
+      now: new Date(NOW_SECONDS * 1000),
+      toleranceSeconds: 300,
+    })
+  );
+  assert.throws(
+    () =>
+      verifyPaymongoSignature({
+        rawBody: raw,
+        signatureHeader: signature(raw, 'LIVE'),
+        environment: 'TEST',
+        secret: config.webhookSecret,
+        now: new Date(NOW_SECONDS * 1000),
+        toleranceSeconds: 300,
+      }),
+    /WEBHOOK_SIGNATURE_INVALID/
+  );
 });
 
 test('[TEST-088] validly signed live events cannot enter the forced TEST inbox', async () => {
@@ -177,10 +203,18 @@ test('[TEST-088] reused event IDs with a different payload hash fail as conflict
 test('[TEST-088] disabled and unavailable inboxes return stable errors without raw payload detail', async () => {
   const raw = body();
   await assert.rejects(
-    () => new PaymongoWebhookBoundary({ enabled: false, environment: 'TEST' }, new FakeWebhookRepository()).ingest(raw, signature(raw)),
-    /WEBHOOK_UNAVAILABLE/,
+    () =>
+      new PaymongoWebhookBoundary({ enabled: false, environment: 'TEST' }, new FakeWebhookRepository()).ingest(
+        raw,
+        signature(raw)
+      ),
+    /WEBHOOK_UNAVAILABLE/
   );
-  const repository: WebhookInboxRepository = { async ingest() { throw new Error('database connection detail'); } };
+  const repository: WebhookInboxRepository = {
+    async ingest() {
+      throw new Error('database connection detail');
+    },
+  };
   let caught: unknown;
   try {
     await service(repository).ingest(raw, signature(raw));

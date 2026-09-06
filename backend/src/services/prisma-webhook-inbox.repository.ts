@@ -44,42 +44,45 @@ export class PrismaWebhookInboxRepository implements WebhookInboxRepository {
   }
 
   private async ingestOnce(record: WebhookInboxRecord): Promise<WebhookIngestDecision> {
-    return this.prisma.$transaction(async (transaction) => {
-      const existing = await transaction.providerWebhookEvent.findUnique({
-        where: {
-          provider_environment_providerEventId: {
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const existing = await transaction.providerWebhookEvent.findUnique({
+          where: {
+            provider_environment_providerEventId: {
+              provider: record.provider,
+              environment: record.environment,
+              providerEventId: record.providerEventId,
+            },
+          },
+          select: { payloadHash: true },
+        });
+        if (existing) return existing.payloadHash === record.payloadHash ? 'DUPLICATE' : 'CONFLICT';
+
+        await transaction.providerWebhookEvent.create({
+          data: {
             provider: record.provider,
             environment: record.environment,
             providerEventId: record.providerEventId,
-          },
-        },
-        select: { payloadHash: true },
-      });
-      if (existing) return existing.payloadHash === record.payloadHash ? 'DUPLICATE' : 'CONFLICT';
-
-      await transaction.providerWebhookEvent.create({
-        data: {
-          provider: record.provider,
-          environment: record.environment,
-          providerEventId: record.providerEventId,
-          eventType: record.eventType,
-          livemode: record.livemode,
-          payloadHash: record.payloadHash,
-          sanitizedPayload: sanitizedPayload(record),
-          signatureKeyVersion: record.signatureKeyVersion,
-          providerCreatedAt: record.providerCreatedAt,
-          receivedAt: record.receivedAt,
-          processing: {
-            create: {
-              handlerVersion: HANDLER_VERSION,
-              status: record.disposition === 'PENDING' ? 'PENDING' : 'IGNORED',
-              completedAt: record.disposition === 'PENDING' ? null : record.receivedAt,
+            eventType: record.eventType,
+            livemode: record.livemode,
+            payloadHash: record.payloadHash,
+            sanitizedPayload: sanitizedPayload(record),
+            signatureKeyVersion: record.signatureKeyVersion,
+            providerCreatedAt: record.providerCreatedAt,
+            receivedAt: record.receivedAt,
+            processing: {
+              create: {
+                handlerVersion: HANDLER_VERSION,
+                status: record.disposition === 'PENDING' ? 'PENDING' : 'IGNORED',
+                completedAt: record.disposition === 'PENDING' ? null : record.receivedAt,
+              },
             },
           },
-        },
-      });
-      return 'INSERTED';
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        });
+        return 'INSERTED';
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
   }
 
   private async compareExisting(record: WebhookInboxRecord): Promise<WebhookIngestDecision> {

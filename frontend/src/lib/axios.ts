@@ -57,7 +57,8 @@ api.interceptors.response.use(
         '/nutritionist-apply',
         '/nutritionist-invitation',
       ];
-      const isAuthPage = typeof window !== 'undefined' && authPages.some((page) => window.location.pathname.startsWith(page));
+      const isAuthPage =
+        typeof window !== 'undefined' && authPages.some((page) => window.location.pathname.startsWith(page));
 
       // Guard: if it's the refresh request itself that failed, don't retry!
       const isRefreshRequest = originalRequest.url && originalRequest.url.includes('/auth/refresh');

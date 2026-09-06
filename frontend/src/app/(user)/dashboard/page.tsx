@@ -18,7 +18,18 @@ import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
 import axios from 'axios';
-import { Calendar, Plus, AlertTriangle, AlertCircle, Utensils, Droplets, Flame, Scale, Clock3, Sparkles } from 'lucide-react';
+import {
+  Calendar,
+  Plus,
+  AlertTriangle,
+  AlertCircle,
+  Utensils,
+  Droplets,
+  Flame,
+  Scale,
+  Clock3,
+  Sparkles,
+} from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 
@@ -57,12 +68,10 @@ export default function DashboardPage() {
 
     if (scheduledMeals.length === 0) return [];
     const todayKey = getManilaDateKey();
-    const dateKeys = Array.from(
-      new Set(scheduledMeals.map((meal) => getManilaDateKey(meal.scheduledDate)))
-    ).filter((dateKey) => dateKey && dateKey >= todayKey);
-    return dateKeys
-      .map((dateKey) => new Date(`${dateKey}T00:00:00+08:00`))
-      .sort((a, b) => a.getTime() - b.getTime());
+    const dateKeys = Array.from(new Set(scheduledMeals.map((meal) => getManilaDateKey(meal.scheduledDate)))).filter(
+      (dateKey) => dateKey && dateKey >= todayKey
+    );
+    return dateKeys.map((dateKey) => new Date(`${dateKey}T00:00:00+08:00`)).sort((a, b) => a.getTime() - b.getTime());
   }, [currentMeals, pendingReview]);
 
   // Sync selected day offset to today if present in the plan
@@ -93,8 +102,12 @@ export default function DashboardPage() {
 
   // Check-in status
   const [isCheckinDue, setIsCheckinDue] = useState(false);
-  const [checkinInfo, setCheckinInfo] = useState<{ isDue: boolean; streak: number; lastCheckinAt: string | null } | null>(null);
-  
+  const [checkinInfo, setCheckinInfo] = useState<{
+    isDue: boolean;
+    streak: number;
+    lastCheckinAt: string | null;
+  } | null>(null);
+
   // User Profile details
   const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(null);
   const [outsideMealLogs, setOutsideMealLogs] = useState<OutsideMealLog[]>([]);
@@ -117,9 +130,12 @@ export default function DashboardPage() {
   // Hydration is persisted by the backend using the Manila business day.
   useEffect(() => {
     if (!user) return;
-    void api.get('/user/water/today').then((response) => {
-      if (response.data?.success) setWaterIntake(response.data.data.totalMl || 0);
-    }).catch(() => undefined);
+    void api
+      .get('/user/water/today')
+      .then((response) => {
+        if (response.data?.success) setWaterIntake(response.data.data.totalMl || 0);
+      })
+      .catch(() => undefined);
   }, [user]);
 
   const handleAddWater = async (amount: number) => {
@@ -180,7 +196,7 @@ export default function DashboardPage() {
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to load today\'s scheduled plan.');
+        setError(err.response?.data?.error || "Failed to load today's scheduled plan.");
       } else {
         setError('Failed to contact backend API.');
       }
@@ -358,42 +374,33 @@ export default function DashboardPage() {
     const activeDate = uniqueDates[selectedDayOffset] || new Date();
     const dateStr = getManilaDateKey(activeDate);
 
-    const dayMeals = currentMeals.filter(
-      (m) => getManilaDateKey(m.scheduledDate) === dateStr
-    );
-    const dayPendingMeals = pendingReview?.meals.filter(
-      (m) => getManilaDateKey(m.scheduledDate) === dateStr
-    ) ?? [];
+    const dayMeals = currentMeals.filter((m) => getManilaDateKey(m.scheduledDate) === dateStr);
+    const dayPendingMeals = pendingReview?.meals.filter((m) => getManilaDateKey(m.scheduledDate) === dateStr) ?? [];
     const dayOutsideMeals = outsideMealLogs.filter(
       (log) => log.status === 'DONE' && getManilaDateKey(log.loggedAt) === dateStr
     );
 
     // Sum calories logged as DONE today
-    const caloriesConsumed = dayMeals
-      .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.calories, 0)
-      + dayOutsideMeals.reduce((sum, meal) => sum + meal.calories, 0);
+    const caloriesConsumed =
+      dayMeals.filter((m) => m.mealLogs?.some((log) => log.status === 'DONE')).reduce((sum, m) => sum + m.calories, 0) +
+      dayOutsideMeals.reduce((sum, meal) => sum + meal.calories, 0);
 
-    const proteinConsumed = dayMeals
-      .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.proteinG, 0)
-      + dayOutsideMeals.reduce((sum, meal) => sum + meal.proteinG, 0);
+    const proteinConsumed =
+      dayMeals.filter((m) => m.mealLogs?.some((log) => log.status === 'DONE')).reduce((sum, m) => sum + m.proteinG, 0) +
+      dayOutsideMeals.reduce((sum, meal) => sum + meal.proteinG, 0);
 
-    const carbsConsumed = dayMeals
-      .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.carbsG, 0)
-      + dayOutsideMeals.reduce((sum, meal) => sum + meal.carbsG, 0);
+    const carbsConsumed =
+      dayMeals.filter((m) => m.mealLogs?.some((log) => log.status === 'DONE')).reduce((sum, m) => sum + m.carbsG, 0) +
+      dayOutsideMeals.reduce((sum, meal) => sum + meal.carbsG, 0);
 
-    const fatConsumed = dayMeals
-      .filter((m) => m.mealLogs?.some((log) => log.status === 'DONE'))
-      .reduce((sum, m) => sum + m.fatG, 0)
-      + dayOutsideMeals.reduce((sum, meal) => sum + meal.fatG, 0);
+    const fatConsumed =
+      dayMeals.filter((m) => m.mealLogs?.some((log) => log.status === 'DONE')).reduce((sum, m) => sum + m.fatG, 0) +
+      dayOutsideMeals.reduce((sum, meal) => sum + meal.fatG, 0);
 
     // Targets
     const scheduledDayMeals = [...dayMeals, ...dayPendingMeals];
-    const caloriesTarget = userProfile?.dailyCalorieTarget
-      || scheduledDayMeals.reduce((sum, m) => sum + m.calories, 0)
-      || 2000;
+    const caloriesTarget =
+      userProfile?.dailyCalorieTarget || scheduledDayMeals.reduce((sum, m) => sum + m.calories, 0) || 2000;
     const proteinTarget = scheduledDayMeals.reduce((sum, m) => sum + m.proteinG, 0) || 120;
     const carbsTarget = scheduledDayMeals.reduce((sum, m) => sum + m.carbsG, 0) || 220;
     const fatTarget = scheduledDayMeals.reduce((sum, m) => sum + m.fatG, 0) || 60;
@@ -456,17 +463,15 @@ export default function DashboardPage() {
   });
 
   const activePendingDate = uniqueDates[selectedDayOffset];
-  const pendingMealsForSelectedDate = pendingReview?.meals.filter(
-    (meal) => activePendingDate
-      && getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activePendingDate)
-  ) ?? [];
+  const pendingMealsForSelectedDate =
+    pendingReview?.meals.filter(
+      (meal) => activePendingDate && getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activePendingDate)
+    ) ?? [];
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
-
       {/* Main Container */}
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        
         {/* Welcome Header */}
         <PortalPageHeader
           icon={Sparkles}
@@ -474,7 +479,11 @@ export default function DashboardPage() {
           title={<>Mabuhay, {user?.name.split(' ')[0]}.</>}
           description="Your accessible, culturally aware meal plan, daily targets, and review-aware nutrition progress in one connected view."
           actions={
-            <Button variant="primary" onClick={() => router.push('/meals')} className="flex items-center gap-2 text-xs font-bold">
+            <Button
+              variant="primary"
+              onClick={() => router.push('/meals')}
+              className="flex items-center gap-2 text-xs font-bold"
+            >
               <Calendar className="w-4 h-4" />
               <span>Open weekly plan</span>
             </Button>
@@ -503,7 +512,10 @@ export default function DashboardPage() {
           <>
             {/* Horizontal Date Switcher */}
             {uniqueDates.length > 0 && (
-              <div className="order-1 mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none" aria-label="Meal plan dates">
+              <div
+                className="order-1 mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none"
+                aria-label="Meal plan dates"
+              >
                 {daySelectors.map((item) => {
                   const isSelected = selectedDayOffset === item.offset;
                   return (
@@ -513,11 +525,12 @@ export default function DashboardPage() {
                       aria-pressed={isSelected}
                       className={`
                         flex min-w-[76px] flex-col items-center justify-center rounded-2xl border px-4 py-3 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg
-                        ${isSelected
-                          ? 'border-brand-border bg-brand-accent text-black shadow-md shadow-brand-accent/10'
-                          : item.isPast
-                            ? 'border-transparent bg-brand-bgAlt/70 text-brand-muted/70 hover:border-brand-border hover:text-brand-text'
-                            : 'border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/60 hover:text-brand-text'
+                        ${
+                          isSelected
+                            ? 'border-brand-border bg-brand-accent text-black shadow-md shadow-brand-accent/10'
+                            : item.isPast
+                              ? 'border-transparent bg-brand-bgAlt/70 text-brand-muted/70 hover:border-brand-border hover:text-brand-text'
+                              : 'border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/60 hover:text-brand-text'
                         }
                       `}
                     >
@@ -531,14 +544,15 @@ export default function DashboardPage() {
 
             {/* Compact secondary wellness snapshot */}
             <div className="order-4 grid grid-cols-1 gap-3 text-left md:grid-cols-3" aria-label="Health snapshot">
-              
               {/* Check-In Streak Card */}
               <Card
                 className="min-h-[118px] border border-brand-border/50 bg-brand-surface/80 hover:border-brand-green/25 hover:shadow-card-hover"
                 contentClassName="flex h-full min-h-[118px] flex-col justify-between p-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Check-In Streak</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">
+                    Check-In Streak
+                  </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-accent/45 bg-brand-accent/15 text-brand-green">
                     <Flame className="h-4 w-4" aria-hidden="true" />
                   </div>
@@ -552,10 +566,10 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 {isCheckinDue && (
-                  <Button 
-                    variant="accent" 
-                    size="sm" 
-                    onClick={() => setIsCheckinDue(true)} 
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    onClick={() => setIsCheckinDue(true)}
                     className="w-full mt-3 font-bold text-xs"
                   >
                     Complete Check-In
@@ -569,7 +583,9 @@ export default function DashboardPage() {
                 contentClassName="flex h-full min-h-[118px] flex-col justify-between p-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Weight Goals</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">
+                    Weight Goals
+                  </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-green/20 bg-brand-green/10 text-brand-green">
                     <Scale className="h-4 w-4" aria-hidden="true" />
                   </div>
@@ -586,16 +602,14 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <p className="text-xs text-brand-muted mt-1">
-                    {userProfile?.weightKg && userProfile?.targetWeightKg ? (
-                      (() => {
-                        const diff = userProfile.weightKg - userProfile.targetWeightKg;
-                        if (diff > 0) return `${diff.toFixed(1)} kg to target`;
-                        if (diff < 0) return `${Math.abs(diff).toFixed(1)} kg to target`;
-                        return 'Target weight reached!';
-                      })()
-                    ) : (
-                      'Log weight to track progress'
-                    )}
+                    {userProfile?.weightKg && userProfile?.targetWeightKg
+                      ? (() => {
+                          const diff = userProfile.weightKg - userProfile.targetWeightKg;
+                          if (diff > 0) return `${diff.toFixed(1)} kg to target`;
+                          if (diff < 0) return `${Math.abs(diff).toFixed(1)} kg to target`;
+                          return 'Target weight reached!';
+                        })()
+                      : 'Log weight to track progress'}
                   </p>
                 </div>
               </Card>
@@ -606,7 +620,9 @@ export default function DashboardPage() {
                 contentClassName="flex h-full min-h-[118px] flex-col justify-between p-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Water Intake</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">
+                    Water Intake
+                  </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-green dark:text-brand-cyan">
                     <Droplets className="h-4 w-4" aria-hidden="true" />
                   </div>
@@ -617,20 +633,20 @@ export default function DashboardPage() {
                   </h4>
                   {/* Progress bar */}
                   <div className="w-full bg-brand-bgAlt h-1.5 rounded-full overflow-hidden mt-2">
-                    <div 
+                    <div
                       className="h-full rounded-full bg-gradient-to-r from-brand-green to-brand-cyan transition-all duration-300"
                       style={{ width: `${Math.min(100, (waterIntake / 2500) * 100)}%` }}
                     />
                   </div>
                 </div>
                 <div className="mt-2 flex gap-2">
-                  <button 
+                  <button
                     onClick={() => handleAddWater(-250)}
                     className="flex-1 py-1 px-3 text-xs font-bold rounded-lg border border-brand-border bg-brand-surface text-brand-text hover:bg-brand-bgAlt transition-colors"
                   >
                     -250mL
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleAddWater(250)}
                     className="flex-1 rounded-lg border border-brand-green bg-brand-green px-3 py-1 text-xs font-bold text-white transition-colors hover:bg-brand-greenHover dark:text-brand-black"
                   >
@@ -638,12 +654,10 @@ export default function DashboardPage() {
                   </button>
                 </div>
               </Card>
-
             </div>
 
             {/* Analytics Dashboard Grid */}
             <div className="order-3 grid grid-cols-1 items-center gap-6 md:grid-cols-3">
-              
               {/* Calorie Ring Gauge Card */}
               <Card
                 className="min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-1"
@@ -662,23 +676,27 @@ export default function DashboardPage() {
                     Daily Macronutrient Budgets
                   </h3>
                 </div>
-                
+
                 {/* Protein Bar */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-protein)' }}>Protein</span>
-                    <span className="text-brand-text">{Math.round(proteinConsumed)}g / {Math.round(proteinTarget)}g</span>
+                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-protein)' }}>
+                      Protein
+                    </span>
+                    <span className="text-brand-text">
+                      {Math.round(proteinConsumed)}g / {Math.round(proteinTarget)}g
+                    </span>
                   </div>
-                  <div 
+                  <div
                     className="h-4 w-full overflow-hidden rounded-full border border-brand-border/60"
                     style={{ backgroundColor: 'var(--macro-track-bg)' }}
                   >
-                    <div 
-                      className="h-full rounded-full transition-all duration-1000" 
-                      style={{ 
+                    <div
+                      className="h-full rounded-full transition-all duration-1000"
+                      style={{
                         width: `${Math.min(100, (proteinConsumed / Math.max(1, proteinTarget)) * 100)}%`,
-                        backgroundColor: 'var(--macro-protein)'
-                      }} 
+                        backgroundColor: 'var(--macro-protein)',
+                      }}
                     />
                   </div>
                 </div>
@@ -686,19 +704,23 @@ export default function DashboardPage() {
                 {/* Carbs Bar */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-carbs)' }}>Carbohydrates</span>
-                    <span className="text-brand-text">{Math.round(carbsConsumed)}g / {Math.round(carbsTarget)}g</span>
+                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-carbs)' }}>
+                      Carbohydrates
+                    </span>
+                    <span className="text-brand-text">
+                      {Math.round(carbsConsumed)}g / {Math.round(carbsTarget)}g
+                    </span>
                   </div>
-                  <div 
+                  <div
                     className="h-4 w-full overflow-hidden rounded-full border border-brand-border/60"
                     style={{ backgroundColor: 'var(--macro-track-bg)' }}
                   >
-                    <div 
-                      className="h-full rounded-full transition-all duration-1000" 
-                      style={{ 
+                    <div
+                      className="h-full rounded-full transition-all duration-1000"
+                      style={{
                         width: `${Math.min(100, (carbsConsumed / Math.max(1, carbsTarget)) * 100)}%`,
-                        backgroundColor: 'var(--macro-carbs)'
-                      }} 
+                        backgroundColor: 'var(--macro-carbs)',
+                      }}
                     />
                   </div>
                 </div>
@@ -706,41 +728,53 @@ export default function DashboardPage() {
                 {/* Fat Bar */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-fat)' }}>Fat</span>
-                    <span className="text-brand-text">{Math.round(fatConsumed)}g / {Math.round(fatTarget)}g</span>
+                    <span className="uppercase tracking-wider font-extrabold" style={{ color: 'var(--macro-fat)' }}>
+                      Fat
+                    </span>
+                    <span className="text-brand-text">
+                      {Math.round(fatConsumed)}g / {Math.round(fatTarget)}g
+                    </span>
                   </div>
-                  <div 
+                  <div
                     className="h-4 w-full overflow-hidden rounded-full border border-brand-border/60"
                     style={{ backgroundColor: 'var(--macro-track-bg)' }}
                   >
-                    <div 
-                      className="h-full rounded-full transition-all duration-1000" 
-                      style={{ 
+                    <div
+                      className="h-full rounded-full transition-all duration-1000"
+                      style={{
                         width: `${Math.min(100, (fatConsumed / Math.max(1, fatTarget)) * 100)}%`,
-                        backgroundColor: 'var(--macro-fat)'
-                      }} 
+                        backgroundColor: 'var(--macro-fat)',
+                      }}
                     />
                   </div>
                 </div>
-
               </Card>
             </div>
 
             {pendingReview ? (
               <section className="order-2 flex flex-col gap-6" aria-labelledby="pending-plan-heading">
                 <div className="relative overflow-hidden rounded-[28px] border border-brand-green/20 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/10 p-5 text-left shadow-card md:p-6">
-                  <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-brand-accent/15 blur-3xl" aria-hidden="true" />
+                  <div
+                    className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-brand-accent/15 blur-3xl"
+                    aria-hidden="true"
+                  />
                   <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
                     <div className="max-w-2xl">
                       <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-brand-green">
                         <Sparkles className="h-4 w-4" aria-hidden="true" />
                         AI plan generated
                       </div>
-                      <h2 id="pending-plan-heading" className="mt-2 font-display text-2xl font-black tracking-tight text-brand-text">
+                      <h2
+                        id="pending-plan-heading"
+                        className="mt-2 font-display text-2xl font-black tracking-tight text-brand-text"
+                      >
                         Review in progress
                       </h2>
                       <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                        Preview the {pendingMealsForSelectedDate.length} meals scheduled for this date while a nutritionist reviews the remaining {pendingReview.mealCount} meal{pendingReview.mealCount === 1 ? '' : 's'} in your {pendingReview.planType === 'STARTER' ? 'starter' : 'weekly'} plan.
+                        Preview the {pendingMealsForSelectedDate.length} meals scheduled for this date while a
+                        nutritionist reviews the remaining {pendingReview.mealCount} meal
+                        {pendingReview.mealCount === 1 ? '' : 's'} in your{' '}
+                        {pendingReview.planType === 'STARTER' ? 'starter' : 'weekly'} plan.
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/40 px-4 py-3">
@@ -748,9 +782,12 @@ export default function DashboardPage() {
                         <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
                       </div>
                       <div>
-                        <p className="text-[9px] font-extrabold uppercase tracking-wider text-status-pending-text">Selected day</p>
+                        <p className="text-[9px] font-extrabold uppercase tracking-wider text-status-pending-text">
+                          Selected day
+                        </p>
                         <p className="text-xs font-extrabold text-brand-text">
-                          {activePendingDate && formatManilaDate(activePendingDate, { weekday: 'long', month: 'short', day: 'numeric' })}
+                          {activePendingDate &&
+                            formatManilaDate(activePendingDate, { weekday: 'long', month: 'short', day: 'numeric' })}
                         </p>
                       </div>
                     </div>
@@ -764,10 +801,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {pendingMealsForSelectedDate.map((meal, index) => (
-                    <PendingMealPreviewCard
-                      key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
-                      meal={meal}
-                    />
+                    <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} />
                   ))}
                 </div>
                 {mealsList.length > 0 && (
@@ -808,8 +842,9 @@ export default function DashboardPage() {
                   {(() => {
                     const activeDate = uniqueDates[selectedDayOffset];
                     const isTodaySelected = activeDate && getManilaDateKey(activeDate) === getManilaDateKey();
-                    return isTodaySelected ? "Today's" : "Scheduled";
-                  })()} Menu
+                    return isTodaySelected ? "Today's" : 'Scheduled';
+                  })()}{' '}
+                  Menu
                 </h2>
 
                 {mealsList.length === 0 ? (
@@ -859,16 +894,19 @@ export default function DashboardPage() {
       </button>
 
       {/* --- LOG OUTSIDE MEAL MODAL --- */}
-      <Modal isOpen={isLogModalOpen} onClose={() => {
-        setIsLogModalOpen(false);
-        setWarningData(null);
-        setLogError(null);
-        setLogMealName('');
-        setLogNotes('');
-      }} title="LOG OUTSIDE MEAL">
+      <Modal
+        isOpen={isLogModalOpen}
+        onClose={() => {
+          setIsLogModalOpen(false);
+          setWarningData(null);
+          setLogError(null);
+          setLogMealName('');
+          setLogNotes('');
+        }}
+        title="LOG OUTSIDE MEAL"
+      >
         <div className="flex flex-col gap-5 p-2 text-left">
-          
-           {logError && (
+          {logError && (
             <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span>{logError}</span>
@@ -899,31 +937,31 @@ export default function DashboardPage() {
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Cal</span>
                     <span>{Math.round(warningData.estimate.calories)}</span>
                   </div>
-                  <div 
+                  <div
                     className="p-2.5 rounded-lg border border-brand-border/20"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--macro-protein-bg)',
-                      color: 'var(--macro-protein)'
+                      color: 'var(--macro-protein)',
                     }}
                   >
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Prot</span>
                     <span>{Math.round(warningData.estimate.proteinG)}g</span>
                   </div>
-                  <div 
+                  <div
                     className="p-2.5 rounded-lg border border-brand-border/20"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--macro-carbs-bg)',
-                      color: 'var(--macro-carbs)'
+                      color: 'var(--macro-carbs)',
                     }}
                   >
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Carb</span>
                     <span>{Math.round(warningData.estimate.carbsG)}g</span>
                   </div>
-                  <div 
+                  <div
                     className="p-2.5 rounded-lg border border-brand-border/20"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--macro-fat-bg)',
-                      color: 'var(--macro-fat)'
+                      color: 'var(--macro-fat)',
                     }}
                   >
                     <span className="text-brand-muted block text-[9px] uppercase mb-0.5">Fat</span>
@@ -953,7 +991,13 @@ export default function DashboardPage() {
             </div>
           ) : (
             /* REGULAR FORM INPUT */
-            <form onSubmit={(e) => { e.preventDefault(); handleLogOutsideMeal(false); }} className="flex flex-col gap-5">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogOutsideMeal(false);
+              }}
+              className="flex flex-col gap-5"
+            >
               <Input
                 id="mealName"
                 label="Meal Name"
@@ -967,13 +1011,16 @@ export default function DashboardPage() {
 
               {/* Meal Type Select Chips */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold tracking-wide text-brand-text/90">
-                  Meal Category
-                </label>
+                <label className="text-xs font-bold tracking-wide text-brand-text/90">Meal Category</label>
                 <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
                   {(['BREAKFAST', 'LUNCH', 'DINNER'] as MealType[]).map((type) => {
                     const isSelected = logMealType === type;
-                    const labels: Record<MealType, string> = { BREAKFAST: 'Breakfast', LUNCH: 'Lunch', DINNER: 'Dinner', SNACK: 'Snack' };
+                    const labels: Record<MealType, string> = {
+                      BREAKFAST: 'Breakfast',
+                      LUNCH: 'Lunch',
+                      DINNER: 'Dinner',
+                      SNACK: 'Snack',
+                    };
                     return (
                       <button
                         key={type}
@@ -981,9 +1028,10 @@ export default function DashboardPage() {
                         onClick={() => setLogMealType(type)}
                         className={`
                           py-2.5 rounded-xl border transition-all duration-200 outline-none
-                          ${isSelected 
-                            ? 'border-brand-green bg-brand-green/10 text-brand-green font-bold' 
-                            : 'border-brand-border bg-brand-surface/40 text-brand-muted hover:text-brand-text'
+                          ${
+                            isSelected
+                              ? 'border-brand-green bg-brand-green/10 text-brand-green font-bold'
+                              : 'border-brand-border bg-brand-surface/40 text-brand-muted hover:text-brand-text'
                           }
                         `}
                       >
@@ -1018,9 +1066,9 @@ export default function DashboardPage() {
         </div>
       </Modal>
 
-      <CheckinModal 
-        isOpen={isCheckinDue} 
-        onClose={() => setIsCheckinDue(false)} 
+      <CheckinModal
+        isOpen={isCheckinDue}
+        onClose={() => setIsCheckinDue(false)}
         onPlanRegenerated={() => {
           fetchCurrentPlan();
         }}

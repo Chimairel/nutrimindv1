@@ -6,7 +6,7 @@ import test from 'node:test';
 const schema = readFileSync(resolve(process.cwd(), 'prisma/schema.prisma'), 'utf8');
 const migration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260905180000_billing_foundation/migration.sql'),
-  'utf8',
+  'utf8'
 );
 
 const requiredModels = [

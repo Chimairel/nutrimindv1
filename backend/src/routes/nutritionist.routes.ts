@@ -32,7 +32,9 @@ router.get('/queue', async (req: AuthenticatedRequest, res: Response) => {
     const queue = await NutritionistService.getReviewQueue(req.nutritionistProfileId!);
     return res.status(200).json({ success: true, data: queue });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review queue.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review queue.') });
   }
 });
 
@@ -62,29 +64,33 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
  * Approve or reject a meal plan.
  * Body: { action: 'approve' | 'reject', note?: string }
  */
-router.patch('/review/:id', validateZodBody(nutritionistReviewActionSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { action, note, updates } = req.body;
-    const mealPlanId = req.params.id;
+router.patch(
+  '/review/:id',
+  validateZodBody(nutritionistReviewActionSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { action, note, updates } = req.body;
+      const mealPlanId = req.params.id;
 
-    if (action === 'approve') {
-      const result = await NutritionistService.approveMealPlan(req.nutritionistProfileId!, mealPlanId, note, updates);
-      return res.status(200).json({ success: true, data: result });
-    } else if (action === 'reject') {
-      if (!note) return res.status(400).json({ success: false, error: 'Rejection reason is required.' });
-      const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note);
-      return res.status(200).json({ success: true, data: result });
-    } else {
-      return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });
+      if (action === 'approve') {
+        const result = await NutritionistService.approveMealPlan(req.nutritionistProfileId!, mealPlanId, note, updates);
+        return res.status(200).json({ success: true, data: result });
+      } else if (action === 'reject') {
+        if (!note) return res.status(400).json({ success: false, error: 'Rejection reason is required.' });
+        const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note);
+        return res.status(200).json({ success: true, data: result });
+      } else {
+        return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });
+      }
+    } catch (error: any) {
+      const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
+      if (isNutritionistReviewConflict(msg)) {
+        return res.status(409).json({ success: false, error: msg });
+      }
+      return res.status(500).json({ success: false, error: msg });
     }
-  } catch (error: any) {
-    const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
-    if (isNutritionistReviewConflict(msg)) {
-      return res.status(409).json({ success: false, error: msg });
-    }
-    return res.status(500).json({ success: false, error: msg });
   }
-});
+);
 
 /**
  * GET /api/nutritionist/library
@@ -104,7 +110,9 @@ router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
     });
     return res.status(200).json({ success: true, data: library });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal library.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal library.') });
   }
 });
 
@@ -113,7 +121,9 @@ router.get('/library-coverage', async (_req: AuthenticatedRequest, res: Response
     const coverage = await NutritionistService.getMealLibraryCoverage();
     return res.status(200).json({ success: true, data: coverage });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal-library coverage.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal-library coverage.') });
   }
 });
 
@@ -121,31 +131,35 @@ router.get('/library-coverage', async (_req: AuthenticatedRequest, res: Response
  * POST /api/nutritionist/library/:id/safety-evidence/certify
  * Certify one exact current evidence revision after strict server validation.
  */
-router.post('/library/:id/safety-evidence/certify', validateZodBody(certifyMealLibrarySafetySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const meal = await NutritionistService.certifyLibraryMealSafety(
-      req.nutritionistProfileId!,
-      req.params.id,
-      req.body
-    );
-    return res.status(200).json({ success: true, data: meal });
-  } catch (error: any) {
-    const message = sanitizeErrorMessage(error, 'Failed to certify meal safety evidence.');
-    if (message.includes('revision conflict') || message.includes('Flagged or archived')) {
-      return res.status(409).json({ success: false, error: message });
+router.post(
+  '/library/:id/safety-evidence/certify',
+  validateZodBody(certifyMealLibrarySafetySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const meal = await NutritionistService.certifyLibraryMealSafety(
+        req.nutritionistProfileId!,
+        req.params.id,
+        req.body
+      );
+      return res.status(200).json({ success: true, data: meal });
+    } catch (error: any) {
+      const message = sanitizeErrorMessage(error, 'Failed to certify meal safety evidence.');
+      if (message.includes('revision conflict') || message.includes('Flagged or archived')) {
+        return res.status(409).json({ success: false, error: message });
+      }
+      if (message.includes('requires') || message.includes('must be resolved')) {
+        return res.status(422).json({ success: false, error: message });
+      }
+      if (message.includes('Only a currently verified')) {
+        return res.status(403).json({ success: false, error: message });
+      }
+      if (message.includes('not found')) {
+        return res.status(404).json({ success: false, error: message });
+      }
+      return res.status(500).json({ success: false, error: message });
     }
-    if (message.includes('requires') || message.includes('must be resolved')) {
-      return res.status(422).json({ success: false, error: message });
-    }
-    if (message.includes('Only a currently verified')) {
-      return res.status(403).json({ success: false, error: message });
-    }
-    if (message.includes('not found')) {
-      return res.status(404).json({ success: false, error: message });
-    }
-    return res.status(500).json({ success: false, error: message });
   }
-});
+);
 
 /**
  * GET /api/nutritionist/library/:id
@@ -157,7 +171,9 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
     if (!meal) return res.status(404).json({ success: false, error: 'Meal not found.' });
     return res.status(200).json({ success: true, data: meal });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve library meal details.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve library meal details.') });
   }
 });
 
@@ -165,19 +181,25 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
  * PATCH /api/nutritionist/library/:id
  * Edit library meal details (Only original verifier or admin override).
  */
-router.patch('/library/:id', validateZodBody(libraryMealEditSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const updated = await NutritionistService.editLibraryMeal(
-      req.user!.userId,
-      req.user!.role,
-      req.params.id,
-      req.body
-    );
-    return res.status(200).json({ success: true, data: updated });
-  } catch (error: any) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to edit library meal.') });
+router.patch(
+  '/library/:id',
+  validateZodBody(libraryMealEditSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const updated = await NutritionistService.editLibraryMeal(
+        req.user!.userId,
+        req.user!.role,
+        req.params.id,
+        req.body
+      );
+      return res.status(200).json({ success: true, data: updated });
+    } catch (error: any) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to edit library meal.') });
+    }
   }
-});
+);
 
 /**
  * DELETE /api/nutritionist/library/:id
@@ -185,14 +207,12 @@ router.patch('/library/:id', validateZodBody(libraryMealEditSchema), async (req:
  */
 router.delete('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    await NutritionistService.deleteLibraryMeal(
-      req.user!.userId,
-      req.user!.role,
-      req.params.id
-    );
+    await NutritionistService.deleteLibraryMeal(req.user!.userId, req.user!.role, req.params.id);
     return res.status(200).json({ success: true, message: 'Meal deleted successfully.' });
   } catch (error: any) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete library meal.') });
+    return res
+      .status(400)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete library meal.') });
   }
 });
 
@@ -200,43 +220,51 @@ router.delete('/library/:id', async (req: AuthenticatedRequest, res: Response) =
  * POST /api/nutritionist/library/:id/flag
  * Flag a meal for re-review (Only allowed if requester is NOT original verifier).
  */
-router.post('/library/:id/flag', validateZodBody(libraryMealFlagSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { reason } = req.body;
-    if (!reason) return res.status(400).json({ success: false, error: 'Flag reason is required.' });
+router.post(
+  '/library/:id/flag',
+  validateZodBody(libraryMealFlagSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { reason } = req.body;
+      if (!reason) return res.status(400).json({ success: false, error: 'Flag reason is required.' });
 
-    const flag = await NutritionistService.flagLibraryMeal(
-      req.user!.userId,
-      req.params.id,
-      reason
-    );
-    return res.status(201).json({ success: true, data: flag });
-  } catch (error: any) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to flag library meal.') });
+      const flag = await NutritionistService.flagLibraryMeal(req.user!.userId, req.params.id, reason);
+      return res.status(201).json({ success: true, data: flag });
+    } catch (error: any) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to flag library meal.') });
+    }
   }
-});
+);
 
 /**
  * PATCH /api/nutritionist/library/:id/resolve-flag
  * Resolve pending flags (Only original verifier or admin override).
  */
-router.patch('/library/:id/resolve-flag', validateZodBody(libraryFlagResolutionSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { resolution, updatedFields } = req.body;
-    if (!resolution) return res.status(400).json({ success: false, error: 'Resolution action is required.' });
+router.patch(
+  '/library/:id/resolve-flag',
+  validateZodBody(libraryFlagResolutionSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { resolution, updatedFields } = req.body;
+      if (!resolution) return res.status(400).json({ success: false, error: 'Resolution action is required.' });
 
-    const result = await NutritionistService.resolveLibraryMealFlag(
-      req.user!.userId,
-      req.user!.role,
-      req.params.id,
-      resolution,
-      updatedFields
-    );
-    return res.status(200).json({ success: true, data: result });
-  } catch (error: any) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to resolve library meal flag.') });
+      const result = await NutritionistService.resolveLibraryMealFlag(
+        req.user!.userId,
+        req.user!.role,
+        req.params.id,
+        resolution,
+        updatedFields
+      );
+      return res.status(200).json({ success: true, data: result });
+    } catch (error: any) {
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to resolve library meal flag.') });
+    }
   }
-});
+);
 
 /**
  * GET /api/nutritionist/approved
@@ -247,7 +275,9 @@ router.get('/approved', async (req: AuthenticatedRequest, res: Response) => {
     const approved = await NutritionistService.getApprovedMeals(req.nutritionistProfileId!);
     return res.status(200).json({ success: true, data: approved });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve approved meals.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve approved meals.') });
   }
 });
 
@@ -256,7 +286,9 @@ router.get('/compensation', async (req: AuthenticatedRequest, res: Response) => 
     const data = await NutritionistCompensationService.getOwn(req.nutritionistProfileId!);
     return res.status(200).json({ success: true, data });
   } catch (error: unknown) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve your compensation records.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve your compensation records.') });
   }
 });
 
@@ -268,7 +300,9 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
     const profile = await NutritionistService.getProfile(req.user!.userId);
     return res.status(200).json({ success: true, data: { ...profile, user: req.user } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist profile.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist profile.') });
   }
 });
 
@@ -281,7 +315,9 @@ router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
     const profile = await NutritionistService.updateProfile(req.user!.userId, { bio, specialization });
     return res.status(200).json({ success: true, data: profile });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update nutritionist profile.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update nutritionist profile.') });
   }
 });
 

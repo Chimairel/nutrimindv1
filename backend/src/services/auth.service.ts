@@ -88,7 +88,7 @@ export class AuthService {
     let verificationEmailSent = true;
     try {
       await sendVerificationEmail(sanitizedEmail, otp, name.trim());
-    } catch (emailErr) {
+    } catch (_emailError) {
       verificationEmailSent = false;
       console.error('[AuthService] Verification email delivery failed; the user may request another code.');
     }

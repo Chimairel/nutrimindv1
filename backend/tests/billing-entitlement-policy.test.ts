@@ -102,6 +102,6 @@ test('[TEST-080] unpaid state and unverified invoice evidence never receive grac
 test('[TEST-080] grace configuration cannot exceed the approved maximum', () => {
   assert.throws(
     () => resolveBillingEntitlement({ at: new Date(), grants: [], pastDueGraceHours: 73 }),
-    /between 0 and 72/,
+    /between 0 and 72/
   );
 });

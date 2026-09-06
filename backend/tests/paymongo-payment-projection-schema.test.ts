@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-const migration = readFileSync(resolve(process.cwd(), 'prisma/migrations/20260906230000_paymongo_payment_projection/migration.sql'), 'utf8');
+const migration = readFileSync(
+  resolve(process.cwd(), 'prisma/migrations/20260906230000_paymongo_payment_projection/migration.sql'),
+  'utf8'
+);
 const schema = readFileSync(resolve(process.cwd(), 'prisma/schema.prisma'), 'utf8');
 
 test('[TEST-103] one migration models Checkout as non-renewing access without fake provider objects', () => {

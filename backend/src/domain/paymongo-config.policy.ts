@@ -83,8 +83,9 @@ export class PaymongoConfigurationError extends Error {
 function isSafeHttpsUrl(value: string): boolean {
   try {
     const parsed = new URL(value);
-    return parsed.protocol === 'https:' && Boolean(parsed.hostname) &&
-      !parsed.username && !parsed.password && !parsed.hash;
+    return (
+      parsed.protocol === 'https:' && Boolean(parsed.hostname) && !parsed.username && !parsed.password && !parsed.hash
+    );
   } catch {
     return false;
   }
@@ -97,9 +98,15 @@ function parseSwitch(env: NodeJS.ProcessEnv, key: string): boolean {
 }
 
 function parsePaymentMethods(value: string): readonly PaymongoPaymentMethod[] | null {
-  const methods = value.split(',').map((entry) => entry.trim()).filter(Boolean);
-  if (methods.length === 0 || new Set(methods).size !== methods.length ||
-      methods.some((method) => !ALLOWED_PAYMENT_METHODS.has(method as PaymongoPaymentMethod))) {
+  const methods = value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (
+    methods.length === 0 ||
+    new Set(methods).size !== methods.length ||
+    methods.some((method) => !ALLOWED_PAYMENT_METHODS.has(method as PaymongoPaymentMethod))
+  ) {
     return null;
   }
   return methods as PaymongoPaymentMethod[];

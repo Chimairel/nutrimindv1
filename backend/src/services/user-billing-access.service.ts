@@ -4,17 +4,11 @@ import type {
   PremiumGrantEvidence,
   SubscriptionEntitlementEvidence,
 } from '@/domain/billing-entitlement.policy';
-import {
-  resolveBillingEntitlement,
-  weeklySwapCapForTier,
-} from '@/domain/billing-entitlement.policy';
+import { resolveBillingEntitlement, weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { PREMIUM_ACCESS_DURATION_DAYS } from '@/domain/paymongo-payment-reconciliation.policy';
 
 export type BillingVerificationState =
-  | 'NONE'
-  | 'PAYMENT_VERIFICATION_PENDING'
-  | 'RECONCILIATION_PENDING'
-  | 'RECONCILIATION_REQUIRED';
+  'NONE' | 'PAYMENT_VERIFICATION_PENDING' | 'RECONCILIATION_PENDING' | 'RECONCILIATION_REQUIRED';
 
 export interface BillingAccessEvidence {
   userEligible: boolean;
@@ -104,8 +98,11 @@ function verificationState(evidence: BillingAccessEvidence, tier: BillingTier): 
   if (evidence.latestProcessing && ['PENDING', 'PROCESSING', 'FAILED'].includes(evidence.latestProcessing.status)) {
     return 'RECONCILIATION_PENDING';
   }
-  if (evidence.latestCheckout && ['CLAIMED', 'RETRYABLE', 'SUCCEEDED'].includes(evidence.latestCheckout.status) &&
-      !evidence.latestCheckout.projected) {
+  if (
+    evidence.latestCheckout &&
+    ['CLAIMED', 'RETRYABLE', 'SUCCEEDED'].includes(evidence.latestCheckout.status) &&
+    !evidence.latestCheckout.projected
+  ) {
     return 'PAYMENT_VERIFICATION_PENDING';
   }
   return 'NONE';
@@ -146,11 +143,18 @@ export function buildUserBillingAccessView(input: {
     environment: 'TEST',
     catalogue: [
       {
-        tier: 'FREE', name: 'Free', weeklySwapCap: 3,
-        benefit: '3 meal swaps per weekly plan', price: null, accessDays: null, renewsAutomatically: false,
+        tier: 'FREE',
+        name: 'Free',
+        weeklySwapCap: 3,
+        benefit: '3 meal swaps per weekly plan',
+        price: null,
+        accessDays: null,
+        renewsAutomatically: false,
       },
       {
-        tier: 'PREMIUM', name: 'Premium', weeklySwapCap: 6,
+        tier: 'PREMIUM',
+        name: 'Premium',
+        weeklySwapCap: 6,
         benefit: '6 meal swaps per weekly plan',
         price: price ? { ...price, environment: 'TEST', label: 'SANDBOX_DEMO_PRICE' } : null,
         accessDays: PREMIUM_ACCESS_DURATION_DAYS,
@@ -159,12 +163,15 @@ export function buildUserBillingAccessView(input: {
     ],
     current: {
       tier: resolution.tier,
-      access: resolution.tier === 'PREMIUM' && start && resolution.effectiveUntil
-        ? {
-          startsAt: start.toISOString(), expiresAt: resolution.effectiveUntil.toISOString(),
-          status: 'NON_RENEWING', renewsAutomatically: false,
-        }
-        : null,
+      access:
+        resolution.tier === 'PREMIUM' && start && resolution.effectiveUntil
+          ? {
+              startsAt: start.toISOString(),
+              expiresAt: resolution.effectiveUntil.toISOString(),
+              status: 'NON_RENEWING',
+              renewsAutomatically: false,
+            }
+          : null,
       swaps: {
         used,
         cap,
@@ -182,7 +189,7 @@ export class UserBillingAccessService {
   constructor(
     private readonly repository: BillingAccessRepository,
     private readonly checkoutEnabled: boolean,
-    private readonly clock: () => Date = () => new Date(),
+    private readonly clock: () => Date = () => new Date()
   ) {}
 
   async getForUser(userId: string): Promise<UserBillingAccessView> {

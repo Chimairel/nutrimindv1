@@ -11,11 +11,7 @@ import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import AuthShell from '@/components/auth/AuthShell';
-import {
-  getLoginFieldErrors,
-  type LoginField,
-  type LoginFieldErrors,
-} from '@/validation/auth.schemas';
+import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -55,7 +51,9 @@ export default function LoginPage() {
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Unable to connect to the backend server. Please verify your connection.');
+        setError(
+          err.response?.data?.error || 'Unable to connect to the backend server. Please verify your connection.'
+        );
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -69,12 +67,20 @@ export default function LoginPage() {
       eyebrow="Welcome back"
       title="Enter your workspace"
       description="Continue to your personalized plan, review queue, or platform control center."
-      heroTitle={<>Your nutrition.<br /><span className="text-brand-accent">One connected view.</span></>}
+      heroTitle={
+        <>
+          Your nutrition.
+          <br />
+          <span className="text-brand-accent">One connected view.</span>
+        </>
+      }
       heroDescription="Return to a workspace where weekly meals, daily progress, and transparent review states move together."
       footer={
         <>
           New to NutriMind?{' '}
-          <Link href="/register" className="font-bold text-brand-green transition hover:text-brand-cyan">Create an account</Link>
+          <Link href="/register" className="font-bold text-brand-green transition hover:text-brand-cyan">
+            Create an account
+          </Link>
         </>
       }
     >
@@ -82,7 +88,9 @@ export default function LoginPage() {
 
       <div className="my-6 flex items-center gap-4">
         <div className="h-px flex-1 bg-brand-border/70" />
-        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-muted">or use email</span>
+        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-muted">
+          or use email
+        </span>
         <div className="h-px flex-1 bg-brand-border/70" />
       </div>
 
@@ -100,7 +108,10 @@ export default function LoginPage() {
           type="email"
           placeholder="name@example.com"
           value={email}
-          onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); }}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            clearFieldError('email');
+          }}
           disabled={isLoading}
           autoComplete="email"
           maxLength={254}
@@ -111,14 +122,22 @@ export default function LoginPage() {
           label="Password"
           placeholder="••••••••"
           value={password}
-          onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); }}
+          onChange={(event) => {
+            setPassword(event.target.value);
+            clearFieldError('password');
+          }}
           disabled={isLoading}
           autoComplete="current-password"
           maxLength={128}
           error={fieldErrors.password}
         />
         <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-xs font-semibold text-brand-muted transition hover:text-brand-green">Forgot your password?</Link>
+          <Link
+            href="/forgot-password"
+            className="text-xs font-semibold text-brand-muted transition hover:text-brand-green"
+          >
+            Forgot your password?
+          </Link>
         </div>
         <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
           Sign in

@@ -37,7 +37,7 @@ export function buildProviderEventKey(event: ProviderEventIdentity): string {
 
 export function classifyProviderEvent(
   incoming: ProviderEventIdentity,
-  existing?: ProviderEventIdentity | null,
+  existing?: ProviderEventIdentity | null
 ): ProviderEventDecision {
   const eventKey = buildProviderEventKey(incoming);
   if (!existing) return { decision: 'INSERT', eventKey };

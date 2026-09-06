@@ -39,7 +39,16 @@ test('[TEST-048][DEF-013] expired and unclaimed reviews can be acquired', () => 
 });
 
 test('[TEST-049][DEF-010] reviewer eligibility requires verification and a non-expired Manila license date', () => {
-  assert.equal(isNutritionistEligibleForReview({ isVerified: true, prcLicenseExpiry: new Date('2026-08-30T00:00:00.000Z') }, now), true);
-  assert.equal(isNutritionistEligibleForReview({ isVerified: false, prcLicenseExpiry: new Date('2027-01-01T00:00:00.000Z') }, now), false);
-  assert.equal(isNutritionistEligibleForReview({ isVerified: true, prcLicenseExpiry: new Date('2026-08-28T00:00:00.000Z') }, now), false);
+  assert.equal(
+    isNutritionistEligibleForReview({ isVerified: true, prcLicenseExpiry: new Date('2026-08-30T00:00:00.000Z') }, now),
+    true
+  );
+  assert.equal(
+    isNutritionistEligibleForReview({ isVerified: false, prcLicenseExpiry: new Date('2027-01-01T00:00:00.000Z') }, now),
+    false
+  );
+  assert.equal(
+    isNutritionistEligibleForReview({ isVerified: true, prcLicenseExpiry: new Date('2026-08-28T00:00:00.000Z') }, now),
+    false
+  );
 });

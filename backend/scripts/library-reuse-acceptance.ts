@@ -1,13 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
-import {
-  ActivityLevel,
-  DietaryPreference,
-  Goal,
-  Role,
-  ShoppingDayGroup,
-} from '@prisma/client';
+import { ActivityLevel, DietaryPreference, Goal, Role, ShoppingDayGroup } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../src/domain/onboarding.policy';
@@ -41,10 +35,12 @@ async function restoreAndRemoveFixture() {
   const metadata = snapshot?.metadata as { usage?: UsageSnapshot[] } | null;
   if (Array.isArray(metadata?.usage)) {
     await prisma.$transaction(
-      metadata.usage.map((entry) => prisma.mealLibrary.update({
-        where: { id: entry.id },
-        data: { usageCount: entry.usageCount },
-      }))
+      metadata.usage.map((entry) =>
+        prisma.mealLibrary.update({
+          where: { id: entry.id },
+          data: { usageCount: entry.usageCount },
+        })
+      )
     );
   }
 
@@ -64,7 +60,7 @@ async function setup() {
   assert.equal(
     catalogue.length,
     COMMON_MEAL_CATALOGUE.length,
-    `The ${COMMON_MEAL_CATALOGUE.length}-meal common catalogue must be populated first.`,
+    `The ${COMMON_MEAL_CATALOGUE.length}-meal common catalogue must be populated first.`
   );
   assert.ok(catalogue.every((meal) => meal.status === 'APPROVED' && meal.safetyEvidenceStatus === 'COMPLETE'));
 
@@ -101,9 +97,8 @@ async function setup() {
           foodCulture: 'Flexible Filipino and everyday meals',
           dailyCalorieTarget: 1900,
           shoppingDayOfWeek,
-          shoppingDayGroup: shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6
-            ? ShoppingDayGroup.WEEKEND
-            : ShoppingDayGroup.WEEKDAY,
+          shoppingDayGroup:
+            shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6 ? ShoppingDayGroup.WEEKEND : ShoppingDayGroup.WEEKDAY,
         },
       },
       healthConditions: { create: { condition: 'NONE' } },
@@ -136,13 +131,19 @@ async function setup() {
     },
   });
 
-  console.log(JSON.stringify({
-    ready: true,
-    email: FIXTURE_EMAIL,
-    password: FIXTURE_PASSWORD,
-    shoppingDayOfWeek,
-    expectedPlanType: 'WEEKLY',
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        ready: true,
+        email: FIXTURE_EMAIL,
+        password: FIXTURE_PASSWORD,
+        shoppingDayOfWeek,
+        expectedPlanType: 'WEEKLY',
+      },
+      null,
+      2
+    )
+  );
 }
 
 async function verify() {
@@ -182,7 +183,11 @@ async function verify() {
     orderBy: { generatedAt: 'desc' },
   });
   assert.ok(grocery && grocery.groceryItems.length > 0, 'Grocery projection must be automatic.');
-  assert.equal(await prisma.aiUsageEvent.count(), metadata.aiUsageCount, 'Gemini usage changed during a fully matched plan.');
+  assert.equal(
+    await prisma.aiUsageEvent.count(),
+    metadata.aiUsageCount,
+    'Gemini usage changed during a fully matched plan.'
+  );
 
   const [allergies, swapTracker, checkinStatus, doneMeals, analytics] = await Promise.all([
     prisma.allergy.findMany({ where: { userId: fixture.id }, select: { allergen: true } }),
@@ -195,15 +200,18 @@ async function verify() {
   assert.ok(analytics.activeMealPlans >= plan.length, 'Admin analytics did not include the active plan.');
   assert.ok(analytics.totalMealLogs >= doneMeals, 'Admin analytics did not include fixture meal logs.');
 
-  const swappableSlot = plan.find((meal) => isUserActionableMealPlan(meal) && !meal.mealLogs.some(
-    (log) => log.status === 'DONE' || log.status === 'SKIPPED'
-  ));
+  const swappableSlot = plan.find(
+    (meal) =>
+      isUserActionableMealPlan(meal) && !meal.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED')
+  );
   assert.ok(swappableSlot, 'No unlogged slot was available for the swap-option acceptance check.');
   const swapOptions = await MealSwapService.getEligibleSwapOptions(fixture.id, swappableSlot.id);
-  const otherPlanMealIds = new Set(plan
-    .filter((meal) => meal.id !== swappableSlot.id)
-    .map((meal) => meal.libraryMealId)
-    .filter((id): id is string => Boolean(id)));
+  const otherPlanMealIds = new Set(
+    plan
+      .filter((meal) => meal.id !== swappableSlot.id)
+      .map((meal) => meal.libraryMealId)
+      .filter((id): id is string => Boolean(id))
+  );
   assert.ok(swapOptions.swapOptions.every((option) => option.id !== swappableSlot.libraryMealId));
   assert.ok(swapOptions.swapOptions.every((option) => !otherPlanMealIds.has(option.id)));
   const allergyKeys = allergies.map((item) => item.allergen);
@@ -212,9 +220,11 @@ async function verify() {
     assert.equal(uniqueLibraryMeals, 21, 'The initial healthy plan must not repeat library meals.');
   }
   if (allergyKeys.includes('EGGS')) {
-    const eggConflicts = plan.filter((meal) => meal.libraryMeal?.safetyDeclarations.some(
-      (declaration) => declaration.declarationType === 'ALLERGEN_PRESENT' && declaration.canonicalKey === 'EGGS'
-    ));
+    const eggConflicts = plan.filter((meal) =>
+      meal.libraryMeal?.safetyDeclarations.some(
+        (declaration) => declaration.declarationType === 'ALLERGEN_PRESENT' && declaration.canonicalKey === 'EGGS'
+      )
+    );
     assert.equal(eggConflicts.length, 0, 'Egg-containing meals remained after the safety scan.');
 
     const occurrences = new Map<string, number[]>();
@@ -236,28 +246,34 @@ async function verify() {
     counts[meal.mealType] = (counts[meal.mealType] || 0) + 1;
     return counts;
   }, {});
-  console.log(JSON.stringify({
-    passed: true,
-    planSlots: plan.length,
-    uniqueLibraryMeals,
-    mealTypes: statusCounts,
-    pendingReview: plan.filter((meal) => meal.status === 'PENDING_REVIEW').length,
-    verifiedBy: [...new Set(plan.map((meal) => meal.libraryMeal?.safetyReviewedByNutritionist?.user.name))],
-    groceryItems: grocery.groceryItems.length,
-    geminiCallsRecorded: 0,
-    allergies: allergyKeys,
-    eggConflicts: 0,
-    swapsUsed: swapTracker?.swapsUsed ?? 0,
-    completedMealLogs: doneMeals,
-    firstWeekCheckinDue: checkinStatus.isDue,
-    nextCheckinDueAt: checkinStatus.nextDueAt,
-    eligibleNonDuplicateSwaps: swapOptions.swapOptions.length,
-    adminAnalytics: {
-      activeMealPlans: analytics.activeMealPlans,
-      totalMealLogs: analytics.totalMealLogs,
-      completeLibraryEvidence: analytics.completeLibraryEvidence,
-    },
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        passed: true,
+        planSlots: plan.length,
+        uniqueLibraryMeals,
+        mealTypes: statusCounts,
+        pendingReview: plan.filter((meal) => meal.status === 'PENDING_REVIEW').length,
+        verifiedBy: [...new Set(plan.map((meal) => meal.libraryMeal?.safetyReviewedByNutritionist?.user.name))],
+        groceryItems: grocery.groceryItems.length,
+        geminiCallsRecorded: 0,
+        allergies: allergyKeys,
+        eggConflicts: 0,
+        swapsUsed: swapTracker?.swapsUsed ?? 0,
+        completedMealLogs: doneMeals,
+        firstWeekCheckinDue: checkinStatus.isDue,
+        nextCheckinDueAt: checkinStatus.nextDueAt,
+        eligibleNonDuplicateSwaps: swapOptions.swapOptions.length,
+        adminAnalytics: {
+          activeMealPlans: analytics.activeMealPlans,
+          totalMealLogs: analytics.totalMealLogs,
+          completeLibraryEvidence: analytics.completeLibraryEvidence,
+        },
+      },
+      null,
+      2
+    )
+  );
 }
 
 async function acknowledgeFixtureReport() {

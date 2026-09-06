@@ -37,9 +37,9 @@ function stableEntryShape(entry: ResolvedSafetyEntry) {
 }
 
 function sortedJson(value: readonly Record<string, unknown>[]): string {
-  return JSON.stringify([...value].sort((a, b) =>
-    `${a.domain}:${a.normalizedText}`.localeCompare(`${b.domain}:${b.normalizedText}`)
-  ));
+  return JSON.stringify(
+    [...value].sort((a, b) => `${a.domain}:${a.normalizedText}`.localeCompare(`${b.domain}:${b.normalizedText}`))
+  );
 }
 
 export function buildLegacySafetyProjection(entries: readonly ResolvedSafetyEntry[]) {
@@ -48,21 +48,30 @@ export function buildLegacySafetyProjection(entries: readonly ResolvedSafetyEntr
     .filter((entry) => entry.domain === 'CONDITION' && entry.canonicalCode && conditionEnums.has(entry.canonicalCode))
     .map((entry) => entry.canonicalCode as HealthConditionType);
   const allergies = active
-    .filter((entry) =>
-      (entry.domain === 'ALLERGY' || entry.domain === 'AVOIDED_INGREDIENT') &&
-      entry.canonicalCode && allergenEnums.has(entry.canonicalCode)
+    .filter(
+      (entry) =>
+        (entry.domain === 'ALLERGY' || entry.domain === 'AVOIDED_INGREDIENT') &&
+        entry.canonicalCode &&
+        allergenEnums.has(entry.canonicalCode)
     )
     .map((entry) => entry.canonicalCode as AllergenType);
 
   const otherConditions = active
-    .filter((entry) => entry.domain === 'CONDITION' && (!entry.canonicalCode || !conditionEnums.has(entry.canonicalCode)))
+    .filter(
+      (entry) => entry.domain === 'CONDITION' && (!entry.canonicalCode || !conditionEnums.has(entry.canonicalCode))
+    )
     .map((entry) => entry.displayName)
     .join(', ');
   const otherAllergies = active
-    .filter((entry) => entry.domain !== 'CONDITION' && !(
-      (entry.domain === 'ALLERGY' || entry.domain === 'AVOIDED_INGREDIENT') &&
-      entry.canonicalCode && allergenEnums.has(entry.canonicalCode)
-    ))
+    .filter(
+      (entry) =>
+        entry.domain !== 'CONDITION' &&
+        !(
+          (entry.domain === 'ALLERGY' || entry.domain === 'AVOIDED_INGREDIENT') &&
+          entry.canonicalCode &&
+          allergenEnums.has(entry.canonicalCode)
+        )
+    )
     .map((entry) => entry.displayName)
     .join(', ');
 
@@ -82,15 +91,19 @@ export class SafetyIntakeService {
   static preview(inputs: readonly SafetyEntryInput[]) {
     const entries = resolveSafetyEntries(inputs);
     const errors = validateResolvedSafetyEntries(entries);
-    if (inputs.some((input) => input.value.trim().length > 0 && input.value.split(/[,;\/\n\r]+/).every((part) => !part.trim()))) {
+    if (
+      inputs.some(
+        (input) => input.value.trim().length > 0 && input.value.split(/[,;/\n\r]+/).every((part) => !part.trim())
+      )
+    ) {
       errors.push('Safety input must contain at least one reviewable term.');
     }
     return {
       entries,
       errors,
       canSave: errors.length === 0,
-      requiresReview: entries.some((entry) =>
-        entry.supportState === 'RECOGNIZED_UNSUPPORTED' || entry.supportState === 'PENDING_REVIEW'
+      requiresReview: entries.some(
+        (entry) => entry.supportState === 'RECOGNIZED_UNSUPPORTED' || entry.supportState === 'PENDING_REVIEW'
       ),
     };
   }
@@ -100,9 +113,7 @@ export class SafetyIntakeService {
     if (structured.length) {
       return structured.map((entry) => ({
         domain: entry.domain,
-        value: entry.provenance === 'PREDEFINED' && entry.canonicalCode
-          ? entry.canonicalCode
-          : entry.originalText,
+        value: entry.provenance === 'PREDEFINED' && entry.canonicalCode ? entry.canonicalCode : entry.originalText,
         provenance: entry.provenance === 'PREDEFINED' ? 'PREDEFINED' : 'CUSTOM',
       }));
     }
@@ -117,12 +128,26 @@ export class SafetyIntakeService {
     });
     if (!legacy) throw new Error('User not found.');
     return [
-      ...legacy.healthConditions.map((entry) => ({ domain: 'CONDITION' as const, value: entry.condition, provenance: 'PREDEFINED' as const })),
-      ...((legacy.userProfile?.otherConditions || '').split(',').map((value) => value.trim()).filter(Boolean)
-        .map((value) => ({ domain: 'CONDITION' as const, value, provenance: 'CUSTOM' as const }))),
-      ...legacy.allergies.map((entry) => ({ domain: 'ALLERGY' as const, value: entry.allergen, provenance: 'PREDEFINED' as const })),
-      ...((legacy.userProfile?.otherAllergies || '').split(',').map((value) => value.trim()).filter(Boolean)
-        .map((value) => ({ domain: 'ALLERGY' as const, value, provenance: 'CUSTOM' as const }))),
+      ...legacy.healthConditions.map((entry) => ({
+        domain: 'CONDITION' as const,
+        value: entry.condition,
+        provenance: 'PREDEFINED' as const,
+      })),
+      ...(legacy.userProfile?.otherConditions || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map((value) => ({ domain: 'CONDITION' as const, value, provenance: 'CUSTOM' as const })),
+      ...legacy.allergies.map((entry) => ({
+        domain: 'ALLERGY' as const,
+        value: entry.allergen,
+        provenance: 'PREDEFINED' as const,
+      })),
+      ...(legacy.userProfile?.otherAllergies || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map((value) => ({ domain: 'ALLERGY' as const, value, provenance: 'CUSTOM' as const })),
     ];
   }
 
@@ -159,49 +184,52 @@ export class SafetyIntakeService {
     }
 
     const legacy = buildLegacySafetyProjection(entries);
-    await prisma.$transaction(async (tx) => {
-      await tx.safetyProfileEntry.deleteMany({ where: { userId } });
-      if (entries.length) {
-        await tx.safetyProfileEntry.createMany({
-          data: entries.map((entry) => ({
-            userId,
-            domain: entry.domain as SafetyEntryDomain,
-            canonicalCode: entry.canonicalCode,
-            displayName: entry.displayName,
-            originalText: entry.originalText,
-            normalizedText: entry.normalizedText,
-            provenance: entry.provenance as SafetyEntryProvenance,
-            supportState: entry.supportState as SafetyEntrySupportState,
-            policyReference: entry.policyReference,
-          })),
-        });
-      }
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.safetyProfileEntry.deleteMany({ where: { userId } });
+        if (entries.length) {
+          await tx.safetyProfileEntry.createMany({
+            data: entries.map((entry) => ({
+              userId,
+              domain: entry.domain as SafetyEntryDomain,
+              canonicalCode: entry.canonicalCode,
+              displayName: entry.displayName,
+              originalText: entry.originalText,
+              normalizedText: entry.normalizedText,
+              provenance: entry.provenance as SafetyEntryProvenance,
+              supportState: entry.supportState as SafetyEntrySupportState,
+              policyReference: entry.policyReference,
+            })),
+          });
+        }
 
-      await tx.healthCondition.deleteMany({ where: { userId } });
-      await tx.healthCondition.createMany({
-        data: legacy.conditions.map((condition) => ({ userId, condition })),
-      });
-      await tx.allergy.deleteMany({ where: { userId } });
-      await tx.allergy.createMany({
-        data: legacy.allergies.map((allergen) => ({ userId, allergen })),
-      });
-      await tx.userProfile.upsert({
-        where: { userId },
-        update: { otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
-        create: { userId, otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
-      });
-      await tx.healthProfileRevision.create({
-        data: {
-          userId,
-          revisionType: HealthProfileRevisionType.STRUCTURED_SAFETY_UPDATED,
-          snapshot: {
-            entries: next,
-            legacyProjection: legacy,
-          } as Prisma.InputJsonObject,
-        },
-      });
-      await tx.nutritionReport.updateMany({ where: { userId }, data: { acknowledgedAt: null } });
-    }, { timeout: 30_000 });
+        await tx.healthCondition.deleteMany({ where: { userId } });
+        await tx.healthCondition.createMany({
+          data: legacy.conditions.map((condition) => ({ userId, condition })),
+        });
+        await tx.allergy.deleteMany({ where: { userId } });
+        await tx.allergy.createMany({
+          data: legacy.allergies.map((allergen) => ({ userId, allergen })),
+        });
+        await tx.userProfile.upsert({
+          where: { userId },
+          update: { otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
+          create: { userId, otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
+        });
+        await tx.healthProfileRevision.create({
+          data: {
+            userId,
+            revisionType: HealthProfileRevisionType.STRUCTURED_SAFETY_UPDATED,
+            snapshot: {
+              entries: next,
+              legacyProjection: legacy,
+            } as Prisma.InputJsonObject,
+          },
+        });
+        await tx.nutritionReport.updateMany({ where: { userId }, data: { acknowledgedAt: null } });
+      },
+      { timeout: 30_000 }
+    );
 
     return { ...preview, entries, changed: true };
   }

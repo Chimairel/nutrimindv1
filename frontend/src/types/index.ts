@@ -8,13 +8,15 @@ export type DietaryPreference = 'OMNIVORE' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARI
 
 export type CarbPreference = 'LOW' | 'MODERATE' | 'HIGH';
 
-export type HealthConditionType = 'DIABETES' | 'HYPERTENSION' | 'KIDNEY_DISEASE' | 'HEART_CONDITION' | 'PREGNANT' | 'NONE';
+export type HealthConditionType =
+  'DIABETES' | 'HYPERTENSION' | 'KIDNEY_DISEASE' | 'HEART_CONDITION' | 'PREGNANT' | 'NONE';
 
 export type AllergenType = 'SHELLFISH' | 'NUTS' | 'DAIRY' | 'GLUTEN' | 'EGGS' | 'NONE';
 
 export type SafetyEntryDomain = 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT';
 export type SafetyEntryProvenance = 'PREDEFINED' | 'CUSTOM' | 'LEGACY_MIGRATION';
-export type SafetySupportState = 'SUPPORTED' | 'RECOGNIZED_UNSUPPORTED' | 'NEEDS_CLARIFICATION' | 'PENDING_REVIEW' | 'INVALID';
+export type SafetySupportState =
+  'SUPPORTED' | 'RECOGNIZED_UNSUPPORTED' | 'NEEDS_CLARIFICATION' | 'PENDING_REVIEW' | 'INVALID';
 
 export interface SafetyProfileEntry {
   domain: SafetyEntryDomain;
@@ -113,9 +115,9 @@ export interface NutritionReport {
   generatedAt: string;
   acknowledgedAt?: string;
   foodsToAvoid: unknown; // JSON structure
-  foodsToLimit: unknown;  // JSON structure
+  foodsToLimit: unknown; // JSON structure
   foodsRecommended: unknown; // JSON structure
-  drinksGuidance: unknown;   // JSON structure
+  drinksGuidance: unknown; // JSON structure
   generalSummary: string;
   basedOnConditions: unknown;
   basedOnAllergies: unknown;
@@ -227,10 +229,7 @@ export interface DailyNutritionLog {
 
 export type BillingTier = 'FREE' | 'PREMIUM';
 export type BillingVerificationState =
-  | 'NONE'
-  | 'PAYMENT_VERIFICATION_PENDING'
-  | 'RECONCILIATION_PENDING'
-  | 'RECONCILIATION_REQUIRED';
+  'NONE' | 'PAYMENT_VERIFICATION_PENDING' | 'RECONCILIATION_PENDING' | 'RECONCILIATION_REQUIRED';
 
 export interface BillingAccessView {
   serverTime: string;

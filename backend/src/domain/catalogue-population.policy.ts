@@ -25,7 +25,7 @@ export function hasCurrentCatalogueDefinition(
       reasonCode?: unknown;
       evidenceSnapshot?: unknown;
     }[];
-  },
+  }
 ): boolean {
   if (candidate.safetyEvidenceStatus !== 'COMPLETE' || !Array.isArray(candidate.safetyReviews)) {
     return false;
@@ -34,11 +34,13 @@ export function hasCurrentCatalogueDefinition(
   const signature = catalogueDefinitionSignature(meal);
   return candidate.safetyReviews.some((review) => {
     const snapshot = review.evidenceSnapshot;
-    return review.reasonCode === CURRENT_CATALOGUE_REVIEW_REASON
-      && typeof snapshot === 'object'
-      && snapshot !== null
-      && !Array.isArray(snapshot)
-      && (snapshot as { signature?: unknown }).signature === signature;
+    return (
+      review.reasonCode === CURRENT_CATALOGUE_REVIEW_REASON &&
+      typeof snapshot === 'object' &&
+      snapshot !== null &&
+      !Array.isArray(snapshot) &&
+      (snapshot as { signature?: unknown }).signature === signature
+    );
   });
 }
 

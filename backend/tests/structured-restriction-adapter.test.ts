@@ -5,7 +5,11 @@ import { evaluateMealGenerationLibraryCompatibility } from '../src/domain/meal-g
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
 
-const completeCandidate = (conditions: string[] = [], allergenFree: string[] = [], detectedAllergens: string[] = []) => ({
+const completeCandidate = (
+  conditions: string[] = [],
+  allergenFree: string[] = [],
+  detectedAllergens: string[] = []
+) => ({
   status: 'APPROVED',
   suitableConditions: conditions,
   allergenFree,
@@ -17,8 +21,17 @@ const completeCandidate = (conditions: string[] = [], allergenFree: string[] = [
   ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
 });
 
-const entry = (domain: string, canonicalCode: string | null, supportState = 'SUPPORTED', displayName = canonicalCode || 'Custom') => ({
-  domain, canonicalCode, supportState, displayName, originalText: displayName,
+const entry = (
+  domain: string,
+  canonicalCode: string | null,
+  supportState = 'SUPPORTED',
+  displayName = canonicalCode || 'Custom'
+) => ({
+  domain,
+  canonicalCode,
+  supportState,
+  displayName,
+  originalText: displayName,
 });
 
 const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree: string[]) => ({
@@ -54,11 +67,7 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
 
 test('[TEST-074] structured entries are authoritative and aliases dedupe across entry paths', () => {
   const adapted = adaptUserSafetyRestrictions({
-    safetyEntries: [
-      entry('CONDITION', 'DIABETES'),
-      entry('ALLERGY', 'EGGS'),
-      entry('AVOIDED_INGREDIENT', 'EGGS'),
-    ],
+    safetyEntries: [entry('CONDITION', 'DIABETES'), entry('ALLERGY', 'EGGS'), entry('AVOIDED_INGREDIENT', 'EGGS')],
     healthConditions: ['HYPERTENSION'],
     allergies: ['DAIRY'],
   });
@@ -124,7 +133,11 @@ test('[TEST-075] required realistic structured combinations use conservative int
     },
     {
       label: 'multiple allergy intolerance avoidance with one conflict',
-      entries: [entry('ALLERGY', 'EGGS'), entry('INTOLERANCE', 'LACTOSE', 'RECOGNIZED_UNSUPPORTED', 'Lactose'), entry('AVOIDED_INGREDIENT', 'DAIRY')],
+      entries: [
+        entry('ALLERGY', 'EGGS'),
+        entry('INTOLERANCE', 'LACTOSE', 'RECOGNIZED_UNSUPPORTED', 'Lactose'),
+        entry('AVOIDED_INGREDIENT', 'DAIRY'),
+      ],
       candidate: completeCandidate([], ['EGGS', 'DAIRY'], ['DAIRY']),
       expected: 'BLOCK',
     },
@@ -162,23 +175,23 @@ test('[TEST-075] production compatibility intersects each exact structured profi
       diet: 'OMNIVORE',
       conditions: ['DIABETES', 'HYPERTENSION'],
       allergens: ['GLUTEN'],
-      entries: [
-        entry('CONDITION', 'DIABETES'),
-        entry('CONDITION', 'HYPERTENSION'),
-        entry('ALLERGY', 'GLUTEN'),
-      ],
+      entries: [entry('CONDITION', 'DIABETES'), entry('CONDITION', 'HYPERTENSION'), entry('ALLERGY', 'GLUTEN')],
     },
   ] as const;
 
   for (const profile of profiles) {
     const meal = certifiedMeal([profile.diet], [...profile.conditions], [...profile.allergens]);
-    assert.equal(isCertifiedLibraryMealCompatible(meal, [], [], {
-      dietaryPreference: profile.diet,
-      goal: 'MAINTAIN',
-      otherConditions: null,
-      otherAllergies: null,
-      safetyEntries: profile.entries,
-    }), true, profile.label);
+    assert.equal(
+      isCertifiedLibraryMealCompatible(meal, [], [], {
+        dietaryPreference: profile.diet,
+        goal: 'MAINTAIN',
+        otherConditions: null,
+        otherAllergies: null,
+        safetyEntries: profile.entries,
+      }),
+      true,
+      profile.label
+    );
   }
 
   const vegetarianProfile = profiles[0];
@@ -187,13 +200,17 @@ test('[TEST-075] production compatibility intersects each exact structured profi
     [...vegetarianProfile.conditions],
     [...vegetarianProfile.allergens]
   );
-  assert.equal(isCertifiedLibraryMealCompatible(restrictionCompatiblePescatarianMeal, [], [], {
-    dietaryPreference: vegetarianProfile.diet,
-    goal: 'MAINTAIN',
-    otherConditions: null,
-    otherAllergies: null,
-    safetyEntries: vegetarianProfile.entries,
-  }), false, 'a restriction-compatible meal with a mismatched diet tag must be denied');
+  assert.equal(
+    isCertifiedLibraryMealCompatible(restrictionCompatiblePescatarianMeal, [], [], {
+      dietaryPreference: vegetarianProfile.diet,
+      goal: 'MAINTAIN',
+      otherConditions: null,
+      otherAllergies: null,
+      safetyEntries: vegetarianProfile.entries,
+    }),
+    false,
+    'a restriction-compatible meal with a mismatched diet tag must be denied'
+  );
 });
 
 test('[TEST-075] precedence is BLOCK over REVIEW over ALLOW', () => {

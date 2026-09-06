@@ -35,15 +35,17 @@ async function main() {
   const p95Ms = durations[percentileIndex];
   const averageMs = durations.reduce((sum, value) => sum + value, 0) / durations.length;
 
-  console.log(JSON.stringify({
-    baseUrl,
-    requestCount,
-    concurrency,
-    failures,
-    averageMs: Number(averageMs.toFixed(1)),
-    p95Ms: Number(p95Ms.toFixed(1)),
-    p95LimitMs,
-  }));
+  console.log(
+    JSON.stringify({
+      baseUrl,
+      requestCount,
+      concurrency,
+      failures,
+      averageMs: Number(averageMs.toFixed(1)),
+      p95Ms: Number(p95Ms.toFixed(1)),
+      p95LimitMs,
+    })
+  );
   assert.equal(failures, 0, 'All health/readiness requests must succeed.');
   assert.ok(p95Ms <= p95LimitMs, `p95 ${p95Ms.toFixed(1)}ms exceeded ${p95LimitMs}ms.`);
 }

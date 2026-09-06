@@ -17,10 +17,7 @@ export function getManilaDateKey(value: Date | string | number = new Date()): st
   return year && month && day ? `${year}-${month}-${day}` : '';
 }
 
-export function formatManilaDate(
-  value: Date | string | number,
-  options: Intl.DateTimeFormatOptions
-): string {
+export function formatManilaDate(value: Date | string | number, options: Intl.DateTimeFormatOptions): string {
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat('en-US', {
     ...options,

@@ -52,7 +52,7 @@ export class UserPrivacyService {
       select: { id: true, role: true, passwordHash: true },
     });
     if (!user || user.role !== 'USER') throw new Error('Only patient accounts can use self-service deletion.');
-    if (!await bcrypt.compare(password, user.passwordHash)) throw new Error('Current password is incorrect.');
+    if (!(await bcrypt.compare(password, user.passwordHash))) throw new Error('Current password is incorrect.');
 
     await prisma.$transaction(async (tx) => {
       await tx.auditEvent.create({

@@ -1,12 +1,12 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
-import { 
-  MealType, 
-  MealLogSource, 
-  MealLogDataSource, 
-  MealLogStatus, 
-  HealthConditionType, 
-  AllergenType 
+import {
+  MealType,
+  MealLogSource,
+  MealLogDataSource,
+  MealLogStatus,
+  HealthConditionType,
+  AllergenType,
 } from '@prisma/client';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -38,7 +38,7 @@ export class MealLogService {
    * 1. Clinical conditions (sugar levels, high sodium)
    * 2. Food allergens (keyword ingredient mapping)
    * 3. Daily caloric budget overages
-   * 
+   *
    * If any conflict is found and warningAcknowledged is false, returns the warnings
    * to the client without saving.
    */
@@ -58,10 +58,13 @@ export class MealLogService {
             expiresAt: { gt: new Date() },
           },
         });
-        if (!preview) throw new Error('This warning preview expired or was already used. Please preview the meal again.');
+        if (!preview)
+          throw new Error('This warning preview expired or was already used. Please preview the meal again.');
 
         const estimate = preview.estimate as unknown as AIOutsideMealEstimate;
-        const warnings = Array.isArray(preview.warnings) ? preview.warnings.filter((item): item is string => typeof item === 'string') : [];
+        const warnings = Array.isArray(preview.warnings)
+          ? preview.warnings.filter((item): item is string => typeof item === 'string')
+          : [];
         const savedLog = await tx.mealLog.create({
           data: {
             userId,
@@ -115,11 +118,11 @@ export class MealLogService {
 
     // 2. Perform Gemini AI nutritional and ingredient estimation
     console.log(`[Meal Log] Querying Gemini AI estimation for outside meal: "${mealName}"`);
-    
-    const systemInstruction = 
-      "You are a clinical database dietitian specialized in estimating nutritional statistics for restaurant and home-cooked dishes in the Philippines.";
 
-    const prompt = 
+    const systemInstruction =
+      'You are a clinical database dietitian specialized in estimating nutritional statistics for restaurant and home-cooked dishes in the Philippines.';
+
+    const prompt =
       `Estimate the nutritional values and main ingredients of one standard serving of: "${mealName}".\n` +
       `Return a strict, valid JSON object with the following keys:\n` +
       `{\n` +
@@ -189,10 +192,29 @@ export class MealLogService {
 
     if (allergens.includes(AllergenType.SHELLFISH)) {
       const keywords = [
-        'shrimp', 'prawn', 'crab', 'lobster', 'shellfish', 'mussel', 'clam', 'oyster',
-        'scallop', 'squid', 'pusit', 'calamari', 'octopus',
-        'hipon', 'sugpo', 'alimango', 'alimasag', 'tahong', 'talaba', 'alamang',
-        'bagoong alamang', 'ginataang hipon', 'seafood',
+        'shrimp',
+        'prawn',
+        'crab',
+        'lobster',
+        'shellfish',
+        'mussel',
+        'clam',
+        'oyster',
+        'scallop',
+        'squid',
+        'pusit',
+        'calamari',
+        'octopus',
+        'hipon',
+        'sugpo',
+        'alimango',
+        'alimasag',
+        'tahong',
+        'talaba',
+        'alamang',
+        'bagoong alamang',
+        'ginataang hipon',
+        'seafood',
       ];
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
@@ -203,9 +225,24 @@ export class MealLogService {
 
     if (allergens.includes(AllergenType.NUTS)) {
       const keywords = [
-        'peanut', 'cashew', 'almond', 'walnut', 'pecan', 'pistachio', 'macadamia',
-        'hazelnut', 'pine nut', 'pili nut', 'pili', 'mani', 'kasuy',
-        'peanut butter', 'kare-kare', 'kare kare', 'satay', 'nut',
+        'peanut',
+        'cashew',
+        'almond',
+        'walnut',
+        'pecan',
+        'pistachio',
+        'macadamia',
+        'hazelnut',
+        'pine nut',
+        'pili nut',
+        'pili',
+        'mani',
+        'kasuy',
+        'peanut butter',
+        'kare-kare',
+        'kare kare',
+        'satay',
+        'nut',
       ];
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
@@ -216,10 +253,29 @@ export class MealLogService {
 
     if (allergens.includes(AllergenType.DAIRY)) {
       const keywords = [
-        'milk', 'cheese', 'butter', 'cream', 'yogurt', 'yoghurt', 'dairy',
-        'whey', 'casein', 'ghee', 'paneer', 'queso', 'keso',
-        'gatas', 'condensed milk', 'evaporated milk', 'powdered milk',
-        'cream cheese', 'sour cream', 'ice cream', 'mozzarella', 'parmesan', 'cheddar',
+        'milk',
+        'cheese',
+        'butter',
+        'cream',
+        'yogurt',
+        'yoghurt',
+        'dairy',
+        'whey',
+        'casein',
+        'ghee',
+        'paneer',
+        'queso',
+        'keso',
+        'gatas',
+        'condensed milk',
+        'evaporated milk',
+        'powdered milk',
+        'cream cheese',
+        'sour cream',
+        'ice cream',
+        'mozzarella',
+        'parmesan',
+        'cheddar',
       ];
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
@@ -230,24 +286,63 @@ export class MealLogService {
 
     if (allergens.includes(AllergenType.GLUTEN)) {
       const keywords = [
-        'wheat', 'flour', 'bread', 'gluten', 'pasta', 'spaghetti', 'macaroni',
-        'noodles', 'pancit', 'pansit', 'miki', 'bihon', 'sotanghon',
-        'pan de sal', 'pandesal', 'panko', 'breadcrumb', 'crouton',
-        'soy sauce', 'toyo', 'teriyaki', 'dumpling', 'siomai', 'wonton',
-        'ramen', 'udon', 'barley', 'couscous', 'seitan',
+        'wheat',
+        'flour',
+        'bread',
+        'gluten',
+        'pasta',
+        'spaghetti',
+        'macaroni',
+        'noodles',
+        'pancit',
+        'pansit',
+        'miki',
+        'bihon',
+        'sotanghon',
+        'pan de sal',
+        'pandesal',
+        'panko',
+        'breadcrumb',
+        'crouton',
+        'soy sauce',
+        'toyo',
+        'teriyaki',
+        'dumpling',
+        'siomai',
+        'wonton',
+        'ramen',
+        'udon',
+        'barley',
+        'couscous',
+        'seitan',
       ];
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
         detectedWarnings.push('ALLERGY');
-        conflictReasons.push(`Contains gluten/wheat indicator ("${hit}") matching your declared wheat/gluten restriction.`);
+        conflictReasons.push(
+          `Contains gluten/wheat indicator ("${hit}") matching your declared wheat/gluten restriction.`
+        );
       }
     }
 
     if (allergens.includes(AllergenType.EGGS)) {
       const keywords = [
-        'egg', 'itlog', 'mayo', 'mayonnaise', 'balut', 'penoy',
-        'meringue', 'custard', 'leche flan', 'flan', 'quiche',
-        'tortang', 'torta', 'omelette', 'omelet', 'scrambled',
+        'egg',
+        'itlog',
+        'mayo',
+        'mayonnaise',
+        'balut',
+        'penoy',
+        'meringue',
+        'custard',
+        'leche flan',
+        'flan',
+        'quiche',
+        'tortang',
+        'torta',
+        'omelette',
+        'omelet',
+        'scrambled',
       ];
       const hit = matchesAny(joinedIngs, keywords);
       if (hit) {
@@ -261,31 +356,80 @@ export class MealLogService {
     if (conditions.includes(HealthConditionType.HYPERTENSION)) {
       const highSodium = (estimate.sodium || 0) > 400;
       const sodiumKeywords = [
-        'chicharon', 'chicharron', 'spam', 'hotdog', 'hot dog', 'sausage', 'longganisa',
-        'instant noodle', 'lucky me', 'nissin', 'cup noodle',
-        'tuyo', 'daing', 'tinapa', 'patis', 'bagoong', 'soy sauce', 'toyo',
-        'salted', 'corned beef', 'canned', 'tocino', 'bacon', 'ham',
-        'sisig', 'lechon kawali',
+        'chicharon',
+        'chicharron',
+        'spam',
+        'hotdog',
+        'hot dog',
+        'sausage',
+        'longganisa',
+        'instant noodle',
+        'lucky me',
+        'nissin',
+        'cup noodle',
+        'tuyo',
+        'daing',
+        'tinapa',
+        'patis',
+        'bagoong',
+        'soy sauce',
+        'toyo',
+        'salted',
+        'corned beef',
+        'canned',
+        'tocino',
+        'bacon',
+        'ham',
+        'sisig',
+        'lechon kawali',
       ];
       if (highSodium || matchesAny(joinedIngs, sodiumKeywords)) {
         detectedWarnings.push('CONDITION');
-        conflictReasons.push(`High sodium estimated (${estimate.sodium}mg), which is medically unsafe for Hypertension.`);
+        conflictReasons.push(
+          `High sodium estimated (${estimate.sodium}mg), which is medically unsafe for Hypertension.`
+        );
       }
     }
 
     if (conditions.includes(HealthConditionType.DIABETES)) {
       const highSugar = (estimate.sugars || 0) > 15;
       const sugarKeywords = [
-        'sugar', 'sweet', 'cake', 'pastry', 'soda', 'coke', 'soft drink',
-        'juice', 'condensed milk', 'honey', 'syrup', 'maple',
-        'turon', 'bananacue', 'kamotecue', 'halo-halo', 'halo halo',
-        'leche flan', 'ube halaya', 'bibingka', 'puto',
-        'chocolate', 'candy', 'donut', 'doughnut', 'ice cream',
-        'gulaman', 'kalamay', 'sapin-sapin', 'sapin sapin',
+        'sugar',
+        'sweet',
+        'cake',
+        'pastry',
+        'soda',
+        'coke',
+        'soft drink',
+        'juice',
+        'condensed milk',
+        'honey',
+        'syrup',
+        'maple',
+        'turon',
+        'bananacue',
+        'kamotecue',
+        'halo-halo',
+        'halo halo',
+        'leche flan',
+        'ube halaya',
+        'bibingka',
+        'puto',
+        'chocolate',
+        'candy',
+        'donut',
+        'doughnut',
+        'ice cream',
+        'gulaman',
+        'kalamay',
+        'sapin-sapin',
+        'sapin sapin',
       ];
       if (highSugar || matchesAny(joinedIngs, sugarKeywords)) {
         detectedWarnings.push('CONDITION');
-        conflictReasons.push(`High simple sugar content estimated (${estimate.sugars}g), which may spike blood glucose for Diabetics.`);
+        conflictReasons.push(
+          `High simple sugar content estimated (${estimate.sugars}g), which may spike blood glucose for Diabetics.`
+        );
       }
     }
 
@@ -318,7 +462,9 @@ export class MealLogService {
 
     // If warnings exist and have NOT been acknowledged, return warnings payload
     if (detectedWarnings.length > 0 && !warningAcknowledged) {
-      console.log(`[Meal Log] Clinical warning flagged. Returning pre-check payload to client. Warnings: ${detectedWarnings.join(', ')}`);
+      console.log(
+        `[Meal Log] Clinical warning flagged. Returning pre-check payload to client. Warnings: ${detectedWarnings.join(', ')}`
+      );
       const preview = await prisma.outsideMealPreview.create({
         data: {
           userId,

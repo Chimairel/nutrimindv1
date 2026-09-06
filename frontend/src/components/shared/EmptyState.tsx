@@ -29,12 +29,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 p-4 text-brand-green shadow-cyan">
         {icon}
       </div>
-      <h3 className="text-lg font-bold tracking-tight text-brand-text mb-1.5 font-display">
-        {title}
-      </h3>
-      <p className="text-sm text-brand-muted leading-relaxed mb-6 px-4">
-        {description}
-      </p>
+      <h3 className="text-lg font-bold tracking-tight text-brand-text mb-1.5 font-display">{title}</h3>
+      <p className="text-sm text-brand-muted leading-relaxed mb-6 px-4">{description}</p>
       {actionText && onAction && (
         <Button variant="primary" onClick={onAction}>
           {actionText}

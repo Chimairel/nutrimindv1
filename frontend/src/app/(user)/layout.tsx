@@ -13,9 +13,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         <Sidebar />
         <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
           <Navbar />
-          <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-24 md:pb-4">
-            {children}
-          </main>
+          <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-24 md:pb-4">{children}</main>
         </div>
         <BottomNav />
       </div>

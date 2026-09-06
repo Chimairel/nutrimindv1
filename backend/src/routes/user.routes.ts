@@ -49,25 +49,62 @@ router.use(requireRole('USER'));
 /**
  * Onboarding Flow Endpoints
  */
-router.post('/onboarding/profile', requireVerifiedUser, validateZodBody(onboardingProfileSchema), UserController.updateProfile);
+router.post(
+  '/onboarding/profile',
+  requireVerifiedUser,
+  validateZodBody(onboardingProfileSchema),
+  UserController.updateProfile
+);
 router.get('/onboarding/suggestions', requireVerifiedUser, UserController.getSuggestions);
-router.post('/onboarding/conditions', requireVerifiedUser, validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
-router.post('/onboarding/allergies', requireVerifiedUser, validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
+router.post(
+  '/onboarding/conditions',
+  requireVerifiedUser,
+  validateZodBody(onboardingConditionsSchema),
+  UserController.updateConditions
+);
+router.post(
+  '/onboarding/allergies',
+  requireVerifiedUser,
+  validateZodBody(onboardingAllergiesSchema),
+  UserController.updateAllergies
+);
 router.get('/onboarding/safety-catalogue', requireVerifiedUser, UserController.getSafetyCatalogue);
-router.post('/onboarding/safety-preview', requireVerifiedUser, validateZodBody(structuredSafetyPreviewSchema), UserController.previewStructuredSafety);
-router.post('/onboarding/safety', requireVerifiedUser, validateZodBody(structuredSafetySaveSchema), UserController.saveStructuredSafety);
-router.post('/onboarding/shopping-day', requireVerifiedUser, validateZodBody(shoppingDaySchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { shoppingDayOfWeek } = req.body;
-    const { UserService } = await import('@/services/user.service');
-    const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayOfWeek);
-    return res.status(200).json({ success: true, data: profile });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.') });
+router.post(
+  '/onboarding/safety-preview',
+  requireVerifiedUser,
+  validateZodBody(structuredSafetyPreviewSchema),
+  UserController.previewStructuredSafety
+);
+router.post(
+  '/onboarding/safety',
+  requireVerifiedUser,
+  validateZodBody(structuredSafetySaveSchema),
+  UserController.saveStructuredSafety
+);
+router.post(
+  '/onboarding/shopping-day',
+  requireVerifiedUser,
+  validateZodBody(shoppingDaySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { shoppingDayOfWeek } = req.body;
+      const { UserService } = await import('@/services/user.service');
+      const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayOfWeek);
+      return res.status(200).json({ success: true, data: profile });
+    } catch (error: any) {
+      return res
+        .status(500)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.') });
+    }
   }
-});
+);
 router.post('/onboarding/tos', requireVerifiedUser, validateZodBody(consentSchema), UserController.acceptTos);
-router.post('/onboarding/complete', requireVerifiedUser, validateZodBody(emptyBodySchema), UserController.completeOnboarding);
+router.post(
+  '/onboarding/complete',
+  requireVerifiedUser,
+  validateZodBody(emptyBodySchema),
+  UserController.completeOnboarding
+);
 
 /**
  * Nutrition Report Endpoints
@@ -79,8 +116,19 @@ const requireReportEligible = requireUserPrerequisites({
 });
 router.get('/nutrition-report', requireReportEligible, UserController.getNutritionReport);
 router.get('/nutrition-report/pdf', requireReportEligible, UserController.downloadNutritionReportPdf);
-router.post('/nutrition-report/generate', requireReportEligible, geminiLimiter, validateZodBody(emptyBodySchema), UserController.generateReport);
-router.post('/nutrition-report/acknowledge', requireReportEligible, validateZodBody(emptyBodySchema), UserController.acknowledgeReport);
+router.post(
+  '/nutrition-report/generate',
+  requireReportEligible,
+  geminiLimiter,
+  validateZodBody(emptyBodySchema),
+  UserController.generateReport
+);
+router.post(
+  '/nutrition-report/acknowledge',
+  requireReportEligible,
+  validateZodBody(emptyBodySchema),
+  UserController.acknowledgeReport
+);
 
 // Every normal USER feature below this point requires the complete account
 // readiness chain. Frontend guards remain UX only.
@@ -101,39 +149,59 @@ router.get('/account/export', async (req: AuthenticatedRequest, res: Response) =
     res.setHeader('Content-Disposition', 'attachment; filename=nutrimind-account-export.json');
     return res.status(200).json(payload);
   } catch (error: unknown) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to export account data.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to export account data.') });
   }
 });
 
-router.delete('/account', validateZodBody(z.object({
-  password: z.string().min(8).max(128),
-  confirmation: z.literal('DELETE MY NUTRIMIND ACCOUNT'),
-})), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    await UserPrivacyService.deleteAccount(req.user!.userId, req.body.password);
-    res.clearCookie('nutrimind_refresh');
-    return res.status(200).json({ success: true });
-  } catch (error: unknown) {
-    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete account.') });
+router.delete(
+  '/account',
+  validateZodBody(
+    z.object({
+      password: z.string().min(8).max(128),
+      confirmation: z.literal('DELETE MY NUTRIMIND ACCOUNT'),
+    })
+  ),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      await UserPrivacyService.deleteAccount(req.user!.userId, req.body.password);
+      res.clearCookie('nutrimind_refresh');
+      return res.status(200).json({ success: true });
+    } catch (error: unknown) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete account.') });
+    }
   }
-});
+);
 
 router.get('/water/today', async (req: AuthenticatedRequest, res: Response) => {
   const data = await WaterService.getToday(req.user!.userId);
   return res.json({ success: true, data });
 });
-router.post('/water', validateZodBody(z.object({
-  amountMl: z.number().int().min(50).max(2000),
-})), async (req: AuthenticatedRequest, res: Response) => {
-  const data = await WaterService.add(req.user!.userId, req.body.amountMl);
-  return res.status(201).json({ success: true, data });
-});
-router.post('/water/remove', validateZodBody(z.object({
-  amountMl: z.number().int().min(50).max(2000),
-})), async (req: AuthenticatedRequest, res: Response) => {
-  const data = await WaterService.remove(req.user!.userId, req.body.amountMl);
-  return res.json({ success: true, data });
-});
+router.post(
+  '/water',
+  validateZodBody(
+    z.object({
+      amountMl: z.number().int().min(50).max(2000),
+    })
+  ),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const data = await WaterService.add(req.user!.userId, req.body.amountMl);
+    return res.status(201).json({ success: true, data });
+  }
+);
+router.post(
+  '/water/remove',
+  validateZodBody(
+    z.object({
+      amountMl: z.number().int().min(50).max(2000),
+    })
+  ),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const data = await WaterService.remove(req.user!.userId, req.body.amountMl);
+    return res.json({ success: true, data });
+  }
+);
 router.delete('/water/today', async (req: AuthenticatedRequest, res: Response) => {
   const data = await WaterService.resetToday(req.user!.userId);
   return res.json({ success: true, data });
@@ -153,7 +221,9 @@ router.get('/notifications', async (req: AuthenticatedRequest, res: Response) =>
     const unreadCount = await NotificationService.getUnreadCount(req.user!.userId);
     return res.json({ success: true, data: { notifications, unreadCount } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve notifications.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve notifications.') });
   }
 });
 
@@ -165,7 +235,9 @@ router.patch('/notifications/:id/read', async (req: AuthenticatedRequest, res: R
     await NotificationService.markAsRead(req.user!.userId, req.params.id);
     return res.json({ success: true });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to mark notification as read.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to mark notification as read.') });
   }
 });
 
@@ -182,7 +254,9 @@ router.get('/weight-log', async (req: AuthenticatedRequest, res: Response) => {
     const history = await WeightLogService.getWeightHistory(req.user!.userId);
     return res.json({ success: true, data: history });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve weight history.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve weight history.') });
   }
 });
 
@@ -194,7 +268,11 @@ router.post(
   '/weight-log',
   [
     body('weightKg').isFloat({ min: 30, max: 300 }).withMessage('Weight must be between 30 and 300 kg.').toFloat(),
-    body('note').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('Weight note must be 500 characters or fewer.'),
+    body('note')
+      .optional({ nullable: true })
+      .isString()
+      .isLength({ max: 500 })
+      .withMessage('Weight note must be 500 characters or fewer.'),
     validate,
   ],
   async (req: AuthenticatedRequest, res: Response) => {
@@ -203,7 +281,9 @@ router.post(
       const entry = await WeightLogService.logWeight(req.user!.userId, weightKg, note);
       return res.status(201).json({ success: true, data: entry });
     } catch (error: any) {
-      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to log weight entry.') });
+      return res
+        .status(500)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to log weight entry.') });
     }
   }
 );
@@ -221,7 +301,9 @@ router.get('/checkin/status', async (req: AuthenticatedRequest, res: Response) =
     const status = await CheckinService.getCheckinStatus(req.user!.userId);
     return res.json({ success: true, data: status });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve check-in status.') });
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve check-in status.') });
   }
 });
 
@@ -230,14 +312,18 @@ router.get('/checkin/status', async (req: AuthenticatedRequest, res: Response) =
  * Submits a weekly check-in.
  * Body: { changed: boolean, updates?: { weightKg?: number, activityLevel?: string, goal?: string } }
  */
-router.post('/checkin/submit', validateZodBody(weeklyCheckinSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { changed, updates } = req.body;
-    const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });
-    return res.json({ success: true, data: result });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to submit check-in.') });
+router.post(
+  '/checkin/submit',
+  validateZodBody(weeklyCheckinSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { changed, updates } = req.body;
+      const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });
+      return res.json({ success: true, data: result });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to submit check-in.') });
+    }
   }
-});
+);
 
 export default router;

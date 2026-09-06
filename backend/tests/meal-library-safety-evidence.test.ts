@@ -6,9 +6,7 @@ import {
   type MealLibrarySafetyCandidate,
 } from '../src/domain/meal-library-safety-evidence.policy';
 
-function certifiedCandidate(
-  overrides: Partial<MealLibrarySafetyCandidate> = {}
-): MealLibrarySafetyCandidate {
+function certifiedCandidate(overrides: Partial<MealLibrarySafetyCandidate> = {}): MealLibrarySafetyCandidate {
   return {
     status: 'APPROVED',
     safetyEvidenceStatus: 'COMPLETE',
@@ -50,9 +48,11 @@ test('[TEST-050] incomplete, stale, revision-mismatched, or unsupported evidence
 });
 
 test('[TEST-050] first-class ingredients must all be linked FNRI evidence', () => {
-  const estimated = evaluateMealLibrarySafetyEvidence(certifiedCandidate({
-    ingredients: [{ dataSource: 'GEMINI_ESTIMATED', foodItemId: null }],
-  }));
+  const estimated = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      ingredients: [{ dataSource: 'GEMINI_ESTIMATED', foodItemId: null }],
+    })
+  );
 
   assert.equal(estimated.complete, false);
   assert.ok(estimated.reasons.includes('NON_FNRI_LIBRARY_INGREDIENT'));
@@ -60,39 +60,41 @@ test('[TEST-050] first-class ingredients must all be linked FNRI evidence', () =
 });
 
 test('[TEST-050] exact declarations map without inferring custom or contradictory evidence', () => {
-  const result = evaluateMealLibrarySafetyEvidence(certifiedCandidate({
-    conditionDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
-    allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
-    safetyDeclarations: [
-      { declarationType: 'CONDITION_REVIEWED', canonicalKey: 'HYPERTENSION', customKey: null },
-      { declarationType: 'ALLERGEN_PRESENT', canonicalKey: 'NUTS', customKey: null },
-      { declarationType: 'ALLERGEN_REVIEWED_ABSENT', canonicalKey: 'DAIRY', customKey: null },
-    ],
-  }));
+  const result = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      conditionDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      safetyDeclarations: [
+        { declarationType: 'CONDITION_REVIEWED', canonicalKey: 'HYPERTENSION', customKey: null },
+        { declarationType: 'ALLERGEN_PRESENT', canonicalKey: 'NUTS', customKey: null },
+        { declarationType: 'ALLERGEN_REVIEWED_ABSENT', canonicalKey: 'DAIRY', customKey: null },
+      ],
+    })
+  );
 
   assert.equal(result.complete, true);
   assert.deepEqual(result.suitableConditions, ['HYPERTENSION']);
   assert.deepEqual(result.allergenFree, ['DAIRY']);
   assert.deepEqual(result.adapterEvidence.detectedAllergens, ['NUTS']);
 
-  const custom = evaluateMealLibrarySafetyEvidence(certifiedCandidate({
-    allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
-    safetyDeclarations: [
-      { declarationType: 'ALLERGEN_PRESENT', canonicalKey: null, customKey: 'SESAME' },
-    ],
-  }));
+  const custom = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      safetyDeclarations: [{ declarationType: 'ALLERGEN_PRESENT', canonicalKey: null, customKey: 'SESAME' }],
+    })
+  );
   assert.equal(custom.complete, false);
   assert.ok(custom.reasons.includes('UNSUPPORTED_DECLARATION_KEY'));
 });
 
 test('[TEST-050] missing cross-contact assessment and declaration state mismatches fail closed', () => {
-  const result = evaluateMealLibrarySafetyEvidence(certifiedCandidate({
-    crossContactAssessment: 'NOT_ASSESSED',
-    allergenDeclarationState: 'REVIEWED_NONE_DECLARED',
-    safetyDeclarations: [
-      { declarationType: 'ALLERGEN_REVIEWED_ABSENT', canonicalKey: 'DAIRY', customKey: null },
-    ],
-  }));
+  const result = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      crossContactAssessment: 'NOT_ASSESSED',
+      allergenDeclarationState: 'REVIEWED_NONE_DECLARED',
+      safetyDeclarations: [{ declarationType: 'ALLERGEN_REVIEWED_ABSENT', canonicalKey: 'DAIRY', customKey: null }],
+    })
+  );
 
   assert.equal(result.complete, false);
   assert.ok(result.reasons.includes('CROSS_CONTACT_NOT_CLEARED'));

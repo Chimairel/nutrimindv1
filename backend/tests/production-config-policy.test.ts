@@ -21,13 +21,16 @@ test('[TEST-063] production fails closed on absent, short, placeholder, or wildc
 });
 
 test('[TEST-064] production accepts exact origins, strong secrets, and the signed policy version', () => {
-  assert.deepEqual(validateProductionConfig({
-    NODE_ENV: 'production',
-    DATABASE_URL: 'postgresql://service:strong-value@database.invalid/nutrimind',
-    JWT_SECRET: 'a'.repeat(64),
-    JWT_REFRESH_SECRET: 'b'.repeat(64),
-    CRON_SECRET: 'c'.repeat(64),
-    CORS_ORIGINS: 'https://nutrimind.example.invalid',
-    CLINICAL_POLICY_APPROVED_VERSION: 'NUTRIMIND_CLINICAL_DRAFT_V1',
-  }), []);
+  assert.deepEqual(
+    validateProductionConfig({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://service:strong-value@database.invalid/nutrimind',
+      JWT_SECRET: 'a'.repeat(64),
+      JWT_REFRESH_SECRET: 'b'.repeat(64),
+      CRON_SECRET: 'c'.repeat(64),
+      CORS_ORIGINS: 'https://nutrimind.example.invalid',
+      CLINICAL_POLICY_APPROVED_VERSION: 'NUTRIMIND_CLINICAL_DRAFT_V1',
+    }),
+    []
+  );
 });

@@ -1,11 +1,11 @@
 import prisma from '@/lib/prisma';
 import { calculateDailyTarget } from '@/lib/calculations';
-import { 
-  Goal, 
-  ActivityLevel, 
-  DietaryPreference, 
-  CarbPreference, 
-  HealthConditionType, 
+import {
+  Goal,
+  ActivityLevel,
+  DietaryPreference,
+  CarbPreference,
+  HealthConditionType,
   AllergenType,
   MealPlanStatus,
   AIConfidenceFlag,
@@ -22,10 +22,7 @@ import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
 import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
 import { evaluateOnboardingStatus } from '@/domain/onboarding.policy';
-import {
-  certifiedLibraryMealInclude,
-  isCertifiedLibraryMealCompatible,
-} from './meal-swap.service';
+import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-swap.service';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
@@ -52,8 +49,16 @@ export class UserService {
   static async updateUserProfile(userId: string, data: ProfileUpdateData) {
     const safeData: ProfileUpdateData = {};
     const supportedFields: (keyof ProfileUpdateData)[] = [
-      'age', 'biologicalSex', 'heightCm', 'weightKg', 'targetWeightKg',
-      'goal', 'activityLevel', 'dietaryPreference', 'carbPreference', 'foodCulture',
+      'age',
+      'biologicalSex',
+      'heightCm',
+      'weightKg',
+      'targetWeightKg',
+      'goal',
+      'activityLevel',
+      'dietaryPreference',
+      'carbPreference',
+      'foodCulture',
     ];
     for (const field of supportedFields) {
       if (data[field] !== undefined) {
@@ -177,11 +182,7 @@ export class UserService {
     });
   }
 
-  static async updateAllergiesWithCustom(
-    userId: string,
-    allergies: AllergenType[],
-    otherAllergies: string
-  ) {
+  static async updateAllergiesWithCustom(userId: string, allergies: AllergenType[], otherAllergies: string) {
     await prisma.$transaction(async (tx) => {
       await tx.allergy.deleteMany({ where: { userId } });
       await tx.allergy.createMany({
@@ -226,12 +227,12 @@ export class UserService {
     if (!current) throw new Error('User not found.');
 
     const normalized = (values: readonly string[]) => [...new Set(values)].sort();
-    const conditionsChanged = JSON.stringify(normalized(current.healthConditions.map((item) => item.condition)))
-      !== JSON.stringify(normalized(conditions))
-      || (current.userProfile?.otherConditions || '') !== otherConditions;
-    const allergiesChanged = JSON.stringify(normalized(current.allergies.map((item) => item.allergen)))
-      !== JSON.stringify(normalized(allergies))
-      || (current.userProfile?.otherAllergies || '') !== otherAllergies;
+    const conditionsChanged =
+      JSON.stringify(normalized(current.healthConditions.map((item) => item.condition))) !==
+        JSON.stringify(normalized(conditions)) || (current.userProfile?.otherConditions || '') !== otherConditions;
+    const allergiesChanged =
+      JSON.stringify(normalized(current.allergies.map((item) => item.allergen))) !==
+        JSON.stringify(normalized(allergies)) || (current.userProfile?.otherAllergies || '') !== otherAllergies;
     const changed = conditionsChanged || allergiesChanged;
 
     if (!changed) {
@@ -329,9 +330,7 @@ export class UserService {
     if (!Number.isInteger(shoppingDayOfWeek) || shoppingDayOfWeek < 0 || shoppingDayOfWeek > 6) {
       throw new Error('Shopping day must be an integer from Sunday (0) to Saturday (6).');
     }
-    const shoppingDayGroup = shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6
-      ? 'WEEKEND'
-      : 'WEEKDAY';
+    const shoppingDayGroup = shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6 ? 'WEEKEND' : 'WEEKDAY';
     return prisma.userProfile.upsert({
       where: { userId },
       update: { shoppingDayGroup, shoppingDayOfWeek },
@@ -408,9 +407,7 @@ export class UserService {
       throw new Error('Onboarding statistics are incomplete.');
     }
 
-    const hasPregnantCondition = user.healthConditions.some(
-      (c) => c.condition === HealthConditionType.PREGNANT
-    );
+    const hasPregnantCondition = user.healthConditions.some((c) => c.condition === HealthConditionType.PREGNANT);
 
     // 2. Run calorie target calculations using biologicalSex from profile
     const calculations = calculateDailyTarget({
@@ -554,7 +551,23 @@ export class UserService {
 
     // 1. Check Allergen Keywords
     if (allergens.includes(AllergenType.SHELLFISH)) {
-      const keywords = ['shrimp', 'prawn', 'crab', 'lobster', 'shellfish', 'mussel', 'clam', 'oyster', 'hipon', 'alimango', 'alimasag', 'tahong', 'talaba', 'alamang', 'seafood'];
+      const keywords = [
+        'shrimp',
+        'prawn',
+        'crab',
+        'lobster',
+        'shellfish',
+        'mussel',
+        'clam',
+        'oyster',
+        'hipon',
+        'alimango',
+        'alimasag',
+        'tahong',
+        'talaba',
+        'alamang',
+        'seafood',
+      ];
       if (keywords.some((k) => joinedIngs.includes(k))) return true;
     }
 
@@ -564,12 +577,35 @@ export class UserService {
     }
 
     if (allergens.includes(AllergenType.DAIRY)) {
-      const keywords = ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'dairy', 'gatas', 'keso', 'condensed milk', 'evaporated milk'];
+      const keywords = [
+        'milk',
+        'cheese',
+        'butter',
+        'cream',
+        'yogurt',
+        'dairy',
+        'gatas',
+        'keso',
+        'condensed milk',
+        'evaporated milk',
+      ];
       if (keywords.some((k) => joinedIngs.includes(k))) return true;
     }
 
     if (allergens.includes(AllergenType.GLUTEN)) {
-      const keywords = ['wheat', 'flour', 'bread', 'gluten', 'pasta', 'spaghetti', 'macaroni', 'noodles', 'pan de sal', 'soy sauce', 'toyo'];
+      const keywords = [
+        'wheat',
+        'flour',
+        'bread',
+        'gluten',
+        'pasta',
+        'spaghetti',
+        'macaroni',
+        'noodles',
+        'pan de sal',
+        'soy sauce',
+        'toyo',
+      ];
       if (keywords.some((k) => joinedIngs.includes(k))) return true;
     }
 
@@ -580,12 +616,37 @@ export class UserService {
 
     // 2. Check Clinical Health Conditions
     if (conditions.includes(HealthConditionType.HYPERTENSION)) {
-      const sodiumKeywords = ['chicharon', 'spam', 'hotdog', 'sausage', 'instant noodle', 'tuyo', 'patis', 'bagoong', 'soy sauce', 'toyo', 'salted'];
+      const sodiumKeywords = [
+        'chicharon',
+        'spam',
+        'hotdog',
+        'sausage',
+        'instant noodle',
+        'tuyo',
+        'patis',
+        'bagoong',
+        'soy sauce',
+        'toyo',
+        'salted',
+      ];
       if (sodiumKeywords.some((k) => joinedIngs.includes(k))) return true;
     }
 
     if (conditions.includes(HealthConditionType.DIABETES)) {
-      const sugarKeywords = ['sugar', 'sweet', 'cake', 'pastry', 'soda', 'coke', 'juice', 'condensed milk', 'honey', 'syrup', 'turon', 'bananacue'];
+      const sugarKeywords = [
+        'sugar',
+        'sweet',
+        'cake',
+        'pastry',
+        'soda',
+        'coke',
+        'juice',
+        'condensed milk',
+        'honey',
+        'syrup',
+        'turon',
+        'bananacue',
+      ];
       if (sugarKeywords.some((k) => joinedIngs.includes(k))) return true;
     }
 
@@ -723,18 +784,20 @@ export class UserService {
 
       const eligibleMatches = eligibleLibraryMeals.filter((candidate) => {
         if (candidate.mealType !== meal.mealType || candidate.id === meal.libraryMealId) return false;
-        return !assignedLibraryMeals.some((assignment) =>
-          assignment.mealPlanId !== meal.id
-          && assignment.libraryMealId === candidate.id
-          && Math.abs(assignment.scheduledDate.getTime() - meal.scheduledDate.getTime()) < 3 * 86_400_000
+        return !assignedLibraryMeals.some(
+          (assignment) =>
+            assignment.mealPlanId !== meal.id &&
+            assignment.libraryMealId === candidate.id &&
+            Math.abs(assignment.scheduledDate.getTime() - meal.scheduledDate.getTime()) < 3 * 86_400_000
         );
       });
 
       if (eligibleMatches.length > 0) {
-        const unusedMatches = eligibleMatches.filter((candidate) =>
-          !assignedLibraryMeals.some((assignment) =>
-            assignment.mealPlanId !== meal.id && assignment.libraryMealId === candidate.id
-          )
+        const unusedMatches = eligibleMatches.filter(
+          (candidate) =>
+            !assignedLibraryMeals.some(
+              (assignment) => assignment.mealPlanId !== meal.id && assignment.libraryMealId === candidate.id
+            )
         );
         const rotationPool = unusedMatches.length > 0 ? unusedMatches : eligibleMatches;
         const minUsage = Math.min(...rotationPool.map((candidate) => candidate.usageCount));
@@ -810,9 +873,9 @@ export class UserService {
       } else {
         // Fallback: call Gemini AI to generate a single replacement
         console.log(`[Safety Recheck] No library matches. Generating single replacement via Gemini...`);
-        const systemInstruction = 
-          "You are a clinical dietitian generating a safe replacement meal for a patient with new health conditions.";
-        
+        const systemInstruction =
+          'You are a clinical dietitian generating a safe replacement meal for a patient with new health conditions.';
+
         const prompt =
           `Generate a single replacement ${meal.mealType} meal for a patient with these constraints:\n` +
           `- Daily Calorie Target: ${userProfile.dailyCalorieTarget || 2000} kcal (Aim for approx: breakfast 30%, lunch 40%, dinner 30%)\n` +

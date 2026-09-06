@@ -50,10 +50,7 @@ export default function OnboardingPreferencesPage() {
       router.push('/onboarding/conditions');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(
-          err.response?.data?.error || 
-          'Failed to save preferences. Please check your connection.'
-        );
+        setError(err.response?.data?.error || 'Failed to save preferences. Please check your connection.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -119,9 +116,7 @@ export default function OnboardingPreferencesPage() {
 
             {/* Dietary Preference Selector */}
             <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">
-                Dietary Pattern
-              </label>
+              <label className="text-sm font-bold tracking-wide text-brand-text/90">Dietary Pattern</label>
               <div className="flex flex-col gap-2.5">
                 {dietaryList.map((item) => {
                   const isSelected = dietary === item.value;
@@ -133,17 +128,24 @@ export default function OnboardingPreferencesPage() {
                       onClick={() => setDietary(item.value)}
                       className={`
                         flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
-                        ${isSelected 
-                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
-                          : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
+                        ${
+                          isSelected
+                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
                     >
                       <div>
-                        <h4 className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}>
+                        <h4
+                          className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}
+                        >
                           {item.label}
                         </h4>
-                        <p className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>{item.desc}</p>
+                        <p
+                          className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}
+                        >
+                          {item.desc}
+                        </p>
                       </div>
                       {isSelected && <Check className="w-4 h-4 text-white stroke-[3px] shrink-0" />}
                     </button>
@@ -154,9 +156,7 @@ export default function OnboardingPreferencesPage() {
 
             {/* Carb preference */}
             <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">
-                Carb Intake Target
-              </label>
+              <label className="text-sm font-bold tracking-wide text-brand-text/90">Carb Intake Target</label>
               <div className="grid grid-cols-3 gap-3">
                 {carbList.map((item) => {
                   const isSelected = carb === item.value;
@@ -168,9 +168,10 @@ export default function OnboardingPreferencesPage() {
                       onClick={() => setCarb(item.value)}
                       className={`
                         flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all duration-200 outline-none
-                        ${isSelected 
-                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5' 
-                          : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
+                        ${
+                          isSelected
+                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >

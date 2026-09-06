@@ -34,7 +34,7 @@ export const signRefreshToken = (payload: JWTPayload): string => {
 export const verifyAccessToken = (token: string): JWTPayload => {
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Access token is invalid or expired.');
   }
 };
@@ -46,7 +46,7 @@ export const verifyAccessToken = (token: string): JWTPayload => {
 export const verifyRefreshToken = (token: string): JWTPayload => {
   try {
     return jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Refresh token is invalid or expired.');
   }
 };

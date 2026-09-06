@@ -47,8 +47,18 @@ async function ensureExactCatalogue(prisma: PrismaClient): Promise<void> {
     });
   } else {
     assert.deepEqual(
-      { id: product.id, displayName: product.displayName, status: product.status, featureSetVersion: product.featureSetVersion },
-      { id: PRODUCT_ID, displayName: 'Premium monthly sandbox demo', status: 'ACTIVE', featureSetVersion: 'sandbox-demo-v1' },
+      {
+        id: product.id,
+        displayName: product.displayName,
+        status: product.status,
+        featureSetVersion: product.featureSetVersion,
+      },
+      {
+        id: PRODUCT_ID,
+        displayName: 'Premium monthly sandbox demo',
+        status: 'ACTIVE',
+        featureSetVersion: 'sandbox-demo-v1',
+      }
     );
   }
   const price = await prisma.billingPrice.findUnique({ where: { id: PRICE_ID } });
@@ -70,14 +80,27 @@ async function ensureExactCatalogue(prisma: PrismaClient): Promise<void> {
   } else {
     assert.deepEqual(
       {
-        productId: price.productId, provider: price.provider, environment: price.environment,
-        currency: price.currency, amountMinor: price.amountMinor, interval: price.interval,
-        intervalCount: price.intervalCount, version: price.version, isActive: price.isActive,
+        productId: price.productId,
+        provider: price.provider,
+        environment: price.environment,
+        currency: price.currency,
+        amountMinor: price.amountMinor,
+        interval: price.interval,
+        intervalCount: price.intervalCount,
+        version: price.version,
+        isActive: price.isActive,
       },
       {
-        productId: PRODUCT_ID, provider: 'PAYMONGO', environment: 'TEST', currency: 'PHP',
-        amountMinor: 19_900, interval: 'MONTH', intervalCount: 1, version: 1, isActive: true,
-      },
+        productId: PRODUCT_ID,
+        provider: 'PAYMONGO',
+        environment: 'TEST',
+        currency: 'PHP',
+        amountMinor: 19_900,
+        interval: 'MONTH',
+        intervalCount: 1,
+        version: 1,
+        isActive: true,
+      }
     );
   }
 }
@@ -91,61 +114,123 @@ async function main(): Promise<void> {
   if (!config.checkout.enabled) throw new Error('Sandbox checkout is not enabled for this process.');
   const webhookAcceptance = process.argv.includes('--webhook-acceptance');
   if (config.webhook.enabled !== webhookAcceptance) {
-    throw new Error(webhookAcceptance ? 'Webhook intake must be enabled for this acceptance.' : 'Webhook intake must remain disabled for this acceptance.');
+    throw new Error(
+      webhookAcceptance
+        ? 'Webhook intake must be enabled for this acceptance.'
+        : 'Webhook intake must remain disabled for this acceptance.'
+    );
   }
 
   const prisma = new PrismaClient();
   try {
     await prisma.user.createMany({
       data: [
-        { id: ACCEPTANCE_USER_ID, name: 'Sandbox Acceptance User', email: 'paymongo-user@example.invalid', passwordHash: 'not-authenticatable', role: 'USER', emailVerified: true },
-        { id: WRONG_ROLE_USER_ID, name: 'Sandbox Acceptance Admin', email: 'paymongo-admin@example.invalid', passwordHash: 'not-authenticatable', role: 'ADMIN', emailVerified: true },
+        {
+          id: ACCEPTANCE_USER_ID,
+          name: 'Sandbox Acceptance User',
+          email: 'paymongo-user@example.invalid',
+          passwordHash: 'not-authenticatable',
+          role: 'USER',
+          emailVerified: true,
+        },
+        {
+          id: WRONG_ROLE_USER_ID,
+          name: 'Sandbox Acceptance Admin',
+          email: 'paymongo-admin@example.invalid',
+          passwordHash: 'not-authenticatable',
+          role: 'ADMIN',
+          emailVerified: true,
+        },
       ],
       skipDuplicates: true,
     });
     await ensureExactCatalogue(prisma);
     const repository = new PrismaCheckoutIntentRepository(prisma);
-    assert.equal(await repository.findEligiblePrice({ userId: WRONG_ROLE_USER_ID, priceCode: 'PREMIUM', environment: 'TEST' }), null);
-    assert.equal(await repository.findEligiblePrice({ userId: 'unknown-user', priceCode: 'PREMIUM', environment: 'TEST' }), null);
+    assert.equal(
+      await repository.findEligiblePrice({ userId: WRONG_ROLE_USER_ID, priceCode: 'PREMIUM', environment: 'TEST' }),
+      null
+    );
+    assert.equal(
+      await repository.findEligiblePrice({ userId: 'unknown-user', priceCode: 'PREMIUM', environment: 'TEST' }),
+      null
+    );
 
     const collisionKey = `acceptance-collision-${randomUUID()}`;
-    const collisionClaim = await repository.claim({ userId: ACCEPTANCE_USER_ID, priceId: PRICE_ID, requestIdempotencyKey: collisionKey, requestHash: 'a'.repeat(64) });
+    const collisionClaim = await repository.claim({
+      userId: ACCEPTANCE_USER_ID,
+      priceId: PRICE_ID,
+      requestIdempotencyKey: collisionKey,
+      requestHash: 'a'.repeat(64),
+    });
     assert.equal(collisionClaim.decision, 'CREATE');
-    const collision = await repository.claim({ userId: ACCEPTANCE_USER_ID, priceId: PRICE_ID, requestIdempotencyKey: collisionKey, requestHash: 'b'.repeat(64) });
+    const collision = await repository.claim({
+      userId: ACCEPTANCE_USER_ID,
+      priceId: PRICE_ID,
+      requestIdempotencyKey: collisionKey,
+      requestHash: 'b'.repeat(64),
+    });
     assert.equal(collision.decision, 'CONFLICT');
 
     const retryKey = `acceptance-retry-${randomUUID()}`;
-    const firstClaim = await repository.claim({ userId: ACCEPTANCE_USER_ID, priceId: PRICE_ID, requestIdempotencyKey: retryKey, requestHash: 'c'.repeat(64) });
+    const firstClaim = await repository.claim({
+      userId: ACCEPTANCE_USER_ID,
+      priceId: PRICE_ID,
+      requestIdempotencyKey: retryKey,
+      requestHash: 'c'.repeat(64),
+    });
     assert.equal(firstClaim.decision, 'CREATE');
     if (firstClaim.decision !== 'CREATE') throw new Error('Expected initial claim.');
     await repository.release({
-      userId: ACCEPTANCE_USER_ID, priceId: PRICE_ID, requestIdempotencyKey: retryKey,
-      claimToken: firstClaim.claimToken, failureCode: 'PROVIDER_TEMPORARILY_UNAVAILABLE',
+      userId: ACCEPTANCE_USER_ID,
+      priceId: PRICE_ID,
+      requestIdempotencyKey: retryKey,
+      claimToken: firstClaim.claimToken,
+      failureCode: 'PROVIDER_TEMPORARILY_UNAVAILABLE',
     });
-    const reclaimed = await repository.claim({ userId: ACCEPTANCE_USER_ID, priceId: PRICE_ID, requestIdempotencyKey: retryKey, requestHash: 'c'.repeat(64) });
+    const reclaimed = await repository.claim({
+      userId: ACCEPTANCE_USER_ID,
+      priceId: PRICE_ID,
+      requestIdempotencyKey: retryKey,
+      requestHash: 'c'.repeat(64),
+    });
     assert.equal(reclaimed.decision, 'CREATE');
     if (reclaimed.decision !== 'CREATE') throw new Error('Expected reclaimed request.');
     assert.equal(reclaimed.providerIdempotencyKey, firstClaim.providerIdempotencyKey);
     assert.equal(reclaimed.referenceNumber, firstClaim.referenceNumber);
     assert.notEqual(reclaimed.claimToken, firstClaim.claimToken);
     await repository.release({
-      userId: ACCEPTANCE_USER_ID, priceId: PRICE_ID, requestIdempotencyKey: retryKey,
-      claimToken: reclaimed.claimToken, failureCode: 'PROVIDER_REQUEST_REJECTED:ACCEPTANCE_TERMINAL',
+      userId: ACCEPTANCE_USER_ID,
+      priceId: PRICE_ID,
+      requestIdempotencyKey: retryKey,
+      claimToken: reclaimed.claimToken,
+      failureCode: 'PROVIDER_REQUEST_REJECTED:ACCEPTANCE_TERMINAL',
     });
 
     const transport = new CountingTransport(new NodeHttpsBillingTransport());
-    const boundary = new BillingCheckoutBoundary(config.checkout, repository, new PaymongoGateway(config.checkout, transport));
+    const boundary = new BillingCheckoutBoundary(
+      config.checkout,
+      repository,
+      new PaymongoGateway(config.checkout, transport)
+    );
     const providerKey = `acceptance-provider-${randomUUID()}`;
     let providerOutcome = 'SUCCEEDED';
     let sessionId: string | undefined;
     let checkoutUrl: string | undefined;
     try {
-      const first = await boundary.create({ userId: ACCEPTANCE_USER_ID, priceCode: 'PREMIUM', requestIdempotencyKey: providerKey });
+      const first = await boundary.create({
+        userId: ACCEPTANCE_USER_ID,
+        priceCode: 'PREMIUM',
+        requestIdempotencyKey: providerKey,
+      });
       assert.equal(first.livemode, false);
       assert.equal(first.entitlementGranted, false);
       sessionId = first.providerSessionId;
       checkoutUrl = first.checkoutUrl;
-      const replay = await boundary.create({ userId: ACCEPTANCE_USER_ID, priceCode: 'PREMIUM', requestIdempotencyKey: providerKey });
+      const replay = await boundary.create({
+        userId: ACCEPTANCE_USER_ID,
+        priceCode: 'PREMIUM',
+        requestIdempotencyKey: providerKey,
+      });
       assert.equal(replay.providerSessionId, first.providerSessionId);
       assert.equal(replay.entitlementGranted, false);
     } catch (error) {
@@ -153,7 +238,7 @@ async function main(): Promise<void> {
       providerOutcome = error.code;
       await assert.rejects(
         () => boundary.create({ userId: ACCEPTANCE_USER_ID, priceCode: 'PREMIUM', requestIdempotencyKey: providerKey }),
-        (replayError: unknown) => replayError instanceof CheckoutBoundaryError && replayError.code === error.code,
+        (replayError: unknown) => replayError instanceof CheckoutBoundaryError && replayError.code === error.code
       );
     }
     assert.equal(transport.calls, 1);
@@ -167,7 +252,12 @@ async function main(): Promise<void> {
     assert.equal(JSON.stringify(persisted).includes(configuredSecret), false);
     assert.equal(persisted.environment, 'TEST');
     assert.equal(persisted.attemptCount, 1);
-    assert.equal(persisted.auditEvents.some((event) => event.eventType === 'REPLAYED') || persisted.status === 'FAILED' || persisted.status === 'RETRYABLE', true);
+    assert.equal(
+      persisted.auditEvents.some((event) => event.eventType === 'REPLAYED') ||
+        persisted.status === 'FAILED' ||
+        persisted.status === 'RETRYABLE',
+      true
+    );
     const projections = {
       subscriptions: await prisma.userSubscription.count(),
       invoices: await prisma.billingInvoice.count(),
@@ -176,23 +266,36 @@ async function main(): Promise<void> {
       ledgerEntries: await prisma.financialLedgerEntry.count(),
       entitlements: await prisma.entitlementGrant.count(),
     };
-    assert.deepEqual(projections, { subscriptions: 0, invoices: 0, attempts: 0, transactions: 0, ledgerEntries: 0, entitlements: 0 });
+    assert.deepEqual(projections, {
+      subscriptions: 0,
+      invoices: 0,
+      attempts: 0,
+      transactions: 0,
+      ledgerEntries: 0,
+      entitlements: 0,
+    });
 
-    process.stdout.write(`${JSON.stringify({
-      providerCalls: transport.calls,
-      providerOutcome,
-      providerSessionId: sessionId,
-      ...(webhookAcceptance ? { checkoutUrl } : {}),
-      persistedStatus: persisted.status,
-      persistedFailureCode: persisted.failureCode,
-      auditEventCount: persisted.auditEvents.length,
-      exactReplayAvoidedSecondProviderCall: true,
-      wrongRoleDenied: true,
-      unknownUserDenied: true,
-      retryReusedProviderIdempotencyKey: true,
-      configuredSecretAbsentFromPersistence: true,
-      projections,
-    }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          providerCalls: transport.calls,
+          providerOutcome,
+          providerSessionId: sessionId,
+          ...(webhookAcceptance ? { checkoutUrl } : {}),
+          persistedStatus: persisted.status,
+          persistedFailureCode: persisted.failureCode,
+          auditEventCount: persisted.auditEvents.length,
+          exactReplayAvoidedSecondProviderCall: true,
+          wrongRoleDenied: true,
+          unknownUserDenied: true,
+          retryReusedProviderIdempotencyKey: true,
+          configuredSecretAbsentFromPersistence: true,
+          projections,
+        },
+        null,
+        2
+      )}\n`
+    );
   } finally {
     await prisma.$disconnect();
   }

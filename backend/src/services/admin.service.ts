@@ -93,12 +93,7 @@ export class AdminService {
     return { success: true };
   }
 
-  static async setUserSuspension(
-    adminUserId: string,
-    targetUserId: string,
-    suspended: boolean,
-    reason?: string
-  ) {
+  static async setUserSuspension(adminUserId: string, targetUserId: string, suspended: boolean, reason?: string) {
     if (adminUserId === targetUserId) throw new Error('Administrators cannot suspend their own active account.');
     const target = await prisma.user.findUnique({ where: { id: targetUserId } });
     if (!target) throw new Error('User not found.');
@@ -235,7 +230,9 @@ export class AdminService {
       prisma.mealPlanGenerationJob.count({ where: { status: 'GENERATING', updatedAt: { lt: twentyMinutesAgo } } }),
       prisma.aiUsageEvent.count({ where: { status: 'SUCCESS', createdAt: { gte: twentyFourHoursAgo } } }),
       prisma.aiUsageEvent.count({ where: { status: 'FAILED', createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.weeklyCheckin.count({ where: { adaptationState: 'REVIEW_RECOMMENDED', createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.weeklyCheckin.count({
+        where: { adaptationState: 'REVIEW_RECOMMENDED', createdAt: { gte: thirtyDaysAgo } },
+      }),
       prisma.mealPlan.count({
         where: {
           status: 'PENDING_REVIEW',

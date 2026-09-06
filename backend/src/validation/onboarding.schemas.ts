@@ -11,48 +11,69 @@ const allergySchema = z.enum(['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS', 'N
 const safetyDomainSchema = z.enum(['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']);
 const safetyProvenanceSchema = z.enum(['PREDEFINED', 'CUSTOM']);
 
-export const structuredSafetyItemSchema = z.object({
-  domain: safetyDomainSchema,
-  value: z.string().trim().min(1).max(500),
-  provenance: safetyProvenanceSchema,
-}).strict();
+export const structuredSafetyItemSchema = z
+  .object({
+    domain: safetyDomainSchema,
+    value: z.string().trim().min(1).max(500),
+    provenance: safetyProvenanceSchema,
+  })
+  .strict();
 
-export const structuredSafetyPreviewSchema = z.object({
-  entries: z.array(structuredSafetyItemSchema).max(80),
-}).strict();
+export const structuredSafetyPreviewSchema = z
+  .object({
+    entries: z.array(structuredSafetyItemSchema).max(80),
+  })
+  .strict();
 
-export const structuredSafetySaveSchema = z.object({
-  entries: z.array(structuredSafetyItemSchema).max(80),
-  confirmed: z.literal(true),
-}).strict();
+export const structuredSafetySaveSchema = z
+  .object({
+    entries: z.array(structuredSafetyItemSchema).max(80),
+    confirmed: z.literal(true),
+  })
+  .strict();
 
-export const onboardingProfileSchema = z.object({
-  age: z.coerce.number().int().min(18).max(100).optional(),
-  biologicalSex: sexSchema.optional(),
-  heightCm: z.coerce.number().min(100).max(250).optional(),
-  weightKg: z.coerce.number().min(30).max(300).optional(),
-  targetWeightKg: z.coerce.number().min(30).max(300).optional(),
-  goal: goalSchema.optional(),
-  activityLevel: activitySchema.optional(),
-  dietaryPreference: dietarySchema.optional(),
-  carbPreference: carbSchema.optional(),
-  foodCulture: z.string().trim().min(1).max(80).optional(),
-}).strict().superRefine((data, ctx) => {
-  if (Object.keys(data).length === 0) {
-    ctx.addIssue({ code: 'custom', message: 'At least one supported profile field is required.' });
-  }
-  if (data.weightKg === undefined || data.targetWeightKg === undefined || !data.goal) return;
+export const onboardingProfileSchema = z
+  .object({
+    age: z.coerce.number().int().min(18).max(100).optional(),
+    biologicalSex: sexSchema.optional(),
+    heightCm: z.coerce.number().min(100).max(250).optional(),
+    weightKg: z.coerce.number().min(30).max(300).optional(),
+    targetWeightKg: z.coerce.number().min(30).max(300).optional(),
+    goal: goalSchema.optional(),
+    activityLevel: activitySchema.optional(),
+    dietaryPreference: dietarySchema.optional(),
+    carbPreference: carbSchema.optional(),
+    foodCulture: z.string().trim().min(1).max(80).optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (Object.keys(data).length === 0) {
+      ctx.addIssue({ code: 'custom', message: 'At least one supported profile field is required.' });
+    }
+    if (data.weightKg === undefined || data.targetWeightKg === undefined || !data.goal) return;
 
-  if ((data.goal === 'GAIN_WEIGHT' || data.goal === 'BUILD_MUSCLE') && data.targetWeightKg < data.weightKg) {
-    ctx.addIssue({ code: 'custom', path: ['targetWeightKg'], message: 'Target weight must be at least the current weight for this goal.' });
-  }
-  if (data.goal === 'LOSE_WEIGHT' && data.targetWeightKg > data.weightKg) {
-    ctx.addIssue({ code: 'custom', path: ['targetWeightKg'], message: 'Target weight must not exceed the current weight for this goal.' });
-  }
-  if (data.goal === 'MAINTAIN' && data.targetWeightKg !== data.weightKg) {
-    ctx.addIssue({ code: 'custom', path: ['targetWeightKg'], message: 'Target weight must equal current weight for a maintain goal.' });
-  }
-});
+    if ((data.goal === 'GAIN_WEIGHT' || data.goal === 'BUILD_MUSCLE') && data.targetWeightKg < data.weightKg) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['targetWeightKg'],
+        message: 'Target weight must be at least the current weight for this goal.',
+      });
+    }
+    if (data.goal === 'LOSE_WEIGHT' && data.targetWeightKg > data.weightKg) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['targetWeightKg'],
+        message: 'Target weight must not exceed the current weight for this goal.',
+      });
+    }
+    if (data.goal === 'MAINTAIN' && data.targetWeightKg !== data.weightKg) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['targetWeightKg'],
+        message: 'Target weight must equal current weight for a maintain goal.',
+      });
+    }
+  });
 
 function rejectNoneContradictions(values: readonly string[], ctx: z.RefinementCtx) {
   if (values.includes('NONE') && values.length > 1) {
@@ -60,53 +81,82 @@ function rejectNoneContradictions(values: readonly string[], ctx: z.RefinementCt
   }
 }
 
-export const onboardingConditionsSchema = z.object({
-  conditions: z.array(conditionSchema).min(1).max(6),
-  otherConditions: z.string().trim().max(500).optional(),
-}).strict().superRefine((data, ctx) => {
-  rejectNoneContradictions(data.conditions, ctx);
-  if (data.conditions.includes('NONE') && data.otherConditions) {
-    ctx.addIssue({ code: 'custom', path: ['otherConditions'], message: 'Custom conditions cannot be combined with NONE.' });
-  }
-});
+export const onboardingConditionsSchema = z
+  .object({
+    conditions: z.array(conditionSchema).min(1).max(6),
+    otherConditions: z.string().trim().max(500).optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    rejectNoneContradictions(data.conditions, ctx);
+    if (data.conditions.includes('NONE') && data.otherConditions) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['otherConditions'],
+        message: 'Custom conditions cannot be combined with NONE.',
+      });
+    }
+  });
 
-export const onboardingAllergiesSchema = z.object({
-  allergies: z.array(allergySchema).min(1).max(6),
-  otherAllergies: z.string().trim().max(500).optional(),
-}).strict().superRefine((data, ctx) => {
-  rejectNoneContradictions(data.allergies, ctx);
-  if (data.allergies.includes('NONE') && data.otherAllergies) {
-    ctx.addIssue({ code: 'custom', path: ['otherAllergies'], message: 'Custom allergies cannot be combined with NONE.' });
-  }
-});
+export const onboardingAllergiesSchema = z
+  .object({
+    allergies: z.array(allergySchema).min(1).max(6),
+    otherAllergies: z.string().trim().max(500).optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    rejectNoneContradictions(data.allergies, ctx);
+    if (data.allergies.includes('NONE') && data.otherAllergies) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['otherAllergies'],
+        message: 'Custom allergies cannot be combined with NONE.',
+      });
+    }
+  });
 
-export const profileSafetySchema = z.object({
-  conditions: z.array(conditionSchema).min(1).max(6),
-  otherConditions: z.string().trim().max(500).optional(),
-  allergies: z.array(allergySchema).min(1).max(6),
-  otherAllergies: z.string().trim().max(500).optional(),
-}).strict().superRefine((data, ctx) => {
-  rejectNoneContradictions(data.conditions, ctx);
-  rejectNoneContradictions(data.allergies, ctx);
-  if (data.conditions.includes('NONE') && data.otherConditions) {
-    ctx.addIssue({ code: 'custom', path: ['otherConditions'], message: 'Custom conditions cannot be combined with NONE.' });
-  }
-  if (data.allergies.includes('NONE') && data.otherAllergies) {
-    ctx.addIssue({ code: 'custom', path: ['otherAllergies'], message: 'Custom allergies cannot be combined with NONE.' });
-  }
-});
+export const profileSafetySchema = z
+  .object({
+    conditions: z.array(conditionSchema).min(1).max(6),
+    otherConditions: z.string().trim().max(500).optional(),
+    allergies: z.array(allergySchema).min(1).max(6),
+    otherAllergies: z.string().trim().max(500).optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    rejectNoneContradictions(data.conditions, ctx);
+    rejectNoneContradictions(data.allergies, ctx);
+    if (data.conditions.includes('NONE') && data.otherConditions) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['otherConditions'],
+        message: 'Custom conditions cannot be combined with NONE.',
+      });
+    }
+    if (data.allergies.includes('NONE') && data.otherAllergies) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['otherAllergies'],
+        message: 'Custom allergies cannot be combined with NONE.',
+      });
+    }
+  });
 
-export const shoppingDaySchema = z.object({
-  shoppingDayOfWeek: z.number().int().min(0).max(6),
-}).strict();
+export const shoppingDaySchema = z
+  .object({
+    shoppingDayOfWeek: z.number().int().min(0).max(6),
+  })
+  .strict();
 
-export const consentSchema = z.object({
-  termsVersion: z.literal(CURRENT_TERMS_VERSION),
-  privacyVersion: z.literal(CURRENT_PRIVACY_VERSION),
-  medicalDisclaimerAccepted: z.literal(true),
-  privacyPolicyAccepted: z.literal(true),
-  healthDataProcessingAccepted: z.literal(true),
-}).strict();
+export const consentSchema = z
+  .object({
+    termsVersion: z.literal(CURRENT_TERMS_VERSION),
+    privacyVersion: z.literal(CURRENT_PRIVACY_VERSION),
+    medicalDisclaimerAccepted: z.literal(true),
+    privacyPolicyAccepted: z.literal(true),
+    healthDataProcessingAccepted: z.literal(true),
+  })
+  .strict();
 
 export const emptyBodySchema = z.object({}).strict();
 

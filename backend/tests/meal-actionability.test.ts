@@ -46,10 +46,7 @@ test('[TEST-013] unknown, null, and unsupported statuses default to non-actionab
 
 test('[TEST-013] APPROVED meals remain actionable on current and future Manila business dates', () => {
   assert.equal(isUserActionableMealPlan(plan(MealPlanStatus.APPROVED), now), true);
-  assert.equal(
-    isUserActionableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now),
-    true
-  );
+  assert.equal(isUserActionableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now), true);
 });
 
 test('[TEST-014] expired schedules are non-actionable at the Asia/Manila boundary', () => {
@@ -95,18 +92,21 @@ test('[TEST-013] planned logging accepts an approved current plan and rejects ot
     plan(MealPlanStatus.CANCELLED),
     plan(MealPlanStatus.APPROVED, expiredSchedule),
   ]) {
-    assert.throws(
-      () => assertUserActionableMealPlan(candidate, now),
-      MealPlanNotActionableError
-    );
+    assert.throws(() => assertUserActionableMealPlan(candidate, now), MealPlanNotActionableError);
   }
 });
 
 test('[TEST-058] legacy approved plans fail closed until current-policy safety revalidation', () => {
-  assert.equal(isUserActionableMealPlan({
-    ...plan(MealPlanStatus.APPROVED),
-    requiresSafetyRevalidation: true,
-  }, now), false);
+  assert.equal(
+    isUserActionableMealPlan(
+      {
+        ...plan(MealPlanStatus.APPROVED),
+        requiresSafetyRevalidation: true,
+      },
+      now
+    ),
+    false
+  );
 });
 
 test('[TEST-013] done and skipped mutations share the same actionability guard', () => {
@@ -117,10 +117,7 @@ test('[TEST-013] done and skipped mutations share the same actionability guard',
 });
 
 test('[TEST-013] swap originals share the same actionability guard', () => {
-  assert.throws(
-    () => assertUserActionableMealPlan(plan(MealPlanStatus.REJECTED), now),
-    MealPlanNotActionableError
-  );
+  assert.throws(() => assertUserActionableMealPlan(plan(MealPlanStatus.REJECTED), now), MealPlanNotActionableError);
 });
 
 test('[TEST-014] current-plan and grocery database filters require approval and a current schedule', () => {
@@ -154,7 +151,9 @@ test('[TEST-014] nutrition totals include outside logs and approved-plan logs on
     true
   );
   assert.equal(
-    isNutritionEligibleMealLog({ mealPlan: { status: MealPlanStatus.PENDING_REVIEW, requiresSafetyRevalidation: false } }),
+    isNutritionEligibleMealLog({
+      mealPlan: { status: MealPlanStatus.PENDING_REVIEW, requiresSafetyRevalidation: false },
+    }),
     false
   );
   assert.equal(
@@ -162,10 +161,7 @@ test('[TEST-014] nutrition totals include outside logs and approved-plan logs on
     false
   );
   assert.deepEqual(getNutritionEligibleMealLogWhere(), {
-    OR: [
-      { mealPlanId: null },
-      { mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } },
-    ],
+    OR: [{ mealPlanId: null }, { mealPlan: { status: MealPlanStatus.APPROVED, requiresSafetyRevalidation: false } }],
   });
 });
 
@@ -179,10 +175,7 @@ test('[TEST-013] only APPROVED library meals are replacement candidates', () => 
 });
 
 test('[TEST-014] nutritionist review policy still includes pending-review meals', () => {
-  assert.equal(
-    isNutritionistReviewableMealPlanStatus(MealPlanStatus.PENDING_REVIEW),
-    true
-  );
+  assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.PENDING_REVIEW), true);
   assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.APPROVED), false);
   assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.REJECTED), false);
   assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.CANCELLED), false);

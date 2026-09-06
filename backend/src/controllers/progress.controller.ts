@@ -2,12 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { ProgressService } from '@/services/progress.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
-import {
-  MAX_WEIGHT_KG,
-  MIN_WEIGHT_KG,
-  isSupportedWeightKg,
-  normalizeWeightNote,
-} from '@/policies/weight-entry.policy';
+import { MAX_WEIGHT_KG, MIN_WEIGHT_KG, isSupportedWeightKg, normalizeWeightNote } from '@/policies/weight-entry.policy';
 
 export class ProgressController {
   /**

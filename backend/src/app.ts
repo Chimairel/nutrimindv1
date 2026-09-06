@@ -30,11 +30,12 @@ const configuredCorsOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_
   .map((origin) => origin.trim().replace(/\/$/, ''))
   .filter(Boolean);
 
-const allowedCorsOrigins = configuredCorsOrigins.length > 0
-  ? configuredCorsOrigins
-  : process.env.NODE_ENV === 'production'
-    ? []
-    : ['http://localhost:3000', 'http://localhost:3001'];
+const allowedCorsOrigins =
+  configuredCorsOrigins.length > 0
+    ? configuredCorsOrigins
+    : process.env.NODE_ENV === 'production'
+      ? []
+      : ['http://localhost:3000', 'http://localhost:3001'];
 
 // Apply security and global middleware
 app.use(helmet());
@@ -43,14 +44,16 @@ app.use((req, res, next) => {
   res.setHeader('x-request-id', requestId);
   const startedAt = Date.now();
   res.on('finish', () => {
-    console.log(JSON.stringify({
-      type: 'http_request',
-      requestId,
-      method: req.method,
-      path: req.path,
-      status: res.statusCode,
-      durationMs: Date.now() - startedAt,
-    }));
+    console.log(
+      JSON.stringify({
+        type: 'http_request',
+        requestId,
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        durationMs: Date.now() - startedAt,
+      })
+    );
   });
   next();
 });
@@ -111,4 +114,3 @@ app.get('/ready', async (_req: Request, res: Response) => {
 });
 
 export default app;
-

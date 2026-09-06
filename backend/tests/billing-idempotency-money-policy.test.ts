@@ -39,7 +39,7 @@ test('[TEST-081] provider event and outbound operation keys are deterministic an
   assert.notEqual(buildProviderEventKey(event), buildProviderEventKey({ ...event, environment: 'LIVE' }));
   assert.equal(
     buildOperationIdempotencyKey({ operation: 'subscription-create', aggregateId: 'subject_1', version: 2 }),
-    'nutrimind:subscription-create:subject_1:v2',
+    'nutrimind:subscription-create:subject_1:v2'
   );
 });
 
@@ -48,11 +48,11 @@ test('[TEST-081] malformed event hashes, identifiers, and operation versions fai
   assert.throws(() => buildProviderEventKey({ ...event, providerEventId: 'evt with spaces' }), /invalid/);
   assert.throws(
     () => buildOperationIdempotencyKey({ operation: 'refund', aggregateId: 'refund-1', version: 0 }),
-    /positive safe integer/,
+    /positive safe integer/
   );
   assert.throws(
     () => buildOperationIdempotencyKey({ operation: 'x'.repeat(80), aggregateId: 'y'.repeat(80), version: 1 }),
-    /exceeds the persistence limit/,
+    /exceeds the persistence limit/
   );
 });
 
@@ -66,7 +66,7 @@ test('[TEST-081] money accepts integer minor units and rejects floating, zero, n
   assert.throws(() => assertPositiveMoney({ amountMinor: -1, currency: 'PHP' }), /greater than zero/);
   assert.throws(
     () => assertPositiveMoney({ amountMinor: MAX_POSTGRES_INTEGER + 1, currency: 'PHP' }),
-    /PostgreSQL integer range/,
+    /PostgreSQL integer range/
   );
 });
 
@@ -76,20 +76,27 @@ test('[TEST-081] currency mismatches and malformed ISO codes fail closed', () =>
 });
 
 test('[TEST-081] cumulative refunds cannot exceed the verified paid amount', () => {
-  assert.deepEqual(assertRefundAmount({
-    paidMinor: 19_900,
-    alreadyRefundedMinor: 4_000,
-    requestedMinor: 5_000,
-    paymentCurrency: 'PHP',
-    refundCurrency: 'PHP',
-  }), { remainingBeforeMinor: 15_900, remainingAfterMinor: 10_900 });
-  assert.throws(() => assertRefundAmount({
-    paidMinor: 19_900,
-    alreadyRefundedMinor: 10_000,
-    requestedMinor: 10_000,
-    paymentCurrency: 'PHP',
-    refundCurrency: 'PHP',
-  }), /exceeds/);
+  assert.deepEqual(
+    assertRefundAmount({
+      paidMinor: 19_900,
+      alreadyRefundedMinor: 4_000,
+      requestedMinor: 5_000,
+      paymentCurrency: 'PHP',
+      refundCurrency: 'PHP',
+    }),
+    { remainingBeforeMinor: 15_900, remainingAfterMinor: 10_900 }
+  );
+  assert.throws(
+    () =>
+      assertRefundAmount({
+        paidMinor: 19_900,
+        alreadyRefundedMinor: 10_000,
+        requestedMinor: 10_000,
+        paymentCurrency: 'PHP',
+        refundCurrency: 'PHP',
+      }),
+    /exceeds/
+  );
 });
 
 test('[TEST-081] ledger sign and aggregate overflow invariants are explicit', () => {

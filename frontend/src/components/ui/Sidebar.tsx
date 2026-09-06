@@ -57,18 +57,22 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 
       px-3 py-2 font-display text-[11px] font-semibold tracking-tight text-white opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.38)]
       backdrop-blur-xl transition-all duration-150 group-hover:scale-100 group-hover:opacity-100
       group-focus-within:scale-100 group-focus-within:opacity-100
-      ${placement === 'side'
-        ? 'left-[calc(100%+12px)] top-1/2 -translate-y-1/2 scale-95 origin-left'
-        : 'left-0 top-[calc(100%+9px)] -translate-y-1 scale-95'}
+      ${
+        placement === 'side'
+          ? 'left-[calc(100%+12px)] top-1/2 -translate-y-1/2 scale-95 origin-left'
+          : 'left-0 top-[calc(100%+9px)] -translate-y-1 scale-95'
+      }
       ${suppressed ? '!scale-95 !opacity-0' : ''}
     `}
   >
     {label}
     <span
       aria-hidden="true"
-      className={`absolute h-2 w-2 rotate-45 border border-white/10 bg-[#17201d] ${placement === 'side'
-        ? '-left-1 top-1/2 -translate-y-1/2 border-r-0 border-t-0'
-        : 'left-4 -top-1 border-b-0 border-r-0'}`}
+      className={`absolute h-2 w-2 rotate-45 border border-white/10 bg-[#17201d] ${
+        placement === 'side'
+          ? '-left-1 top-1/2 -translate-y-1/2 border-r-0 border-t-0'
+          : 'left-4 -top-1 border-b-0 border-r-0'
+      }`}
     />
   </span>
 );
@@ -121,18 +125,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
   const navItems = navItemsByRole[user.role] || [];
   const collapsed = isMounted && isCollapsed;
-  const homeHref = user.role === 'USER'
-    ? '/dashboard'
-    : user.role === 'NUTRITIONIST'
-      ? '/nutritionist/reviews'
-      : '/admin/overview';
-  const profileHref = user.role === 'NUTRITIONIST'
-    ? '/nutritionist/profile'
-    : user.role === 'USER'
-      ? '/profile'
-      : '/admin/overview';
+  const homeHref =
+    user.role === 'USER' ? '/dashboard' : user.role === 'NUTRITIONIST' ? '/nutritionist/reviews' : '/admin/overview';
+  const profileHref =
+    user.role === 'NUTRITIONIST' ? '/nutritionist/profile' : user.role === 'USER' ? '/profile' : '/admin/overview';
   const profileActive = pathname === profileHref || pathname.startsWith(`${profileHref}/`);
-  const roleLabel = user.role === 'NUTRITIONIST' ? 'Clinical portal' : user.role === 'ADMIN' ? 'Control center' : 'Personal workspace';
+  const roleLabel =
+    user.role === 'NUTRITIONIST' ? 'Clinical portal' : user.role === 'ADMIN' ? 'Control center' : 'Personal workspace';
 
   return (
     <aside
@@ -180,7 +179,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               </span>
               <span className="min-w-0">
                 <span className="block font-display text-[15px] font-extrabold tracking-[0.16em]">NUTRIMIND</span>
-                <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">{roleLabel}</span>
+                <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">
+                  {roleLabel}
+                </span>
               </span>
             </Link>
 
@@ -209,7 +210,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         </div>
       )}
 
-      <nav id="nutrimind-sidebar-navigation" className="relative flex flex-1 flex-col gap-1.5" aria-label={`${user.role.toLowerCase()} navigation`}>
+      <nav
+        id="nutrimind-sidebar-navigation"
+        className="relative flex flex-1 flex-col gap-1.5"
+        aria-label={`${user.role.toLowerCase()} navigation`}
+      >
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -218,10 +223,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               key={item.href}
               href={item.href}
               onClick={() => setSuppressedTooltip(item.href)}
-              onBlur={() => setSuppressedTooltip((current) => current === item.href ? null : current)}
+              onBlur={() => setSuppressedTooltip((current) => (current === item.href ? null : current))}
               onMouseLeave={(event) => {
                 if (suppressedTooltip === item.href) event.currentTarget.blur();
-                setSuppressedTooltip((current) => current === item.href ? null : current);
+                setSuppressedTooltip((current) => (current === item.href ? null : current));
               }}
               aria-label={collapsed ? item.label : undefined}
               aria-describedby={collapsed && !active ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
@@ -229,13 +234,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               className={`
                 group relative flex min-h-12 items-center rounded-2xl outline-none transition-all duration-200
                 ${collapsed ? 'justify-center px-3' : 'gap-3 px-3.5'}
-                ${active
-                  ? 'bg-brand-accent text-[#07100d] shadow-neon'
-                  : 'text-white/55 hover:bg-white/[0.055] hover:text-white'}
+                ${
+                  active
+                    ? 'bg-brand-accent text-[#07100d] shadow-neon'
+                    : 'text-white/55 hover:bg-white/[0.055] hover:text-white'
+                }
               `}
             >
               <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
-              {!collapsed && <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>}
+              {!collapsed && (
+                <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
+              )}
               {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
               {collapsed && (
                 <SidebarTooltip
@@ -264,10 +273,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         <Link
           href={profileHref}
           onClick={() => setSuppressedTooltip('profile')}
-          onBlur={() => setSuppressedTooltip((current) => current === 'profile' ? null : current)}
+          onBlur={() => setSuppressedTooltip((current) => (current === 'profile' ? null : current))}
           onMouseLeave={(event) => {
             if (suppressedTooltip === 'profile') event.currentTarget.blur();
-            setSuppressedTooltip((current) => current === 'profile' ? null : current);
+            setSuppressedTooltip((current) => (current === 'profile' ? null : current));
           }}
           aria-label={collapsed ? `Profile: ${user.name}` : undefined}
           aria-describedby={collapsed && !profileActive ? 'sidebar-profile-tooltip' : undefined}

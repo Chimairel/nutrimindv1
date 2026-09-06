@@ -3,10 +3,7 @@ export const MAX_WEIGHT_KG = 300;
 export const MAX_WEIGHT_NOTE_LENGTH = 500;
 
 export function isSupportedWeightKg(value: unknown): value is number {
-  return typeof value === 'number'
-    && Number.isFinite(value)
-    && value >= MIN_WEIGHT_KG
-    && value <= MAX_WEIGHT_KG;
+  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_WEIGHT_KG && value <= MAX_WEIGHT_KG;
 }
 
 export function normalizeWeightNote(value: unknown): string | undefined {

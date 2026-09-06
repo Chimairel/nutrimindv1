@@ -45,9 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="bg-status-error-bg text-status-error-text p-4 rounded-full w-16 h-16 flex items-center justify-center font-bold mb-4">
             <AlertTriangle className="w-8 h-8 text-status-error-text" />
           </div>
-          <h2 className="text-xl font-bold tracking-tight text-brand-text mb-2 font-display">
-            Something went wrong
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight text-brand-text mb-2 font-display">Something went wrong</h2>
           <p className="text-sm text-brand-muted leading-relaxed mb-6 max-w-sm">
             NutriMind encountered an unexpected layout crash. Please try refreshing or clearing state.
           </p>
@@ -69,4 +67,3 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
-

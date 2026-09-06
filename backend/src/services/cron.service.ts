@@ -89,22 +89,22 @@ export class CronService {
             userId_logDate: { userId: user.id, logDate: yesterdayStart },
           },
           update: {
-              totalCalories,
-              totalProteinG,
-              totalCarbsG,
-              totalFatG,
-              targetCalories,
-              adherencePct,
+            totalCalories,
+            totalProteinG,
+            totalCarbsG,
+            totalFatG,
+            targetCalories,
+            adherencePct,
           },
           create: {
-              userId: user.id,
-              logDate: yesterdayStart,
-              totalCalories,
-              totalProteinG,
-              totalCarbsG,
-              totalFatG,
-              targetCalories,
-              adherencePct,
+            userId: user.id,
+            logDate: yesterdayStart,
+            totalCalories,
+            totalProteinG,
+            totalCarbsG,
+            totalFatG,
+            targetCalories,
+            adherencePct,
           },
         });
         console.log(`[CronService] Upserted yesterday's log for ${user.email}: ${adherencePct.toFixed(1)}% Adherence.`);
@@ -127,10 +127,7 @@ export class CronService {
    * shopping days remove the need for seven cron definitions; the generation
    * service supplies the durable per-cycle idempotency key.
    */
-  static async runWeeklyPlanPreparation(
-    now: Date = new Date(),
-    legacyGroup?: 'WEEKEND' | 'WEEKDAY'
-  ) {
+  static async runWeeklyPlanPreparation(now: Date = new Date(), legacyGroup?: 'WEEKEND' | 'WEEKDAY') {
     console.log(`[CronService] Running daily weekly-plan preparation for ${getManilaDateKey(now)}...`);
 
     const users = await prisma.user.findMany({
@@ -181,7 +178,8 @@ export class CronService {
             data: {
               userId: user.id,
               title: notificationTitle,
-              message: 'Your next weekly plan is being prepared before your grocery day. Newly generated meals remain clearly marked until staff review is complete.',
+              message:
+                'Your next weekly plan is being prepared before your grocery day. Newly generated meals remain clearly marked until staff review is complete.',
               type: 'WEEKLY_CHECKIN',
             },
           });
@@ -191,9 +189,7 @@ export class CronService {
         // If the user's lastCheckinAt is older than 7 days, they missed
         // their weekly check-in window and their streak should be reset.
         const lastCheckin = profile.lastCheckinAt;
-        const missedWindow = lastCheckin
-          ? (now.getTime() - lastCheckin.getTime()) / (1000 * 60 * 60 * 24) > 7
-          : false; // No lastCheckinAt = first cycle, don't penalise
+        const missedWindow = lastCheckin ? (now.getTime() - lastCheckin.getTime()) / (1000 * 60 * 60 * 24) > 7 : false; // No lastCheckinAt = first cycle, don't penalise
 
         if (missedWindow && profile.checkinStreak > 0) {
           console.log(`[CronService] Resetting a missed check-in streak for user ${user.id}.`);

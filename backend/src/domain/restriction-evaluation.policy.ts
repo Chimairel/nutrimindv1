@@ -58,17 +58,13 @@ export const RESTRICTION_REASON_CODE_ORDER = Object.freeze([
 export const SCOPED_SAFE_EXPLANATION =
   'No deterministic conflict was found within the complete evidence supplied to this evaluation. This does not establish medical, clinical, nutritionist, or universal safety.';
 
-export type CanonicalConditionKey = typeof RESTRICTION_CONDITION_KEYS[number];
-export type CanonicalAllergyKey = typeof RESTRICTION_ALLERGY_KEYS[number];
+export type CanonicalConditionKey = (typeof RESTRICTION_CONDITION_KEYS)[number];
+export type CanonicalAllergyKey = (typeof RESTRICTION_ALLERGY_KEYS)[number];
 export type CanonicalRestrictionKey = CanonicalConditionKey | CanonicalAllergyKey;
 export type RestrictionDecision = 'ALLOW' | 'REVIEW' | 'BLOCK';
 export type RestrictionReviewState = 'SAFE' | 'CAUTION' | 'NEEDS_REVIEW';
-export type RestrictionReasonCode = typeof RESTRICTION_REASON_CODE_ORDER[number];
-export type RestrictionCategory =
-  | 'ENUM_CONDITION'
-  | 'CUSTOM_CONDITION'
-  | 'ENUM_ALLERGY'
-  | 'CUSTOM_ALLERGY';
+export type RestrictionReasonCode = (typeof RESTRICTION_REASON_CODE_ORDER)[number];
+export type RestrictionCategory = 'ENUM_CONDITION' | 'CUSTOM_CONDITION' | 'ENUM_ALLERGY' | 'CUSTOM_ALLERGY';
 
 export type RestrictionEvidenceSource =
   | 'SCHEMA_ENUM'
@@ -172,16 +168,9 @@ const SAFETY_METADATA_KEYS = new Set([
   'contradictory',
 ]);
 
-const REUSABLE_CERTIFIED_CONDITION_KEYS = new Set<CanonicalConditionKey>([
-  'DIABETES',
-  'HYPERTENSION',
-]);
+const REUSABLE_CERTIFIED_CONDITION_KEYS = new Set<CanonicalConditionKey>(['DIABETES', 'HYPERTENSION']);
 
-const INGREDIENT_EVIDENCE_KEYS = new Set([
-  'dataSource',
-  'resolved',
-  'linked',
-]);
+const INGREDIENT_EVIDENCE_KEYS = new Set(['dataSource', 'resolved', 'linked']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -238,9 +227,7 @@ function resolveToken(value: unknown, domain: Domain): ResolvedToken {
     return {
       suppliedValue,
       normalizedValue,
-      canonicalKey: APPROVED_RESTRICTION_ALIASES[
-        normalizedValue as keyof typeof APPROVED_RESTRICTION_ALIASES
-      ],
+      canonicalKey: APPROVED_RESTRICTION_ALIASES[normalizedValue as keyof typeof APPROVED_RESTRICTION_ALIASES],
       aliasApplied: true,
       aliasInput: normalizedValue,
     };
@@ -283,11 +270,7 @@ function normalizeRestrictionCollection(
       canonicalKey: resolved.canonicalKey,
       aliasApplied: resolved.aliasApplied,
       aliasInput: resolved.aliasInput,
-      evidenceSource: resolved.aliasApplied
-        ? 'APPROVED_ALIAS'
-        : isCustom
-          ? 'CUSTOM_INPUT'
-          : 'SCHEMA_ENUM',
+      evidenceSource: resolved.aliasApplied ? 'APPROVED_ALIAS' : isCustom ? 'CUSTOM_INPUT' : 'SCHEMA_ENUM',
     };
     normalized.push(item);
 
@@ -301,10 +284,14 @@ function normalizeRestrictionCollection(
 
 function categoryRank(category: RestrictionCategory): number {
   switch (category) {
-    case 'ENUM_CONDITION': return 0;
-    case 'CUSTOM_CONDITION': return 1;
-    case 'ENUM_ALLERGY': return 2;
-    case 'CUSTOM_ALLERGY': return 3;
+    case 'ENUM_CONDITION':
+      return 0;
+    case 'CUSTOM_CONDITION':
+      return 1;
+    case 'ENUM_ALLERGY':
+      return 2;
+    case 'CUSTOM_ALLERGY':
+      return 3;
   }
 }
 
@@ -313,10 +300,11 @@ function compareCodePoints(a: string, b: string): number {
 }
 
 function sortNormalizedRestrictions(items: NormalizedRestriction[]): NormalizedRestriction[] {
-  return [...items].sort((a, b) =>
-    categoryRank(a.category) - categoryRank(b.category) ||
-    compareCodePoints(a.normalizedValue, b.normalizedValue) ||
-    compareCodePoints(a.suppliedValue, b.suppliedValue)
+  return [...items].sort(
+    (a, b) =>
+      categoryRank(a.category) - categoryRank(b.category) ||
+      compareCodePoints(a.normalizedValue, b.normalizedValue) ||
+      compareCodePoints(a.suppliedValue, b.suppliedValue)
   );
 }
 
@@ -360,25 +348,23 @@ function createMatch(
 }
 
 function sortMatches(matches: RestrictionMatch[]): RestrictionMatch[] {
-  return [...matches].sort((a, b) =>
-    (REASON_ORDER.get(a.reasonCode) ?? Number.MAX_SAFE_INTEGER) -
-      (REASON_ORDER.get(b.reasonCode) ?? Number.MAX_SAFE_INTEGER) ||
-    categoryRank(a.category) - categoryRank(b.category) ||
-    compareCodePoints(a.canonicalRestrictionKey ?? '', b.canonicalRestrictionKey ?? '') ||
-    compareCodePoints(a.normalizedRestriction, b.normalizedRestriction)
+  return [...matches].sort(
+    (a, b) =>
+      (REASON_ORDER.get(a.reasonCode) ?? Number.MAX_SAFE_INTEGER) -
+        (REASON_ORDER.get(b.reasonCode) ?? Number.MAX_SAFE_INTEGER) ||
+      categoryRank(a.category) - categoryRank(b.category) ||
+      compareCodePoints(a.canonicalRestrictionKey ?? '', b.canonicalRestrictionKey ?? '') ||
+      compareCodePoints(a.normalizedRestriction, b.normalizedRestriction)
   );
 }
 
 function sortReasonCodes(reasons: Set<RestrictionReasonCode>): RestrictionReasonCode[] {
-  return [...reasons].sort((a, b) =>
-    (REASON_ORDER.get(a) ?? Number.MAX_SAFE_INTEGER) -
-    (REASON_ORDER.get(b) ?? Number.MAX_SAFE_INTEGER)
+  return [...reasons].sort(
+    (a, b) => (REASON_ORDER.get(a) ?? Number.MAX_SAFE_INTEGER) - (REASON_ORDER.get(b) ?? Number.MAX_SAFE_INTEGER)
   );
 }
 
-export function evaluateRestrictions(
-  input: RestrictionEvaluationInput
-): RestrictionEvaluation {
+export function evaluateRestrictions(input: RestrictionEvaluationInput): RestrictionEvaluation {
   const reasons = new Set<RestrictionReasonCode>();
   const matches: RestrictionMatch[] = [];
   const restrictionInput = isRecord(input.restrictions) ? input.restrictions : {};
@@ -388,44 +374,26 @@ export function evaluateRestrictions(
   }
 
   const normalizedRestrictions = sortNormalizedRestrictions([
-    ...normalizeRestrictionCollection(
-      restrictionInput.conditions,
-      'ENUM_CONDITION',
-      'condition',
-      reasons
-    ),
-    ...normalizeRestrictionCollection(
-      restrictionInput.customConditions,
-      'CUSTOM_CONDITION',
-      'condition',
-      reasons
-    ),
-    ...normalizeRestrictionCollection(
-      restrictionInput.allergies,
-      'ENUM_ALLERGY',
-      'allergy',
-      reasons
-    ),
-    ...normalizeRestrictionCollection(
-      restrictionInput.customAllergies,
-      'CUSTOM_ALLERGY',
-      'allergy',
-      reasons
-    ),
+    ...normalizeRestrictionCollection(restrictionInput.conditions, 'ENUM_CONDITION', 'condition', reasons),
+    ...normalizeRestrictionCollection(restrictionInput.customConditions, 'CUSTOM_CONDITION', 'condition', reasons),
+    ...normalizeRestrictionCollection(restrictionInput.allergies, 'ENUM_ALLERGY', 'allergy', reasons),
+    ...normalizeRestrictionCollection(restrictionInput.customAllergies, 'CUSTOM_ALLERGY', 'allergy', reasons),
   ]);
 
   addNoneContradictionReasons(normalizedRestrictions, 'condition', reasons);
   addNoneContradictionReasons(normalizedRestrictions, 'allergy', reasons);
 
-  const positiveConditions = normalizedRestrictions.filter((restriction) =>
-    (restriction.category === 'ENUM_CONDITION' || restriction.category === 'CUSTOM_CONDITION') &&
-    restriction.canonicalKey !== null &&
-    restriction.canonicalKey !== 'NONE'
+  const positiveConditions = normalizedRestrictions.filter(
+    (restriction) =>
+      (restriction.category === 'ENUM_CONDITION' || restriction.category === 'CUSTOM_CONDITION') &&
+      restriction.canonicalKey !== null &&
+      restriction.canonicalKey !== 'NONE'
   );
-  const positiveAllergies = normalizedRestrictions.filter((restriction) =>
-    (restriction.category === 'ENUM_ALLERGY' || restriction.category === 'CUSTOM_ALLERGY') &&
-    restriction.canonicalKey !== null &&
-    restriction.canonicalKey !== 'NONE'
+  const positiveAllergies = normalizedRestrictions.filter(
+    (restriction) =>
+      (restriction.category === 'ENUM_ALLERGY' || restriction.category === 'CUSTOM_ALLERGY') &&
+      restriction.canonicalKey !== null &&
+      restriction.canonicalKey !== 'NONE'
   );
 
   const evidence = isRecord(input.evidence) ? input.evidence : {};
@@ -447,8 +415,7 @@ export function evaluateRestrictions(
   } else if (!isRecord(safetyMetadata)) {
     reasons.add('MALFORMED_SAFETY_METADATA');
   } else {
-    const unknownMetadataProperties = Object.keys(safetyMetadata)
-      .some((key) => !SAFETY_METADATA_KEYS.has(key));
+    const unknownMetadataProperties = Object.keys(safetyMetadata).some((key) => !SAFETY_METADATA_KEYS.has(key));
     if (unknownMetadataProperties) reasons.add('UNKNOWN_METADATA_KEY');
 
     metadataContradictory = safetyMetadata.contradictory === true;
@@ -556,9 +523,7 @@ export function evaluateRestrictions(
   const metadataComplete = metadataStructurallyComplete && ingredientsComplete;
 
   for (const condition of positiveConditions) {
-    const evidenceMatch = conditionRuleMatches.find(
-      (candidate) => candidate.canonicalKey === condition.canonicalKey
-    );
+    const evidenceMatch = conditionRuleMatches.find((candidate) => candidate.canonicalKey === condition.canonicalKey);
     const isReusableCertifiedMatch = Boolean(
       evidenceMatch &&
       condition.canonicalKey &&
@@ -568,21 +533,11 @@ export function evaluateRestrictions(
     );
     if (isReusableCertifiedMatch) {
       reasons.add('CERTIFIED_CONDITION_MATCH');
-      matches.push(createMatch(
-        condition,
-        'CERTIFIED_CONDITION_MATCH',
-        'CONDITION_RULE_EVIDENCE',
-        evidenceMatch
-      ));
+      matches.push(createMatch(condition, 'CERTIFIED_CONDITION_MATCH', 'CONDITION_RULE_EVIDENCE', evidenceMatch));
     } else if (evidenceMatch) {
       reasons.add('KNOWN_CONDITION_REQUIRES_REVIEW');
       reasons.add('UNREVIEWED_CONDITION_RULE');
-      matches.push(createMatch(
-        condition,
-        'UNREVIEWED_CONDITION_RULE',
-        'CONDITION_RULE_EVIDENCE',
-        evidenceMatch
-      ));
+      matches.push(createMatch(condition, 'UNREVIEWED_CONDITION_RULE', 'CONDITION_RULE_EVIDENCE', evidenceMatch));
     } else {
       reasons.add('KNOWN_CONDITION_REQUIRES_REVIEW');
     }
@@ -590,41 +545,32 @@ export function evaluateRestrictions(
 
   let blockingConflict = false;
   for (const allergy of positiveAllergies) {
-    const evidenceMatch = detectedAllergens.find(
-      (candidate) => candidate.canonicalKey === allergy.canonicalKey
-    );
+    const evidenceMatch = detectedAllergens.find((candidate) => candidate.canonicalKey === allergy.canonicalKey);
     if (evidenceMatch) {
       blockingConflict = true;
       reasons.add('EXACT_ALLERGEN_CONFLICT');
-      matches.push(createMatch(
-        allergy,
-        'EXACT_ALLERGEN_CONFLICT',
-        'SAFETY_METADATA',
-        evidenceMatch
-      ));
+      matches.push(createMatch(allergy, 'EXACT_ALLERGEN_CONFLICT', 'SAFETY_METADATA', evidenceMatch));
     }
   }
 
-  const hasUnmappedCustom = normalizedRestrictions.some((restriction) =>
-    (restriction.category === 'CUSTOM_CONDITION' || restriction.category === 'CUSTOM_ALLERGY') &&
-    restriction.canonicalKey === null
+  const hasUnmappedCustom = normalizedRestrictions.some(
+    (restriction) =>
+      (restriction.category === 'CUSTOM_CONDITION' || restriction.category === 'CUSTOM_ALLERGY') &&
+      restriction.canonicalKey === null
   );
-  const hasUnknownEnum = normalizedRestrictions.some((restriction) =>
-    (restriction.category === 'ENUM_CONDITION' || restriction.category === 'ENUM_ALLERGY') &&
-    restriction.canonicalKey === null
+  const hasUnknownEnum = normalizedRestrictions.some(
+    (restriction) =>
+      (restriction.category === 'ENUM_CONDITION' || restriction.category === 'ENUM_ALLERGY') &&
+      restriction.canonicalKey === null
   );
 
-  if (
-    positiveAllergies.length > 0 &&
-    !blockingConflict &&
-    metadataComplete &&
-    !hasUnmappedCustom &&
-    !hasUnknownEnum
-  ) {
+  if (positiveAllergies.length > 0 && !blockingConflict && metadataComplete && !hasUnmappedCustom && !hasUnknownEnum) {
     reasons.add('KNOWN_ALLERGY_NO_CONFLICT');
   }
 
-  const positiveRestrictionCount = positiveConditions.length + positiveAllergies.length +
+  const positiveRestrictionCount =
+    positiveConditions.length +
+    positiveAllergies.length +
     normalizedRestrictions.filter((restriction) => restriction.canonicalKey === null).length;
   if (positiveRestrictionCount > 1 || matches.length > 1) {
     reasons.add('MULTIPLE_RESULTS_MOST_RESTRICTIVE');
@@ -644,19 +590,18 @@ export function evaluateRestrictions(
     decision = 'ALLOW';
     reviewState = positiveAllergies.length > 0 ? 'CAUTION' : 'SAFE';
     reasons.add(
-      positiveAllergies.length > 0
-        ? 'KNOWN_ALLERGY_NO_CONFLICT'
-        : 'NO_DETERMINISTIC_CONFLICT_COMPLETE_EVIDENCE'
+      positiveAllergies.length > 0 ? 'KNOWN_ALLERGY_NO_CONFLICT' : 'NO_DETERMINISTIC_CONFLICT_COMPLETE_EVIDENCE'
     );
   }
 
-  const explanation = decision === 'BLOCK'
-    ? 'An exact approved allergy conflict was found in the supplied evidence. The evaluated use is blocked until the restriction, ingredient evidence, or metadata is corrected and re-evaluated.'
-    : decision === 'REVIEW'
-      ? 'The supplied evidence is incomplete, unknown, custom, estimated, unresolved, contradictory, or requires professional review. No deterministic safety conclusion was made.'
-      : reviewState === 'SAFE'
-        ? SCOPED_SAFE_EXPLANATION
-        : 'No exact deterministic allergy conflict was found within the complete evidence supplied. This limited result does not establish medical, clinical, nutritionist, or universal safety.';
+  const explanation =
+    decision === 'BLOCK'
+      ? 'An exact approved allergy conflict was found in the supplied evidence. The evaluated use is blocked until the restriction, ingredient evidence, or metadata is corrected and re-evaluated.'
+      : decision === 'REVIEW'
+        ? 'The supplied evidence is incomplete, unknown, custom, estimated, unresolved, contradictory, or requires professional review. No deterministic safety conclusion was made.'
+        : reviewState === 'SAFE'
+          ? SCOPED_SAFE_EXPLANATION
+          : 'No exact deterministic allergy conflict was found within the complete evidence supplied. This limited result does not establish medical, clinical, nutritionist, or universal safety.';
 
   return {
     decision,
@@ -668,8 +613,9 @@ export function evaluateRestrictions(
     explanation,
     metadataComplete,
     unknownOrCustomRestriction:
-      hasUnknownEnum || normalizedRestrictions.some((restriction) =>
-        restriction.category === 'CUSTOM_CONDITION' || restriction.category === 'CUSTOM_ALLERGY'
+      hasUnknownEnum ||
+      normalizedRestrictions.some(
+        (restriction) => restriction.category === 'CUSTOM_CONDITION' || restriction.category === 'CUSTOM_ALLERGY'
       ),
     estimatedOrUnresolvedIngredient,
   };

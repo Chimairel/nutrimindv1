@@ -29,18 +29,77 @@ test('common library catalogue has enough complete, unique meals per main slot',
 
 test('[TEST-076] two exact FNRI-backed additions close the diabetes vegetarian egg-free slot gaps', () => {
   const evidence = new Map([
-    ['Rice, well-milled, boiled', { id: 'A020', name: 'Rice, well-milled, boiled', calories: 129, proteinG: 2.1, fatG: 0.2, carbsG: 29.7, sodium: 3 }],
-    ['Soybean cheese, hard curd', { id: 'C064', name: 'Soybean cheese, hard curd', calories: 123, proteinG: 12.9, fatG: 7, carbsG: 2, sodium: 114 }],
-    ['Bitter melon/gourd fruit, boiled', { id: 'D019', name: 'Bitter melon/gourd fruit, boiled', calories: 19, proteinG: 0.4, fatG: 0.2, carbsG: 3.8, sodium: 1 }],
+    [
+      'Rice, well-milled, boiled',
+      {
+        id: 'A020',
+        name: 'Rice, well-milled, boiled',
+        calories: 129,
+        proteinG: 2.1,
+        fatG: 0.2,
+        carbsG: 29.7,
+        sodium: 3,
+      },
+    ],
+    [
+      'Soybean cheese, hard curd',
+      { id: 'C064', name: 'Soybean cheese, hard curd', calories: 123, proteinG: 12.9, fatG: 7, carbsG: 2, sodium: 114 },
+    ],
+    [
+      'Bitter melon/gourd fruit, boiled',
+      {
+        id: 'D019',
+        name: 'Bitter melon/gourd fruit, boiled',
+        calories: 19,
+        proteinG: 0.4,
+        fatG: 0.2,
+        carbsG: 3.8,
+        sodium: 1,
+      },
+    ],
     ['Tomato', { id: 'D257', name: 'Tomato', calories: 25, proteinG: 0.8, fatG: 0.1, carbsG: 5.2, sodium: 11 }],
-    ['Onion, Bombay bulb', { id: 'D141', name: 'Onion, Bombay bulb', calories: 52, proteinG: 1.7, fatG: 0.3, carbsG: 10.5, sodium: 11 }],
-    ['Chayote fruit, boiled', { id: 'D051', name: 'Chayote fruit, boiled', calories: 16, proteinG: 0.3, fatG: 0.1, carbsG: 3.5, sodium: 5 }],
-    ['String/Yard long bean pod, green, boiled', { id: 'D233', name: 'String/Yard long bean pod, green, boiled', calories: 52, proteinG: 4, fatG: 0.5, carbsG: 7.9, sodium: 4 }],
-    ['Sweet potato, purple, boiled', { id: 'B010', name: 'Sweet potato, purple, boiled', calories: 122, proteinG: 0.6, fatG: 0.2, carbsG: 29.5, sodium: 43 }],
+    [
+      'Onion, Bombay bulb',
+      { id: 'D141', name: 'Onion, Bombay bulb', calories: 52, proteinG: 1.7, fatG: 0.3, carbsG: 10.5, sodium: 11 },
+    ],
+    [
+      'Chayote fruit, boiled',
+      { id: 'D051', name: 'Chayote fruit, boiled', calories: 16, proteinG: 0.3, fatG: 0.1, carbsG: 3.5, sodium: 5 },
+    ],
+    [
+      'String/Yard long bean pod, green, boiled',
+      {
+        id: 'D233',
+        name: 'String/Yard long bean pod, green, boiled',
+        calories: 52,
+        proteinG: 4,
+        fatG: 0.5,
+        carbsG: 7.9,
+        sodium: 4,
+      },
+    ],
+    [
+      'Sweet potato, purple, boiled',
+      {
+        id: 'B010',
+        name: 'Sweet potato, purple, boiled',
+        calories: 122,
+        proteinG: 0.6,
+        fatG: 0.2,
+        carbsG: 29.5,
+        sodium: 43,
+      },
+    ],
   ]);
   const expectedNutrition = {
     'Tokwa Ampalaya Rice Bowl': { calories: 412.7, proteinG: 24.7, carbsG: 51.6, fatG: 11.8, sodiumMg: 196.3 },
-    'Tokwa Sayote and Sitaw Dinner Plate': { calories: 435.8, proteinG: 26.3, carbsG: 55.2, fatG: 12.2, sodiumMg: 252.6 },
+    'Tokwa Sayote and Sitaw Dinner Plate': {
+      calories: 435.8,
+      proteinG: 26.3,
+      carbsG: 55.2,
+      fatG: 12.2,
+      sodiumMg: 252.6,
+    },
   } as const;
 
   for (const [mealName, nutrition] of Object.entries(expectedNutrition)) {
@@ -60,15 +119,13 @@ test('[TEST-076] two exact FNRI-backed additions close the diabetes vegetarian e
     [
       { mealName: 'Tokwa Ampalaya Rice Bowl', mealType: 'LUNCH' },
       { mealName: 'Tokwa Sayote and Sitaw Dinner Plate', mealType: 'DINNER' },
-    ],
+    ]
   );
 });
 
 test('catalogue allergen declarations match its known allergenic ingredients', () => {
   for (const meal of COMMON_MEAL_CATALOGUE) {
-    const inferred = [...new Set(
-      meal.ingredients.flatMap((item) => ingredientAllergens[item.foodName] || [])
-    )].sort();
+    const inferred = [...new Set(meal.ingredients.flatMap((item) => ingredientAllergens[item.foodName] || []))].sort();
     assert.deepEqual([...meal.allergensPresent].sort(), inferred, meal.mealName);
   }
 });
@@ -101,10 +158,13 @@ test('vegetarian, pescatarian, and each supported single-allergy profile have se
 });
 
 test('condition suitability applies only the bounded diabetes and hypertension catalogue rules', () => {
-  assert.deepEqual(deriveCatalogueConditionSuitability({
-    carbsG: CONDITION_AWARE_CATALOGUE_RULES.diabetesMaxCarbsGPerMeal,
-    sodiumMg: CONDITION_AWARE_CATALOGUE_RULES.hypertensionMaxSodiumMgPerMeal,
-  }), ['DIABETES', 'HYPERTENSION']);
+  assert.deepEqual(
+    deriveCatalogueConditionSuitability({
+      carbsG: CONDITION_AWARE_CATALOGUE_RULES.diabetesMaxCarbsGPerMeal,
+      sodiumMg: CONDITION_AWARE_CATALOGUE_RULES.hypertensionMaxSodiumMgPerMeal,
+    }),
+    ['DIABETES', 'HYPERTENSION']
+  );
   assert.deepEqual(deriveCatalogueConditionSuitability({ carbsG: 60.1, sodiumMg: 600.1 }), []);
   assert.deepEqual(deriveCatalogueConditionSuitability({ carbsG: 40, sodiumMg: null }), ['DIABETES']);
 });

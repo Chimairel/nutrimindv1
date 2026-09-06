@@ -1,9 +1,5 @@
 import { createHash } from 'node:crypto';
-import {
-  BillingGateway,
-  CheckoutIntentRepository,
-  HostedCheckoutSession,
-} from '@/billing/contracts';
+import { BillingGateway, CheckoutIntentRepository, HostedCheckoutSession } from '@/billing/contracts';
 import { PaymongoCheckoutConfig } from '@/domain/paymongo-config.policy';
 import { PaymongoGatewayError } from '@/services/paymongo-gateway.service';
 import { assertPositiveMoney } from '@/domain/billing-money.policy';
@@ -39,12 +35,16 @@ export class BillingCheckoutBoundary {
   constructor(
     private readonly config: PaymongoCheckoutConfig,
     private readonly repository: CheckoutIntentRepository,
-    private readonly gateway: BillingGateway,
+    private readonly gateway: BillingGateway
   ) {}
 
   async create(input: CreateCheckoutInput): Promise<HostedCheckoutSession> {
     if (!this.config.enabled) throw new CheckoutBoundaryError('PAYMENTS_UNAVAILABLE');
-    if (!input.userId || !PRICE_CODE_PATTERN.test(input.priceCode) || !IDEMPOTENCY_KEY_PATTERN.test(input.requestIdempotencyKey)) {
+    if (
+      !input.userId ||
+      !PRICE_CODE_PATTERN.test(input.priceCode) ||
+      !IDEMPOTENCY_KEY_PATTERN.test(input.requestIdempotencyKey)
+    ) {
       throw new CheckoutBoundaryError('CHECKOUT_REQUEST_INVALID');
     }
 
@@ -58,9 +58,15 @@ export class BillingCheckoutBoundary {
     } catch {
       throw new CheckoutBoundaryError('CHECKOUT_TEMPORARILY_UNAVAILABLE');
     }
-    if (!price || price.environment !== 'TEST' || !price.active || price.currency !== 'PHP' ||
-        price.productCode !== input.priceCode || !RECORD_ID_PATTERN.test(price.id) ||
-        !SAFE_DISPLAY_NAME_PATTERN.test(price.displayName)) {
+    if (
+      !price ||
+      price.environment !== 'TEST' ||
+      !price.active ||
+      price.currency !== 'PHP' ||
+      price.productCode !== input.priceCode ||
+      !RECORD_ID_PATTERN.test(price.id) ||
+      !SAFE_DISPLAY_NAME_PATTERN.test(price.displayName)
+    ) {
       throw new CheckoutBoundaryError('CHECKOUT_PRICE_UNAVAILABLE');
     }
     try {
@@ -70,17 +76,19 @@ export class BillingCheckoutBoundary {
     }
 
     const requestHash = createHash('sha256')
-      .update(JSON.stringify({
-        provider: 'PAYMONGO',
-        environment: this.config.environment,
-        priceId: price.id,
-        productCode: price.productCode,
-        amountMinor: price.amountMinor,
-        currency: price.currency,
-        paymentMethods: this.config.paymentMethods,
-        successUrl: this.config.checkoutSuccessUrl,
-        cancelUrl: this.config.checkoutCancelUrl,
-      }))
+      .update(
+        JSON.stringify({
+          provider: 'PAYMONGO',
+          environment: this.config.environment,
+          priceId: price.id,
+          productCode: price.productCode,
+          amountMinor: price.amountMinor,
+          currency: price.currency,
+          paymentMethods: this.config.paymentMethods,
+          successUrl: this.config.checkoutSuccessUrl,
+          cancelUrl: this.config.checkoutCancelUrl,
+        })
+      )
       .digest('hex');
     let claim;
     try {
@@ -123,16 +131,19 @@ export class BillingCheckoutBoundary {
       });
       return { ...session, entitlementGranted: false };
     } catch (error) {
-      const failureCode = error instanceof PaymongoGatewayError
-        ? `${error.code}${error.providerCode ? `:${error.providerCode}` : ''}`
-        : 'CHECKOUT_BOUNDARY_FAILURE';
-      await this.repository.release({
-        userId: input.userId,
-        priceId: price.id,
-        requestIdempotencyKey: input.requestIdempotencyKey,
-        claimToken: claim.claimToken,
-        failureCode,
-      }).catch(() => undefined);
+      const failureCode =
+        error instanceof PaymongoGatewayError
+          ? `${error.code}${error.providerCode ? `:${error.providerCode}` : ''}`
+          : 'CHECKOUT_BOUNDARY_FAILURE';
+      await this.repository
+        .release({
+          userId: input.userId,
+          priceId: price.id,
+          requestIdempotencyKey: input.requestIdempotencyKey,
+          claimToken: claim.claimToken,
+          failureCode,
+        })
+        .catch(() => undefined);
       if (error instanceof CheckoutBoundaryError) throw error;
       if (error instanceof PaymongoGatewayError && error.code === 'PROVIDER_REQUEST_REJECTED') {
         throw new CheckoutBoundaryError('CHECKOUT_PROVIDER_REJECTED');

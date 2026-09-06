@@ -59,7 +59,9 @@ export class NutritionistApplicationService {
 
     if (existingApplication) {
       if (existingApplication.email === email) {
-        throw new Error(`An application already exists for this email. Use reference ${existingApplication.referenceCode} to track it.`);
+        throw new Error(
+          `An application already exists for this email. Use reference ${existingApplication.referenceCode} to track it.`
+        );
       }
       throw new Error('This PRC license number is already associated with an application.');
     }

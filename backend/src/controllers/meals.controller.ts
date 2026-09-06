@@ -15,22 +15,21 @@ import {
   getUserActionableMealPlanWhere,
   isMealPlanNotActionableError,
 } from '@/domain/meal-actionability.policy';
-import {
-  buildPendingMealPlanPreview,
-  summarizeGeneratedMealPlan,
-} from '@/domain/meal-generation-result.policy';
+import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 
-function toPublicVerifier(nutritionist: {
-  prcLicenseNumber: string;
-  prcLicenseExpiry: Date;
-  specialization: string | null;
-  yearsOfExperience: number | null;
-  university: string | null;
-  bio: string | null;
-  user: { name: string };
-} | null) {
+function toPublicVerifier(
+  nutritionist: {
+    prcLicenseNumber: string;
+    prcLicenseExpiry: Date;
+    specialization: string | null;
+    yearsOfExperience: number | null;
+    university: string | null;
+    bio: string | null;
+    user: { name: string };
+  } | null
+) {
   if (!nutritionist) return null;
   return {
     name: nutritionist.user.name,
@@ -153,36 +152,39 @@ export class MealsController {
           select: { planGroupId: true },
         });
         const [pendingPlanRows, pendingSwapTracker] = latestPendingPlan
-          ? await Promise.all([prisma.mealPlan.findMany({
-              where: {
-                userId,
-                planGroupId: latestPendingPlan.planGroupId,
-                status: MealPlanStatus.PENDING_REVIEW,
-                ...getCurrentMealPlanScheduleWhere(now),
-              },
-              select: {
-                planType: true,
-                status: true,
-                mealName: true,
-                mealType: true,
-                description: true,
-                calories: true,
-                proteinG: true,
-                carbsG: true,
-                fatG: true,
-                scheduledDate: true,
-                ingredients: {
-                  select: {
-                    ingredientName: true,
-                    category: true,
+          ? await Promise.all([
+              prisma.mealPlan.findMany({
+                where: {
+                  userId,
+                  planGroupId: latestPendingPlan.planGroupId,
+                  status: MealPlanStatus.PENDING_REVIEW,
+                  ...getCurrentMealPlanScheduleWhere(now),
+                },
+                select: {
+                  planType: true,
+                  status: true,
+                  mealName: true,
+                  mealType: true,
+                  description: true,
+                  calories: true,
+                  proteinG: true,
+                  carbsG: true,
+                  fatG: true,
+                  scheduledDate: true,
+                  ingredients: {
+                    select: {
+                      ingredientName: true,
+                      category: true,
+                    },
                   },
                 },
-              },
-            }), prisma.planSwapTracker.findUnique({
-              where: { planGroupId: latestPendingPlan.planGroupId },
-              select: { swapsUsed: true },
-            })])
-          : [[], null] as const;
+              }),
+              prisma.planSwapTracker.findUnique({
+                where: { planGroupId: latestPendingPlan.planGroupId },
+                select: { swapsUsed: true },
+              }),
+            ])
+          : ([[], null] as const);
 
         return res.status(200).json({
           success: true,
@@ -199,26 +201,29 @@ export class MealsController {
       // the remaining pending rows stay visible as a non-actionable preview.
       // A plan is reviewed meal-by-meal, so returning only approved rows would
       // make the rest of the user's schedule appear to disappear.
-      const [groupMeals, swapTracker] = await Promise.all([prisma.mealPlan.findMany({
-        where: {
-          userId,
-          planGroupId: latestPlan.planGroupId,
-          ...getCurrentMealPlanScheduleWhere(now),
-        },
-        include: {
-          ingredients: true,
-          mealLogs: {
-            where: { userId },
+      const [groupMeals, swapTracker] = await Promise.all([
+        prisma.mealPlan.findMany({
+          where: {
+            userId,
+            planGroupId: latestPlan.planGroupId,
+            ...getCurrentMealPlanScheduleWhere(now),
           },
-          nutritionist: {
-            include: { user: { select: { name: true } } },
+          include: {
+            ingredients: true,
+            mealLogs: {
+              where: { userId },
+            },
+            nutritionist: {
+              include: { user: { select: { name: true } } },
+            },
           },
-        },
-        orderBy: { scheduledDate: 'asc' },
-      }), prisma.planSwapTracker.findUnique({
-        where: { planGroupId: latestPlan.planGroupId },
-        select: { swapsUsed: true },
-      })]);
+          orderBy: { scheduledDate: 'asc' },
+        }),
+        prisma.planSwapTracker.findUnique({
+          where: { planGroupId: latestPlan.planGroupId },
+          select: { swapsUsed: true },
+        }),
+      ]);
       const meals = filterUserActionableMealPlans(groupMeals, now).map(serializeActionableMeal);
 
       return res.status(200).json({
@@ -376,7 +381,7 @@ export class MealsController {
         return {
           id: l.id,
           mealName: l.mealName,
-          source: l.source as string,          // 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED'
+          source: l.source as string, // 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED'
           calories: l.calories,
           proteinG: l.proteinG,
           carbsG: l.carbsG,
@@ -477,19 +482,19 @@ export class MealsController {
           loggedAt: new Date(),
         },
         create: {
-            userId,
-            mealPlanId,
-            source: MealLogSource.SYSTEM_GENERATED,
-            mealName: mealPlan.mealName,
-            calories: mealPlan.calories,
-            proteinG: mealPlan.proteinG,
-            carbsG: mealPlan.carbsG,
-            fatG: mealPlan.fatG,
-            dataSource: MealLogDataSource.FNRI, // Plan meals are FNRI validated
-            status: status as MealLogStatus,
-            warningType: null,
-            warningShown: false,
-            warningAcknowledged: false,
+          userId,
+          mealPlanId,
+          source: MealLogSource.SYSTEM_GENERATED,
+          mealName: mealPlan.mealName,
+          calories: mealPlan.calories,
+          proteinG: mealPlan.proteinG,
+          carbsG: mealPlan.carbsG,
+          fatG: mealPlan.fatG,
+          dataSource: MealLogDataSource.FNRI, // Plan meals are FNRI validated
+          status: status as MealLogStatus,
+          warningType: null,
+          warningShown: false,
+          warningAcknowledged: false,
         },
       });
 

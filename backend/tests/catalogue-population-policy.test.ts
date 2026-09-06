@@ -14,7 +14,7 @@ test('[TEST-077] catalogue signatures are stable and definition-sensitive', () =
   assert.equal(catalogueDefinitionSignature(meal), catalogueDefinitionSignature({ ...meal }));
   assert.notEqual(
     catalogueDefinitionSignature(meal),
-    catalogueDefinitionSignature({ ...meal, description: `${meal.description} changed` }),
+    catalogueDefinitionSignature({ ...meal, description: `${meal.description} changed` })
   );
 });
 
@@ -26,22 +26,37 @@ test('[TEST-077] a repeat population skips only complete current signed definiti
     evidenceSnapshot: { signature: catalogueDefinitionSignature(meal) },
   };
 
-  assert.equal(hasCurrentCatalogueDefinition(meal, {
-    safetyEvidenceStatus: 'COMPLETE',
-    safetyReviews: [currentReview],
-  }), true);
-  assert.equal(hasCurrentCatalogueDefinition(meal, {
-    safetyEvidenceStatus: 'INCOMPLETE',
-    safetyReviews: [currentReview],
-  }), false);
-  assert.equal(hasCurrentCatalogueDefinition(meal, {
-    safetyEvidenceStatus: 'COMPLETE',
-    safetyReviews: [{ ...currentReview, reasonCode: 'NUTRIMIND_COMMON_LIBRARY_V2' }],
-  }), false);
-  assert.equal(hasCurrentCatalogueDefinition({ ...meal, description: `${meal.description} changed` }, {
-    safetyEvidenceStatus: 'COMPLETE',
-    safetyReviews: [currentReview],
-  }), false);
+  assert.equal(
+    hasCurrentCatalogueDefinition(meal, {
+      safetyEvidenceStatus: 'COMPLETE',
+      safetyReviews: [currentReview],
+    }),
+    true
+  );
+  assert.equal(
+    hasCurrentCatalogueDefinition(meal, {
+      safetyEvidenceStatus: 'INCOMPLETE',
+      safetyReviews: [currentReview],
+    }),
+    false
+  );
+  assert.equal(
+    hasCurrentCatalogueDefinition(meal, {
+      safetyEvidenceStatus: 'COMPLETE',
+      safetyReviews: [{ ...currentReview, reasonCode: 'NUTRIMIND_COMMON_LIBRARY_V2' }],
+    }),
+    false
+  );
+  assert.equal(
+    hasCurrentCatalogueDefinition(
+      { ...meal, description: `${meal.description} changed` },
+      {
+        safetyEvidenceStatus: 'COMPLETE',
+        safetyReviews: [currentReview],
+      }
+    ),
+    false
+  );
   assert.equal(shouldUpdateCatalogueVerifiedCount(51, 51), false);
   assert.equal(shouldUpdateCatalogueVerifiedCount(49, 51), true);
 });

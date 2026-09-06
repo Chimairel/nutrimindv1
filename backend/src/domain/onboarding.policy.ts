@@ -44,9 +44,12 @@ export interface OnboardingStatus {
   acceptedCurrentConsent: boolean;
 }
 
-export function hasCurrentConsent(snapshot: Pick<OnboardingSnapshot,
-  'onboardingDone' | 'tosAccepted' | 'acceptedTermsVersion' | 'acceptedPrivacyVersion'
->): boolean {
+export function hasCurrentConsent(
+  snapshot: Pick<
+    OnboardingSnapshot,
+    'onboardingDone' | 'tosAccepted' | 'acceptedTermsVersion' | 'acceptedPrivacyVersion'
+  >
+): boolean {
   if (!snapshot.tosAccepted) return false;
 
   const acceptedCurrentVersions =
@@ -56,9 +59,7 @@ export function hasCurrentConsent(snapshot: Pick<OnboardingSnapshot,
   // Existing onboarded accounts predate consent version storage. Preserve their
   // access while requiring every new completion to accept the current versions.
   const isGrandfatheredLegacyAccount =
-    snapshot.onboardingDone &&
-    !snapshot.acceptedTermsVersion &&
-    !snapshot.acceptedPrivacyVersion;
+    snapshot.onboardingDone && !snapshot.acceptedTermsVersion && !snapshot.acceptedPrivacyVersion;
 
   return acceptedCurrentVersions || isGrandfatheredLegacyAccount;
 }
@@ -94,16 +95,16 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   if (!allergiesComplete) missingFields.push('allergies');
 
   const shoppingDayComplete =
-    (typeof profile?.shoppingDayOfWeek === 'number' && profile.shoppingDayOfWeek >= 0 && profile.shoppingDayOfWeek <= 6) ||
+    (typeof profile?.shoppingDayOfWeek === 'number' &&
+      profile.shoppingDayOfWeek >= 0 &&
+      profile.shoppingDayOfWeek <= 6) ||
     Boolean(profile?.shoppingDayGroup);
   if (!shoppingDayComplete) missingFields.push('shoppingDayOfWeek');
 
   const acceptedCurrentConsent = hasCurrentConsent(snapshot);
   if (!acceptedCurrentConsent) missingFields.push('currentConsent');
 
-  let nextPath: OnboardingStatus['nextPath'] = snapshot.onboardingDone
-    ? '/nutrition-report'
-    : '/onboarding/tos';
+  let nextPath: OnboardingStatus['nextPath'] = snapshot.onboardingDone ? '/nutrition-report' : '/onboarding/tos';
   if (!statsComplete) nextPath = '/onboarding/stats';
   else if (!preferencesComplete) nextPath = '/onboarding/preferences';
   else if (!conditionsComplete) nextPath = '/onboarding/conditions';

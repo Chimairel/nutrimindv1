@@ -56,12 +56,14 @@ async function main() {
   assert.equal(application?.status, 'ACTIVATED');
 
   await unlink(statePath);
-  console.log(JSON.stringify({
-    outcome: 'RETAINED_AS_SUSPENDED_AUDIT_FIXTURE',
-    actorsSuspended: actors.length,
-    sessionsRevoked: true,
-    appendOnlyWorkCreditsPreserved: workCredits,
-  }));
+  console.log(
+    JSON.stringify({
+      outcome: 'RETAINED_AS_SUSPENDED_AUDIT_FIXTURE',
+      actorsSuspended: actors.length,
+      sessionsRevoked: true,
+      appendOnlyWorkCreditsPreserved: workCredits,
+    })
+  );
 }
 
 main()

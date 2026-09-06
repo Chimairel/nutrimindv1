@@ -29,21 +29,40 @@ test('[TEST-067] nutritionist application accepts a complete professional applic
 });
 
 test('[TEST-068] nutritionist application rejects expired licenses, insufficient call options, and unknown fields', () => {
-  assert.equal(nutritionistApplicationSchema.safeParse({ ...validApplication, prcLicenseExpiry: future(-1) }).success, false);
-  assert.equal(nutritionistApplicationSchema.safeParse({ ...validApplication, availableCallSlots: [future(2)] }).success, false);
+  assert.equal(
+    nutritionistApplicationSchema.safeParse({ ...validApplication, prcLicenseExpiry: future(-1) }).success,
+    false
+  );
+  assert.equal(
+    nutritionistApplicationSchema.safeParse({ ...validApplication, availableCallSlots: [future(2)] }).success,
+    false
+  );
   assert.equal(nutritionistApplicationSchema.safeParse({ ...validApplication, role: 'NUTRITIONIST' }).success, false);
 });
 
 test('[TEST-069] admin application transition inputs are default-deny and meeting links require HTTP(S)', () => {
   assert.equal(applicationStageSchema.safeParse({ status: 'UNDER_REVIEW' }).success, true);
   assert.equal(applicationStageSchema.safeParse({ status: 'APPROVED' }).success, false);
-  assert.equal(applicationScheduleSchema.safeParse({ scheduledCallAt: future(2), meetingUrl: 'https://meet.google.com/example' }).success, true);
-  assert.equal(applicationScheduleSchema.safeParse({ scheduledCallAt: future(2), meetingUrl: 'ftp://example.com/call' }).success, false);
+  assert.equal(
+    applicationScheduleSchema.safeParse({ scheduledCallAt: future(2), meetingUrl: 'https://meet.google.com/example' })
+      .success,
+    true
+  );
+  assert.equal(
+    applicationScheduleSchema.safeParse({ scheduledCallAt: future(2), meetingUrl: 'ftp://example.com/call' }).success,
+    false
+  );
 });
 
 test('[TEST-070] rejections require a reason and invitation passwords use the account password policy', () => {
   assert.equal(applicationDecisionSchema.safeParse({ decision: 'reject', reason: '' }).success, false);
   assert.equal(applicationDecisionSchema.safeParse({ decision: 'approve' }).success, true);
-  assert.equal(nutritionistInvitationAcceptanceSchema.safeParse({ token: 'private-token', password: 'ValidPass1' }).success, true);
-  assert.equal(nutritionistInvitationAcceptanceSchema.safeParse({ token: 'private-token', password: 'weakpass' }).success, false);
+  assert.equal(
+    nutritionistInvitationAcceptanceSchema.safeParse({ token: 'private-token', password: 'ValidPass1' }).success,
+    true
+  );
+  assert.equal(
+    nutritionistInvitationAcceptanceSchema.safeParse({ token: 'private-token', password: 'weakpass' }).success,
+    false
+  );
 });

@@ -25,18 +25,21 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
   useEffect(() => {
     if (isOpen && step === 'FORM') {
       // Fetch profile to prefill
-      api.get('/user/profile').then(res => {
-        if (res.data?.success && res.data.data?.userProfile) {
-          const profile = res.data.data.userProfile;
-          setFormData({
-            weightKg: profile.weightKg ? String(profile.weightKg) : '',
-            activityLevel: profile.activityLevel || 'SEDENTARY',
-            goal: profile.goal || 'MAINTAIN',
-          });
-        }
-      }).catch(err => {
-        console.error('[CheckinModal] Failed to fetch profile:', err);
-      });
+      api
+        .get('/user/profile')
+        .then((res) => {
+          if (res.data?.success && res.data.data?.userProfile) {
+            const profile = res.data.data.userProfile;
+            setFormData({
+              weightKg: profile.weightKg ? String(profile.weightKg) : '',
+              activityLevel: profile.activityLevel || 'SEDENTARY',
+              goal: profile.goal || 'MAINTAIN',
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('[CheckinModal] Failed to fetch profile:', err);
+        });
     }
   }, [isOpen, step]);
 
@@ -68,7 +71,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
       };
 
       await api.post('/user/checkin/submit', { changed: true, updates });
-      
+
       // Refresh the dashboard. The updated profile is applied to the next
       // schedule-derived plan; the current approved week is not discarded.
       onPlanRegenerated();
@@ -100,18 +103,10 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
           {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}
 
           <div className="flex flex-col gap-3">
-            <Button 
-              variant="primary" 
-              onClick={handleSameSubmit} 
-              isLoading={isSubmitting}
-            >
+            <Button variant="primary" onClick={handleSameSubmit} isLoading={isSubmitting}>
               Everything is the same
             </Button>
-            <Button 
-              variant="secondary" 
-              onClick={() => setStep('FORM')} 
-              disabled={isSubmitting}
-            >
+            <Button variant="secondary" onClick={() => setStep('FORM')} disabled={isSubmitting}>
               Update my profile
             </Button>
           </div>
@@ -160,9 +155,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">
-            Primary Goal
-          </label>
+          <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Primary Goal</label>
           <select
             value={formData.goal}
             onChange={(e) => setFormData({ ...formData, goal: e.target.value })}

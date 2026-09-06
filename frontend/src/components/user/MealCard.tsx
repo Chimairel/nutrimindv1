@@ -79,8 +79,12 @@ export default function MealCard({
 
   // Check if meal is logged as DONE or SKIPPED (or is a past unlogged meal)
   const isCompleted = mealLogs.some((l) => l.status === 'DONE');
-  const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED') ||
-    (!mealLogs.some((l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')) && isPastDate);
+  const isSkipped =
+    mealLogs.some((l) => l.status === 'SKIPPED') ||
+    (!mealLogs.some(
+      (l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')
+    ) &&
+      isPastDate);
   const isLogged = isCompleted || isSkipped;
 
   const handleCheckedChange = async (checked: boolean) => {
@@ -157,17 +161,29 @@ export default function MealCard({
             {/* Status Indicator Badges */}
             <div className="flex items-center gap-1.5">
               {isCompleted && (
-                <Badge variant="verified" showIcon={false} className="text-[9px] font-extrabold py-0.5 px-1.5 bg-brand-green/10 text-brand-green border-brand-green/20 flex items-center gap-0.5 uppercase">
+                <Badge
+                  variant="verified"
+                  showIcon={false}
+                  className="text-[9px] font-extrabold py-0.5 px-1.5 bg-brand-green/10 text-brand-green border-brand-green/20 flex items-center gap-0.5 uppercase"
+                >
                   <Check className="h-2.5 w-2.5" /> Eaten
                 </Badge>
               )}
               {isSkipped && (
-                <Badge variant="rejected" showIcon={false} className="text-[9px] font-extrabold py-0.5 px-1.5 bg-red-500/10 text-red-500 border-red-500/20 flex items-center gap-0.5 uppercase">
+                <Badge
+                  variant="rejected"
+                  showIcon={false}
+                  className="text-[9px] font-extrabold py-0.5 px-1.5 bg-red-500/10 text-red-500 border-red-500/20 flex items-center gap-0.5 uppercase"
+                >
                   <X className="h-2.5 w-2.5" /> Skipped
                 </Badge>
               )}
               {status === 'PENDING_REVIEW' && !isLogged && (
-                <Badge variant="pending" showIcon={false} className="text-[9px] font-extrabold py-0.5 px-1.5 bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-0.5 uppercase">
+                <Badge
+                  variant="pending"
+                  showIcon={false}
+                  className="text-[9px] font-extrabold py-0.5 px-1.5 bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-0.5 uppercase"
+                >
                   <AlertCircle className="h-2.5 w-2.5" /> Pending
                 </Badge>
               )}
@@ -194,12 +210,7 @@ export default function MealCard({
       </button>
 
       {/* Detailed Info Dialog Popup Modal */}
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title={`${activeLabel.label} Details`}
-        size="md"
-      >
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={`${activeLabel.label} Details`} size="md">
         <div className="flex flex-col gap-5 text-left select-none p-1">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
@@ -219,7 +230,7 @@ export default function MealCard({
               className="border rounded-2xl p-3 text-center"
               style={{
                 backgroundColor: 'var(--macro-protein-bg)',
-                borderColor: 'var(--macro-protein-border)'
+                borderColor: 'var(--macro-protein-border)',
               }}
             >
               <span className="block text-base font-extrabold font-display" style={{ color: 'var(--macro-protein)' }}>
@@ -234,7 +245,7 @@ export default function MealCard({
               className="border rounded-2xl p-3 text-center"
               style={{
                 backgroundColor: 'var(--macro-carbs-bg)',
-                borderColor: 'var(--macro-carbs-border)'
+                borderColor: 'var(--macro-carbs-border)',
               }}
             >
               <span className="block text-base font-extrabold font-display" style={{ color: 'var(--macro-carbs)' }}>
@@ -249,7 +260,7 @@ export default function MealCard({
               className="border rounded-2xl p-3 text-center"
               style={{
                 backgroundColor: 'var(--macro-fat-bg)',
-                borderColor: 'var(--macro-fat-border)'
+                borderColor: 'var(--macro-fat-border)',
               }}
             >
               <span className="block text-base font-extrabold font-display" style={{ color: 'var(--macro-fat)' }}>
@@ -263,7 +274,8 @@ export default function MealCard({
 
           {/* Description Text */}
           <p className="text-xs text-brand-muted leading-relaxed">
-            {description || "This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it."}
+            {description ||
+              'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
           </p>
 
           {verifier && (
@@ -278,9 +290,12 @@ export default function MealCard({
             >
               <span className="flex items-center gap-2 text-xs font-bold text-brand-text">
                 <ShieldCheck className="h-4 w-4 text-brand-green" />
-                Verified by <span className="underline decoration-brand-green/40 underline-offset-2">{verifier.name}</span>
+                Verified by{' '}
+                <span className="underline decoration-brand-green/40 underline-offset-2">{verifier.name}</span>
               </span>
-              <span className="rounded bg-brand-green/15 px-2 py-1 font-mono text-[9px] font-extrabold text-brand-green">PRC {verifier.prcLicenseNumber}</span>
+              <span className="rounded bg-brand-green/15 px-2 py-1 font-mono text-[9px] font-extrabold text-brand-green">
+                PRC {verifier.prcLicenseNumber}
+              </span>
             </button>
           )}
 
@@ -290,7 +305,9 @@ export default function MealCard({
               <span className="text-2xl shrink-0">📺</span>
               <div>
                 <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
-                <p className="text-[10px] text-brand-muted mt-1 leading-snug">Watch Filipino cooking tutorials for this dish on YouTube.</p>
+                <p className="text-[10px] text-brand-muted mt-1 leading-snug">
+                  Watch Filipino cooking tutorials for this dish on YouTube.
+                </p>
               </div>
             </div>
             <a
@@ -327,7 +344,8 @@ export default function MealCard({
             <div className="p-3 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-[10px] font-semibold leading-relaxed flex items-start gap-2">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>
-                <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered Nutritionist-Dietitian. Use with caution.
+                <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered
+                Nutritionist-Dietitian. Use with caution.
               </span>
             </div>
           )}
@@ -357,7 +375,9 @@ export default function MealCard({
                       }}
                       disabled={swapsUsed >= swapCap}
                       className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1"
-                      title={swapsUsed >= swapCap ? `You've used all ${swapCap} swaps for this weekly plan.` : undefined}
+                      title={
+                        swapsUsed >= swapCap ? `You've used all ${swapCap} swaps for this weekly plan.` : undefined
+                      }
                     >
                       <RefreshCw className="h-3 w-3 animate-spin-hover" /> Swap Meal
                     </Button>
@@ -402,14 +422,40 @@ export default function MealCard({
                 <span className="font-display text-sm font-extrabold">Verified nutritionist-dietitian</span>
               </div>
               <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
-                <div><dt className="text-brand-muted">PRC license</dt><dd className="mt-1 font-mono font-bold text-brand-text">{verifier.prcLicenseNumber}</dd></div>
-                <div><dt className="text-brand-muted">Valid until</dt><dd className="mt-1 font-bold text-brand-text">{new Date(verifier.prcLicenseExpiry).toLocaleDateString()}</dd></div>
-                <div><dt className="text-brand-muted">Specialization</dt><dd className="mt-1 font-bold text-brand-text">{verifier.specialization || 'General nutrition'}</dd></div>
-                <div><dt className="text-brand-muted">Experience</dt><dd className="mt-1 font-bold text-brand-text">{verifier.yearsOfExperience ?? 0} years</dd></div>
+                <div>
+                  <dt className="text-brand-muted">PRC license</dt>
+                  <dd className="mt-1 font-mono font-bold text-brand-text">{verifier.prcLicenseNumber}</dd>
+                </div>
+                <div>
+                  <dt className="text-brand-muted">Valid until</dt>
+                  <dd className="mt-1 font-bold text-brand-text">
+                    {new Date(verifier.prcLicenseExpiry).toLocaleDateString()}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-brand-muted">Specialization</dt>
+                  <dd className="mt-1 font-bold text-brand-text">{verifier.specialization || 'General nutrition'}</dd>
+                </div>
+                <div>
+                  <dt className="text-brand-muted">Experience</dt>
+                  <dd className="mt-1 font-bold text-brand-text">{verifier.yearsOfExperience ?? 0} years</dd>
+                </div>
               </dl>
             </div>
-            {verifier.university && <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p><p className="mt-1 font-semibold text-brand-text">{verifier.university}</p></div>}
-            {verifier.bio && <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Professional profile</p><p className="mt-1 text-sm leading-6 text-brand-muted">{verifier.bio}</p></div>}
+            {verifier.university && (
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p>
+                <p className="mt-1 font-semibold text-brand-text">{verifier.university}</p>
+              </div>
+            )}
+            {verifier.bio && (
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">
+                  Professional profile
+                </p>
+                <p className="mt-1 text-sm leading-6 text-brand-muted">{verifier.bio}</p>
+              </div>
+            )}
           </div>
         </Modal>
       )}

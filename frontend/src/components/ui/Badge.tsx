@@ -8,13 +8,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   showIcon?: boolean;
 }
 
-export const Badge: React.FC<BadgeProps> = ({
-  variant,
-  showIcon = true,
-  children,
-  className = '',
-  ...props
-}) => {
+export const Badge: React.FC<BadgeProps> = ({ variant, showIcon = true, children, className = '', ...props }) => {
   const styles = {
     verified: 'border border-status-verified-text/20 bg-status-verified-bg text-status-verified-text',
     pending: 'border border-status-pending-text/20 bg-status-pending-bg text-status-pending-text',

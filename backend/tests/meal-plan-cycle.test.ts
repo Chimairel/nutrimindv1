@@ -33,9 +33,7 @@ test('[TEST-017] Sunday generation creates a full Sunday-to-Saturday week', () =
 
 test('[TEST-017] all seven scheduled dates retain Manila midnight', () => {
   const sunday = new Date('2026-08-22T16:00:00.000Z');
-  const scheduledDates = Array.from({ length: 7 }, (_, day) =>
-    getScheduledMealDate(sunday, day).toISOString()
-  );
+  const scheduledDates = Array.from({ length: 7 }, (_, day) => getScheduledMealDate(sunday, day).toISOString());
 
   assert.deepEqual(scheduledDates, [
     '2026-08-22T16:00:00.000Z',
@@ -67,10 +65,7 @@ test('[TEST-017] Sunday-night cron targets the upcoming Monday cycle', () => {
 test('[TEST-017] the same instant produces the same cycle regardless of server timezone', () => {
   const instant = new Date('2026-08-22T16:17:00.000Z');
   const first = getCurrentWeeklyCycleWindow(ShoppingDayGroup.WEEKEND, instant);
-  const second = getCurrentWeeklyCycleWindow(
-    ShoppingDayGroup.WEEKEND,
-    new Date(instant.getTime())
-  );
+  const second = getCurrentWeeklyCycleWindow(ShoppingDayGroup.WEEKEND, new Date(instant.getTime()));
 
   assert.deepEqual(second, first);
 });
@@ -96,13 +91,7 @@ test('[TEST-051] preparation opens three days before the exact grocery day', () 
   const sundayInManila = new Date('2026-08-30T10:00:00+08:00');
   const schedule = { shoppingDayOfWeek: 3 };
 
-  assert.equal(
-    getWeeklyPlanPreparationDate(schedule, sundayInManila).toISOString(),
-    '2026-08-29T16:00:00.000Z'
-  );
+  assert.equal(getWeeklyPlanPreparationDate(schedule, sundayInManila).toISOString(), '2026-08-29T16:00:00.000Z');
   assert.equal(isWeeklyPlanPreparationDue(schedule, sundayInManila), true);
-  assert.equal(
-    isWeeklyPlanPreparationDue(schedule, new Date('2026-08-29T10:00:00+08:00')),
-    false
-  );
+  assert.equal(isWeeklyPlanPreparationDue(schedule, new Date('2026-08-29T10:00:00+08:00')), false);
 });

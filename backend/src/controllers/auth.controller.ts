@@ -191,7 +191,7 @@ export class AuthController {
         success: true,
         data: result,
       });
-    } catch (error: any) {
+    } catch (_error: any) {
       return res.status(500).json({
         success: false,
         error: 'An error occurred processing your request.',
@@ -275,7 +275,7 @@ export class AuthController {
         success: true,
         data: { message: 'Logged out successfully.' },
       });
-    } catch (error: any) {
+    } catch (_error: any) {
       clearRefreshCookie(res);
       return res.status(200).json({
         success: true,

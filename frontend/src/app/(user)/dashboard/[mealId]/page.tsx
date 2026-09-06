@@ -8,17 +8,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { 
-  ArrowLeft, 
-  Coffee, 
-  Sun, 
-  Moon, 
-  Apple, 
-  Check, 
-  X, 
-  AlertCircle,
-  ShieldCheck,
-} from 'lucide-react';
+import { ArrowLeft, Coffee, Sun, Moon, Apple, Check, X, AlertCircle, ShieldCheck } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import axios from 'axios';
 import { MealType, MealPlanStatus, PublicVerifier } from '@/types';
@@ -149,8 +139,12 @@ export default function MealDetailPage() {
 
   // Check if meal is logged as DONE or SKIPPED
   const isCompleted = meal.mealLogs.some((l) => l.status === 'DONE');
-  const isSkipped = meal.mealLogs.some((l) => l.status === 'SKIPPED') || 
-    (!meal.mealLogs.some((l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')) && isPastDate);
+  const isSkipped =
+    meal.mealLogs.some((l) => l.status === 'SKIPPED') ||
+    (!meal.mealLogs.some(
+      (l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')
+    ) &&
+      isPastDate);
   const isLogged = isCompleted || isSkipped;
 
   const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<LucideProps> }> = {
@@ -198,47 +192,62 @@ export default function MealDetailPage() {
 
         {/* Macro Budges Section */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div 
+          <div
             className="border rounded-2xl p-3 text-center"
-            style={{ 
+            style={{
               backgroundColor: 'var(--macro-protein-bg)',
-              borderColor: 'var(--macro-protein-border)'
+              borderColor: 'var(--macro-protein-border)',
             }}
           >
-            <span className="block text-lg font-black font-display leading-none" style={{ color: 'var(--macro-protein)' }}>
+            <span
+              className="block text-lg font-black font-display leading-none"
+              style={{ color: 'var(--macro-protein)' }}
+            >
               {Math.round(meal.proteinG)}g
             </span>
-            <span className="block text-[9px] uppercase font-extrabold mt-1 tracking-wider" style={{ color: 'var(--macro-protein)' }}>
+            <span
+              className="block text-[9px] uppercase font-extrabold mt-1 tracking-wider"
+              style={{ color: 'var(--macro-protein)' }}
+            >
               Protein
             </span>
           </div>
-          
-          <div 
+
+          <div
             className="border rounded-2xl p-3 text-center"
-            style={{ 
+            style={{
               backgroundColor: 'var(--macro-carbs-bg)',
-              borderColor: 'var(--macro-carbs-border)'
+              borderColor: 'var(--macro-carbs-border)',
             }}
           >
-            <span className="block text-lg font-black font-display leading-none" style={{ color: 'var(--macro-carbs)' }}>
+            <span
+              className="block text-lg font-black font-display leading-none"
+              style={{ color: 'var(--macro-carbs)' }}
+            >
               {Math.round(meal.carbsG)}g
             </span>
-            <span className="block text-[9px] uppercase font-extrabold mt-1 tracking-wider" style={{ color: 'var(--macro-carbs)' }}>
+            <span
+              className="block text-[9px] uppercase font-extrabold mt-1 tracking-wider"
+              style={{ color: 'var(--macro-carbs)' }}
+            >
               Carbs
             </span>
           </div>
 
-          <div 
+          <div
             className="border rounded-2xl p-3 text-center"
-            style={{ 
+            style={{
               backgroundColor: 'var(--macro-fat-bg)',
-              borderColor: 'var(--macro-fat-border)'
+              borderColor: 'var(--macro-fat-border)',
             }}
           >
             <span className="block text-lg font-black font-display leading-none" style={{ color: 'var(--macro-fat)' }}>
               {Math.round(meal.fatG)}g
             </span>
-            <span className="block text-[9px] uppercase font-extrabold mt-1 tracking-wider" style={{ color: 'var(--macro-fat)' }}>
+            <span
+              className="block text-[9px] uppercase font-extrabold mt-1 tracking-wider"
+              style={{ color: 'var(--macro-fat)' }}
+            >
               Fat
             </span>
           </div>
@@ -249,7 +258,8 @@ export default function MealDetailPage() {
           <div>
             <h3 className="text-[10px] tracking-wider font-extrabold text-brand-muted uppercase mb-2">Description</h3>
             <p className="text-xs text-brand-text/95 leading-relaxed font-semibold">
-              {meal.description || "This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it."}
+              {meal.description ||
+                'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
             </p>
           </div>
 
@@ -262,7 +272,8 @@ export default function MealDetailPage() {
             >
               <span className="flex items-center gap-2 text-xs font-bold text-brand-text">
                 <ShieldCheck className="h-4 w-4 text-brand-green" />
-                Verified by <span className="underline decoration-brand-green/40 underline-offset-2">{meal.verifier.name}</span>
+                Verified by{' '}
+                <span className="underline decoration-brand-green/40 underline-offset-2">{meal.verifier.name}</span>
               </span>
               <span className="rounded bg-brand-green/15 px-2 py-1 font-mono text-[9px] font-extrabold text-brand-green">
                 PRC {meal.verifier.prcLicenseNumber}
@@ -276,7 +287,9 @@ export default function MealDetailPage() {
               <span className="text-2xl shrink-0">📺</span>
               <div>
                 <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
-                <p className="text-[10px] text-brand-muted mt-1 leading-snug">Watch Filipino cooking tutorials for this dish on YouTube.</p>
+                <p className="text-[10px] text-brand-muted mt-1 leading-snug">
+                  Watch Filipino cooking tutorials for this dish on YouTube.
+                </p>
               </div>
             </div>
             <a
@@ -291,11 +304,13 @@ export default function MealDetailPage() {
 
           {meal.ingredients.length > 0 && (
             <div>
-              <h3 className="text-[10px] tracking-wider font-extrabold text-brand-muted uppercase mb-2">Ingredients List</h3>
+              <h3 className="text-[10px] tracking-wider font-extrabold text-brand-muted uppercase mb-2">
+                Ingredients List
+              </h3>
               <div className="flex flex-wrap gap-1.5">
                 {meal.ingredients.map((ing) => (
-                  <span 
-                    key={ing.id} 
+                  <span
+                    key={ing.id}
                     className="text-[10px] bg-brand-bgAlt border border-brand-border text-brand-text px-2.5 py-1.5 rounded-lg leading-none font-bold"
                   >
                     {ing.ingredientName}
@@ -311,7 +326,8 @@ export default function MealDetailPage() {
           <div className="p-4 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-[10px] font-bold leading-relaxed flex items-start gap-2.5 mb-6">
             <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
             <span>
-              <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered Nutritionist-Dietitian. Use with caution.
+              <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered
+              Nutritionist-Dietitian. Use with caution.
             </span>
           </div>
         )}
@@ -342,17 +358,25 @@ export default function MealDetailPage() {
             <div className="flex flex-col gap-4">
               <div className="flex justify-center">
                 {isCompleted && (
-                  <Badge variant="verified" showIcon={false} className="text-[10px] font-extrabold py-1 px-3 bg-brand-green/10 text-brand-green border-brand-green/20 flex items-center gap-1 uppercase tracking-wider">
+                  <Badge
+                    variant="verified"
+                    showIcon={false}
+                    className="text-[10px] font-extrabold py-1 px-3 bg-brand-green/10 text-brand-green border-brand-green/20 flex items-center gap-1 uppercase tracking-wider"
+                  >
                     <Check className="h-3 w-3" /> Marked as Eaten
                   </Badge>
                 )}
                 {isSkipped && (
-                  <Badge variant="rejected" showIcon={false} className="text-[10px] font-extrabold py-1 px-3 bg-red-500/10 text-red-500 border-red-500/20 flex items-center gap-1 uppercase tracking-wider">
+                  <Badge
+                    variant="rejected"
+                    showIcon={false}
+                    className="text-[10px] font-extrabold py-1 px-3 bg-red-500/10 text-red-500 border-red-500/20 flex items-center gap-1 uppercase tracking-wider"
+                  >
                     <X className="h-3 w-3" /> Marked as Skipped
                   </Badge>
                 )}
               </div>
-              
+
               <Button
                 variant="secondary"
                 onClick={() => handleUpdateStatus('PENDING')}
@@ -381,14 +405,42 @@ export default function MealDetailPage() {
                 <span className="font-display text-sm font-extrabold">Verified nutritionist-dietitian</span>
               </div>
               <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
-                <div><dt className="text-brand-muted">PRC license</dt><dd className="mt-1 font-mono font-bold text-brand-text">{meal.verifier.prcLicenseNumber}</dd></div>
-                <div><dt className="text-brand-muted">Valid until</dt><dd className="mt-1 font-bold text-brand-text">{new Date(meal.verifier.prcLicenseExpiry).toLocaleDateString()}</dd></div>
-                <div><dt className="text-brand-muted">Specialization</dt><dd className="mt-1 font-bold text-brand-text">{meal.verifier.specialization || 'General nutrition'}</dd></div>
-                <div><dt className="text-brand-muted">Experience</dt><dd className="mt-1 font-bold text-brand-text">{meal.verifier.yearsOfExperience ?? 0} years</dd></div>
+                <div>
+                  <dt className="text-brand-muted">PRC license</dt>
+                  <dd className="mt-1 font-mono font-bold text-brand-text">{meal.verifier.prcLicenseNumber}</dd>
+                </div>
+                <div>
+                  <dt className="text-brand-muted">Valid until</dt>
+                  <dd className="mt-1 font-bold text-brand-text">
+                    {new Date(meal.verifier.prcLicenseExpiry).toLocaleDateString()}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-brand-muted">Specialization</dt>
+                  <dd className="mt-1 font-bold text-brand-text">
+                    {meal.verifier.specialization || 'General nutrition'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-brand-muted">Experience</dt>
+                  <dd className="mt-1 font-bold text-brand-text">{meal.verifier.yearsOfExperience ?? 0} years</dd>
+                </div>
               </dl>
             </div>
-            {meal.verifier.university && <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p><p className="mt-1 font-semibold text-brand-text">{meal.verifier.university}</p></div>}
-            {meal.verifier.bio && <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Professional profile</p><p className="mt-1 text-sm leading-6 text-brand-muted">{meal.verifier.bio}</p></div>}
+            {meal.verifier.university && (
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p>
+                <p className="mt-1 font-semibold text-brand-text">{meal.verifier.university}</p>
+              </div>
+            )}
+            {meal.verifier.bio && (
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">
+                  Professional profile
+                </p>
+                <p className="mt-1 text-sm leading-6 text-brand-muted">{meal.verifier.bio}</p>
+              </div>
+            )}
           </div>
         </Modal>
       )}

@@ -1,8 +1,4 @@
-export type WeeklyAdaptationState =
-  | 'INSUFFICIENT_DATA'
-  | 'ON_TRACK'
-  | 'LOW_ADHERENCE'
-  | 'REVIEW_RECOMMENDED';
+export type WeeklyAdaptationState = 'INSUFFICIENT_DATA' | 'ON_TRACK' | 'LOW_ADHERENCE' | 'REVIEW_RECOMMENDED';
 
 export interface WeeklyAdaptationInput {
   goal?: unknown;
@@ -32,20 +28,24 @@ export function evaluateWeeklyAdaptation(input: WeeklyAdaptationInput): WeeklyAd
   const weights = [...(input.weights || [])]
     .filter((entry) => Number.isFinite(entry.weightKg) && entry.weightKg > 0 && entry.loggedAt instanceof Date)
     .sort((a, b) => a.loggedAt.getTime() - b.loggedAt.getTime());
-  const adherence = [...(input.adherence || [])]
-    .filter((entry) => Number.isFinite(entry.adherencePct) && entry.adherencePct >= 0 && entry.adherencePct <= 100);
+  const adherence = [...(input.adherence || [])].filter(
+    (entry) => Number.isFinite(entry.adherencePct) && entry.adherencePct >= 0 && entry.adherencePct <= 100
+  );
 
   const firstWeight = weights[0];
   const lastWeight = weights.at(-1);
-  const observationDays = firstWeight && lastWeight
-    ? Math.floor((lastWeight.loggedAt.getTime() - firstWeight.loggedAt.getTime()) / 86_400_000)
-    : 0;
-  const weightTrendKg = firstWeight && lastWeight && firstWeight !== lastWeight
-    ? round(lastWeight.weightKg - firstWeight.weightKg, 2)
-    : null;
-  const averageAdherencePct = adherence.length > 0
-    ? round(adherence.reduce((sum, entry) => sum + entry.adherencePct, 0) / adherence.length)
-    : null;
+  const observationDays =
+    firstWeight && lastWeight
+      ? Math.floor((lastWeight.loggedAt.getTime() - firstWeight.loggedAt.getTime()) / 86_400_000)
+      : 0;
+  const weightTrendKg =
+    firstWeight && lastWeight && firstWeight !== lastWeight
+      ? round(lastWeight.weightKg - firstWeight.weightKg, 2)
+      : null;
+  const averageAdherencePct =
+    adherence.length > 0
+      ? round(adherence.reduce((sum, entry) => sum + entry.adherencePct, 0) / adherence.length)
+      : null;
 
   if (
     weights.length < 2 ||
@@ -86,7 +86,8 @@ export function evaluateWeeklyAdaptation(input: WeeklyAdaptationInput): WeeklyAd
         weightTrendKg,
         averageAdherencePct,
         observationDays,
-        explanation: 'The observed direction is consistent with the recorded goal; no automatic target change is indicated.',
+        explanation:
+          'The observed direction is consistent with the recorded goal; no automatic target change is indicated.',
         automaticCalorieAdjustment: 0,
       }
     : {
@@ -94,7 +95,8 @@ export function evaluateWeeklyAdaptation(input: WeeklyAdaptationInput): WeeklyAd
         weightTrendKg,
         averageAdherencePct,
         observationDays,
-        explanation: 'Progress is not moving in the expected direction despite adequate recorded adherence. A nutritionist review is recommended before changing targets.',
+        explanation:
+          'Progress is not moving in the expected direction despite adequate recorded adherence. A nutritionist review is recommended before changing targets.',
         automaticCalorieAdjustment: 0,
       };
 }

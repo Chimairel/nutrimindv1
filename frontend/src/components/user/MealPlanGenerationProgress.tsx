@@ -70,8 +70,9 @@ export default function MealPlanGenerationProgress({
   stageMessage,
 }: MealPlanGenerationProgressProps) {
   const normalizedProgress = Math.min(100, Math.max(0, Math.round(progress)));
-  const phase = GENERATION_PHASES.find((item) => normalizedProgress < item.until)
-    ?? GENERATION_PHASES[GENERATION_PHASES.length - 1];
+  const phase =
+    GENERATION_PHASES.find((item) => normalizedProgress < item.until) ??
+    GENERATION_PHASES[GENERATION_PHASES.length - 1];
   const isComplete = normalizedProgress >= 100;
 
   return (
@@ -81,7 +82,10 @@ export default function MealPlanGenerationProgress({
       aria-busy={!isComplete}
     >
       <div className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-brand-border bg-brand-surface p-6 shadow-card-lg md:p-8">
-        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-brand-green via-brand-cyan to-brand-accent" aria-hidden="true" />
+        <div
+          className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-brand-green via-brand-cyan to-brand-accent"
+          aria-hidden="true"
+        />
 
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-green-light text-brand-green">
@@ -115,9 +119,7 @@ export default function MealPlanGenerationProgress({
                 <span>{getRemainingTimeLabel(normalizedProgress, elapsedSeconds)}</span>
               </div>
             </div>
-            <span className="font-mono text-2xl font-black tabular-nums text-brand-green">
-              {normalizedProgress}%
-            </span>
+            <span className="font-mono text-2xl font-black tabular-nums text-brand-green">{normalizedProgress}%</span>
           </div>
 
           <Progress
@@ -140,12 +142,8 @@ export default function MealPlanGenerationProgress({
               ))}
             </div>
             <div>
-              <p className="font-display text-sm font-extrabold text-brand-text">
-                {stageMessage || phase.title}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-brand-muted">
-                {phase.detail}
-              </p>
+              <p className="font-display text-sm font-extrabold text-brand-text">{stageMessage || phase.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-brand-muted">{phase.detail}</p>
             </div>
           </div>
         </div>

@@ -4,10 +4,7 @@ import { DietaryPreference, Goal } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
-import {
-  certifiedLibraryMealInclude,
-  isCertifiedLibraryMealCompatible,
-} from '../src/services/meal-swap.service';
+import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
 
 const profiles = [
   {
@@ -53,22 +50,23 @@ async function main() {
     include: certifiedLibraryMealInclude,
   });
 
-  assert.equal(COMMON_MEAL_CATALOGUE.length, 51, 'The version-controlled managed catalogue changed; update the evidence scope.');
+  assert.equal(
+    COMMON_MEAL_CATALOGUE.length,
+    51,
+    'The version-controlled managed catalogue changed; update the evidence scope.'
+  );
   assert.equal(meals.length, 51, 'The configured database does not contain all 51 current certified managed meals.');
 
   const results = profiles.map((profile) => {
-    const matching = meals.filter((meal) => isCertifiedLibraryMealCompatible(
-      meal,
-      [],
-      [],
-      {
+    const matching = meals.filter((meal) =>
+      isCertifiedLibraryMealCompatible(meal, [], [], {
         dietaryPreference: profile.diet,
         goal: Goal.MAINTAIN,
         otherConditions: null,
         otherAllergies: null,
         safetyEntries: profile.safetyEntries,
-      }
-    ));
+      })
+    );
     const counts = {
       BREAKFAST: matching.filter((meal) => meal.mealType === 'BREAKFAST').length,
       LUNCH: matching.filter((meal) => meal.mealType === 'LUNCH').length,
@@ -84,13 +82,19 @@ async function main() {
     };
   });
 
-  console.log(JSON.stringify({
-    readOnly: true,
-    evaluator: 'isCertifiedLibraryMealCompatible',
-    managedCertifiedMeals: meals.length,
-    requiredPerSlot: 7,
-    profiles: results,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        readOnly: true,
+        evaluator: 'isCertifiedLibraryMealCompatible',
+        managedCertifiedMeals: meals.length,
+        requiredPerSlot: 7,
+        profiles: results,
+      },
+      null,
+      2
+    )
+  );
 }
 
 main()

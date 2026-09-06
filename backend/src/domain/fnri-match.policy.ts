@@ -66,18 +66,17 @@ export function scoreStrongFNRIMatch(query: string, candidateName: string): numb
 
   const preferredDescriptorScore = addedTokens.reduce(
     (score, token) => score + (PREFERRED_DESCRIPTOR_WEIGHTS[token] || 0),
-    0,
+    0
   );
-  return 500 + (queryTokens.length * 20) + preferredDescriptorScore - (addedTokens.length * 10);
+  return 500 + queryTokens.length * 20 + preferredDescriptorScore - addedTokens.length * 10;
 }
 
-export function selectStrongFNRIMatch<T extends FNRIMatchCandidate>(
-  query: string,
-  candidates: T[],
-): T | null {
-  return candidates
-    .map((candidate) => ({ candidate, score: scoreStrongFNRIMatch(query, candidate.name) }))
-    .filter((entry): entry is { candidate: T; score: number } => entry.score !== null)
-    .sort((left, right) => right.score - left.score || left.candidate.name.localeCompare(right.candidate.name))[0]
-    ?.candidate ?? null;
+export function selectStrongFNRIMatch<T extends FNRIMatchCandidate>(query: string, candidates: T[]): T | null {
+  return (
+    candidates
+      .map((candidate) => ({ candidate, score: scoreStrongFNRIMatch(query, candidate.name) }))
+      .filter((entry): entry is { candidate: T; score: number } => entry.score !== null)
+      .sort((left, right) => right.score - left.score || left.candidate.name.localeCompare(right.candidate.name))[0]
+      ?.candidate ?? null
+  );
 }

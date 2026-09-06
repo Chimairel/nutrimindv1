@@ -34,13 +34,21 @@ interface WorkerLogger {
 }
 
 const defaultScheduler: WorkerScheduler = {
-  schedule(callback, delayMs) { return setTimeout(callback, delayMs); },
-  cancel(handle) { clearTimeout(handle as ReturnType<typeof setTimeout>); },
+  schedule(callback, delayMs) {
+    return setTimeout(callback, delayMs);
+  },
+  cancel(handle) {
+    clearTimeout(handle as ReturnType<typeof setTimeout>);
+  },
 };
 
 const defaultLogger: WorkerLogger = {
-  info(record) { console.log(JSON.stringify(record)); },
-  error(record) { console.error(JSON.stringify(record)); },
+  info(record) {
+    console.log(JSON.stringify(record));
+  },
+  error(record) {
+    console.error(JSON.stringify(record));
+  },
 };
 
 function emptySummary(outcome: BillingWorkerRunSummary['outcome']): BillingWorkerRunSummary {
@@ -72,7 +80,7 @@ export class BillingProcessingWorker {
     private readonly scheduler: WorkerScheduler = defaultScheduler,
     private readonly logger: WorkerLogger = defaultLogger,
     private readonly clock: () => Date = () => new Date(),
-    private readonly random: () => number = Math.random,
+    private readonly random: () => number = Math.random
   ) {}
 
   start(): boolean {
@@ -169,7 +177,7 @@ export class BillingProcessingWorker {
     };
 
     const consumers = await Promise.allSettled(
-      Array.from({ length: Math.min(this.config.concurrency, maximumAttempts) }, consume),
+      Array.from({ length: Math.min(this.config.concurrency, maximumAttempts) }, consume)
     );
     if (consumers.some((result) => result.status === 'rejected')) {
       throw new Error('BILLING_WORKER_BATCH_FAILED');
@@ -185,7 +193,9 @@ export class BillingProcessingWorker {
       void this.runScheduledTick().catch(() => {
         this.consecutiveTickFailures += 1;
         this.logError({
-          type: 'billing_worker_run', outcome: 'FAILED', code: 'BILLING_WORKER_SCHEDULER_FAILED',
+          type: 'billing_worker_run',
+          outcome: 'FAILED',
+          code: 'BILLING_WORKER_SCHEDULER_FAILED',
         });
         if (this.config.enabled && this.started && !this.isStopping()) {
           const delay = Math.min(60_000, this.config.pollIntervalMs * 2);
@@ -201,19 +211,25 @@ export class BillingProcessingWorker {
   }
 
   private logInfo(record: Readonly<Record<string, unknown>>): void {
-    try { this.logger.info(record); } catch { /* Logging cannot control financial processing. */ }
+    try {
+      this.logger.info(record);
+    } catch {
+      /* Logging cannot control financial processing. */
+    }
   }
 
   private logError(record: Readonly<Record<string, unknown>>): void {
-    try { this.logger.error(record); } catch { /* Logging cannot control financial processing. */ }
+    try {
+      this.logger.error(record);
+    } catch {
+      /* Logging cannot control financial processing. */
+    }
   }
 
   private async runScheduledTick(): Promise<void> {
     const summary = await this.runOnce();
     if (!this.config.enabled || !this.started || this.lifecycle === 'STOPPING') return;
-    const failureMultiplier = summary.outcome === 'FAILED'
-      ? 2 ** Math.min(3, this.consecutiveTickFailures)
-      : 1;
+    const failureMultiplier = summary.outcome === 'FAILED' ? 2 ** Math.min(3, this.consecutiveTickFailures) : 1;
     const baseDelay = Math.min(60_000, this.config.pollIntervalMs * failureMultiplier);
     const jitter = Math.floor(Math.max(0, Math.min(0.999999, this.random())) * (this.config.jitterMs + 1));
     this.lifecycle = 'IDLE';

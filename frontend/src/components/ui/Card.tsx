@@ -28,19 +28,9 @@ export const Card: React.FC<CardProps> = ({
       `}
       {...props}
     >
-      {header && (
-        <div className="border-b border-brand-border/45 px-6 pb-4 pt-5">
-          {header}
-        </div>
-      )}
-      <div className={resolvedContentClassName}>
-        {children}
-      </div>
-      {footer && (
-        <div className="border-t border-brand-border/45 px-6 pb-5 pt-4">
-          {footer}
-        </div>
-      )}
+      {header && <div className="border-b border-brand-border/45 px-6 pb-4 pt-5">{header}</div>}
+      <div className={resolvedContentClassName}>{children}</div>
+      {footer && <div className="border-t border-brand-border/45 px-6 pb-5 pt-4">{footer}</div>}
     </div>
   );
 };

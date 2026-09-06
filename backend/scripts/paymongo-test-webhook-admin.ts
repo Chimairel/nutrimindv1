@@ -26,37 +26,48 @@ function secretKey(): string {
   return value;
 }
 
-function callPaymongo(method: 'POST' | 'DELETE', path: string, body?: string): Promise<{ status: number; json: unknown }> {
+function callPaymongo(
+  method: 'POST' | 'DELETE',
+  path: string,
+  body?: string
+): Promise<{ status: number; json: unknown }> {
   return new Promise((resolve, reject) => {
-    const req = request({
-      protocol: 'https:',
-      hostname: API_HOST,
-      port: 443,
-      method,
-      path,
-      headers: {
-        accept: 'application/json',
-        authorization: `Basic ${Buffer.from(`${secretKey()}:`).toString('base64')}`,
-        ...(body ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) } : {}),
+    const req = request(
+      {
+        protocol: 'https:',
+        hostname: API_HOST,
+        port: 443,
+        method,
+        path,
+        headers: {
+          accept: 'application/json',
+          authorization: `Basic ${Buffer.from(`${secretKey()}:`).toString('base64')}`,
+          ...(body ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) } : {}),
+        },
+        timeout: 15_000,
       },
-      timeout: 15_000,
-    }, (response) => {
-      const chunks: Buffer[] = [];
-      let length = 0;
-      response.on('data', (chunk: Buffer) => {
-        length += chunk.length;
-        if (length > MAX_RESPONSE_BYTES) req.destroy(new Error('Provider response exceeded the limit.'));
-        else chunks.push(chunk);
-      });
-      response.on('end', () => {
-        const raw = Buffer.concat(chunks).toString('utf8');
-        let json: unknown = {};
-        if (raw) {
-          try { json = JSON.parse(raw); } catch { return reject(new Error('Provider returned invalid JSON.')); }
-        }
-        resolve({ status: response.statusCode || 0, json });
-      });
-    });
+      (response) => {
+        const chunks: Buffer[] = [];
+        let length = 0;
+        response.on('data', (chunk: Buffer) => {
+          length += chunk.length;
+          if (length > MAX_RESPONSE_BYTES) req.destroy(new Error('Provider response exceeded the limit.'));
+          else chunks.push(chunk);
+        });
+        response.on('end', () => {
+          const raw = Buffer.concat(chunks).toString('utf8');
+          let json: unknown = {};
+          if (raw) {
+            try {
+              json = JSON.parse(raw);
+            } catch {
+              return reject(new Error('Provider returned invalid JSON.'));
+            }
+          }
+          resolve({ status: response.statusCode || 0, json });
+        });
+      }
+    );
     req.once('timeout', () => req.destroy(new Error('Provider request timed out.')));
     req.once('error', reject);
     if (body) req.write(body);
@@ -75,19 +86,38 @@ function parseWebhook(json: unknown): State & { livemode: false; events: string[
   const webhookSecret = String(values.secret_key || '');
   const endpointUrl = String(values.url || '');
   const events = values.events;
-  if (!/^hook_[A-Za-z0-9_-]+$/.test(webhookId) || !/^whsk_[A-Za-z0-9_-]{16,}$/.test(webhookSecret) ||
-      values.livemode !== false || !Array.isArray(events) || events.length !== 1 || events[0] !== EVENT ||
-      !endpointUrl.startsWith('https://') || !['enabled', 'disabled'].includes(String(values.status))) {
+  if (
+    !/^hook_[A-Za-z0-9_-]+$/.test(webhookId) ||
+    !/^whsk_[A-Za-z0-9_-]{16,}$/.test(webhookSecret) ||
+    values.livemode !== false ||
+    !Array.isArray(events) ||
+    events.length !== 1 ||
+    events[0] !== EVENT ||
+    !endpointUrl.startsWith('https://') ||
+    !['enabled', 'disabled'].includes(String(values.status))
+  ) {
     throw new Error('Webhook response failed TEST allow-list validation.');
   }
-  return { webhookId, webhookSecret, endpointUrl, events: [EVENT], livemode: false, status: String(values.status), createdAt: new Date().toISOString() };
+  return {
+    webhookId,
+    webhookSecret,
+    endpointUrl,
+    events: [EVENT],
+    livemode: false,
+    status: String(values.status),
+    createdAt: new Date().toISOString(),
+  };
 }
 
 async function create(): Promise<void> {
   const endpointUrl = argument('--url');
   const statePath = argument('--state');
   const parsed = new URL(endpointUrl);
-  if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.trycloudflare.com') || parsed.pathname !== '/api/webhooks/paymongo') {
+  if (
+    parsed.protocol !== 'https:' ||
+    !parsed.hostname.endsWith('.trycloudflare.com') ||
+    parsed.pathname !== '/api/webhooks/paymongo'
+  ) {
     throw new Error('The webhook URL must be the exact temporary HTTPS endpoint.');
   }
   const body = JSON.stringify({ data: { attributes: { url: endpointUrl, events: [EVENT] } } });
@@ -95,13 +125,19 @@ async function create(): Promise<void> {
   if (response.status !== 200) throw new Error(`Webhook creation failed with status ${response.status}.`);
   const webhook = parseWebhook(response.json);
   mkdirSync(dirname(statePath), { recursive: true });
-  writeFileSync(statePath, JSON.stringify({
-    webhookId: webhook.webhookId,
-    webhookSecret: webhook.webhookSecret,
-    endpointUrl: webhook.endpointUrl,
-    createdAt: webhook.createdAt,
-  }), { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-  process.stdout.write(`${JSON.stringify({ webhookId: webhook.webhookId, livemode: false, events: webhook.events, status: webhook.status })}\n`);
+  writeFileSync(
+    statePath,
+    JSON.stringify({
+      webhookId: webhook.webhookId,
+      webhookSecret: webhook.webhookSecret,
+      endpointUrl: webhook.endpointUrl,
+      createdAt: webhook.createdAt,
+    }),
+    { encoding: 'utf8', mode: 0o600, flag: 'wx' }
+  );
+  process.stdout.write(
+    `${JSON.stringify({ webhookId: webhook.webhookId, livemode: false, events: webhook.events, status: webhook.status })}\n`
+  );
 }
 
 async function cleanup(): Promise<void> {
@@ -122,8 +158,12 @@ async function cleanup(): Promise<void> {
 }
 
 const action = process.argv[2];
-(action === 'create' ? create() : action === 'cleanup' ? cleanup() : Promise.reject(new Error('Use create or cleanup.')))
-  .catch(() => {
-    process.stderr.write('PAYMONGO_WEBHOOK_ADMIN_FAILED\n');
-    process.exitCode = 1;
-  });
+(action === 'create'
+  ? create()
+  : action === 'cleanup'
+    ? cleanup()
+    : Promise.reject(new Error('Use create or cleanup.'))
+).catch(() => {
+  process.stderr.write('PAYMONGO_WEBHOOK_ADMIN_FAILED\n');
+  process.exitCode = 1;
+});

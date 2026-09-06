@@ -17,15 +17,8 @@ export function getReviewClaimCutoff(now: Date = new Date()): Date {
   return new Date(now.getTime() - REVIEW_CLAIM_TTL_MS);
 }
 
-export function isReviewClaimActive(
-  claim: ClaimCandidate,
-  now: Date = new Date()
-): boolean {
-  return Boolean(
-    claim.claimedByNutritionistId &&
-    claim.claimedAt &&
-    claim.claimedAt >= getReviewClaimCutoff(now)
-  );
+export function isReviewClaimActive(claim: ClaimCandidate, now: Date = new Date()): boolean {
+  return Boolean(claim.claimedByNutritionistId && claim.claimedAt && claim.claimedAt >= getReviewClaimCutoff(now));
 }
 
 export function canAcquireReviewClaim(
@@ -33,8 +26,7 @@ export function canAcquireReviewClaim(
   nutritionistProfileId: string,
   now: Date = new Date()
 ): boolean {
-  return !isReviewClaimActive(claim, now) ||
-    claim.claimedByNutritionistId === nutritionistProfileId;
+  return !isReviewClaimActive(claim, now) || claim.claimedByNutritionistId === nutritionistProfileId;
 }
 
 export function getReviewPriority(flag: AIConfidenceFlag): number {
@@ -49,10 +41,7 @@ export function getReviewPriority(flag: AIConfidenceFlag): number {
   }
 }
 
-export function isNutritionistEligibleForReview(
-  profile: EligibilityCandidate,
-  now: Date = new Date()
-): boolean {
+export function isNutritionistEligibleForReview(profile: EligibilityCandidate, now: Date = new Date()): boolean {
   if (!profile.isVerified) return false;
 
   const expiryDate = getManilaBusinessDateKey(profile.prcLicenseExpiry);

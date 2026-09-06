@@ -20,7 +20,7 @@ let shutdownPromise: Promise<void> | null = null;
 
 function closeServer(): Promise<void> {
   return new Promise((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve());
+    server.close((error) => (error ? reject(error) : resolve()));
   });
 }
 

@@ -14,15 +14,7 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  description,
-  children,
-  footer,
-  size = 'md',
-}) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, description, children, footer, size = 'md' }) => {
   const descriptionId = React.useId();
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -65,9 +57,7 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
             <div className="py-2 text-sm leading-relaxed text-brand-text">{children}</div>
             {footer && (
-              <div className="mt-2 flex items-center justify-end gap-3 border-t border-brand-border pt-4">
-                {footer}
-              </div>
+              <div className="mt-2 flex items-center justify-end gap-3 border-t border-brand-border pt-4">{footer}</div>
             )}
           </div>
         </Dialog.Content>

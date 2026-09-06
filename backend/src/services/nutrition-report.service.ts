@@ -25,9 +25,7 @@ Rules:
   text before or after the JSON
 `;
 
-type StoredNutritionReport = NonNullable<
-  Awaited<ReturnType<typeof prisma.nutritionReport.findUnique>>
->;
+type StoredNutritionReport = NonNullable<Awaited<ReturnType<typeof prisma.nutritionReport.findUnique>>>;
 
 export class NutritionReportService {
   private static readonly generationInFlight = new Map<string, Promise<StoredNutritionReport>>();
@@ -108,23 +106,27 @@ export class NutritionReportService {
     // 2. Fetch seeded FNRI subset to inject as local food composition guidelines
     const localFoodsSubset = await getFNRISubset();
     const formattedLocalFoods = localFoodsSubset
-      .map((f) => `- ${f.name} [Category: ${f.category || 'N/A'}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g]`)
+      .map(
+        (f) =>
+          `- ${f.name} [Category: ${f.category || 'N/A'}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g]`
+      )
       .slice(0, 130)
       .join('\n');
 
     // 3. Compile prompt constraints
-    const clinicalSystemInstruction = 
-      NUTRITION_REPORT_SYSTEM_CONTEXT + "\n" +
-      "You are a nutrition-guidance drafting assistant for a Philippine meal-planning application. " +
-      "Do not claim to be a licensed clinician and do not diagnose, prescribe, or replace a physician or Registered Nutritionist-Dietitian. " +
-      "Use Philippine Food and Nutrition Research Institute (FNRI) references where they are provided. " +
-      "Your target demographic is young urban health-conscious Filipinos (18-35). " +
-      "Prioritize medical suitability, affordability, preparation effort, and realistic availability in the Philippines. " +
+    const clinicalSystemInstruction =
+      NUTRITION_REPORT_SYSTEM_CONTEXT +
+      '\n' +
+      'You are a nutrition-guidance drafting assistant for a Philippine meal-planning application. ' +
+      'Do not claim to be a licensed clinician and do not diagnose, prescribe, or replace a physician or Registered Nutritionist-Dietitian. ' +
+      'Use Philippine Food and Nutrition Research Institute (FNRI) references where they are provided. ' +
+      'Your target demographic is young urban health-conscious Filipinos (18-35). ' +
+      'Prioritize medical suitability, affordability, preparation effort, and realistic availability in the Philippines. ' +
       "Use the person's food-culture preference as context rather than an exclusive cuisine rule. Recommendations may include Filipino foods, " +
-      "universally familiar meals, foods adopted from other cultures, and suitable convenience products. Avoid expensive or hard-to-source items " +
-      "when an accessible alternative offers comparable nutritional value.";
+      'universally familiar meals, foods adopted from other cultures, and suitable convenience products. Avoid expensive or hard-to-source items ' +
+      'when an accessible alternative offers comparable nutritional value.';
 
-    const prompt = 
+    const prompt =
       `Analyze this patient profile and generate a comprehensive clinical nutrition assessment:\n` +
       `\n` +
       `[PATIENT PROFILE]\n` +

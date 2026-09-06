@@ -1,11 +1,6 @@
 export const SAFETY_INTAKE_POLICY_VERSION = 'NUTRIMIND_SAFETY_INTAKE_V1';
 
-export const SAFETY_ENTRY_DOMAINS = [
-  'CONDITION',
-  'ALLERGY',
-  'INTOLERANCE',
-  'AVOIDED_INGREDIENT',
-] as const;
+export const SAFETY_ENTRY_DOMAINS = ['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'] as const;
 
 export const SAFETY_ENTRY_PROVENANCE = ['PREDEFINED', 'CUSTOM'] as const;
 export const SAFETY_SUPPORT_STATES = [
@@ -16,9 +11,9 @@ export const SAFETY_SUPPORT_STATES = [
   'INVALID',
 ] as const;
 
-export type SafetyEntryDomain = typeof SAFETY_ENTRY_DOMAINS[number];
-export type SafetyEntryProvenance = typeof SAFETY_ENTRY_PROVENANCE[number];
-export type SafetySupportState = typeof SAFETY_SUPPORT_STATES[number];
+export type SafetyEntryDomain = (typeof SAFETY_ENTRY_DOMAINS)[number];
+export type SafetyEntryProvenance = (typeof SAFETY_ENTRY_PROVENANCE)[number];
+export type SafetySupportState = (typeof SAFETY_SUPPORT_STATES)[number];
 
 export interface SafetyCatalogueItem {
   code: string;
@@ -53,7 +48,15 @@ const condition = (
   aliases: string[],
   supportState: SafetyCatalogueItem['supportState'],
   policyReference: string
-): SafetyCatalogueItem => ({ code, displayName, aliases, searchTerms: aliases, domains: ['CONDITION'], supportState, policyReference });
+): SafetyCatalogueItem => ({
+  code,
+  displayName,
+  aliases,
+  searchTerms: aliases,
+  domains: ['CONDITION'],
+  supportState,
+  policyReference,
+});
 
 const food = (
   code: string,
@@ -62,35 +65,182 @@ const food = (
   domains: SafetyEntryDomain[],
   supportState: SafetyCatalogueItem['supportState'],
   policyReference: string
-): SafetyCatalogueItem => ({ code, displayName, aliases, searchTerms: aliases, domains, supportState, policyReference });
+): SafetyCatalogueItem => ({
+  code,
+  displayName,
+  aliases,
+  searchTerms: aliases,
+  domains,
+  supportState,
+  policyReference,
+});
 
 export const CONDITION_SAFETY_CATALOGUE: readonly SafetyCatalogueItem[] = Object.freeze([
   condition('NONE', 'No diagnosed condition', ['none', 'no condition', 'healthy'], 'SUPPORTED', 'ONBOARDING_NONE_V1'),
-  condition('DIABETES', 'Diabetes', ['diabetes', 'type 1 diabetes', 'type 2 diabetes', 't1d', 't2d'], 'SUPPORTED', 'CATALOGUE_DIABETES_60G_CARB_V1'),
-  condition('HYPERTENSION', 'Hypertension', ['hypertension', 'high blood pressure', 'htn', 'hypertention'], 'SUPPORTED', 'CATALOGUE_HYPERTENSION_600MG_SODIUM_V1'),
-  condition('KIDNEY_DISEASE', 'Kidney disease', ['kidney disease', 'chronic kidney disease', 'ckd', 'renal disease'], 'RECOGNIZED_UNSUPPORTED', 'HIGH_RISK_INDIVIDUAL_REVIEW_V1'),
-  condition('HEART_CONDITION', 'Heart condition', ['heart condition', 'heart disease', 'cardiovascular disease'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  condition('PREGNANT', 'Pregnant or lactating', ['pregnant', 'pregnancy', 'lactating', 'breastfeeding'], 'RECOGNIZED_UNSUPPORTED', 'HIGH_RISK_TWO_REVIEWER_V1'),
+  condition(
+    'DIABETES',
+    'Diabetes',
+    ['diabetes', 'type 1 diabetes', 'type 2 diabetes', 't1d', 't2d'],
+    'SUPPORTED',
+    'CATALOGUE_DIABETES_60G_CARB_V1'
+  ),
+  condition(
+    'HYPERTENSION',
+    'Hypertension',
+    ['hypertension', 'high blood pressure', 'htn', 'hypertention'],
+    'SUPPORTED',
+    'CATALOGUE_HYPERTENSION_600MG_SODIUM_V1'
+  ),
+  condition(
+    'KIDNEY_DISEASE',
+    'Kidney disease',
+    ['kidney disease', 'chronic kidney disease', 'ckd', 'renal disease'],
+    'RECOGNIZED_UNSUPPORTED',
+    'HIGH_RISK_INDIVIDUAL_REVIEW_V1'
+  ),
+  condition(
+    'HEART_CONDITION',
+    'Heart condition',
+    ['heart condition', 'heart disease', 'cardiovascular disease'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  condition(
+    'PREGNANT',
+    'Pregnant or lactating',
+    ['pregnant', 'pregnancy', 'lactating', 'breastfeeding'],
+    'RECOGNIZED_UNSUPPORTED',
+    'HIGH_RISK_TWO_REVIEWER_V1'
+  ),
   condition('GOUT', 'Gout', ['gout', 'hyperuricemia'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  condition('CELIAC_DISEASE', 'Celiac disease', ['celiac disease', 'coeliac disease', 'celiac'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  condition('PCOS', 'Polycystic ovary syndrome', ['polycystic ovary syndrome', 'pcos'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  condition('GERD', 'Gastroesophageal reflux disease', ['gerd', 'acid reflux', 'gastroesophageal reflux disease'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
+  condition(
+    'CELIAC_DISEASE',
+    'Celiac disease',
+    ['celiac disease', 'coeliac disease', 'celiac'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  condition(
+    'PCOS',
+    'Polycystic ovary syndrome',
+    ['polycystic ovary syndrome', 'pcos'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  condition(
+    'GERD',
+    'Gastroesophageal reflux disease',
+    ['gerd', 'acid reflux', 'gastroesophageal reflux disease'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
 ]);
 
 export const FOOD_SAFETY_CATALOGUE: readonly SafetyCatalogueItem[] = Object.freeze([
-  food('NONE', 'No food restriction', ['none', 'no allergy', 'no food restriction'], ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'], 'SUPPORTED', 'ONBOARDING_NONE_V1'),
-  food('SHELLFISH', 'Shellfish', ['shellfish', 'shrimp', 'prawn', 'crab'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'SUPPORTED', 'LIBRARY_ALLERGEN_DECLARATION_V1'),
-  food('NUTS', 'Peanuts and tree nuts', ['nuts', 'peanut', 'peanuts', 'tree nut', 'tree nuts'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'SUPPORTED', 'LIBRARY_ALLERGEN_DECLARATION_V1'),
-  food('DAIRY', 'Dairy', ['dairy', 'milk', 'milk allergy'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'SUPPORTED', 'LIBRARY_ALLERGEN_DECLARATION_V1'),
-  food('GLUTEN', 'Gluten', ['gluten', 'wheat', 'wheat allergy'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'SUPPORTED', 'LIBRARY_ALLERGEN_DECLARATION_V1'),
-  food('EGGS', 'Eggs', ['egg', 'eggs', 'egg allergy'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'SUPPORTED', 'LIBRARY_ALLERGEN_DECLARATION_V1'),
-  food('LACTOSE', 'Lactose', ['lactose', 'lactose intolerance'], ['INTOLERANCE', 'AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  food('SOY', 'Soy', ['soy', 'soya', 'soybean'], ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  food('FISH', 'Fish', ['fish', 'fish allergy'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  food('SESAME', 'Sesame', ['sesame', 'sesame seed'], ['ALLERGY', 'AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  food('MSG', 'Monosodium glutamate (MSG)', ['msg', 'monosodium glutamate'], ['INTOLERANCE', 'AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  food('PORK', 'Pork', ['pork', 'baboy'], ['AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
-  food('BEEF', 'Beef', ['beef', 'baka'], ['AVOIDED_INGREDIENT'], 'RECOGNIZED_UNSUPPORTED', 'INDIVIDUAL_REVIEW_REQUIRED_V1'),
+  food(
+    'NONE',
+    'No food restriction',
+    ['none', 'no allergy', 'no food restriction'],
+    ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'],
+    'SUPPORTED',
+    'ONBOARDING_NONE_V1'
+  ),
+  food(
+    'SHELLFISH',
+    'Shellfish',
+    ['shellfish', 'shrimp', 'prawn', 'crab'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'SUPPORTED',
+    'LIBRARY_ALLERGEN_DECLARATION_V1'
+  ),
+  food(
+    'NUTS',
+    'Peanuts and tree nuts',
+    ['nuts', 'peanut', 'peanuts', 'tree nut', 'tree nuts'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'SUPPORTED',
+    'LIBRARY_ALLERGEN_DECLARATION_V1'
+  ),
+  food(
+    'DAIRY',
+    'Dairy',
+    ['dairy', 'milk', 'milk allergy'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'SUPPORTED',
+    'LIBRARY_ALLERGEN_DECLARATION_V1'
+  ),
+  food(
+    'GLUTEN',
+    'Gluten',
+    ['gluten', 'wheat', 'wheat allergy'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'SUPPORTED',
+    'LIBRARY_ALLERGEN_DECLARATION_V1'
+  ),
+  food(
+    'EGGS',
+    'Eggs',
+    ['egg', 'eggs', 'egg allergy'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'SUPPORTED',
+    'LIBRARY_ALLERGEN_DECLARATION_V1'
+  ),
+  food(
+    'LACTOSE',
+    'Lactose',
+    ['lactose', 'lactose intolerance'],
+    ['INTOLERANCE', 'AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  food(
+    'SOY',
+    'Soy',
+    ['soy', 'soya', 'soybean'],
+    ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  food(
+    'FISH',
+    'Fish',
+    ['fish', 'fish allergy'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  food(
+    'SESAME',
+    'Sesame',
+    ['sesame', 'sesame seed'],
+    ['ALLERGY', 'AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  food(
+    'MSG',
+    'Monosodium glutamate (MSG)',
+    ['msg', 'monosodium glutamate'],
+    ['INTOLERANCE', 'AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  food(
+    'PORK',
+    'Pork',
+    ['pork', 'baboy'],
+    ['AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
+  food(
+    'BEEF',
+    'Beef',
+    ['beef', 'baka'],
+    ['AVOIDED_INGREDIENT'],
+    'RECOGNIZED_UNSUPPORTED',
+    'INDIVIDUAL_REVIEW_REQUIRED_V1'
+  ),
 ]);
 
 const vagueTerms = new Set(['high sugar', 'heart problem', 'stomach problem', 'sensitive', 'allergic', 'pain', 'sick']);
@@ -102,7 +252,7 @@ export function normalizeSafetyText(value: string): string {
 
 export function splitSafetyInput(value: string): string[] {
   return value
-    .split(/[,;\/\n\r]+/)
+    .split(/[,;/\n\r]+/)
     .map((part) => part.trim().replace(/\s+/g, ' '))
     .filter(Boolean);
 }
@@ -116,7 +266,9 @@ function findCatalogueItem(domain: SafetyEntryDomain, value: string, provenance:
   return catalogueFor(domain).find((item) => {
     if (!item.domains.includes(domain)) return false;
     if (provenance === 'PREDEFINED') return item.code === value;
-    return [item.code, item.displayName, ...item.aliases].some((candidate) => normalizeSafetyText(candidate) === normalized);
+    return [item.code, item.displayName, ...item.aliases].some(
+      (candidate) => normalizeSafetyText(candidate) === normalized
+    );
   });
 }
 
@@ -130,7 +282,10 @@ export function resolveSafetyEntries(inputs: readonly SafetyEntryInput[]): Resol
       const item = findCatalogueItem(input.domain, original, input.provenance);
       const supportState: SafetySupportState = item
         ? item.supportState
-        : input.provenance === 'PREDEFINED' || oversized || invalidTerms.has(normalizedText) || normalizedText.length < 2
+        : input.provenance === 'PREDEFINED' ||
+            oversized ||
+            invalidTerms.has(normalizedText) ||
+            normalizedText.length < 2
           ? 'INVALID'
           : vagueTerms.has(normalizedText)
             ? 'NEEDS_CLARIFICATION'
@@ -146,7 +301,11 @@ export function resolveSafetyEntries(inputs: readonly SafetyEntryInput[]): Resol
         policyReference: item?.policyReference ?? `${SAFETY_INTAKE_POLICY_VERSION}:UNMAPPED`,
       };
       const dedupeKey = `${entry.domain}:${entry.canonicalCode ?? entry.normalizedText}`;
-      if (!resolved.some((candidate) => `${candidate.domain}:${candidate.canonicalCode ?? candidate.normalizedText}` === dedupeKey)) {
+      if (
+        !resolved.some(
+          (candidate) => `${candidate.domain}:${candidate.canonicalCode ?? candidate.normalizedText}` === dedupeKey
+        )
+      ) {
         resolved.push(entry);
       }
     }
@@ -162,7 +321,10 @@ export function validateResolvedSafetyEntries(entries: readonly ResolvedSafetyEn
   if (vague.length) errors.push('Clarify vague safety entries before saving.');
   for (const domain of SAFETY_ENTRY_DOMAINS) {
     const values = entries.filter((entry) => entry.domain === domain);
-    if (values.some((entry) => entry.canonicalCode === 'NONE') && values.some((entry) => entry.canonicalCode !== 'NONE')) {
+    if (
+      values.some((entry) => entry.canonicalCode === 'NONE') &&
+      values.some((entry) => entry.canonicalCode !== 'NONE')
+    ) {
       errors.push(`NONE cannot be combined with another ${domain.toLowerCase().replace('_', ' ')} entry.`);
     }
   }

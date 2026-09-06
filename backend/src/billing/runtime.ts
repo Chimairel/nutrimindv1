@@ -1,8 +1,4 @@
-import {
-  BillingGateway,
-  CheckoutIntentRepository,
-  WebhookInboxRepository,
-} from '@/billing/contracts';
+import { BillingGateway, CheckoutIntentRepository, WebhookInboxRepository } from '@/billing/contracts';
 import { loadPaymongoConfig } from '@/domain/paymongo-config.policy';
 import { BillingCheckoutBoundary, CheckoutBoundaryError } from '@/services/billing-checkout-boundary.service';
 import { NodeHttpsBillingTransport } from '@/services/node-https-billing.transport';
@@ -60,35 +56,35 @@ const checkoutGateway = paymongoConfig.checkout.enabled
 export const billingCheckoutBoundary = new BillingCheckoutBoundary(
   paymongoConfig.checkout,
   checkoutRepository,
-  checkoutGateway,
+  checkoutGateway
 );
 
 export const userBillingAccessService = new UserBillingAccessService(
   new PrismaUserBillingAccessRepository(prisma),
-  paymongoConfig.checkout.enabled,
+  paymongoConfig.checkout.enabled
 );
 
 export const paymongoWebhookBoundary = new PaymongoWebhookBoundary(
   paymongoConfig.webhook,
-  paymongoConfig.webhook.enabled ? new PrismaWebhookInboxRepository(prisma) : unavailableWebhookRepository,
+  paymongoConfig.webhook.enabled ? new PrismaWebhookInboxRepository(prisma) : unavailableWebhookRepository
 );
 
 // The lifecycle worker below is the only automatic caller and remains separately disabled by default.
 export const paymongoPaymentProjectionProcessor = paymongoConfig.reconciliation.enabled
   ? new PaymongoPaymentProjectionService(
-    new PrismaPaymentProjectionRepository(prisma),
-    new PaymongoReconciliationGateway(paymongoConfig.reconciliation, new NodeHttpsBillingTransport()),
-  )
+      new PrismaPaymentProjectionRepository(prisma),
+      new PaymongoReconciliationGateway(paymongoConfig.reconciliation, new NodeHttpsBillingTransport())
+    )
   : null;
 
 export const billingProcessingWorkerConfig = loadBillingProcessingWorkerConfig(process.env, paymongoConfig);
 
 export const billingProcessingWorker = new BillingProcessingWorker(
   billingProcessingWorkerConfig,
-  paymongoPaymentProjectionProcessor,
+  paymongoPaymentProjectionProcessor
 );
 
 export const billingOperationsStatusService = new BillingOperationsStatusService(
   new PrismaBillingOperationsRepository(prisma),
-  () => billingProcessingWorker.snapshot(),
+  () => billingProcessingWorker.snapshot()
 );

@@ -20,7 +20,7 @@ export const decodeToken = (token: string): JWTPayload | null => {
 export const isTokenExpired = (token: string): boolean => {
   const decoded = decodeToken(token);
   if (!decoded) return true;
-  
+
   // exp is in seconds, Date.now() in milliseconds
   const currentTime = Date.now() / 1000;
   return decoded.exp < currentTime;
@@ -56,5 +56,5 @@ export const cookieHelper = {
     if (typeof document === 'undefined') return;
     const isSecure = window.location.protocol === 'https:';
     document.cookie = `${name}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax${isSecure ? '; Secure' : ''}`;
-  }
+  },
 };

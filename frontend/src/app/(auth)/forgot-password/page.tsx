@@ -27,7 +27,11 @@ export default function ForgotPasswordPage() {
       await api.post('/auth/forgot-password', { email });
       setSuccess(true);
     } catch (err) {
-      setError(axios.isAxiosError(err) ? err.response?.data?.error || 'Something went wrong. Please try again.' : 'An unexpected error occurred.');
+      setError(
+        axios.isAxiosError(err)
+          ? err.response?.data?.error || 'Something went wrong. Please try again.'
+          : 'An unexpected error occurred.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -37,10 +41,24 @@ export default function ForgotPasswordPage() {
     <AuthShell
       eyebrow="Account recovery"
       title={success ? 'Check your inbox' : 'Reset your access'}
-      description={success ? 'If the account exists, a secure reset link is on its way.' : 'Enter the email connected to your NutriMind account.'}
-      heroTitle={<>A secure route<br /><span className="text-brand-accent">back to your plan.</span></>}
+      description={
+        success
+          ? 'If the account exists, a secure reset link is on its way.'
+          : 'Enter the email connected to your NutriMind account.'
+      }
+      heroTitle={
+        <>
+          A secure route
+          <br />
+          <span className="text-brand-accent">back to your plan.</span>
+        </>
+      }
       heroDescription="Account recovery is kept separate from your health profile and does not change your saved nutrition data."
-      footer={<Link href="/login" className="font-bold text-brand-green transition hover:text-brand-cyan">Return to sign in</Link>}
+      footer={
+        <Link href="/login" className="font-bold text-brand-green transition hover:text-brand-cyan">
+          Return to sign in
+        </Link>
+      }
     >
       {success ? (
         <div className="text-center">
@@ -49,20 +67,40 @@ export default function ForgotPasswordPage() {
           </div>
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-left text-sm text-brand-text">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
-            <span className="leading-6">If an account with that email exists, we&apos;ve sent a password reset link. Check your inbox and spam folder.</span>
+            <span className="leading-6">
+              If an account with that email exists, we&apos;ve sent a password reset link. Check your inbox and spam
+              folder.
+            </span>
           </div>
-          <Link href="/login" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon">Back to sign in</Link>
+          <Link
+            href="/login"
+            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon"
+          >
+            Back to sign in
+          </Link>
         </div>
       ) : (
         <>
           {error && (
             <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span>
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <Input id="forgot-email" label="Email address" type="email" placeholder="name@example.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={isLoading} autoComplete="email" />
-            <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>Send reset link</Button>
+            <Input
+              id="forgot-email"
+              label="Email address"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              disabled={isLoading}
+              autoComplete="email"
+            />
+            <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
+              Send reset link
+            </Button>
           </form>
         </>
       )}

@@ -6,10 +6,7 @@ import {
   CheckoutReconciliationGatewayError,
   ReconciledPaymongoCheckout,
 } from '@/billing/contracts';
-import {
-  EnabledPaymongoReconciliationConfig,
-  PAYMONGO_API_ORIGIN,
-} from '@/domain/paymongo-config.policy';
+import { EnabledPaymongoReconciliationConfig, PAYMONGO_API_ORIGIN } from '@/domain/paymongo-config.policy';
 import { BillingHttpResponseTooLargeError } from '@/services/node-https-billing.transport';
 
 const SESSION_ID = /^cs_[A-Za-z0-9_-]{8,188}$/;
@@ -38,15 +35,21 @@ function epochSeconds(value: unknown): Date {
 
 function assertRetrievalUrl(url: string, sessionId: string): void {
   const parsed = new URL(url);
-  if (parsed.origin !== PAYMONGO_API_ORIGIN || parsed.pathname !== `${RETRIEVAL_PREFIX}${sessionId}` ||
-      parsed.search || parsed.hash || parsed.username || parsed.password) {
+  if (
+    parsed.origin !== PAYMONGO_API_ORIGIN ||
+    parsed.pathname !== `${RETRIEVAL_PREFIX}${sessionId}` ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.username ||
+    parsed.password
+  ) {
     throw new CheckoutReconciliationGatewayError('PROVIDER_REQUEST_REJECTED', false);
   }
 }
 
 export function parsePaymongoCheckoutReconciliation(
   body: Uint8Array,
-  requestedSessionId: string,
+  requestedSessionId: string
 ): ReconciledPaymongoCheckout {
   let parsed: unknown;
   try {
@@ -55,7 +58,8 @@ export function parsePaymongoCheckoutReconciliation(
     throw invalidResponse();
   }
   const data = object(object(parsed).data);
-  if (data.type !== 'checkout_session' || typeof data.id !== 'string' || !SESSION_ID.test(data.id)) throw invalidResponse();
+  if (data.type !== 'checkout_session' || typeof data.id !== 'string' || !SESSION_ID.test(data.id))
+    throw invalidResponse();
   if (data.id !== requestedSessionId) {
     throw new CheckoutReconciliationGatewayError('PROVIDER_SESSION_MISMATCH', false);
   }
@@ -63,12 +67,19 @@ export function parsePaymongoCheckoutReconciliation(
   if (attributes.livemode !== false) {
     throw new CheckoutReconciliationGatewayError('PROVIDER_LIVE_MODE_REJECTED', false);
   }
-  if (!REFERENCE.test(String(attributes.reference_number || '')) ||
-      (attributes.status !== 'active' && attributes.status !== 'expired') || !Array.isArray(attributes.payments)) {
+  if (
+    !REFERENCE.test(String(attributes.reference_number || '')) ||
+    (attributes.status !== 'active' && attributes.status !== 'expired') ||
+    !Array.isArray(attributes.payments)
+  ) {
     throw invalidResponse();
   }
   const paidPayments = attributes.payments.filter((value) => {
-    try { return object(object(value).attributes).status === 'paid'; } catch { return false; }
+    try {
+      return object(object(value).attributes).status === 'paid';
+    } catch {
+      return false;
+    }
   });
   if (paidPayments.length === 0) {
     throw new CheckoutReconciliationGatewayError('PROVIDER_PAYMENT_NOT_SUCCEEDED', false);
@@ -78,13 +89,23 @@ export function parsePaymongoCheckoutReconciliation(
   const paymentAttributes = object(payment.attributes);
   const intent = object(attributes.payment_intent);
   const intentAttributes = object(intent.attributes);
-  if (payment.type !== 'payment' || typeof payment.id !== 'string' || !PAYMENT_ID.test(payment.id) ||
-      intent.type !== 'payment_intent' || typeof intent.id !== 'string' || !PAYMENT_INTENT_ID.test(intent.id) ||
-      paymentAttributes.livemode !== false || intentAttributes.livemode !== false ||
-      paymentAttributes.status !== 'paid' ||
-      paymentAttributes.payment_intent_id !== intent.id || !Number.isSafeInteger(paymentAttributes.amount) ||
-      Number(paymentAttributes.amount) <= 0 || paymentAttributes.currency !== 'PHP' ||
-      intentAttributes.amount !== paymentAttributes.amount || intentAttributes.currency !== paymentAttributes.currency) {
+  if (
+    payment.type !== 'payment' ||
+    typeof payment.id !== 'string' ||
+    !PAYMENT_ID.test(payment.id) ||
+    intent.type !== 'payment_intent' ||
+    typeof intent.id !== 'string' ||
+    !PAYMENT_INTENT_ID.test(intent.id) ||
+    paymentAttributes.livemode !== false ||
+    intentAttributes.livemode !== false ||
+    paymentAttributes.status !== 'paid' ||
+    paymentAttributes.payment_intent_id !== intent.id ||
+    !Number.isSafeInteger(paymentAttributes.amount) ||
+    Number(paymentAttributes.amount) <= 0 ||
+    paymentAttributes.currency !== 'PHP' ||
+    intentAttributes.amount !== paymentAttributes.amount ||
+    intentAttributes.currency !== paymentAttributes.currency
+  ) {
     throw invalidResponse();
   }
   if (intentAttributes.status !== 'succeeded') {
@@ -110,13 +131,10 @@ export function parsePaymongoCheckoutReconciliation(
 export class PaymongoReconciliationGateway implements CheckoutReconciliationGateway {
   constructor(
     private readonly config: EnabledPaymongoReconciliationConfig,
-    private readonly transport: BillingHttpTransport,
+    private readonly transport: BillingHttpTransport
   ) {}
 
-  async retrieveCheckoutSession(
-    providerSessionId: string,
-    signal?: AbortSignal,
-  ): Promise<ReconciledPaymongoCheckout> {
+  async retrieveCheckoutSession(providerSessionId: string, signal?: AbortSignal): Promise<ReconciledPaymongoCheckout> {
     if (!SESSION_ID.test(providerSessionId)) {
       throw new CheckoutReconciliationGatewayError('PROVIDER_REQUEST_REJECTED', false);
     }

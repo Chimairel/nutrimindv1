@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  normalizeFoodName,
-  scoreStrongFNRIMatch,
-  selectStrongFNRIMatch,
-} from '../src/domain/fnri-match.policy';
+import { normalizeFoodName, scoreStrongFNRIMatch, selectStrongFNRIMatch } from '../src/domain/fnri-match.policy';
 
 test('[TEST-053] punctuation-only differences retain a strong FNRI match', () => {
   assert.equal(normalizeFoodName('Chicken, breast (raw)'), 'chicken breast raw');

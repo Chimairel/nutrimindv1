@@ -191,7 +191,7 @@ function validateSnapshotPath(): string {
 async function collectSnapshot(
   transaction: Prisma.TransactionClient,
   targetFingerprint: string,
-  migrationNames: string[],
+  migrationNames: string[]
 ): Promise<AuditSnapshot> {
   const tables = await transaction.$queryRaw<Array<Record<string, unknown> & { table_name: string }>>`
     SELECT table_name
@@ -204,7 +204,7 @@ async function collectSnapshot(
     if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(tableName)) fail('UNSAFE_TABLE_IDENTIFIER');
     const aggregate = await transaction.$queryRawUnsafe<Array<{ row_count: string; row_hashes: string }>>(
       `SELECT COUNT(*)::text AS row_count, COALESCE(string_agg(row_hash, '' ORDER BY row_hash), '') AS row_hashes ` +
-      `FROM (SELECT md5(to_jsonb(source_row)::text) AS row_hash FROM "public"."${tableName}" source_row) hashed_rows`,
+        `FROM (SELECT md5(to_jsonb(source_row)::text) AS row_hash FROM "public"."${tableName}" source_row) hashed_rows`
     );
     const rowCount = Number(aggregate[0]?.row_count || '-1');
     if (!Number.isSafeInteger(rowCount) || rowCount < 0) fail('TABLE_COUNT_INVALID');
@@ -273,9 +273,10 @@ async function collectSnapshot(
     migrationNames,
     tableData,
     schema,
-    schemaHashes: Object.fromEntries(
-      Object.entries(schema).map(([name, rows]) => [name, stableHash(rows)]),
-    ) as Record<keyof SchemaSnapshot, string>,
+    schemaHashes: Object.fromEntries(Object.entries(schema).map(([name, rows]) => [name, stableHash(rows)])) as Record<
+      keyof SchemaSnapshot,
+      string
+    >,
   };
 }
 
@@ -293,7 +294,9 @@ function requireTargetObjectState(snapshot: AuditSnapshot, mode: 'preflight' | '
   const columnNames = new Set(snapshot.schema.columns.map((row) => `${row.table_name}.${row.column_name}`));
 
   const checks: Array<[string, boolean]> = [
-    ...migrationTableNames(AUTHORIZED_PENDING[0]).map((name) => [`table:${name}`, tableNames.has(name)] as [string, boolean]),
+    ...migrationTableNames(AUTHORIZED_PENDING[0]).map(
+      (name) => [`table:${name}`, tableNames.has(name)] as [string, boolean]
+    ),
     ...CONVERSION_ENUMS.map((name) => [`enum:${name}`, enumNames.has(name)] as [string, boolean]),
     ['enum:CompensationAdjustmentStatus', enumNames.has('CompensationAdjustmentStatus')],
     ...COMPENSATION_COLUMNS.map((name) => [`column:${name}`, columnNames.has(name)] as [string, boolean]),
@@ -330,71 +333,75 @@ async function main(): Promise<void> {
   const prisma = new PrismaClient();
   try {
     auditStage = 'READ_SHARED_DATABASE';
-    const result = await prisma.$transaction(async (transaction) => {
-      auditStage = 'SET_READ_ONLY';
-      await transaction.$executeRawUnsafe('SET TRANSACTION READ ONLY');
-      auditStage = 'READ_IDENTITY';
-      const identity = await transaction.$queryRaw<Array<{ database_name: string; schema_name: string }>>`
+    const result = await prisma.$transaction(
+      async (transaction) => {
+        auditStage = 'SET_READ_ONLY';
+        await transaction.$executeRawUnsafe('SET TRANSACTION READ ONLY');
+        auditStage = 'READ_IDENTITY';
+        const identity = await transaction.$queryRaw<Array<{ database_name: string; schema_name: string }>>`
         SELECT current_database() AS database_name, current_schema() AS schema_name
       `;
-      if (identity[0]?.database_name !== 'neondb') fail('DATABASE_NAME_MISMATCH');
-      if (identity[0]?.schema_name !== 'public') fail('DATABASE_SCHEMA_MISMATCH');
+        if (identity[0]?.database_name !== 'neondb') fail('DATABASE_NAME_MISMATCH');
+        if (identity[0]?.schema_name !== 'public') fail('DATABASE_SCHEMA_MISMATCH');
 
-      auditStage = 'READ_MIGRATIONS';
-      const migrations = await transaction.$queryRaw<MigrationRow[]>`
+        auditStage = 'READ_MIGRATIONS';
+        const migrations = await transaction.$queryRaw<MigrationRow[]>`
         SELECT migration_name, checksum, finished_at, rolled_back_at, applied_steps_count
         FROM "_prisma_migrations"
         ORDER BY migration_name
       `;
-      if (migrations.some((row) => !row.finished_at || row.rolled_back_at || row.applied_steps_count !== 1)) {
-        fail('MIGRATION_HISTORY_NOT_CLEAN');
-      }
-      const completedNames = migrations.map((row) => row.migration_name);
-      const pending = repositoryMigrations.filter((name) => !completedNames.includes(name));
-      const expectedCount = mode === 'preflight' ? PRE_MIGRATION_COUNT : POST_MIGRATION_COUNT;
-      if (
-        migrations.length !== expectedCount ||
-        (mode === 'preflight' && JSON.stringify(pending) !== JSON.stringify([...AUTHORIZED_PENDING])) ||
-        (mode === 'postflight' && pending.length !== 0)
-      ) {
-        fail('MIGRATION_HISTORY_UNEXPECTED');
-      }
-
-      auditStage = 'VALIDATE_CHECKSUMS';
-      for (const row of migrations) {
-        if (!repositoryMigrations.includes(row.migration_name)) fail('UNKNOWN_APPLIED_MIGRATION');
-        const canonical = canonicalMigrationHash(row.migration_name);
-        const working = workingMigrationHash(row.migration_name);
-        if (row.checksum !== canonical && row.checksum !== working) fail('MIGRATION_CHECKSUM_MISMATCH');
-      }
-      if (mode === 'postflight') {
-        for (const name of AUTHORIZED_PENDING) {
-          const row = migrations.find((candidate) => candidate.migration_name === name);
-          if (row?.checksum !== AUTHORIZED_CHECKSUMS[name]) fail('AUTHORIZED_STORED_CHECKSUM_MISMATCH');
+        if (migrations.some((row) => !row.finished_at || row.rolled_back_at || row.applied_steps_count !== 1)) {
+          fail('MIGRATION_HISTORY_NOT_CLEAN');
         }
-      }
-
-      auditStage = 'COLLECT_SNAPSHOT';
-      const snapshot = await collectSnapshot(transaction, fingerprint, completedNames);
-      const expectedTableCount = mode === 'preflight' ? PRE_DOMAIN_TABLE_COUNT : POST_DOMAIN_TABLE_COUNT;
-      if (Object.keys(snapshot.tableData).length !== expectedTableCount) fail('DOMAIN_TABLE_COUNT_UNEXPECTED');
-
-      const billingTables = [
-        ...migrationTableNames('20260905180000_billing_foundation'),
-        ...migrationTableNames('20260906193000_paymongo_sandbox_checkout'),
-      ];
-      if (billingTables.length !== 24) fail('BILLING_TABLE_INVENTORY_INVALID');
-      for (const tableName of billingTables) {
-        if (!snapshot.tableData[tableName] || snapshot.tableData[tableName].rowCount !== 0) {
-          fail('BILLING_OR_FINANCE_TABLE_NOT_EMPTY');
+        const completedNames = migrations.map((row) => row.migration_name);
+        const pending = repositoryMigrations.filter((name) => !completedNames.includes(name));
+        const expectedCount = mode === 'preflight' ? PRE_MIGRATION_COUNT : POST_MIGRATION_COUNT;
+        if (
+          migrations.length !== expectedCount ||
+          (mode === 'preflight' && JSON.stringify(pending) !== JSON.stringify([...AUTHORIZED_PENDING])) ||
+          (mode === 'postflight' && pending.length !== 0)
+        ) {
+          fail('MIGRATION_HISTORY_UNEXPECTED');
         }
-      }
-      for (const tableName of migrationTableNames(AUTHORIZED_PENDING[0])) {
-        if (mode === 'postflight' && snapshot.tableData[tableName]?.rowCount !== 0) fail('CONVERSION_TABLE_NOT_EMPTY');
-      }
-      requireTargetObjectState(snapshot, mode);
-      return { snapshot, pending, migrations };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 180_000 });
+
+        auditStage = 'VALIDATE_CHECKSUMS';
+        for (const row of migrations) {
+          if (!repositoryMigrations.includes(row.migration_name)) fail('UNKNOWN_APPLIED_MIGRATION');
+          const canonical = canonicalMigrationHash(row.migration_name);
+          const working = workingMigrationHash(row.migration_name);
+          if (row.checksum !== canonical && row.checksum !== working) fail('MIGRATION_CHECKSUM_MISMATCH');
+        }
+        if (mode === 'postflight') {
+          for (const name of AUTHORIZED_PENDING) {
+            const row = migrations.find((candidate) => candidate.migration_name === name);
+            if (row?.checksum !== AUTHORIZED_CHECKSUMS[name]) fail('AUTHORIZED_STORED_CHECKSUM_MISMATCH');
+          }
+        }
+
+        auditStage = 'COLLECT_SNAPSHOT';
+        const snapshot = await collectSnapshot(transaction, fingerprint, completedNames);
+        const expectedTableCount = mode === 'preflight' ? PRE_DOMAIN_TABLE_COUNT : POST_DOMAIN_TABLE_COUNT;
+        if (Object.keys(snapshot.tableData).length !== expectedTableCount) fail('DOMAIN_TABLE_COUNT_UNEXPECTED');
+
+        const billingTables = [
+          ...migrationTableNames('20260905180000_billing_foundation'),
+          ...migrationTableNames('20260906193000_paymongo_sandbox_checkout'),
+        ];
+        if (billingTables.length !== 24) fail('BILLING_TABLE_INVENTORY_INVALID');
+        for (const tableName of billingTables) {
+          if (!snapshot.tableData[tableName] || snapshot.tableData[tableName].rowCount !== 0) {
+            fail('BILLING_OR_FINANCE_TABLE_NOT_EMPTY');
+          }
+        }
+        for (const tableName of migrationTableNames(AUTHORIZED_PENDING[0])) {
+          if (mode === 'postflight' && snapshot.tableData[tableName]?.rowCount !== 0)
+            fail('CONVERSION_TABLE_NOT_EMPTY');
+        }
+        requireTargetObjectState(snapshot, mode);
+        return { snapshot, pending, migrations };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 180_000 }
+    );
 
     auditStage = 'COMPARE_OR_WRITE_SNAPSHOT';
     if (mode === 'preflight') {
@@ -418,35 +425,40 @@ async function main(): Promise<void> {
     }
 
     auditStage = 'REPORT';
-    const byteForms = result.migrations.reduce((counts, row) => {
-      const form = row.checksum === canonicalMigrationHash(row.migration_name) ? 'canonical' : 'working';
-      counts[form] += 1;
-      return counts;
-    }, { canonical: 0, working: 0 });
+    const byteForms = result.migrations.reduce(
+      (counts, row) => {
+        const form = row.checksum === canonicalMigrationHash(row.migration_name) ? 'canonical' : 'working';
+        counts[form] += 1;
+        return counts;
+      },
+      { canonical: 0, working: 0 }
+    );
     const authorizedChecksums = Object.fromEntries(
       result.migrations
         .filter((row) => AUTHORIZED_PENDING.includes(row.migration_name as (typeof AUTHORIZED_PENDING)[number]))
-        .map((row) => [row.migration_name, row.checksum]),
+        .map((row) => [row.migration_name, row.checksum])
     );
-    process.stdout.write(JSON.stringify({
-      success: true,
-      mode,
-      targetFingerprint: fingerprint,
-      database: 'neondb',
-      schema: 'public',
-      tlsRequiredByConfiguration: true,
-      completedMigrations: result.migrations.length,
-      pendingMigrations: result.pending,
-      checksumByteForms: byteForms,
-      authorizedChecksums,
-      domainTables: Object.keys(result.snapshot.tableData).length,
-      billingAndFinanceTablesEmpty: true,
-      conversionTablesEmpty: mode === 'postflight',
-      snapshotFile: basename(snapshotPath),
-      snapshotHash: sha256(JSON.stringify(result.snapshot)),
-      schemaHashes: result.snapshot.schemaHashes,
-      preexistingTablesPreserved: mode === 'postflight',
-    }));
+    process.stdout.write(
+      JSON.stringify({
+        success: true,
+        mode,
+        targetFingerprint: fingerprint,
+        database: 'neondb',
+        schema: 'public',
+        tlsRequiredByConfiguration: true,
+        completedMigrations: result.migrations.length,
+        pendingMigrations: result.pending,
+        checksumByteForms: byteForms,
+        authorizedChecksums,
+        domainTables: Object.keys(result.snapshot.tableData).length,
+        billingAndFinanceTablesEmpty: true,
+        conversionTablesEmpty: mode === 'postflight',
+        snapshotFile: basename(snapshotPath),
+        snapshotHash: sha256(JSON.stringify(result.snapshot)),
+        schemaHashes: result.snapshot.schemaHashes,
+        preexistingTablesPreserved: mode === 'postflight',
+      })
+    );
   } finally {
     await prisma.$disconnect();
   }
@@ -454,13 +466,14 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const code = error instanceof SharedSchemaAuditError ? error.code : 'FINAL_SHARED_SCHEMA_AUDIT_FAILED';
-  const infrastructureCode = error instanceof Prisma.PrismaClientKnownRequestError
-    ? error.code
-    : error instanceof Prisma.PrismaClientInitializationError
-      ? error.errorCode || 'PRISMA_INITIALIZATION_FAILED'
-      : error instanceof Prisma.PrismaClientUnknownRequestError
-        ? 'PRISMA_UNKNOWN_REQUEST_FAILED'
-        : null;
+  const infrastructureCode =
+    error instanceof Prisma.PrismaClientKnownRequestError
+      ? error.code
+      : error instanceof Prisma.PrismaClientInitializationError
+        ? error.errorCode || 'PRISMA_INITIALIZATION_FAILED'
+        : error instanceof Prisma.PrismaClientUnknownRequestError
+          ? 'PRISMA_UNKNOWN_REQUEST_FAILED'
+          : null;
   process.stderr.write(`${JSON.stringify({ success: false, code, stage: auditStage, infrastructureCode })}\n`);
   process.exitCode = 1;
 });

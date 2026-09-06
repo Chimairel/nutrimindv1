@@ -17,7 +17,12 @@ export function clearPremiumCheckoutAttemptKey(): void {
 export function validateHostedCheckoutUrl(value: unknown): string {
   if (typeof value !== 'string') throw new Error('CHECKOUT_URL_INVALID');
   const parsed = new URL(value);
-  if (parsed.protocol !== 'https:' || parsed.origin !== 'https://checkout.paymongo.com' || parsed.username || parsed.password) {
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.origin !== 'https://checkout.paymongo.com' ||
+    parsed.username ||
+    parsed.password
+  ) {
     throw new Error('CHECKOUT_URL_INVALID');
   }
   return parsed.toString();

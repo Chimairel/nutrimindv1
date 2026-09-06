@@ -15,4 +15,6 @@ const snapshot = loadPsaOpenStatSnapshot(snapshotPath);
 const review = loadIngredientConversionSourceReview(sourceReviewPath);
 const report = buildIngredientConversionCoverageReport(snapshot, review, new Date('2026-09-06T00:00:00.000Z'));
 writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-process.stdout.write(`${JSON.stringify({ outputPath, ...report.layers, mealCoverage: report.mealCoverage }, null, 2)}\n`);
+process.stdout.write(
+  `${JSON.stringify({ outputPath, ...report.layers, mealCoverage: report.mealCoverage }, null, 2)}\n`
+);

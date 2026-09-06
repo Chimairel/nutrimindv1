@@ -16,14 +16,20 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-2xl font-display font-extrabold tracking-tight transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-green/60 focus:ring-offset-2 focus:ring-offset-brand-bg disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100';
-  
+  const baseStyles =
+    'inline-flex items-center justify-center gap-2 rounded-2xl font-display font-extrabold tracking-tight transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-green/60 focus:ring-offset-2 focus:ring-offset-brand-bg disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100';
+
   const variants = {
-    primary: 'border border-brand-accent/70 bg-brand-accent text-brand-black shadow-neon hover:-translate-y-0.5 hover:brightness-95',
-    secondary: 'border border-brand-border/80 bg-brand-surface/85 text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-brand-green/35 hover:bg-brand-bgAlt/80',
-    accent: 'border border-brand-green/70 bg-brand-green text-white shadow-sm shadow-brand-green/20 hover:-translate-y-0.5 hover:bg-brand-greenHover dark:text-brand-black',
-    danger: 'border border-status-error-text/70 bg-status-error-text text-white shadow-sm hover:-translate-y-0.5 hover:brightness-90',
-    ghost: 'border border-transparent bg-transparent text-brand-muted hover:border-brand-border/70 hover:bg-brand-surface/70 hover:text-brand-text',
+    primary:
+      'border border-brand-accent/70 bg-brand-accent text-brand-black shadow-neon hover:-translate-y-0.5 hover:brightness-95',
+    secondary:
+      'border border-brand-border/80 bg-brand-surface/85 text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-brand-green/35 hover:bg-brand-bgAlt/80',
+    accent:
+      'border border-brand-green/70 bg-brand-green text-white shadow-sm shadow-brand-green/20 hover:-translate-y-0.5 hover:bg-brand-greenHover dark:text-brand-black',
+    danger:
+      'border border-status-error-text/70 bg-status-error-text text-white shadow-sm hover:-translate-y-0.5 hover:brightness-90',
+    ghost:
+      'border border-transparent bg-transparent text-brand-muted hover:border-brand-border/70 hover:bg-brand-surface/70 hover:text-brand-text',
   };
 
   const sizes = {
