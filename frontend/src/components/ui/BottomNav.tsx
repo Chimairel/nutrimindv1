@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Utensils, ShoppingCart, User } from 'lucide-react';
+import { Crown, Home, Utensils, ShoppingCart, User } from 'lucide-react';
 
 interface BottomNavProps {
   className?: string;
@@ -21,6 +21,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
     { label: 'Home', href: '/dashboard', icon: Home },
     { label: 'Meals', href: '/meals', icon: Utensils },
     { label: 'Grocery', href: '/grocery', icon: ShoppingCart },
+    { label: 'Premium', href: '/billing', icon: Crown },
     { label: 'Profile', href: '/profile', icon: User },
   ];
 
@@ -40,7 +41,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
             key={item.href}
             href={item.href}
             className={`
-              relative flex h-[52px] w-16 flex-col items-center justify-center gap-1 rounded-2xl outline-none transition-all duration-200
+              relative flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl outline-none transition-all duration-200
               ${isActive ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon' : 'text-white/45 hover:bg-white/5 hover:text-white'}
             `}
           >

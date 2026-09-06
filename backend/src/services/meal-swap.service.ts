@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { MealLibrarySafetyEvidenceStatus, MealType } from '@prisma/client';
+import { MealLibrarySafetyEvidenceStatus, MealType, Prisma } from '@prisma/client';
 import { GroceryService } from './grocery.service';
 import {
   assertUserActionableMealPlan,
@@ -22,6 +22,34 @@ import {
   adaptUserSafetyRestrictions,
   type StructuredSafetyRestrictionEntry,
 } from '@/domain/structured-restriction.adapter';
+import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
+import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
+
+export class SwapLimitReachedError extends Error {
+  readonly code = 'WEEKLY_SWAP_LIMIT_REACHED';
+
+  constructor(readonly cap: number) {
+    super(`Swap limit reached. Your current weekly limit is ${cap}.`);
+    this.name = 'SwapLimitReachedError';
+  }
+}
+
+type SwapReservationClient = Pick<Prisma.TransactionClient, 'planSwapTracker'>;
+
+export async function reserveWeeklySwap(
+  transaction: SwapReservationClient,
+  input: { trackerId: string; userId: string; cap: number },
+): Promise<number> {
+  const reserved = await transaction.planSwapTracker.updateMany({
+    where: { id: input.trackerId, userId: input.userId, swapsUsed: { lt: input.cap } },
+    data: { swapsUsed: { increment: 1 } },
+  });
+  if (reserved.count !== 1) throw new SwapLimitReachedError(input.cap);
+  const tracker = await transaction.planSwapTracker.findUniqueOrThrow({
+    where: { id: input.trackerId }, select: { swapsUsed: true },
+  });
+  return tracker.swapsUsed;
+}
 
 export const certifiedLibraryMealInclude = {
   ingredients: { orderBy: { position: 'asc' as const } },
@@ -142,6 +170,8 @@ export class MealSwapService {
         },
       });
     }
+    const entitlement = await resolveUserBillingEntitlement(prisma, userId, new Date());
+    const swapCap = weeklySwapCapForTier(entitlement.tier);
 
     // 4. Query APPROVED library meals matching this mealType
     const libraryMeals = await prisma.mealLibrary.findMany({
@@ -201,7 +231,7 @@ export class MealSwapService {
         } : null,
       })),
       swapsUsed: swapTracker.swapsUsed,
-      swapCap: 3,
+      swapCap,
     };
   }
 
@@ -341,24 +371,15 @@ export class MealSwapService {
       const userAllergens = allergies.map((a) => a.allergen);
 
       // 3. Find or create swap tracker
-      let swapTracker = await tx.planSwapTracker.findUnique({
+      const swapTracker = await tx.planSwapTracker.upsert({
         where: { planGroupId: mealPlan.planGroupId },
+        update: {},
+        create: { planGroupId: mealPlan.planGroupId, userId, swapsUsed: 0 },
       });
-
-      if (!swapTracker) {
-        swapTracker = await tx.planSwapTracker.create({
-          data: {
-            planGroupId: mealPlan.planGroupId,
-            userId,
-            swapsUsed: 0,
-          },
-        });
-      }
-
-      // Check swap cap
-      if (swapTracker.swapsUsed >= 3) {
-        throw new Error('Swap limit reached. You can only perform 3 swaps per week.');
-      }
+      if (swapTracker.userId !== userId) throw new Error('Swap tracker ownership mismatch.');
+      const entitlement = await resolveUserBillingEntitlement(tx, userId, new Date());
+      const swapCap = weeklySwapCapForTier(entitlement.tier);
+      const swapsUsed = await reserveWeeklySwap(tx, { trackerId: swapTracker.id, userId, cap: swapCap });
 
       // 4. Fetch and verify replacement meal
       const libraryMeal = await tx.mealLibrary.findUnique({
@@ -445,15 +466,7 @@ export class MealSwapService {
         });
       }
 
-      // 7. Increment swap count in swapTracker
-      const updatedTracker = await tx.planSwapTracker.update({
-        where: { id: swapTracker.id },
-        data: {
-          swapsUsed: { increment: 1 },
-        },
-      });
-
-      // 8. Increment usageCount on newly selected library entry
+      // 7. Increment usageCount on newly selected library entry
       await tx.mealLibrary.update({
         where: { id: libraryMeal.id },
         data: {
@@ -505,7 +518,8 @@ export class MealSwapService {
 
       return {
         success: true,
-        swapsUsed: updatedTracker.swapsUsed,
+        swapsUsed,
+        swapCap,
         updatedPlan,
       };
     });
@@ -527,6 +541,7 @@ export class MealSwapService {
     return {
       success: true,
       swapsUsed: swapResult.swapsUsed,
+      swapCap: swapResult.swapCap,
     };
   }
 

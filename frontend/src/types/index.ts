@@ -224,3 +224,50 @@ export interface DailyNutritionLog {
   targetCalories: number;
   adherencePct: number;
 }
+
+export type BillingTier = 'FREE' | 'PREMIUM';
+export type BillingVerificationState =
+  | 'NONE'
+  | 'PAYMENT_VERIFICATION_PENDING'
+  | 'RECONCILIATION_PENDING'
+  | 'RECONCILIATION_REQUIRED';
+
+export interface BillingAccessView {
+  serverTime: string;
+  environment: 'TEST';
+  catalogue: Array<{
+    tier: BillingTier;
+    name: string;
+    weeklySwapCap: number;
+    benefit: string;
+    price: null | {
+      amountMinor: number;
+      currency: 'PHP';
+      environment: 'TEST';
+      label: 'SANDBOX_DEMO_PRICE';
+    };
+    accessDays: null | 30;
+    renewsAutomatically: false;
+  }>;
+  current: {
+    tier: BillingTier;
+    access: null | {
+      startsAt: string;
+      expiresAt: string;
+      status: 'NON_RENEWING';
+      renewsAutomatically: false;
+    };
+    swaps: {
+      used: number;
+      cap: number;
+      remaining: number;
+      cycleStartsAt: string | null;
+      cycleEndsAtExclusive: string | null;
+    };
+    verification: BillingVerificationState;
+  };
+  checkout: {
+    available: boolean;
+    reason: 'AVAILABLE' | 'ACTIVE_ACCESS' | 'PAYMENT_PENDING' | 'DISABLED' | 'PRICE_UNAVAILABLE';
+  };
+}

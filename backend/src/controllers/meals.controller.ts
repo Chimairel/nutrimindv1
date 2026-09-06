@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
-import { MealSwapService } from '@/services/meal-swap.service';
+import { MealSwapService, SwapLimitReachedError } from '@/services/meal-swap.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealType } from '@prisma/client';
@@ -19,6 +19,8 @@ import {
   buildPendingMealPlanPreview,
   summarizeGeneratedMealPlan,
 } from '@/domain/meal-generation-result.policy';
+import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
+import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 
 function toPublicVerifier(nutritionist: {
   prcLicenseNumber: string;
@@ -127,6 +129,8 @@ export class MealsController {
       }
 
       const now = new Date();
+      const entitlement = await resolveUserBillingEntitlement(prisma, userId, now);
+      const swapCap = weeklySwapCapForTier(entitlement.tier);
 
       // Find the latest plan group containing a currently actionable row.
       const latestPlan = await prisma.mealPlan.findFirst({
@@ -186,7 +190,7 @@ export class MealsController {
           meta: {
             pendingReview: buildPendingMealPlanPreview(pendingPlanRows),
             swapsUsed: pendingSwapTracker?.swapsUsed ?? 0,
-            swapCap: 3,
+            swapCap,
           },
         });
       }
@@ -223,7 +227,7 @@ export class MealsController {
         meta: {
           pendingReview: buildPendingMealPlanPreview(groupMeals),
           swapsUsed: swapTracker?.swapsUsed ?? 0,
-          swapCap: 3,
+          swapCap,
         },
       });
     } catch (error: any) {
@@ -568,13 +572,20 @@ export class MealsController {
         success: true,
         data: result,
       });
-    } catch (error: any) {
-      console.error('[MealsController] executeSwap error:', error);
+    } catch (error: unknown) {
+      console.error('[MealsController] executeSwap error:', sanitizeErrorMessage(error, 'Meal swap failure.'));
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({ success: false, error: error.message });
       }
-      const status = sanitizeErrorMessage(error, '').includes('limit reached') ? 403 : 400;
-      return res.status(status).json({
+      if (error instanceof SwapLimitReachedError) {
+        return res.status(403).json({
+          success: false,
+          error: error.message,
+          errorCode: error.code,
+          swapCap: error.cap,
+        });
+      }
+      return res.status(400).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to execute meal swap.'),
       });

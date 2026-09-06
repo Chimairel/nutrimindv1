@@ -1,12 +1,13 @@
 import { RequestHandler, Response, Router } from 'express';
 import { z } from 'zod';
 import { BillingCheckoutBoundary, CheckoutBoundaryError } from '@/services/billing-checkout-boundary.service';
-import { billingCheckoutBoundary } from '@/billing/runtime';
+import { billingCheckoutBoundary, userBillingAccessService } from '@/billing/runtime';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
 import validateZodBody from '@/middleware/validateZod';
 import { AuthenticatedRequest } from '@/types';
+import { UserBillingAccessService } from '@/services/user-billing-access.service';
 
 const checkoutBodySchema = z.object({
   priceCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{1,63}$/, 'A valid price code is required.'),
@@ -56,8 +57,27 @@ export function createCheckoutHandler(service: BillingCheckoutBoundary): Request
   };
 }
 
+export function createBillingAccessHandler(service: UserBillingAccessService): RequestHandler {
+  return async (request: AuthenticatedRequest, response: Response) => {
+    try {
+      const userId = request.user?.userId;
+      if (!userId) {
+        return response.status(401).json({ success: false, error: 'Authentication is required.' });
+      }
+      return response.status(200).json({ success: true, data: await service.getForUser(userId) });
+    } catch {
+      return response.status(503).json({
+        success: false,
+        error: 'Billing access status is temporarily unavailable.',
+        errorCode: 'BILLING_ACCESS_UNAVAILABLE',
+      });
+    }
+  };
+}
+
 export function createBillingRouter(input: {
   checkoutService: BillingCheckoutBoundary;
+  accessService: UserBillingAccessService;
   authenticate?: RequestHandler;
   authorizeUser?: RequestHandler;
   requirePrerequisites?: RequestHandler;
@@ -66,8 +86,12 @@ export function createBillingRouter(input: {
   router.use(input.authenticate || authenticate);
   router.use(input.authorizeUser || requireRole('USER'));
   router.use(input.requirePrerequisites || requireReadyUser);
+  router.get('/access', createBillingAccessHandler(input.accessService));
   router.post('/subscriptions', validateZodBody(checkoutBodySchema), createCheckoutHandler(input.checkoutService));
   return router;
 }
 
-export default createBillingRouter({ checkoutService: billingCheckoutBoundary });
+export default createBillingRouter({
+  checkoutService: billingCheckoutBoundary,
+  accessService: userBillingAccessService,
+});

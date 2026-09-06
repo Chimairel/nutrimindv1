@@ -7,7 +7,7 @@ import {
   ReconciledPaymongoCheckout,
 } from '../src/billing/contracts';
 import {
-  oneCalendarMonthFrom,
+  thirtyDaysFrom,
   PaymentReconciliationError,
   validatePaymongoPayment,
 } from '../src/domain/paymongo-payment-reconciliation.policy';
@@ -50,13 +50,13 @@ function failureCode(fn: () => unknown): string {
   assert.fail('Expected reconciliation to fail.');
 }
 
-test('[TEST-102] exact TEST paid evidence produces one calendar-month half-open period', () => {
+test('[TEST-102] exact TEST paid evidence produces one fixed 30-day half-open period', () => {
   const result = validatePaymongoPayment(binding(), evidence(), NOW);
   assert.deepEqual(result, {
     effectiveFrom: new Date('2026-09-06T13:00:00.000Z'),
     effectiveUntil: new Date('2026-10-06T13:00:00.000Z'),
   });
-  assert.equal(oneCalendarMonthFrom(new Date('2027-01-31T08:30:00.000Z')).toISOString(), '2027-02-28T08:30:00.000Z');
+  assert.equal(thirtyDaysFrom(new Date('2027-01-31T08:30:00.000Z')).toISOString(), '2027-03-02T08:30:00.000Z');
 });
 
 test('[TEST-102] local ownership, immutable request, and TEST price binding fail closed before retrieval', () => {

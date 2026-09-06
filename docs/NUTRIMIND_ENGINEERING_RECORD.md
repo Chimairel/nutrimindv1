@@ -2977,3 +2977,46 @@ This section is a continuity record for agreed future work. Every item below is 
 - The exact task-labeled container, its verified anonymous data volume, the initially absent PostgreSQL image, and port 55448 were removed after acceptance. Final checks found the container, volume, and image absent and the port free; unrelated Docker resources were not changed.
 - The TEST secret stayed only in the ignored backend environment file and process memory. It was shape-checked without display and was absent from request output, provider evidence, database evidence, documentation, Git diff, and the staged secret scan. Shared Neon, ports 3000/5000/3030, Antigravity, Gemini, email, OAuth, browser automation, frontend code, deployment, and live money were untouched.
 - Permanent worker hosting, operational scheduling/monitoring, shared-development migration/application, customer-facing billing state, final commercial price, recurring collection, cancellation, refund policy and implementation, other payment methods, provider production approval, legal/tax decisions, and all live enablement remain separate gates. The reconciliation switch remains false by default.
+
+## 52. Server-authoritative Premium access and USER billing surface (2026-09-06)
+
+**Requirement ID:** REQ-028
+
+**Architecture decision:** ADR-022
+
+**Risk ID:** RISK-025
+
+**Change ID:** CHG-20260906-10
+
+**Verification IDs:** TEST-105 through TEST-117
+
+**Documentation ID:** DOC-044
+
+### Current product and provider boundary
+
+- Official PayMongo Hosted Checkout material was rechecked on September 6, 2026. The [quick start](https://docs.paymongo.com/docs/payment-channels-hosted-checkout-quick-start) still creates Checkout Sessions server-side, redirects only to the returned hosted URL, and names `checkout_session.payment.paid` as fulfillment authority. The [Checkout Session resource](https://docs.paymongo.com/reference/checkout-session-resource) remains one-time use; a cancel return does not cancel or authorize local records. [Idempotent requests](https://docs.paymongo.com/reference/idempotent-requests) retain the first executed result for exact retries and reject changed parameters.
+- The accepted TEST product is now defined as one-time Premium access for exactly 30 elapsed days, with no automatic renewal. This decision supersedes the earlier calendar-month projection wording in sections 50 and 51 for future processing. PHP 199.00 is displayed only when an active matching TEST price exists in local billing data and remains a sandbox demo value rather than an approved commercial price.
+- Checkout, webhook, and reconciliation switches remain independent and false by default. This phase made no PayMongo/provider request, created no external checkout or payment, and used no key, webhook, tunnel, subscription API, refund, real money, or production mode.
+
+### Authoritative access and quota enforcement
+
+- `GET /api/billing/access` is behind authentication, `USER` role enforcement, and the existing ready-user prerequisites. Its repository filters by the authenticated owner ID and reads a repeatable server-side snapshot. The response is an explicit allow-list containing server time, TEST catalogue, exact current access start/expiry, non-renewal, sanitized verification state, cycle boundary, used/cap/remaining swaps, and checkout availability. It exposes no provider payload, IDs, invoice/ledger internals, health profile, other user, or secret data.
+- The central resolver recognizes only a current, unrevoked grant with accepted source evidence. Missing, unpaid, revoked, or expired evidence resolves to Free at the half-open boundary. Free permits three meal swaps per plan cycle; active Premium permits six. Current-plan, option, and swap responses all return the server-derived cap.
+- Swap enforcement now conditionally increments the owner tracker only while `swapsUsed < cap`, inside the same transaction as the meal replacement and audit rows. Concurrent excess attempts fail with the stable `WEEKLY_SWAP_LIMIT_REACHED` response and roll back. A Premium expiry or revocation during a cycle immediately restores the Free cap without erasing already recorded swaps.
+
+### USER experience and redirect safety
+
+- Desktop sidebar and mobile navigation add **Premium access**. The responsive billing page shows current tier, swaps used and remaining, exact cycle/end times, active non-renewing expiry, the Free/Premium comparison, TEST marker, and demo price. It states one Premium benefit only: six swaps instead of three. Nutrition safety, grocery, export, and privacy behavior remain available on Free.
+- Checkout uses the existing authenticated endpoint with a high-entropy session-scoped attempt key. A synchronous submission guard and loading/disabled states prevent double clicks; exact retry reuses the key, while a deterministic terminal rejection clears it for a later new attempt. Only an HTTPS URL on the exact PayMongo Checkout origin may be opened.
+- Success performs ten bounded two-second access refreshes and shows Premium only from the access endpoint. Timeout and reconciliation-required states remain explicit. Query parameters and redirects are ignored for entitlement decisions. Cancel reports that it made no billing or access change and returns safely to the billing page.
+
+### Deterministic and local acceptance evidence
+
+- The backend suite reports **416 registered, 415 pass, 0 fail, and 1 unchanged clinical-policy TODO**. TEST-105 checks route ownership, middleware order, and sanitized failures. TEST-106 through TEST-111 cover the public allow-list, Free default, active paid grant, exact dates, expired/revoked/missing/unpaid fail-closed behavior, verification states, price/switch availability, owner isolation, and one server instant. TEST-112 and TEST-113 exercise concurrent conditional reservations at both caps. TEST-114 through TEST-117 inspect honest UI claims, stable attempt idempotency, double-submit protection, bounded/non-authoritative returns, navigation, route guards, and dynamic cap use.
+- A task-owned PostgreSQL 16.4 database on loopback port 55447 applied all 21 canonical migrations; the second deploy was empty, status was current, and database-to-datamodel comparison reported `No difference detected`. The committed loopback-only acceptance harness seeded two synthetic ready USERs, one active TEST price, one verified 30-day paid grant, and separate plan cycles. Twelve concurrent attempts admitted exactly three Free and six Premium reservations, then the status surface resolved Free `2/3` and Premium `4/6`. A second harness run reproduced the same result. Provider call count was zero.
+- Bounded browser acceptance used local ports 3000 and 5000 only after confirming they were free. It verified authenticated Premium and Free views, exact PHP 199.00 TEST labeling, exact non-renewing expiry, desktop and 390-pixel mobile navigation, revoked-grant fallback, disabled checkout state, forged success-query rejection, active success, cancel no-op copy, and the 20-second pending timeout. Both tested pages reported zero browser console warnings/errors. The application servers were stopped immediately afterward.
+- Shared Neon was not accessed or written. Antigravity and port 3030 were untouched. No migration or schema change, historical migration edit, provider mutation, Gemini, email, OAuth, deployment, live key, real payment, or production enablement occurred. The task-owned container, network, volume, PostgreSQL image, and port are removed in the final cleanup; unrelated Docker resources remain untouched.
+
+### Remaining gates
+
+- Permanent worker hosting, operational scheduling/monitoring, shared-development processing acceptance, support and refund policy, approved commercial price, provider production acceptance, legal/tax decisions, recurring collection, other payment methods, and every live/production gate remain separate. The current UI is a TEST-only demonstration and checkout remains disabled by default.

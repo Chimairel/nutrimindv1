@@ -4,6 +4,8 @@ const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,190}$/;
 const SESSION_ID = /^cs_[A-Za-z0-9_-]{8,188}$/;
 const HASH = /^[0-9a-f]{64}$/;
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
+export const PREMIUM_ACCESS_DURATION_DAYS = 30;
+const PREMIUM_ACCESS_DURATION_MS = PREMIUM_ACCESS_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 export type ReconciliationFailureCode =
   | 'EVENT_NOT_SUPPORTED'
@@ -34,21 +36,9 @@ function validDate(value: Date | null): value is Date {
   return value instanceof Date && Number.isFinite(value.getTime());
 }
 
-export function oneCalendarMonthFrom(start: Date): Date {
+export function thirtyDaysFrom(start: Date): Date {
   if (!validDate(start)) throw new PaymentReconciliationError('TIMESTAMP_INVALID');
-  const year = start.getUTCFullYear();
-  const month = start.getUTCMonth();
-  const day = start.getUTCDate();
-  const lastDay = new Date(Date.UTC(year, month + 2, 0)).getUTCDate();
-  return new Date(Date.UTC(
-    year,
-    month + 1,
-    Math.min(day, lastDay),
-    start.getUTCHours(),
-    start.getUTCMinutes(),
-    start.getUTCSeconds(),
-    start.getUTCMilliseconds(),
-  ));
+  return new Date(start.getTime() + PREMIUM_ACCESS_DURATION_MS);
 }
 
 export function validatePaymongoPayment(
@@ -81,7 +71,7 @@ export function validatePaymongoPayment(
   if (binding.latestProviderUpdatedAt && evidence.providerUpdatedAt < binding.latestProviderUpdatedAt) {
     throw new PaymentReconciliationError('STALE_PROVIDER_STATE');
   }
-  return { effectiveFrom: new Date(evidence.paidAt), effectiveUntil: oneCalendarMonthFrom(evidence.paidAt) };
+  return { effectiveFrom: new Date(evidence.paidAt), effectiveUntil: thirtyDaysFrom(evidence.paidAt) };
 }
 
 export function validateLocalPaymentBinding(binding: PaymentProjectionBinding): void {

@@ -1,6 +1,6 @@
 # NutriMind Payment, Subscription, and Nutritionist Compensation Architecture
 
-**Status:** Accepted architecture. Phase 1 schema/pure policies, both Phase 2 migration gates, Phase 3A boundaries, and Phase 3B TEST checkout acceptance are complete. Checkout remains disabled by default; webhook delivery/persistence/processing, reconciliation, entitlement activation, UI, live money, and deployment remain pending.
+**Status:** Accepted architecture. Phases 1 through 5 are implemented through the TEST-only Premium entitlement surface. Checkout, webhook, and reconciliation capabilities remain independently disabled by default; permanent worker operations, shared processing acceptance, refunds, live money, and deployment remain pending.
 
 **Decision ID:** ADR-017
 
@@ -14,7 +14,7 @@
 
 ## 1. Decision
 
-NutriMind will use PayMongo as the first sandbox collection adapter for a narrowly scoped monthly Premium subscription. Moving to production remains conditional on PayMongo account verification and capability activation, written confirmation that NutriMind's business model is accepted, confirmed commercial terms, a tax-invoicing decision, and the production-readiness gates in this ADR.
+NutriMind uses PayMongo as the first sandbox collection adapter for narrowly scoped, one-time 30-day Premium access. Moving to production remains conditional on PayMongo account verification and capability activation, written confirmation that NutriMind's business model is accepted, confirmed commercial terms, a tax-invoicing decision, and the production-readiness gates in this ADR.
 
 The design separates three domains:
 
@@ -96,7 +96,7 @@ The legacy create-session reference still presents a `/v1/checkout_sessions` URL
 
 ### 4.1 Sandbox product
 
-The sandbox contains one monthly `Premium` product with one immutable test price. PHP 199.00 (`19900` centavos) may be used as an explicit demo-only placeholder so amount handling is testable; it is not an approved commercial price. Price records are versioned and never edited in place after provider use. A price change creates a new price and deactivates the previous one for new purchases.
+The sandbox contains one `Premium` product representing a fixed 30-day access period with one immutable test price. PHP 199.00 (`19900` centavos) may be used as an explicit demo-only placeholder so amount handling is testable; it is not an approved commercial price. Price records are versioned and never edited in place after provider use. A price change creates a new price and deactivates the previous one for new purchases.
 
 The collection methods are card and Maya only when the sandbox account exposes those capabilities. The UI must derive method availability from server configuration and must not promise GCash.
 
@@ -119,7 +119,7 @@ Both tiers remain library-first. Neither tier promises unlimited Gemini requests
 ### 4.3 Authoritative entitlement rules
 
 - A verified paid invoice grants `PREMIUM` for one explicit service period. The grant is durable evidence distinct from the provider's mutable subscription snapshot.
-- The accepted Phase 3B Hosted Checkout is a one-time payment for one monthly access period. PayMongo's [Checkout Session resource](https://docs.paymongo.com/reference/checkout-session-resource) defines the session as one-time use; recurring billing instead requires the separate [Subscriptions flow](https://docs.paymongo.com/docs/payment-acceptance-subscriptions). The accepted Checkout does not create a PayMongo customer, plan, invoice, or recurring Subscription API object. Local rows therefore use `ONE_TIME_ACCESS_PERIOD` and `NON_RENEWING`; they must not contain invented provider customer, subscription, or invoice IDs.
+- The accepted Phase 3B Hosted Checkout is a one-time payment for one fixed 30-day access period. PayMongo's [Checkout Session resource](https://docs.paymongo.com/reference/checkout-session-resource) defines the session as one-time use; recurring billing instead requires the separate [Subscriptions flow](https://docs.paymongo.com/docs/payment-acceptance-subscriptions). The accepted Checkout does not create a PayMongo customer, plan, invoice, or recurring Subscription API object. Local rows therefore use `ONE_TIME_ACCESS_PERIOD` and `NON_RENEWING`; they must not contain invented provider customer, subscription, or invoice IDs.
 - `active` subscriptions may create or extend a grant only after the corresponding invoice is verified paid.
 - `past_due` may retain an already-paid grant and may receive at most a 72-hour grace period aligned with the documented three daily retries. It cannot create a new paid period.
 - `incomplete`, `incomplete_cancelled`, and `unpaid` create no new Premium grant.
@@ -139,7 +139,7 @@ This is an additive Prisma proposal. No migration is part of this phase. Financi
 | Model | Purpose and essential fields | Key constraints |
 | --- | --- | --- |
 | `BillingProduct` | Stable internal product code, display name, status, feature-set version | Unique code; deactivate rather than delete |
-| `BillingPrice` | Product, provider/environment, provider plan ID, currency, amount in centavos, interval, interval count, version, active dates | Unique provider plan ID by environment; immutable after use; PHP and monthly only for MVP |
+| `BillingPrice` | Product, provider/environment, provider plan ID, currency, amount in centavos, interval, interval count, version, active dates | Unique provider plan ID by environment; immutable after use; PHP TEST selector for the fixed 30-day access product |
 | `ProviderCustomer` | User-to-provider customer mapping and external customer ID | Unique `(provider, environment, externalCustomerId)` and one active mapping per user/provider/environment |
 | `UserSubscription` | User, price, provider subscription ID, normalized status, provider raw status, current period, cancellation fields, provider update/version timestamps | Unique external subscription by environment; no cascade delete of finance evidence |
 | `BillingInvoice` | Subscription cycle, provider invoice ID, amount due/paid/refunded, currency, normalized state, period, provider timestamps | Unique external invoice by environment; amounts internally consistent |
@@ -389,7 +389,7 @@ The raw-body boundary, TEST signature/replay verification, durable inbox, leased
 
 ### Phase 5 — Premium entitlement surface
 
-Add billing/admin UI and central entitlement resolution. Change only the weekly swap quota from three to six for active Premium grants. Run complete safety/actionability regression and sandbox E2E. Rollback: resolve all users to the Free quota while retaining paid-period evidence and support/refund duties.
+Implemented on `feature/premium-access-ui`: the authenticated ready-USER access endpoint resolves owner-scoped grants at server time and returns an allow-listed TEST catalogue, exact non-renewing expiry, verification state, current cycle, and server-derived swap use/cap. Runtime swap enforcement grants three swaps to Free and six to active Premium, using a conditional increment inside the existing swap transaction so concurrent attempts cannot exceed the applicable cap. The responsive USER billing, success, and cancel screens consume this server state; redirects and query parameters never grant access. The sole Premium benefit is the increased swap cap. Rollback: resolve all users to the Free quota while retaining paid-period evidence and support/refund duties.
 
 ### Phase 6 — compensation evidence
 
@@ -401,7 +401,7 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next payment phase is separately authorized **permanent processing operations and shared-development acceptance**. It should apply the existing migration to the approved non-production target only after an exact empty-finance/preflight audit, host the already implemented processor behind an internal authenticated worker boundary, define scheduling, backlog/lease/retry/quarantine monitoring, and prove restart-safe processing without creating another checkout or charging again. It must preserve the independent false-by-default switches, retain webhook ingestion while accepted payments settle, and keep browser returns non-authoritative. Customer billing UI, recurring collection, cancellation, refunds, commercial pricing, live mode, and production deployment remain later gates.
+The next payment phase is separately authorized **permanent processing operations and shared-development acceptance**. It should apply the existing migration to the approved non-production target only after an exact empty-finance/preflight audit, host the already implemented processor behind an internal authenticated worker boundary, define scheduling, backlog/lease/retry/quarantine monitoring, and prove restart-safe processing without creating another checkout or charging again. It must preserve the independent false-by-default switches, retain webhook ingestion while accepted payments settle, and keep browser returns non-authoritative. Recurring collection, cancellation, refunds, commercial pricing, live mode, and production deployment remain later gates.
 
 ## 16. Explicit unresolved decisions
 

@@ -10,6 +10,7 @@ import {
 } from '../src/routes/paymongo-webhook.routes';
 import { BillingCheckoutBoundary, CheckoutBoundaryError } from '../src/services/billing-checkout-boundary.service';
 import { PaymongoWebhookBoundary, WebhookBoundaryError } from '../src/services/paymongo-webhook-boundary.service';
+import { UserBillingAccessService } from '../src/services/user-billing-access.service';
 
 async function loadBillingRoutes() {
   process.env.JWT_SECRET = `synthetic-${'j'.repeat(48)}`;
@@ -103,13 +104,61 @@ test('[TEST-089] billing router orders authentication, USER authorization, and r
   const noop = ((_request: Request, _response: Response, next: () => void) => next()) as never;
   const router = createBillingRouter({
     checkoutService: { async create() { throw new Error('unused'); } } as unknown as BillingCheckoutBoundary,
+    accessService: { async getForUser() { throw new Error('unused'); } } as unknown as UserBillingAccessService,
     authenticate: noop,
     authorizeUser: noop,
     requirePrerequisites: noop,
   });
   const stack = (router as unknown as { stack: Array<{ route?: { path: string }; name?: string }> }).stack;
-  assert.equal(stack.length, 4);
-  assert.equal(stack[3].route?.path, '/subscriptions');
+  assert.equal(stack.length, 5);
+  assert.equal(stack[3].route?.path, '/access');
+  assert.equal(stack[4].route?.path, '/subscriptions');
+});
+
+test('[TEST-105] billing access route is owner-scoped and sanitizes service failures', async () => {
+  const { createBillingAccessHandler } = await loadBillingRoutes();
+  const seen: string[] = [];
+  const expected = {
+    serverTime: '2026-09-06T00:00:00.000Z',
+    environment: 'TEST',
+    catalogue: [],
+    current: { tier: 'FREE' },
+    checkout: { available: false, reason: 'DISABLED' },
+  };
+  const service = {
+    async getForUser(userId: string) { seen.push(userId); return expected; },
+  } as unknown as UserBillingAccessService;
+  const { state, response } = responseRecorder();
+  await createBillingAccessHandler(service)({
+    user: { userId: 'owner_1', email: 'owner@example.invalid', role: 'USER' },
+  } as unknown as Request, response, () => undefined);
+  assert.equal(state.status, 200);
+  assert.deepEqual(seen, ['owner_1']);
+  assert.deepEqual((state.body as { data: unknown }).data, expected);
+
+  const unavailable = {
+    async getForUser() { throw new Error('database DSN and provider detail must stay private'); },
+  } as unknown as UserBillingAccessService;
+  const failed = responseRecorder();
+  await createBillingAccessHandler(unavailable)({
+    user: { userId: 'owner_1', email: 'owner@example.invalid', role: 'USER' },
+  } as unknown as Request, failed.response, () => undefined);
+  assert.equal(failed.state.status, 503);
+  assert.deepEqual(failed.state.body, {
+    success: false,
+    error: 'Billing access status is temporarily unavailable.',
+    errorCode: 'BILLING_ACCESS_UNAVAILABLE',
+  });
+});
+
+test('[TEST-105] billing access handler rejects absent authentication before service work', async () => {
+  const { createBillingAccessHandler } = await loadBillingRoutes();
+  let calls = 0;
+  const service = { async getForUser() { calls += 1; throw new Error('unused'); } } as unknown as UserBillingAccessService;
+  const { state, response } = responseRecorder();
+  await createBillingAccessHandler(service)({} as Request, response, () => undefined);
+  assert.equal(state.status, 401);
+  assert.equal(calls, 0);
 });
 
 test('[TEST-089] webhook route rejects non-JSON and absent raw-body authentication before service work', async () => {

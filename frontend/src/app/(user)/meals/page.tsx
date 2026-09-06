@@ -75,6 +75,7 @@ export default function WeeklyPlanPage() {
 
   // Meal swap states
   const [swapsUsed, setSwapsUsed] = useState(0);
+  const [swapCap, setSwapCap] = useState(3);
   const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);
   const [swapOptions, setSwapOptions] = useState<SwapOption[]>([]);
   const [isOptionsLoading, setIsOptionsLoading] = useState(false);
@@ -123,6 +124,7 @@ export default function WeeklyPlanPage() {
         setMeals(Array.isArray(res.data.data) ? res.data.data : []);
         setPendingReview(res.data.meta?.pendingReview ?? null);
         setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
+        setSwapCap(res.data.meta?.swapCap ?? 3);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -256,6 +258,7 @@ export default function WeeklyPlanPage() {
       if (res.data?.success) {
         setSwapOptions(res.data.data.swapOptions);
         setSwapsUsed(res.data.data.swapsUsed);
+        setSwapCap(res.data.data.swapCap ?? 3);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -295,6 +298,7 @@ export default function WeeklyPlanPage() {
           });
           if (swapRes.data?.success) {
             setSwapsUsed(swapRes.data.data.swapsUsed);
+            setSwapCap(swapRes.data.data.swapCap ?? swapCap);
             setActiveSwapMeal(null);
             setSwapOptions([]);
             setConfirmSwapMeal(null);
@@ -331,6 +335,7 @@ export default function WeeklyPlanPage() {
 
       if (res.data?.success) {
         setSwapsUsed(res.data.data.swapsUsed);
+        setSwapCap(res.data.data.swapCap ?? swapCap);
         setActiveSwapMeal(null);
         setSwapOptions([]);
         setConfirmSwapMeal(null);
@@ -359,6 +364,7 @@ export default function WeeklyPlanPage() {
         setMeals(Array.isArray(res.data.data) ? res.data.data : []);
         setPendingReview(res.data.meta?.pendingReview ?? null);
         setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
+        setSwapCap(res.data.meta?.swapCap ?? 3);
       }
     } catch (err) {
       console.error('[WeeklyPlan] Status toggle failed:', err);
@@ -543,7 +549,7 @@ export default function WeeklyPlanPage() {
   })();
   const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
   const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
-  const remainingSwapCount = Math.max(0, 3 - swapsUsed);
+  const remainingSwapCount = Math.max(0, swapCap - swapsUsed);
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
@@ -578,7 +584,7 @@ export default function WeeklyPlanPage() {
           title={activeTab === 'plan' ? (isStarterPlan ? 'Starter meal plan' : 'Weekly meal plan') : activeTab === 'history' ? 'Meal history' : 'Meal library'}
           description={activeTab === 'plan' ? (isStarterPlan ? `${displayedPlanDays.length}-day kickoff plan. Your full weekly cycle starts ${nextCycleDay}.` : 'Your complete scheduled breakdown, macro targets, and meal review states.') : activeTab === 'history' ? 'Your logged intake history, completion states, and swapped items.' : 'Browse compatible, nutritionist-verified recipes for your profile.'}
           className="mb-1"
-          meta={activeTab === 'plan' && meals.length > 0 ? <span className="font-mono text-[9px] uppercase tracking-wider text-white/45">{swapsUsed} of 3 swaps used</span> : undefined}
+          meta={activeTab === 'plan' && meals.length > 0 ? <span className="font-mono text-[9px] uppercase tracking-wider text-white/45">{swapsUsed} of {swapCap} swaps used</span> : undefined}
           actions={activeTab === 'plan' ? (pendingReview ? <Badge variant="pending" className="px-3 py-2">Pending verification</Badge> : (
               <Button variant="primary" onClick={handleRegeneratePlan} className="flex items-center gap-1.5 bg-red-500 text-xs font-bold text-white hover:bg-red-600">
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -854,6 +860,7 @@ export default function WeeklyPlanPage() {
                         onStatusToggle={handleMealStatusToggle}
                         onSwapClick={handleSwapClick}
                         swapsUsed={swapsUsed}
+                        swapCap={swapCap}
                         scheduledDate={meal.scheduledDate}
                         verifier={meal.verifier}
                       />

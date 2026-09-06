@@ -13,6 +13,8 @@ import { PaymongoWebhookBoundary } from '@/services/paymongo-webhook-boundary.se
 import { PaymongoPaymentProjectionService } from '@/services/paymongo-payment-projection.service';
 import { PrismaPaymentProjectionRepository } from '@/services/prisma-payment-projection.repository';
 import { PaymongoReconciliationGateway } from '@/services/paymongo-reconciliation-gateway.service';
+import { PrismaUserBillingAccessRepository } from '@/services/prisma-user-billing-access.repository';
+import { UserBillingAccessService } from '@/services/user-billing-access.service';
 import prisma from '@/lib/prisma';
 
 export const paymongoConfig = loadPaymongoConfig(process.env);
@@ -53,6 +55,11 @@ export const billingCheckoutBoundary = new BillingCheckoutBoundary(
   paymongoConfig.checkout,
   checkoutRepository,
   checkoutGateway,
+);
+
+export const userBillingAccessService = new UserBillingAccessService(
+  new PrismaUserBillingAccessRepository(prisma),
+  paymongoConfig.checkout.enabled,
 );
 
 export const paymongoWebhookBoundary = new PaymongoWebhookBoundary(

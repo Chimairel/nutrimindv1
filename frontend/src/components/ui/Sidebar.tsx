@@ -24,6 +24,7 @@ import {
   UserRound,
   Users,
   UtensilsCrossed,
+  Crown,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
@@ -98,6 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Grocery', href: '/grocery', icon: ShoppingBasket },
       { label: 'Progress', href: '/progress', icon: TrendingUp },
       { label: 'Health profile', href: '/health-profile', icon: HeartPulse },
+      { label: 'Premium access', href: '/billing', icon: Crown },
     ],
     NUTRITIONIST: [
       { label: 'Review queue', href: '/nutritionist/reviews', icon: ClipboardList },

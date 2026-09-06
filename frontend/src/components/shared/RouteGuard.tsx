@@ -47,6 +47,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     '/progress',
     '/health-profile',
     '/export',
+    '/billing',
     '/onboarding',
     '/nutrition-report',
   ].some((route) => pathname.startsWith(route));
