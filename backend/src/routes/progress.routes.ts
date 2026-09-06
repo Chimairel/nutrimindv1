@@ -3,6 +3,8 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { ProgressController } from '@/controllers/progress.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
+import { validateZodBody } from '@/middleware/validateZod';
+import { weightEntryBodySchema } from '@/validation/user-action.schemas';
 
 const router = Router();
 
@@ -15,7 +17,7 @@ router.use(requireReadyUser);
  * Route: POST /api/user/progress/weight
  * Description: Logs a new weight value, updating profile and recalculating target calories.
  */
-router.post('/weight', ProgressController.logWeight);
+router.post('/weight', validateZodBody(weightEntryBodySchema), ProgressController.logWeight);
 
 /**
  * Route: GET /api/user/progress/history

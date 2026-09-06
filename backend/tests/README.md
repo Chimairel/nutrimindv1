@@ -8,13 +8,13 @@ Run from `backend`:
 npm test
 ```
 
-The command first type-checks the isolated test project and then runs explicitly listed TypeScript test files.
+The command first type-checks the isolated test project and then runs every `tests/*.test.ts` file so newly added suites cannot be silently omitted.
 
 ## Current scope
 
 - Active tests cover the current pure domain, validation, migration, billing, compensation, actionability, restriction, generation, and operational policies recorded in the engineering record.
 - One TODO remains an executable specification for clinically approved calorie bounds; it is not a passing test.
-- The current result is 458 registered tests: 457 pass, 0 fail, 0 skipped, and 1 TODO.
+- The current result is 471 registered tests: 470 pass, 0 fail, 0 skipped, and 1 TODO.
 - Tests require no live database or network. The test-only mail-capture regression imports the email module but exits through an absolute local JSONL capture path before Nodemailer and proves that the seam rejects non-test use.
 
 The 500 kcal implementation floor is deliberately not approved by an active test. `TEST-021` remains TODO until a clinically approved bound and behavior-change batch exist.

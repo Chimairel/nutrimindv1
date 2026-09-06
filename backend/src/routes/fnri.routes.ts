@@ -3,6 +3,9 @@ import authenticate from '@/middleware/auth';
 import { AuthenticatedRequest } from '@/types';
 import { lookupIngredient } from '@/lib/fnri';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import { validateZodRequest } from '@/middleware/validateZod';
+import { fnriLookupQuerySchema } from '@/validation/user-action.schemas';
+import { logger } from '@/lib/logger';
 
 const router = Router();
 
@@ -14,30 +17,28 @@ router.use(authenticate);
  * Query: name (The ingredient name search term, e.g. "rice")
  * Description: Executes the 4-step clinical lookup chain to return nutritional statistics.
  */
-router.get('/lookup', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { name } = req.query;
-    if (!name || typeof name !== 'string') {
-      return res.status(400).json({
+router.get(
+  '/lookup',
+  validateZodRequest({ query: fnriLookupQuerySchema }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const name = req.query.name as string;
+
+      logger.debug('fnri_lookup_started', { requestId: res.locals.requestId, queryLength: name.length });
+      const result = await lookupIngredient(name);
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      logger.error('fnri_lookup_failed', { requestId: res.locals.requestId });
+      return res.status(500).json({
         success: false,
-        error: 'Missing required string query parameter "name".',
+        error: sanitizeErrorMessage(error, 'Failed to resolve ingredient query details.'),
       });
     }
-
-    console.log(`[FNRI Route] Invoking lookup for search term: "${name}"`);
-    const result = await lookupIngredient(name);
-
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
-  } catch (error: any) {
-    console.error('[FNRI Route] Lookup query execution failed:', error);
-    return res.status(500).json({
-      success: false,
-      error: sanitizeErrorMessage(error, 'Failed to resolve ingredient query details.'),
-    });
   }
-});
+);
 
 export default router;

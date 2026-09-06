@@ -3,6 +3,8 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { GroceryController } from '@/controllers/grocery.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
+import { validateZodRequest } from '@/middleware/validateZod';
+import { resourceIdParamsSchema } from '@/validation/user-action.schemas';
 
 const router = Router();
 
@@ -33,7 +35,11 @@ router.get('/pdf', GroceryController.downloadGroceryPdf);
  * Route: PATCH /api/user/grocery/items/:id/toggle
  * Description: Toggles checked status of a grocery item.
  */
-router.patch('/items/:id/toggle', GroceryController.toggleItem);
-router.patch('/items/:id/pantry', GroceryController.togglePantry);
+router.patch('/items/:id/toggle', validateZodRequest({ params: resourceIdParamsSchema }), GroceryController.toggleItem);
+router.patch(
+  '/items/:id/pantry',
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  GroceryController.togglePantry
+);
 
 export default router;

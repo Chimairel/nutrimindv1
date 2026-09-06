@@ -3,6 +3,15 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { MealsController } from '@/controllers/meals.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
+import { validateZodRequest } from '@/middleware/validateZod';
+import {
+  compatibleLibraryQuerySchema,
+  mealStatusBodySchema,
+  outsideMealBodySchema,
+  resourceIdParamsSchema,
+  swapMealBodySchema,
+  swapPreviewQuerySchema,
+} from '@/validation/user-action.schemas';
 
 const router = Router();
 
@@ -40,42 +49,58 @@ router.get('/history', MealsController.getPlanHistory);
  * Route: POST /api/user/meals/log-outside
  * Description: Performs AI validation checks and logs outside meals.
  */
-router.post('/log-outside', MealsController.logOutsideMeal);
+router.post('/log-outside', validateZodRequest({ body: outsideMealBodySchema }), MealsController.logOutsideMeal);
 
 /**
  * Route: PATCH /api/user/meals/:id/status
  * Description: Checks off scheduled meals as DONE or SKIPPED.
  */
-router.patch('/:id/status', MealsController.updateMealStatus);
+router.patch(
+  '/:id/status',
+  validateZodRequest({ params: resourceIdParamsSchema, body: mealStatusBodySchema }),
+  MealsController.updateMealStatus
+);
 
 /**
  * Route: GET /api/user/meals/compatible-library
  * Description: Retrieves all compatible approved library meals for the logged-in user.
  */
-router.get('/compatible-library', MealsController.getCompatibleLibrary);
+router.get(
+  '/compatible-library',
+  validateZodRequest({ query: compatibleLibraryQuerySchema }),
+  MealsController.getCompatibleLibrary
+);
 
 /**
  * Route: GET /api/user/meals/:id
  * Description: Retrieves details of a specific meal plan item.
  */
-router.get('/:id', MealsController.getMealDetails);
+router.get('/:id', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getMealDetails);
 
 /**
  * Route: GET /api/user/meals/:id/swap-options
  * Description: Retrieves swap options for a given meal plan slot.
  */
-router.get('/:id/swap-options', MealsController.getSwapOptions);
+router.get('/:id/swap-options', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getSwapOptions);
 
 /**
  * Route: GET /api/user/meals/:id/swap-preview
  * Description: Generates swap calorie warnings.
  */
-router.get('/:id/swap-preview', MealsController.getSwapPreview);
+router.get(
+  '/:id/swap-preview',
+  validateZodRequest({ params: resourceIdParamsSchema, query: swapPreviewQuerySchema }),
+  MealsController.getSwapPreview
+);
 
 /**
  * Route: POST /api/user/meals/:id/swap
  * Description: Executes a meal plan slot swap.
  */
-router.post('/:id/swap', MealsController.executeSwap);
+router.post(
+  '/:id/swap',
+  validateZodRequest({ params: resourceIdParamsSchema, body: swapMealBodySchema }),
+  MealsController.executeSwap
+);
 
 export default router;
