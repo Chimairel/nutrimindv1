@@ -14,9 +14,11 @@ import path from 'node:path';
  */
 
 // Lazy-initialized transporter (ensures env vars are loaded before creation)
-let _transporter: nodemailer.Transporter | null = null;
+type MailTransporter = ReturnType<typeof nodemailer.createTransport>;
 
-function getTransporter(): nodemailer.Transporter {
+let _transporter: MailTransporter | null = null;
+
+function getTransporter(): MailTransporter {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',

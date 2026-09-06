@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 /** @type {import('next').NextConfig} */
 const apiOrigin = (() => {
   try {
@@ -25,6 +27,9 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const nextConfig = {
+  allowedDevOrigins: ['127.0.0.1'],
+  output: 'standalone',
+  outputFileTracingRoot: fileURLToPath(new URL('..', import.meta.url)),
   poweredByHeader: false,
   async headers() {
     return [

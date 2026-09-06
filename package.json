@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "audit": "npm audit && npm --prefix backend audit && npm --prefix frontend audit",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
     "check": "npm run format:check && npm run lint && npm run test && npm run build",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "docker:build": "docker compose build",
+    "docker:config": "docker compose config",
+    "docker:down": "docker compose down",
+    "docker:up": "docker compose up --build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "install:all": "npm ci && npm --prefix backend ci && npm --prefix frontend ci",
@@ -17,6 +22,7 @@
     "lint:frontend": "npm --prefix frontend run lint",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "npm --prefix backend test",
+    "test:e2e": "npm --prefix frontend run test:e2e",
     "test:frontend": "npm --prefix frontend test"
   },
   "devDependencies": {

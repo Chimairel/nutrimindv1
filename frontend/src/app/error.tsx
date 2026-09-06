@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -25,12 +26,12 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
           >
             Try again
           </button>
-          <a
+          <Link
             className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-brand-border/80 bg-brand-surface/85 px-6 py-2.5 text-sm font-extrabold text-brand-text"
             href="/dashboard"
           >
             Return to dashboard
-          </a>
+          </Link>
         </div>
       </section>
     </main>
