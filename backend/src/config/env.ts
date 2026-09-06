@@ -13,6 +13,7 @@ const runtimeEnvironmentSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65_535).default(5000),
   TRUST_PROXY: booleanFromString,
   SMTP_VERIFY_ON_STARTUP: booleanFromString,
+  API_DOCS_ENABLED: booleanFromString,
   FRONTEND_URL: optionalUrl.default('http://localhost:3000'),
   CORS_ORIGINS: z.string().default(''),
   DATABASE_URL: z.string().optional(),

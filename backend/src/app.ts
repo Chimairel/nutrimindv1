@@ -9,6 +9,8 @@ import { randomUUID } from 'crypto';
 import { env } from '@/config/env';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { logger } from '@/lib/logger';
+import swaggerUi from 'swagger-ui-express';
+import { openApiDocument } from '@/docs/openapi';
 
 // Import Routers
 import authRouter from '@/routes/auth.routes';
@@ -27,6 +29,11 @@ import paymongoWebhookRouter from '@/routes/paymongo-webhook.routes';
 // Initialize Express app
 const app = express();
 if (env.TRUST_PROXY) app.set('trust proxy', 1);
+
+if (env.NODE_ENV !== 'production' || env.API_DOCS_ENABLED) {
+  app.get('/api/openapi.json', (_req, res) => res.json(openApiDocument));
+  app.use('/api/docs', helmet({ contentSecurityPolicy: false }), swaggerUi.serve, swaggerUi.setup(openApiDocument));
+}
 
 // Apply security and global middleware
 app.use(helmet());
