@@ -9,7 +9,7 @@ const migration = readFileSync(
   'utf8'
 );
 const revalidationScript = readFileSync(resolve(process.cwd(), 'scripts/enqueue-legacy-plan-revalidation.ts'), 'utf8');
-const nutritionistService = readFileSync(resolve(process.cwd(), 'src/services/nutritionist.service.ts'), 'utf8');
+const nutritionistService = readFileSync(resolve(process.cwd(), 'src/services/nutritionist-review.service.ts'), 'utf8');
 
 const mealPlanModel = schema.match(/model MealPlan \{[\s\S]*?\n\}/)?.[0] ?? '';
 

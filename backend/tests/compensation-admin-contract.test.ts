@@ -108,7 +108,7 @@ test('[TEST-138] compensation routes are role-scoped and payout amount is server
 });
 
 test('[TEST-139] completed review decisions create keyed credit in the same transaction and claims do not', () => {
-  const service = readFileSync(join(process.cwd(), 'src', 'services', 'nutritionist.service.ts'), 'utf8');
+  const service = readFileSync(join(process.cwd(), 'src', 'services', 'nutritionist-review.service.ts'), 'utf8');
   assert.equal((service.match(/recordCompletedMealPlanReviewCredit\(tx/g) ?? []).length, 3);
   assert.match(service, /stage: 'HIGH_RISK_ESCALATION',[\s\S]*?outcome: 'ESCALATED'/);
   assert.match(
@@ -151,10 +151,14 @@ test('[TEST-140] migration adds actor evidence and immutable compensation record
 });
 
 test('[TEST-141] role UIs disclose separation, own-only scope, outcome neutrality, and manual evidence', () => {
-  const admin = readFileSync(
-    join(process.cwd(), '..', 'frontend', 'src', 'app', '(admin)', 'admin', 'compensation', 'page.tsx'),
-    'utf8'
-  );
+  const adminRoot = join(process.cwd(), '..', 'frontend', 'src');
+  const admin = [
+    join(adminRoot, 'app', '(admin)', 'admin', 'compensation', 'page.tsx'),
+    join(adminRoot, 'features', 'compensation-admin', 'CompensationDecisionSections.tsx'),
+    join(adminRoot, 'features', 'compensation-admin', 'CompensationLedgerSections.tsx'),
+  ]
+    .map((file) => readFileSync(file, 'utf8'))
+    .join('\n');
   const own = readFileSync(
     join(process.cwd(), '..', 'frontend', 'src', 'app', '(nutritionist)', 'nutritionist', 'compensation', 'page.tsx'),
     'utf8'
