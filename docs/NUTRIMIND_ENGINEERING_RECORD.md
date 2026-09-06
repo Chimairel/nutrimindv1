@@ -3057,3 +3057,43 @@ This section is a continuity record for agreed future work. Every item below is 
 ### Remaining gates
 
 - This is source and disposable-local acceptance, not deployed always-on operation or shared-development processing acceptance. Checkout, webhook, reconciliation, and worker switches remain false by default. Shared target preflight/application, hosting-topology restart evidence, alert delivery and runbook acceptance, support/refund policy, approved commercial price, provider production acceptance, legal/tax decisions, recurring collection, cancellation, refunds, other payment methods, and every live/production gate remain separate.
+
+## 54. Shared-development billing migration and rollback-only worker acceptance (2026-09-06)
+
+**Requirement ID:** REQ-029
+
+**Architecture decision:** ADR-023
+
+**Risk ID:** RISK-025
+
+**Change ID:** CHG-20260906-12
+
+**Verification IDs:** TEST-127 through TEST-129
+
+**Documentation ID:** DOC-046
+
+### Authorized shared migration application
+
+- Work began from exact accepted worker commit `01fa0c204f91c5c9b54b20b1286cbc8c56973d68` on isolated feature branch `feature/billing-shared-acceptance`. `main` and `origin/main` remained at `d17b30482398472a02eefd505950f8b42af6b223` and were neither checked out nor modified.
+- The approved shared non-production target was reidentified without displaying its URL or credentials: hostname fingerprint `6f48da70b1ce`, database `neondb`, schema `public`, Neon hostname, and `sslmode=require`. Checkout, webhook, reconciliation, and processing-worker configuration all resolved disabled.
+- The exhaustive read-only preflight found exactly 19 clean one-step migrations and exactly two pending repository migrations: `20260906193000_paymongo_sandbox_checkout` and `20260906230000_paymongo_payment_projection`. It hashed all 62 preexisting domain tables by privacy-safe row digest, captured columns/enums/indexes/constraints, and found all 22 existing billing/finance tables empty. The baseline snapshot hash was `c8df3bb9844d913792bb171e6277a75022773d2a85e46c84f8726e4ca06aaf76`; only the temporary local snapshot held its count/hash inventory.
+- A disposable PostgreSQL 16.4 reconstruction applied all 21 migrations. A second deploy was empty, migration status was current, and both migration-derived database comparison and Prisma datamodel comparison reported no difference. The shared target also compared equal to the reconstruction and to the Prisma datamodel.
+- `prisma migrate deploy` applied only the two authorized migrations. The stored SHA-256 checksums are `073c4e1f8b3f33fef506858e32d6a80e44ebee0df3845564b42ded78872b9985` for checkout and `344c00a5f6cb870db99cab1d928985627c7c659b2d7e404a121ac9e0c8338c76` for projection. History then contained 21 clean migrations, a second deploy had no pending work, and migration status was current. Intermittent Neon `P1001` attempts failed before writes and were followed by complete preflight or postflight checks rather than assumed success.
+
+### Shared rollback-only processing acceptance
+
+- The shared acceptance harness refuses any target other than the approved fingerprint/database/schema/TLS configuration and refuses to run while any billing capability switch is enabled. Its fixtures use one explicit `shared_accept_01fa0c2` namespace and an `example.invalid` account.
+- Disabled startup scheduled no timer and performed no work. Inside one serializable outer transaction, the production `PrismaPaymentProjectionRepository`, `PaymongoPaymentProjectionService`, lifecycle worker, and aggregate operations repository used an injected in-memory reconciliation gateway. A fresh worker reclaimed a deliberately expired one-minute lease; another fresh worker processed an exact event replay without adding a subscription, invoice, attempt, transaction, posting, or grant.
+- A synthetic transient reconciliation failure persisted its durable retry and a restarted worker later completed it. An unknown session made no gateway read, became a terminal failed item, created one reconciliation issue, and appeared in the dead-letter aggregate. Preprocessing and final status responses remained aggregate-only and contained no fixture email, payload, provider resource ID, billing-subject key, or user ID.
+- Both projected payment batches contained exactly one cash-clearing debit and one deferred-revenue credit and balanced to zero. Each entitlement lasted exactly 30 days, periods did not overlap, and resolution returned Free at the exclusive end instant. Graceful stop canceled its scheduled timer and ended at `STOPPED`.
+- The deliberately raised rollback sentinel reverted the entire fixture, including append-only ledger rows. A separate read-only transaction then proved all 24 billing/finance tables empty and the synthetic user absent. The harness made four injected fixture reads and **zero provider network calls**. No checkout, webhook delivery/resend, provider mutation, charge, refund, cancellation, entitlement for a real user, email, OAuth, Gemini, deployment, or live action occurred.
+
+### Final preservation, verification, and operations evidence
+
+- Final exhaustive postflight found 21 completed migrations, no pending migration, 64 domain tables, and every billing/finance table empty. Every one of the 62 preexisting tables retained its exact row count and content hash. The final schema/data snapshot hash was `c548081fbe9bf6628e39edee30d93f3cba54be9c0aec43f638453a7cba95e7dd`; its difference from the baseline is the two authorized empty tables plus migration history.
+- `docs/BILLING_PROCESSING_RUNBOOK.md` records the safe disabled state, later activation prerequisites, aggregate monitoring interpretation, lease/retry/dead-letter recovery, emergency stop, privacy limits, and completion checks. It explicitly prohibits hand-editing terminal processing, entitlement, invoice, payment, transaction, or ledger evidence.
+- The backend production build, Prisma format/validate/generate, script compilation, and full backend suite pass. The suite reports **432 registered, 431 pass, 0 fail, and 1 unchanged clinical-policy TODO**. Frontend lint and production build pass without warning. Secret scans found no credential material in tracked or changed source, and the exact disposable PostgreSQL resource and temporary audit snapshots were removed after verification.
+
+### Remaining gates
+
+- Always-on hosting, alert delivery, a deployed worker owner, support/refund policy, approved commercial price, provider production acceptance, legal/tax decisions, recurring collection, cancellation, refunds, other payment methods, and every LIVE/production gate remain separate. All four billing switches remain false.
