@@ -1,18 +1,13 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
-import PendingMealPreviewCard, { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
+import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import Modal from '@/components/ui/Modal';
-import { MealPlan } from '@/types';
-import axios from 'axios';
 import {
   Sprout,
   Calendar,
@@ -34,490 +29,75 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import { formatManilaDate, manilaDateFromKey } from '@/lib/manila-date';
 
-interface SwapOption {
-  id: string;
-  mealName: string;
-  description?: string;
-  mealType: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  verifiedBy: string;
-  prcLicenseNumber: string;
-  verifier?: PublicVerifier | null;
-}
-
-interface PublicVerifier {
-  name: string;
-  prcLicenseNumber: string;
-  prcLicenseExpiry: string;
-  specialization?: string | null;
-  yearsOfExperience?: number | null;
-  university?: string | null;
-  bio?: string | null;
-}
-
-interface MealHistoryLog {
-  id: string;
-  loggedAt: string;
-  mealName: string;
-  source: 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED';
-  status: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  calorieDelta?: number | null;
-}
+import { useMealsWorkspace } from '@/features/meals/useMealsWorkspace';
 
 export default function WeeklyPlanPage() {
-  const { user } = useAuth();
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'plan' | 'history' | 'library'>('plan');
-
-  // Meal Plan states
-  const [meals, setMeals] = useState<MealPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pendingReview, setPendingReview] = useState<{
-    mealCount: number;
-    planType: 'STARTER' | 'WEEKLY';
-    reviewStatus: 'PENDING_REVIEW';
-    meals: PendingMealPreview[];
-  } | null>(null);
-  const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
-  const currentPlanRequestInFlight = useRef(false);
-
-  // Meal swap states
-  const [swapsUsed, setSwapsUsed] = useState(0);
-  const [swapCap, setSwapCap] = useState(3);
-  const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);
-  const [swapOptions, setSwapOptions] = useState<SwapOption[]>([]);
-  const [isOptionsLoading, setIsOptionsLoading] = useState(false);
-  const [swapOptionsError, setSwapOptionsError] = useState<string | null>(null);
-  const [confirmSwapMeal, setConfirmSwapMeal] = useState<SwapOption | null>(null);
-  const [isSwapping, setIsSwapping] = useState(false);
-
-  // Swap preview/warning states
-  const [swapPreview, setSwapPreview] = useState<{
-    originalMealName: string;
-    originalCalories: number;
-    newMealName: string;
-    newCalories: number;
-    calorieDelta: number;
-    projectedDayTotal: number;
-    dailyTarget: number;
-    warningRequired: boolean;
-  } | null>(null);
-  const [isCheckingPreview, setIsCheckingPreview] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-
-  // History Tab states
-  const [historyLogs, setHistoryLogs] = useState<MealHistoryLog[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
-  const [historySearch, setHistorySearch] = useState('');
-  const [historySource, setHistorySource] = useState('All');
-  const [historyStatus, setHistoryStatus] = useState('All');
-
-  // Library Tab states
-  const [libraryMeals, setLibraryMeals] = useState<SwapOption[]>([]);
-  const [isLibraryLoading, setIsLibraryLoading] = useState(false);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
-  const [librarySearch, setLibrarySearch] = useState('');
-  const [selectedVerifier, setSelectedVerifier] = useState<PublicVerifier | null>(null);
-  const [libraryMealType, setLibraryMealType] = useState('All');
-
-  const fetchMeals = async () => {
-    if (currentPlanRequestInFlight.current) return;
-    currentPlanRequestInFlight.current = true;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await api.get('/user/meals/current');
-      if (res.data && res.data.success) {
-        setMeals(Array.isArray(res.data.data) ? res.data.data : []);
-        setPendingReview(res.data.meta?.pendingReview ?? null);
-        setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
-        setSwapCap(res.data.meta?.swapCap ?? 3);
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to fetch weekly plan menu.');
-      } else {
-        setError('Failed to reach backend API.');
-      }
-    } finally {
-      currentPlanRequestInFlight.current = false;
-      setIsLoading(false);
-    }
-  };
-
-  const fetchHistory = useCallback(async () => {
-    setIsHistoryLoading(true);
-    setHistoryError(null);
-    try {
-      const params: Record<string, string> = {};
-      if (historySearch) params.search = historySearch;
-      if (historySource !== 'All') params.source = historySource;
-      if (historyStatus !== 'All') params.status = historyStatus;
-
-      const res = await api.get('/user/meals/history', { params });
-      if (res.data && res.data.success) {
-        setHistoryLogs(res.data.data);
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setHistoryError(err.response?.data?.error || 'Failed to fetch meal history.');
-      } else {
-        setHistoryError('Failed to fetch meal history.');
-      }
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  }, [historySearch, historySource, historyStatus]);
-
-  const fetchLibrary = useCallback(async () => {
-    setIsLibraryLoading(true);
-    setLibraryError(null);
-    try {
-      const params: Record<string, string> = {};
-      if (libraryMealType !== 'All') params.mealType = libraryMealType;
-      if (librarySearch) params.search = librarySearch;
-
-      const res = await api.get('/user/meals/compatible-library', { params });
-      if (res.data && res.data.success) {
-        setLibraryMeals(res.data.data);
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setLibraryError(err.response?.data?.error || 'Failed to load library meals.');
-      } else {
-        setLibraryError('Failed to load library meals.');
-      }
-    } finally {
-      setIsLibraryLoading(false);
-    }
-  }, [libraryMealType, librarySearch]);
-
-  useEffect(() => {
-    if (user) {
-      fetchMeals();
-
-      let activeDateKey = getManilaDateKey();
-      const refreshForDateRollover = () => {
-        const nextDateKey = getManilaDateKey();
-        if (nextDateKey !== activeDateKey) {
-          activeDateKey = nextDateKey;
-          fetchMeals();
-        }
-      };
-      const refreshOnFocus = () => fetchMeals();
-      const refreshOnVisibility = () => {
-        if (document.visibilityState === 'visible') fetchMeals();
-      };
-      const rolloverInterval = window.setInterval(refreshForDateRollover, 60_000);
-      window.addEventListener('focus', refreshOnFocus);
-      document.addEventListener('visibilitychange', refreshOnVisibility);
-
-      return () => {
-        window.clearInterval(rolloverInterval);
-        window.removeEventListener('focus', refreshOnFocus);
-        document.removeEventListener('visibilitychange', refreshOnVisibility);
-      };
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      if (activeTab === 'history') {
-        fetchHistory();
-      } else if (activeTab === 'library') {
-        fetchLibrary();
-      }
-    }
-  }, [user, activeTab, fetchHistory, fetchLibrary]);
-
-  useEffect(() => {
-    const sourceMeals = [...meals, ...(pendingReview?.meals ?? [])];
-    const availableDateKeys = Array.from(new Set(sourceMeals.map((meal) => getManilaDateKey(meal.scheduledDate))))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
-
-    if (availableDateKeys.length === 0) {
-      setSelectedPlanDateKey(null);
-      return;
-    }
-
-    setSelectedPlanDateKey((currentDateKey) => {
-      if (currentDateKey && availableDateKeys.includes(currentDateKey)) return currentDateKey;
-      const todayKey = getManilaDateKey();
-      return (
-        availableDateKeys.find((dateKey) => dateKey >= todayKey) ?? availableDateKeys[availableDateKeys.length - 1]
-      );
-    });
-  }, [meals, pendingReview]);
-
-  // Open Swap options modal and fetch eligible replacement meals
-  const handleSwapClick = async (mealId: string) => {
-    const meal = meals.find((m) => m.id === mealId);
-    if (!meal) return;
-
-    setActiveSwapMeal(meal);
-    setIsOptionsLoading(true);
-    setSwapOptionsError(null);
-    setConfirmSwapMeal(null);
-    setSwapPreview(null);
-
-    try {
-      const res = await api.get(`/user/meals/${mealId}/swap-options`);
-      if (res.data?.success) {
-        setSwapOptions(res.data.data.swapOptions);
-        setSwapsUsed(res.data.data.swapsUsed);
-        setSwapCap(res.data.data.swapCap ?? 3);
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setSwapOptionsError(err.response?.data?.error || 'Failed to load eligible swap options.');
-      } else {
-        setSwapOptionsError('Failed to load eligible swap options.');
-      }
-    } finally {
-      setIsOptionsLoading(false);
-    }
-  };
-
-  // Select a replacement meal options and call preview check
-  const handleSelectSwapOption = async (option: SwapOption) => {
-    if (!activeSwapMeal) return;
-
-    setConfirmSwapMeal(option);
-    setIsCheckingPreview(true);
-    setPreviewError(null);
-    setSwapPreview(null);
-
-    try {
-      const res = await api.get(`/user/meals/${activeSwapMeal.id}/swap-preview`, {
-        params: { libraryMealId: option.id },
-      });
-      if (res.data?.success) {
-        const preview = res.data.data;
-        setSwapPreview(preview);
-
-        if (!preview.warningRequired) {
-          // Proceed with swap directly!
-          setIsSwapping(true);
-          const swapRes = await api.post(`/user/meals/${activeSwapMeal.id}/swap`, {
-            newLibraryMealId: option.id,
-            warningShown: false,
-            warningAcknowledged: false,
-          });
-          if (swapRes.data?.success) {
-            setSwapsUsed(swapRes.data.data.swapsUsed);
-            setSwapCap(swapRes.data.data.swapCap ?? swapCap);
-            setActiveSwapMeal(null);
-            setSwapOptions([]);
-            setConfirmSwapMeal(null);
-            setSwapPreview(null);
-            await fetchMeals();
-          }
-        }
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setPreviewError(err.response?.data?.error || 'Failed to check swap preview.');
-      } else {
-        setPreviewError('Failed to check swap preview.');
-      }
-    } finally {
-      setIsCheckingPreview(false);
-      setIsSwapping(false);
-    }
-  };
-
-  // Submits the swap with warning acknowledged
-  const handleConfirmSwapAnyway = async () => {
-    if (!activeSwapMeal || !confirmSwapMeal) return;
-
-    setIsSwapping(true);
-    setSwapOptionsError(null);
-
-    try {
-      const res = await api.post(`/user/meals/${activeSwapMeal.id}/swap`, {
-        newLibraryMealId: confirmSwapMeal.id,
-        warningShown: true,
-        warningAcknowledged: true,
-      });
-
-      if (res.data?.success) {
-        setSwapsUsed(res.data.data.swapsUsed);
-        setSwapCap(res.data.data.swapCap ?? swapCap);
-        setActiveSwapMeal(null);
-        setSwapOptions([]);
-        setConfirmSwapMeal(null);
-        setSwapPreview(null);
-        // Refresh full meals plan
-        await fetchMeals();
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setSwapOptionsError(err.response?.data?.error || 'Failed to complete swap.');
-      } else {
-        setSwapOptionsError('Failed to complete swap.');
-      }
-    } finally {
-      setIsSwapping(false);
-    }
-  };
-
-  // Handles scheduled status checkoff toggles in the weekly view
-  const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
-    try {
-      await api.patch(`/user/meals/${mealPlanId}/status`, { status: newStatus });
-      // Reload current meals to update checkboxes and macro sums
-      const res = await api.get('/user/meals/current');
-      if (res.data && res.data.success) {
-        setMeals(Array.isArray(res.data.data) ? res.data.data : []);
-        setPendingReview(res.data.meta?.pendingReview ?? null);
-        setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
-        setSwapCap(res.data.meta?.swapCap ?? 3);
-      }
-    } catch (err) {
-      console.error('[WeeklyPlan] Status toggle failed:', err);
-    }
-  };
-
-  // Triggers full 7-day meal plan regeneration
-  const handleRegeneratePlan = async () => {
-    if (pendingReview) return;
-
-    if (meals.length > 0) {
-      if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
-        return;
-    }
-
-    setIsRegenerating(true);
-    setError(null);
-    try {
-      const res = await api.post('/user/meals/generate');
-      if (res.data && res.data.success) {
-        setMeals(res.data.data.meals);
-        setPendingReview(res.data.data.pendingReview ?? null);
-      }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Gemini failed to regenerate weekly plan.');
-      } else {
-        setError('Regeneration failed.');
-      }
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
-
-  const handleHistorySearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchHistory();
-  };
-
-  const handleLibrarySearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchLibrary();
-  };
-
-  // Group meals by date
-  const groupMealsByDate = () => {
-    const grouped: Record<string, MealPlan[]> = {};
-
-    meals.forEach((meal) => {
-      const dateKey = getManilaDateKey(meal.scheduledDate);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(meal);
-    });
-
-    // Sort the keys chronologically
-    return Object.keys(grouped)
-      .sort((a, b) => a.localeCompare(b))
-      .map((dateKey) => {
-        const dayMeals = grouped[dateKey];
-        const parsedDate = manilaDateFromKey(dateKey);
-        const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
-        const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric' });
-
-        // Sum calories and macros targets for the day
-        const dayCalories = dayMeals.reduce((sum, m) => sum + m.calories, 0);
-        const dayProtein = dayMeals.reduce((sum, m) => sum + m.proteinG, 0);
-        const dayCarbs = dayMeals.reduce((sum, m) => sum + m.carbsG, 0);
-        const dayFat = dayMeals.reduce((sum, m) => sum + m.fatG, 0);
-
-        return {
-          dateKey,
-          weekday,
-          dateStr,
-          mealsList: dayMeals,
-          dayCalories,
-          dayProtein,
-          dayCarbs,
-          dayFat,
-        };
-      });
-  };
-
-  const groupPendingMealsByDate = () => {
-    const grouped: Record<string, PendingMealPreview[]> = {};
-
-    pendingReview?.meals.forEach((meal) => {
-      const dateKey = getManilaDateKey(meal.scheduledDate);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(meal);
-    });
-
-    return Object.keys(grouped)
-      .sort((a, b) => a.localeCompare(b))
-      .map((dateKey) => {
-        const parsedDate = manilaDateFromKey(dateKey);
-        return {
-          dateKey,
-          weekday: formatManilaDate(parsedDate, { weekday: 'long' }),
-          dateStr: formatManilaDate(parsedDate, { month: 'short', day: 'numeric' }),
-          mealsList: grouped[dateKey],
-        };
-      });
-  };
-
-  const groupHistoryByDate = () => {
-    const grouped: Record<string, MealHistoryLog[]> = {};
-    historyLogs.forEach((log) => {
-      const dateKey = getManilaDateKey(log.loggedAt);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(log);
-    });
-
-    return Object.keys(grouped)
-      .sort((a, b) => b.localeCompare(a))
-      .map((dateKey) => {
-        const logsList = grouped[dateKey];
-        const parsedDate = manilaDateFromKey(dateKey);
-        const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
-        const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric', year: 'numeric' });
-        return {
-          dateKey,
-          weekday,
-          dateStr,
-          logsList,
-        };
-      });
-  };
+  const {
+    activeTab,
+    setActiveTab,
+    meals,
+    isLoading,
+    isRegenerating,
+    error,
+    pendingReview,
+    setSelectedPlanDateKey,
+    swapsUsed,
+    swapCap,
+    activeSwapMeal,
+    setActiveSwapMeal,
+    swapOptions,
+    setSwapOptions,
+    isOptionsLoading,
+    swapOptionsError,
+    setSwapOptionsError,
+    confirmSwapMeal,
+    setConfirmSwapMeal,
+    isSwapping,
+    swapPreview,
+    setSwapPreview,
+    isCheckingPreview,
+    previewError,
+    historyLogs,
+    isHistoryLoading,
+    historyError,
+    historySearch,
+    setHistorySearch,
+    historySource,
+    setHistorySource,
+    historyStatus,
+    setHistoryStatus,
+    libraryMeals,
+    isLibraryLoading,
+    libraryError,
+    librarySearch,
+    setLibrarySearch,
+    selectedVerifier,
+    setSelectedVerifier,
+    libraryMealType,
+    setLibraryMealType,
+    handleSwapClick,
+    handleSelectSwapOption,
+    handleConfirmSwapAnyway,
+    handleMealStatusToggle,
+    handleRegeneratePlan,
+    handleHistorySearchSubmit,
+    handleLibrarySearchSubmit,
+    groupHistoryByDate,
+    groupedDays,
+    groupedPendingDays,
+    displayedPlanDays,
+    selectedPlanDayIndex,
+    selectedPlanDay,
+    isStarterPlan,
+    starterFirstDate,
+    starterLastDate,
+    nextCycleDay,
+    displayedMealCount,
+    completedMealCount,
+    remainingSwapCount,
+  } = useMealsWorkspace();
 
   if (isLoading || isRegenerating) {
     return (
@@ -531,50 +111,6 @@ export default function WeeklyPlanPage() {
       </div>
     );
   }
-
-  const groupedDays = groupMealsByDate();
-  const groupedPendingDays = groupPendingMealsByDate();
-  const displayedPlanDays = Array.from(
-    new Set([...groupedDays.map((day) => day.dateKey), ...groupedPendingDays.map((day) => day.dateKey)])
-  )
-    .sort((a, b) => a.localeCompare(b))
-    .map((dateKey) => {
-      const approvedDay = groupedDays.find((day) => day.dateKey === dateKey);
-      const pendingDay = groupedPendingDays.find((day) => day.dateKey === dateKey);
-      const parsedDate = manilaDateFromKey(dateKey);
-      return {
-        dateKey,
-        weekday: approvedDay?.weekday ?? pendingDay?.weekday ?? formatManilaDate(parsedDate, { weekday: 'long' }),
-        dateStr:
-          approvedDay?.dateStr ??
-          pendingDay?.dateStr ??
-          formatManilaDate(parsedDate, { month: 'short', day: 'numeric' }),
-        mealsList: [...(approvedDay?.mealsList ?? []), ...(pendingDay?.mealsList ?? [])],
-      };
-    });
-  const selectedPlanDayIndex = Math.max(
-    0,
-    displayedPlanDays.findIndex((day) => day.dateKey === selectedPlanDateKey)
-  );
-  const selectedPlanDay = displayedPlanDays[selectedPlanDayIndex] ?? null;
-  const isStarterPlan = meals[0]?.planType === 'STARTER' || pendingReview?.planType === 'STARTER';
-
-  const starterFirstDate =
-    isStarterPlan && displayedPlanDays.length > 0 ? manilaDateFromKey(displayedPlanDays[0].dateKey) : null;
-  const starterLastDate =
-    isStarterPlan && displayedPlanDays.length > 0
-      ? manilaDateFromKey(displayedPlanDays[displayedPlanDays.length - 1].dateKey)
-      : null;
-
-  const nextCycleDay = (() => {
-    if (!isStarterPlan || !starterLastDate) return null;
-    const dayAfter = new Date(starterLastDate);
-    dayAfter.setDate(dayAfter.getDate() + 1);
-    return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
-  })();
-  const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
-  const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
-  const remainingSwapCount = Math.max(0, swapCap - swapsUsed);
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
