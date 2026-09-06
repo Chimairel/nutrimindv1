@@ -39,6 +39,7 @@ import {
   isCertifiedLibraryMealCompatible,
 } from '@/services/meal-swap.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 
 const COVERAGE_MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
 
@@ -963,15 +964,15 @@ export class NutritionistService {
       limit?: number;
     }
   ) {
-    const page = Number(filters.page) || 1;
-    const limit = Number(filters.limit) || 20;
+    const { page, limit } = normalizePagination(filters.page, filters.limit, 20);
     const skip = (page - 1) * limit;
+    const search = normalizeSearch(filters.search);
 
     const where: any = {};
 
-    if (filters.search) {
+    if (search) {
       where.mealName = {
-        contains: filters.search,
+        contains: search,
         mode: 'insensitive',
       };
     }

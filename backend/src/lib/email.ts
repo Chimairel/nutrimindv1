@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { appendFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
 
 /**
  * Email service using Nodemailer + Gmail SMTP.
@@ -37,10 +39,35 @@ const escapeHtml = (value: string) => value
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
+type CapturedMail = {
+  type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET' | 'NUTRITIONIST_INVITATION';
+  to: string;
+  token: string;
+};
+
+async function captureTestMail(message: CapturedMail): Promise<boolean> {
+  const capturePath = process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH?.trim();
+  if (!capturePath) return false;
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error('The test mail capture boundary requires NODE_ENV=test.');
+  }
+  if (!path.isAbsolute(capturePath)) {
+    throw new Error('The test mail capture path must be absolute.');
+  }
+
+  await mkdir(path.dirname(capturePath), { recursive: true });
+  await appendFile(capturePath, `${JSON.stringify({ ...message, capturedAt: new Date().toISOString() })}\n`, {
+    encoding: 'utf8',
+    mode: 0o600,
+  });
+  return true;
+}
+
 /**
  * Sends a 6-digit OTP verification email to the user's inbox.
  */
 export async function sendVerificationEmail(to: string, otp: string, userName: string): Promise<void> {
+  if (await captureTestMail({ type: 'EMAIL_VERIFICATION', to, token: otp })) return;
   const subject = `🧠 NutriMind — Verify Your Email Address`;
   const html = `
     <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0d0d0d; color: #e0e0e0; border-radius: 16px;">
@@ -94,6 +121,7 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   userName: string
 ): Promise<void> {
+  if (await captureTestMail({ type: 'PASSWORD_RESET', to, token: resetToken })) return;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
   const subject = `🔐 NutriMind — Password Reset Request`;
@@ -151,6 +179,7 @@ export async function sendNutritionistInvitationEmail(
   invitationToken: string,
   applicantName: string
 ): Promise<void> {
+  if (await captureTestMail({ type: 'NUTRITIONIST_INVITATION', to, token: invitationToken })) return;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const invitationLink = `${frontendUrl}/nutritionist-invitation?token=${encodeURIComponent(invitationToken)}`;
   const subject = 'NutriMind — Your nutritionist application was approved';

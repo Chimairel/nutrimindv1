@@ -16,7 +16,7 @@ import { AdminService } from '../src/services/admin.service';
 import { CheckinService } from '../src/services/checkin.service';
 import { MealSwapService } from '../src/services/meal-swap.service';
 
-const FIXTURE_EMAIL = 'e2e.library.reuse@example.com';
+const FIXTURE_EMAIL = 'e2e.library.reuse@example.invalid';
 const FIXTURE_PASSWORD = 'LibraryReuse123';
 const SNAPSHOT_ACTION = 'E2E_LIBRARY_REUSE_SNAPSHOT';
 const catalogueNames = COMMON_MEAL_CATALOGUE.map((meal) => meal.mealName);
@@ -61,7 +61,11 @@ async function setup() {
     where: { mealName: { in: catalogueNames } },
     select: { id: true, mealName: true, usageCount: true, safetyEvidenceStatus: true, status: true },
   });
-  assert.equal(catalogue.length, 30, 'The 30-meal common catalogue must be populated first.');
+  assert.equal(
+    catalogue.length,
+    COMMON_MEAL_CATALOGUE.length,
+    `The ${COMMON_MEAL_CATALOGUE.length}-meal common catalogue must be populated first.`,
+  );
   assert.ok(catalogue.every((meal) => meal.status === 'APPROVED' && meal.safetyEvidenceStatus === 'COMPLETE'));
 
   const day = currentManilaDayOfWeek();

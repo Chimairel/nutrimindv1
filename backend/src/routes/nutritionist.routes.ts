@@ -14,6 +14,7 @@ import {
   nutritionistReviewActionSchema,
 } from '@/validation/nutritionist.schemas';
 import { NutritionistCompensationService } from '@/services/compensation-admin.service';
+import { isNutritionistReviewConflict } from '@/domain/nutritionist-review-http.policy';
 
 const router = Router();
 
@@ -45,10 +46,14 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
     const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
-    if (sanitizeErrorMessage(error, '').includes('not found')) {
-      return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Review card not found.') });
+    const message = sanitizeErrorMessage(error, 'Failed to retrieve review card details.');
+    if (message.includes('not found')) {
+      return res.status(404).json({ success: false, error: message });
     }
-    return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review card details.') });
+    if (isNutritionistReviewConflict(message)) {
+      return res.status(409).json({ success: false, error: message });
+    }
+    return res.status(500).json({ success: false, error: message });
   }
 });
 
@@ -74,7 +79,7 @@ router.patch('/review/:id', validateZodBody(nutritionistReviewActionSchema), asy
     }
   } catch (error: any) {
     const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
-    if (msg.includes('already claimed') || msg.includes('already reviewed') || msg.includes('active claim')) {
+    if (isNutritionistReviewConflict(msg)) {
       return res.status(409).json({ success: false, error: msg });
     }
     return res.status(500).json({ success: false, error: msg });

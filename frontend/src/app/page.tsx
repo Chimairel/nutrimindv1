@@ -42,7 +42,7 @@ const capabilities = [
     icon: Fingerprint,
     number: '01',
     title: 'Built around your health context',
-    text: 'Goals, allergies, preferences, conditions, and budget shape every planning decision—not just a calorie number.',
+    text: 'Goals, allergies, preferences, conditions, and shopping routines shape every planning decision—not just a calorie number.',
     className: 'lg:col-span-2',
   },
   {

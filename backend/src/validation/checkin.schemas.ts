@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const updatesSchema = z.object({
-  weightKg: z.number().min(30).max(350).optional(),
+  weightKg: z.number().min(30).max(300).optional(),
   activityLevel: z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE']).optional(),
   goal: z.enum(['LOSE_WEIGHT', 'GAIN_WEIGHT', 'MAINTAIN', 'BUILD_MUSCLE']).optional(),
 }).strict();

@@ -1,15 +1,18 @@
 import prisma from '@/lib/prisma';
+import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 
 export class AdminService {
   /**
    * Returns all users with pagination and search.
    */
   static async getUsers(page = 1, limit = 20, search?: string) {
-    const where = search
+    const pagination = normalizePagination(page, limit, 20);
+    const normalizedSearch = normalizeSearch(search);
+    const where = normalizedSearch
       ? {
           OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { email: { contains: search, mode: 'insensitive' as const } },
+            { name: { contains: normalizedSearch, mode: 'insensitive' as const } },
+            { email: { contains: normalizedSearch, mode: 'insensitive' as const } },
           ],
         }
       : {};
@@ -29,14 +32,20 @@ export class AdminService {
           suspensionReason: true,
           createdAt: true,
         },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.user.count({ where }),
     ]);
 
-    return { users, total, page, totalPages: Math.ceil(total / limit) };
+    return {
+      users,
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit),
+    };
   }
 
   /**
@@ -119,8 +128,7 @@ export class AdminService {
   }
 
   static async getAuditEvents(page = 1, limit = 50) {
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.min(100, Math.max(1, limit));
+    const { page: safePage, limit: safeLimit } = normalizePagination(page, limit, 50);
     const [events, total] = await Promise.all([
       prisma.auditEvent.findMany({
         skip: (safePage - 1) * safeLimit,

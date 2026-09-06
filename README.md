@@ -8,17 +8,17 @@ Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODU
 
 ## Current verification status
 
-The repository contains substantial frontend and backend implementation. As of August 31, 2026:
+The repository contains substantial frontend and backend implementation. As of September 6, 2026:
 
 - Backend TypeScript no-emit check and production build: **passed**
 - Frontend TypeScript no-emit check and production build: **passed**
 - Prisma schema validation: **passed**
 - Frontend lint: **passed with zero warnings**
-- Backend deterministic unit/policy baseline: **138 pass, 0 fail, 1 external-clinical TODO**
-- Controlled API/database integration smoke suite: **passed against the configured PostgreSQL database**
-- Authenticated browser smoke coverage: **passed for user, nutritionist, and administrator route groups**
+- Backend deterministic unit/policy baseline: **457 pass, 0 fail, 1 external-clinical TODO**
+- Controlled API/database integration and acceptance suites: **passed against disposable loopback PostgreSQL 16.4 databases**
+- Authenticated desktop browser coverage: **passed for current user, nutritionist, administrator, public, and authorization routes; full 390px rerun remains environment-limited**
 - Repository CI configuration: **present; remote execution is not established by local evidence**
-- All 14 additive database migrations: **deployed; Prisma reports the database schema up to date**
+- All 23 additive database migrations: **rehearsed locally; Prisma reports the disposable database schema up to date**
 - Controlled production integration and local readiness/load smokes: **passed**
 - Clinical review: **not established**
 
@@ -167,6 +167,7 @@ Only names and purposes are documented. No real values are included.
 | `SMTP_PASS` | Email delivery | SMTP account password or app password |
 | `EMAIL_FROM` | Optional sender override | From address; falls back to `SMTP_USER`, then a placeholder |
 | `SMTP_VERIFY_ON_STARTUP` | Optional startup diagnostics | Set to `true` only when API startup should open an SMTP connection; defaults to disabled |
+| `NUTRIMIND_TEST_MAIL_CAPTURE_PATH` | Local automated tests only | Absolute JSONL path used only with `NODE_ENV=test` to capture synthetic OTP/reset/invitation evidence without SMTP |
 
 ### Frontend: `frontend/.env.local`
 
@@ -200,17 +201,17 @@ npm run lint
 npm run build
 ```
 
-The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, and fail-closed ingredient matching. `npm run test:integration:production` uses temporary reserved-domain fixtures against the configured PostgreSQL database, verifies refresh-token rotation, evidence certification/invalidation, weekly check-in idempotency, and generation-job contention, then removes its fixtures. The frontend has no automated component test script. Repository CI installs both packages, runs the backend tests/build, and runs frontend lint/build. These checks do not establish live Gemini generation, accessibility, load behavior, deployment monitoring, or clinical verification.
+The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, billing/compensation policies, bounded weight/list input, and fail-closed ingredient matching. `npm run test:integration:production` and the acceptance scripts require an explicitly authorized disposable database target. The frontend has no automated component test script. Repository CI installs both packages, runs the backend tests/build, and runs frontend lint/build. These checks do not establish live Gemini generation, full accessibility conformance, deployment monitoring, clinical verification, or production payment readiness.
 
 ## External integrations
 
 | Integration | Purpose | Verification caveat |
 | --- | --- | --- |
-| PostgreSQL/Neon | Persistence | Live database behavior was not baseline-tested |
+| PostgreSQL/Neon | Persistence | Disposable PostgreSQL behavior is integration-tested; shared/production state is separate |
 | Google Gemini | Reports, plans, food estimates, replacements | Model/account behavior was not live-tested |
 | FNRI data | Philippine food nutrition lookup | Seed/runtime matching was not executed in the baseline |
 | Google OAuth | Google login/registration | Live OAuth was not tested |
-| SMTP/Nodemailer | OTP and reset email | Live delivery was not tested |
+| SMTP/Nodemailer | OTP, reset, and invitation email | Test-only local capture is verified; live delivery was not tested |
 | React PDF | Report and grocery PDFs | Runtime output was not tested |
 | DiceBear | Browser-loaded avatars | Availability/privacy behavior was not integration-tested |
 

@@ -2,6 +2,12 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { ProgressService } from '@/services/progress.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import {
+  MAX_WEIGHT_KG,
+  MIN_WEIGHT_KG,
+  isSupportedWeightKg,
+  normalizeWeightNote,
+} from '@/policies/weight-entry.policy';
 
 export class ProgressController {
   /**
@@ -16,14 +22,14 @@ export class ProgressController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      if (weightKg === undefined || typeof weightKg !== 'number' || weightKg <= 0) {
+      if (!isSupportedWeightKg(weightKg)) {
         return res.status(400).json({
           success: false,
-          error: 'Valid weightKg property (positive number) is required.',
+          error: `Weight must be between ${MIN_WEIGHT_KG} and ${MAX_WEIGHT_KG} kg.`,
         });
       }
 
-      const weightLog = await ProgressService.logWeight(userId, weightKg, note);
+      const weightLog = await ProgressService.logWeight(userId, weightKg, normalizeWeightNote(note));
       return res.status(200).json({
         success: true,
         message: 'Weight logged successfully. Your daily calorie target has been dynamically recalculated.',

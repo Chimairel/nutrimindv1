@@ -193,7 +193,8 @@ router.get('/weight-log', async (req: AuthenticatedRequest, res: Response) => {
 router.post(
   '/weight-log',
   [
-    body('weightKg').isFloat({ min: 20, max: 300 }).withMessage('Weight must be between 20 and 300 kg.'),
+    body('weightKg').isFloat({ min: 30, max: 300 }).withMessage('Weight must be between 30 and 300 kg.').toFloat(),
+    body('note').optional({ nullable: true }).isString().isLength({ max: 500 }).withMessage('Weight note must be 500 characters or fewer.'),
     validate,
   ],
   async (req: AuthenticatedRequest, res: Response) => {

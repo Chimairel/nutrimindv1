@@ -12,13 +12,10 @@ The command first type-checks the isolated test project and then runs explicitly
 
 ## Current scope
 
-- Active tests cover deterministic calorie calculations, synthetic-fixture integrity, the centralized approved-meal actionability policy/query boundaries, the deterministic restriction policy, the meal-generation library compatibility adapter/fallback seam, onboarding policy, meal-plan cycles, generation-result contracts, and the mixed-cuisine generation policy.
-- TODO tests are executable specifications for known defects; they are not passing tests.
-- TEST-013 through TEST-017 are active. TEST-018 through TEST-021 remain TODO.
-- The current result is 111 registered tests: 107 pass, 0 fail, 0 skipped, and 4 TODO.
-- Tests import only Node assertions/test APIs, Prisma enum values, pure calculation/actionability/restriction-policy modules, and synthetic fixtures.
-- Tests must not import the Express app/server, Prisma singleton, Gemini, email, OAuth, PDF, cron, or other external-service paths.
-- Tests require no `.env` file and must not access a database or network.
+- Active tests cover the current pure domain, validation, migration, billing, compensation, actionability, restriction, generation, and operational policies recorded in the engineering record.
+- One TODO remains an executable specification for clinically approved calorie bounds; it is not a passing test.
+- The current result is 458 registered tests: 457 pass, 0 fail, 0 skipped, and 1 TODO.
+- Tests require no live database or network. The test-only mail-capture regression imports the email module but exits through an absolute local JSONL capture path before Nodemailer and proves that the seam rejects non-test use.
 
 The 500 kcal implementation floor is deliberately not approved by an active test. `TEST-021` remains TODO until a clinically approved bound and behavior-change batch exist.
 

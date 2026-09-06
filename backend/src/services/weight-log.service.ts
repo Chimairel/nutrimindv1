@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { isSupportedWeightKg, normalizeWeightNote } from '@/policies/weight-entry.policy';
 
 export class WeightLogService {
   /**
@@ -15,14 +16,19 @@ export class WeightLogService {
    * Creates a new weight log entry.
    */
   static async logWeight(userId: string, weightKg: number, note?: string) {
-    // Also update the user's profile with the latest weight
-    await prisma.userProfile.updateMany({
-      where: { userId },
-      data: { weightKg },
-    });
+    if (!isSupportedWeightKg(weightKg)) {
+      throw new Error('Weight must be between 30 and 300 kg.');
+    }
+    const normalizedNote = normalizeWeightNote(note);
 
-    return prisma.weightLog.create({
-      data: { userId, weightKg, note },
+    return prisma.$transaction(async (tx) => {
+      await tx.userProfile.update({
+        where: { userId },
+        data: { weightKg },
+      });
+      return tx.weightLog.create({
+        data: { userId, weightKg, note: normalizedNote },
+      });
     });
   }
 
