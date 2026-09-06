@@ -401,6 +401,49 @@ enum IngredientPriceMappingEvidenceKind {
   REJECTION_NOTE
 }
 
+enum IngredientConversionBasis {
+  PURCHASED_AS_SOLD
+  RAW_EDIBLE
+  COOKED_EDIBLE
+}
+
+enum IngredientConversionKind {
+  PURCHASED_TO_RAW_YIELD
+  RAW_TO_COOKED_YIELD
+  PURCHASED_TO_COOKED_YIELD
+  HOUSEHOLD_MEASURE_TO_MASS
+}
+
+enum IngredientConversionDirection {
+  FORWARD_ONLY
+  BIDIRECTIONAL
+}
+
+enum IngredientConversionUnit {
+  MILLIGRAM
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  TEASPOON
+  TABLESPOON
+  CUP
+  PIECE
+}
+
+enum IngredientConversionReviewStatus {
+  DRAFT
+  REVIEWED
+  REJECTED
+}
+
+enum IngredientConversionRedistributionStatus {
+  REDISTRIBUTABLE
+  AUTHORIZED_INTERNAL_USE
+  METADATA_ONLY
+  LICENSE_REVIEW_REQUIRED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -656,10 +699,12 @@ model FoodItem {
   source    String  @default("FNRI")
 
   // Relations
-  aliases            FoodAlias[]
-  mealIngredients    MealIngredient[]
-  libraryIngredients MealLibraryIngredient[]
-  priceMappings      IngredientPriceCommodityMapping[]
+  aliases                FoodAlias[]
+  mealIngredients        MealIngredient[]
+  libraryIngredients     MealLibraryIngredient[]
+  priceMappings          IngredientPriceCommodityMapping[]
+  conversionEvidenceFrom IngredientConversionEvidence[]    @relation("IngredientConversionFromFood")
+  conversionEvidenceTo   IngredientConversionEvidence[]    @relation("IngredientConversionToFood")
 }
 
 model FoodAlias {
@@ -959,9 +1004,75 @@ model IngredientPriceCommodity {
   createdAt             DateTime                          @default(now())
   mappings              IngredientPriceCommodityMapping[]
   observations          IngredientPriceObservation[]
+  conversionEvidence    IngredientConversionEvidence[]
 
   @@unique([sourceId, sourceCommodityKey])
   @@index([sourceId, originalDescription])
+}
+
+model IngredientConversionSource {
+  id                     String                                   @id @default(cuid())
+  code                   String                                   @unique @db.VarChar(80)
+  agencyName             String                                   @db.VarChar(180)
+  publicationTitle       String                                   @db.VarChar(300)
+  sourceUrl              String                                   @db.VarChar(500)
+  termsUrl               String?                                  @db.VarChar(500)
+  versionLabel           String                                   @db.VarChar(120)
+  publishedAt            DateTime?
+  accessedAt             DateTime
+  geographyApplicability String                                   @db.VarChar(240)
+  methodology            String                                   @db.Text
+  licenseCode            String?                                  @db.VarChar(100)
+  redistributionStatus   IngredientConversionRedistributionStatus
+  attributionText        String                                   @db.VarChar(500)
+  contentSha256          String?                                  @db.Char(64)
+  createdAt              DateTime                                 @default(now())
+  evidence               IngredientConversionEvidence[]
+}
+
+model IngredientConversionEvidence {
+  id                   String                           @id @default(cuid())
+  sourceId             String
+  source               IngredientConversionSource       @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  externalEvidenceKey  String                           @db.VarChar(191)
+  evidenceVersion      String                           @db.VarChar(80)
+  kind                 IngredientConversionKind
+  fromBasis            IngredientConversionBasis
+  toBasis              IngredientConversionBasis
+  direction            IngredientConversionDirection    @default(FORWARD_ONLY)
+  fromFoodIdentity     String                           @db.VarChar(240)
+  toFoodIdentity       String                           @db.VarChar(240)
+  fromFoodItemId       String?
+  fromFoodItem         FoodItem?                        @relation("IngredientConversionFromFood", fields: [fromFoodItemId], references: [id], onDelete: Restrict)
+  toFoodItemId         String?
+  toFoodItem           FoodItem?                        @relation("IngredientConversionToFood", fields: [toFoodItemId], references: [id], onDelete: Restrict)
+  fromPriceCommodityId String?
+  fromPriceCommodity   IngredientPriceCommodity?        @relation(fields: [fromPriceCommodityId], references: [id], onDelete: Restrict)
+  fromPreparationCode  String                           @db.VarChar(120)
+  toPreparationCode    String                           @db.VarChar(120)
+  fromUnit             IngredientConversionUnit
+  toUnit               IngredientConversionUnit
+  factorMinNumerator   Int
+  factorMinDenominator Int
+  factorMaxNumerator   Int
+  factorMaxDenominator Int
+  uncertaintyNote      String                           @db.VarChar(500)
+  observedFrom         DateTime?
+  observedTo           DateTime?
+  effectiveFrom        DateTime?
+  effectiveUntil       DateTime?
+  reviewStatus         IngredientConversionReviewStatus @default(DRAFT)
+  reviewedAt           DateTime?
+  reviewerReference    String?                          @db.VarChar(191)
+  supersedesEvidenceId String?                          @unique
+  supersedesEvidence   IngredientConversionEvidence?    @relation("IngredientConversionSupersession", fields: [supersedesEvidenceId], references: [id], onDelete: Restrict)
+  supersededBy         IngredientConversionEvidence?    @relation("IngredientConversionSupersession")
+  createdAt            DateTime                         @default(now())
+
+  @@unique([sourceId, externalEvidenceKey, evidenceVersion])
+  @@index([fromFoodItemId, toFoodItemId])
+  @@index([fromPriceCommodityId])
+  @@index([reviewStatus, effectiveUntil])
 }
 
 model IngredientPriceCommodityMapping {

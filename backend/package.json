@@ -28,6 +28,7 @@
     "plans:revalidation:apply": "tsx scripts/enqueue-legacy-plan-revalidation.ts --apply",
     "prices:psa:dry-run": "tsx scripts/import-psa-openstat-prices.ts --dry-run",
     "prices:psa:apply-local": "tsx scripts/import-psa-openstat-prices.ts --apply",
+    "prices:conversion:coverage": "tsx scripts/report-ingredient-conversion-coverage.ts",
     "test:acceptance:paymongo-sandbox": "tsx scripts/paymongo-sandbox-checkout-acceptance.ts",
     "test:acceptance:paymongo-webhook-listener": "tsx scripts/paymongo-webhook-acceptance-listener.ts",
     "test:acceptance:paymongo-payment-projection-local": "tsx scripts/paymongo-payment-projection-local-acceptance.ts",

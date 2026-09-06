@@ -1,0 +1,1237 @@
+{
+  "generatedAsOf": "2026-09-06T00:00:00.000Z",
+  "mealCount": 51,
+  "ingredientRowCount": 195,
+  "layers": {
+    "sourceBasket": {
+      "rows": 93,
+      "meals": 44
+    },
+    "exactFnriMapping": {
+      "rows": 86,
+      "meals": 43
+    },
+    "currentPrice": {
+      "rows": 80,
+      "meals": 43
+    },
+    "quantityAndUnit": {
+      "rows": 80,
+      "meals": 43
+    },
+    "sameIdentityWithoutBasisBridge": {
+      "rows": 43,
+      "meals": 35
+    },
+    "reviewedConversionEvidence": {
+      "rows": 0,
+      "meals": 0
+    },
+    "conversionUsable": {
+      "rows": 0,
+      "meals": 0
+    }
+  },
+  "mealCoverage": {
+    "complete": 0,
+    "partial": 0,
+    "unpriced": 51
+  },
+  "missingByReason": {
+    "NO_CURRENT_PRICE_OBSERVATION": 6,
+    "NO_EXACT_FNRI_MAPPING": 7,
+    "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN": 37,
+    "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE": 43,
+    "NO_SOURCE_BASKET_COMMODITY": 102
+  },
+  "meals": [
+    {
+      "mealName": "Scrambled Egg and Rice Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Egg, chicken, whole",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Pandesal, Egg and Tomato Breakfast",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Bread, pan de sal",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Egg, chicken, whole, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Banana Peanut Butter Oatmeal",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Oats, quick-cooking, ckd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Banana, saba",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Peanut butter",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Papaya Milk Oatmeal",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Oats, quick-cooking, ckd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Milk, cow",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Papaya fruit, ripe",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tuna Pandesal Sandwich",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Bread, pan de sal",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tuna flakes, in brine, cnd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Tomato Breakfast Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Onion, Bombay bulb",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Sardines and Rice Breakfast Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Sardines, in tomato sce, cnd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Sweet Potato and Egg Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Egg, chicken, whole, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Corn and Egg Breakfast Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Corn on cob, yellow, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Egg, chicken, whole, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Peanut Butter Pandesal with Apple",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Bread, pan de sal",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Peanut butter",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Apple, red",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Sweet Potato Banana Breakfast Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 2,
+      "missing": [
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Banana, saba",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Corn Papaya Breakfast Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 2,
+      "missing": [
+        {
+          "foodName": "Corn on cob, yellow, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Papaya fruit, ripe",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Potato Tomato Breakfast",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Chicken Rice and Pechay Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Chicken breast",
+          "reason": "NO_CURRENT_PRICE_OBSERVATION"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Beef Rice Bowl with Cabbage",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Beef lean meat, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Onion, Bombay bulb, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Pork Rice Bowl with Carrots",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Pork Boston butt, lean, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Grilled Milkfish Rice Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Milkfish, broiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tilapia Rice and Fresh Vegetable Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tilapia",
+          "reason": "NO_CURRENT_PRICE_OBSERVATION"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Lettuce lvs & petioles",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tuna Cucumber Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tuna flakes, in brine, cnd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo, Kangkong and Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Swamp cabbage lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Vegetable Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Sardines, Pechay and Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Sardines, in tomato sce, cnd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Chicken Potato and Carrot Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Chicken breast",
+          "reason": "NO_CURRENT_PRICE_OBSERVATION"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Pechay Potato Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo Cabbage Vegetable Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Corn Tofu Vegetable Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Corn on cob, yellow, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Sweet Potato Cucumber Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Egg Potato and Pechay Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Egg, chicken, whole, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Chicken Vegetable Rice Soup Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Chicken breast",
+          "reason": "NO_CURRENT_PRICE_OBSERVATION"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Beef Potato and Pechay Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Beef lean meat, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Onion, Bombay bulb, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Pork Squash Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Pork Boston butt, lean, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Squash fruit, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Milkfish and Sweet Potato Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Milkfish, broiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tilapia Corn and Vegetable Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Tilapia",
+          "reason": "NO_CURRENT_PRICE_OBSERVATION"
+        },
+        {
+          "foodName": "Corn on cob, yellow, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tuna Potato Salad Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Tuna flakes, in brine, cnd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Lettuce lvs & petioles",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo Squash Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Squash fruit, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Cabbage Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        }
+      ]
+    },
+    {
+      "mealName": "Sardines Sweet Potato and Pechay Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Sardines, in tomato sce, cnd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Chicken Corn Tomato Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Chicken breast",
+          "reason": "NO_CURRENT_PRICE_OBSERVATION"
+        },
+        {
+          "foodName": "Corn on cob, yellow, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Sweet Potato Pechay Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo Cabbage Tomato Soup Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Onion, Bombay bulb, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Corn Tofu Tomato Dinner Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Corn on cob, yellow, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Cucumber",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Egg Potato Cabbage Dinner Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Egg, chicken, whole, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Cabbage, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Pechay Rice Soup Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Carrot, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Onion, Bombay bulb, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Papaya and Sweet Potato Breakfast",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Papaya fruit, ripe",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo Sweet Potato Breakfast Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 3,
+      "missing": [
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Squash Potato Lunch Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Squash fruit, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo Pechay Sweet Potato Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Tofu Kangkong Potato Dinner Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, soft curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Potato, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Swamp cabbage lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    },
+    {
+      "mealName": "Munggo Squash Sweet Potato Dinner Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 4,
+      "missing": [
+        {
+          "foodName": "Mung bean seed, green, dried, boiled",
+          "reason": "NO_EXACT_FNRI_MAPPING"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Squash fruit, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Pechay lvs, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tokwa Ampalaya Rice Bowl",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Rice, well-milled, boiled",
+          "reason": "NO_REVIEWED_PURCHASED_TO_COOKED_CHAIN"
+        },
+        {
+          "foodName": "Soybean cheese, hard curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Bitter melon/gourd fruit, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        },
+        {
+          "foodName": "Onion, Bombay bulb",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        }
+      ]
+    },
+    {
+      "mealName": "Tokwa Sayote and Sitaw Dinner Plate",
+      "status": "UNPRICED",
+      "pricedIngredientRows": 0,
+      "totalIngredientRows": 5,
+      "missing": [
+        {
+          "foodName": "Soybean cheese, hard curd",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Chayote fruit, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "String/Yard long bean pod, green, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Sweet potato, purple, boiled",
+          "reason": "NO_SOURCE_BASKET_COMMODITY"
+        },
+        {
+          "foodName": "Tomato",
+          "reason": "NO_REVIEWED_PURCHASED_TO_RAW_EVIDENCE"
+        }
+      ]
+    }
+  ]
+}

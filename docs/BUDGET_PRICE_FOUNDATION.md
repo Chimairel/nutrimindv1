@@ -1,16 +1,16 @@
 # Budget and Ingredient-Price Foundation
 
-Status: ADR-018/ADR-019 accepted; both additive migrations passed shared-development acceptance; bounded PSA/OpenSTAT ingestion is locally verified
+Status: ADR-018/ADR-019/ADR-024 accepted; price migrations passed shared-development acceptance; bounded PSA/OpenSTAT ingestion and an empty conversion-evidence foundation are locally verified
 
 Evidence date: September 6, 2026
 
-Scope: source research, additive schema/migrations, pure policy, licensed source snapshot, deterministic importer, disposable acceptance, and shared-development migration acceptance
+Scope: price and conversion source research, additive schema/migrations, pure policies, licensed source snapshot, deterministic importer, exact 51-meal coverage, disposable acceptance, and prior shared-development price-migration acceptance
 
 ## 1. Decision
 
 NutriMind will treat retail price data as dated evidence that is separate from FNRI nutrition composition. A price estimate must identify its official publication, source commodity wording and unit, observation period, geography, mapping decision, normalized basis when defensible, and supersession history. FNRI `FoodItem` rows do not receive a timeless price field.
 
-The database foundation was intentionally deployed empty. The later bounded ingestion phase commits one attributed, checksum-pinned PSA/OpenSTAT Cebu City snapshot plus a deterministic importer, but does not write it to shared development. Shared development's six price tables remain empty. No endpoint, UI, scheduled fetch, generated price, or payment behavior is added.
+The price database foundation was intentionally deployed empty. The later bounded ingestion phase commits one attributed, checksum-pinned PSA/OpenSTAT Cebu City snapshot plus a deterministic importer, but does not write it to shared development. Shared development's six price tables remain empty. The conversion phase adds an empty, normalized evidence schema and metadata-only review of authoritative yield sources; it loads no numerical conversion row. No endpoint, UI, scheduled fetch, generated price, or payment behavior is added.
 
 ## 2. Verified repository baseline
 
@@ -113,9 +113,28 @@ The available observations span January 31 through August 31, 2026. The importer
 ## 9. Smallest next gated phases
 
 1. Review the bounded snapshot, seven exact mapping decisions, one ambiguous decision, and measured coverage before authorizing any shared-development import. A shared gate should re-check table emptiness, immutable source metadata, checksums, exact FNRI resolution, row counts, and rollback/cleanup behavior before using this importer outside disposable PostgreSQL.
-2. Define purchased-to-edible and raw-to-cooked quantity evidence before any internal price repository or estimator consumes these observations. Public endpoints, frontend labels, plan ranking integration, scheduled retrieval, and any Premium promise remain later phases.
+2. Obtain a row-level Philippine conversion artifact and written use terms, then review exact food form, cut, edible basis, and preparation matches before inserting an append-only conversion-evidence revision. Public endpoints, frontend labels, plan ranking integration, scheduled retrieval, and any Premium promise remain later phases.
 3. Do not mix DA/DTI data into this source catalogue. Keep DEF-031's resolved mapped declarations intact.
 
 ## 10. Explicitly unavailable in this phase
 
-There is no shared/runtime price catalogue, user-location preference, retailer/store price, purchased-to-edible or raw-to-cooked conversion, package mapping, source precedence product decision, database query adapter, API response, UI, budget target, or paid benefit. The importer cannot target a non-loopback database. Estimates cannot run against production data until those inputs and later gates exist.
+There is no shared/runtime price catalogue, user-location preference, retailer/store price, usable purchased-to-edible or raw-to-cooked factor row, package mapping, source precedence product decision, database query adapter, API response, UI, budget target, or paid benefit. The importer cannot target a non-loopback database. Estimates cannot run against production data until those inputs and later gates exist.
+
+## 11. Conversion-evidence foundation and exact catalogue coverage
+
+The additive migration `20260906234500_ingredient_conversion_evidence` defines two new append-only models. `IngredientConversionSource` preserves agency, publication, source and terms URLs, version and access dates, geography, methodology, license/use status, attribution, and optional artifact SHA-256. `IngredientConversionEvidence` preserves an exact source row/version, `PURCHASED_AS_SOLD`, `RAW_EDIBLE`, or `COOKED_EDIBLE` endpoints, direction, exact source and FNRI identities, preparation codes, units, bounded rational factors, uncertainty, observation/effective dates, review evidence, and one-to-one supersession. It relates explicitly to `FoodItem` and purchased `IngredientPriceCommodity` records; no shortcut conversion or price field was added to either model.
+
+SQL checks require positive ordered rational ranges, compatible basis/kind/unit shapes, exact identity references, ordered dates, complete review metadata, and non-self supersession. A source marked `METADATA_ONLY` or `LICENSE_REVIEW_REQUIRED` cannot carry a factor row. A usable source requires explicit use rights and an artifact checksum. Restrictive foreign keys and update/delete triggers preserve both provenance tables. The migration inserts no source or factor data.
+
+The pure `ingredient-conversion-evidence.policy.ts` evaluator uses integer rational arithmetic. It evaluates clinical compatibility before conversion evidence; accepts only reviewed, effective, non-superseded exact identity/preparation edges; normalizes only compatible mass or volume units; blocks unauthorized reverse traversal; and rejects duplicate conflicts, cycles, repeated edge use, incompatible bases, malformed or implausible factors, and multiple possible chains. Factor bounds multiply through a chain. Converted costs use safe integer centavos and round the lower bound down and upper bound up.
+
+The source review at `backend/data/ingredient-conversion-evidence/source-review-2026-09-06.json` records five authoritative sources and no pilot factors:
+
+- The [DOST-FNRI 47th Seminar Series abstract](https://www.fnri.dost.gov.ph/images/sources/SeminarSeries/47th/47thFSS.pdf) reports 173 Philippine yield factors from weighed foods prepared by named cooking methods, but the public artifact does not expose item-level factors, protocols, uncertainty, or reuse terms.
+- The [USDA Food Buying Guide](https://foodbuyingguide.fns.usda.gov/appendix/downloadfbg) defines purchased-to-edible yields and exact trim/peel/cut/drain preparations. Its US institutional rows do not exactly match the current Philippine PSA/FNRI pairs.
+- The [USDA ARS Meat and Poultry Cooking Yields, Release 2](https://www.ars.usda.gov/ARSUserFiles/80400535/Data/retn/USDA_CookingYields_MeatPoultry02.pdf) defines cooked-hot-weight/raw-weight yields for exact cuts and cooking methods, but no current basket pair has the required matching preparation.
+- The [FAO/INFOODS unit-conversion guideline](https://www.fao.org/3/i3089e/i3089e.pdf) and [food-matching guideline](https://www.fao.org/fileadmin/templates/food_composition/documents/Nutrition_assessment/INFOODSGuidelinesforFoodMatching_version_1_2.pdf) support explicit unit, denominator, density, identity, edible-portion, and preparation rules. They are methodology, not numerical evidence for NutriMind foods; [FAO terms](https://www.fao.org/contact-us/terms/en/) also require a use review before redistributing publication content.
+
+The committed coverage report `backend/data/ingredient-conversion-evidence/coverage-2026-09-06.json` evaluates exactly 51 managed meals and 195 ingredient rows as of September 6, 2026. The source basket covers 93 rows/44 meals; 86 rows/43 meals have an exact raw FNRI mapping; and 80 rows/43 meals have a current exact-mapped price and valid quantity/unit. Forty-three rows/35 meals share the same food identity at the price and catalogue boundaries, but they remain `PURCHASED_AS_SOLD` versus `RAW_EDIBLE` and are not usable without an evidence bridge. The other 37 currently priced rows need a purchased-to-cooked chain. No reviewed conversion factor exists, so conversion usability is 0 rows/0 meals and whole-meal coverage is 0 complete, 0 partial, and 51 unpriced. Every missing row is listed: 102 lack a source-basket commodity, 7 lack an exact FNRI mapping, 6 lack a current price observation, 43 lack purchased-to-raw evidence, and 37 lack a purchased-to-cooked chain.
+
+The next evidence request is specific: obtain DOST-FNRI's row-level 173-factor table, preparation protocols, uncertainty fields, and written reuse terms; preserve an unchanged artifact checksum; and accept only exact current price-commodity to catalogue-food matches. A nearby USDA row cannot substitute for a Philippine food/preparation pair.
