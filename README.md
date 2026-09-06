@@ -18,7 +18,7 @@ The repository contains substantial frontend and backend implementation. As of S
 - Controlled API/database integration and acceptance suites: **passed against disposable loopback PostgreSQL 16.4 databases**
 - Authenticated desktop browser coverage: **passed for current user, nutritionist, administrator, public, and authorization routes; full 390px rerun remains environment-limited**
 - Repository CI configuration: **present; remote execution is not established by local evidence**
-- All 23 additive database migrations: **rehearsed locally; Prisma reports the disposable database schema up to date**
+- All 23 additive database migrations: **rehearsed locally and applied to shared development; Prisma reports the schema up to date, with the new conversion and compensation tables empty**
 - Controlled production integration and local readiness/load smokes: **passed**
 - Clinical review: **not established**
 
@@ -236,7 +236,7 @@ Consult the engineering record for the ranked register. Important limitations in
 
 - [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md): canonical current evidence, ADRs, requirements, risks, defects, tests, and change history.
 - [`docs/NUTRIMIND_CLEANUP_PLAN.md`](docs/NUTRIMIND_CLEANUP_PLAN.md): completed Batches 1, 2A, and 3 plus proposed future cleanup batches.
-- [`docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md): accepted payment and compensation architecture. TEST checkout/payment projection and the separate nutritionist compensation administration are implemented locally; compensation uses immutable work credits, maker-checker statements, own-only reads, and manual payout evidence. Shared rollout, commercial/legal decisions, refunds, recurring collection, automated disbursement, and production remain open.
+- [`docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md): accepted payment and compensation architecture. The empty compensation schema is applied to shared development; work credits, policies, statements, payouts, commercial/legal decisions, refunds, recurring collection, automated disbursement, and production activation remain separate gates.
 - [`chatgptcontext.md`](chatgptcontext.md): August 19 audit snapshot; useful context but not the canonical living record.
 - Root legacy prompts, addenda, handoff guides, and system references: historical, aspirational, or partially superseded as described by their notices.
 

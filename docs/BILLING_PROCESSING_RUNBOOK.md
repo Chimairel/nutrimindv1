@@ -18,12 +18,14 @@ All four independent billing switches remain false by default:
 
 With the worker switch false, startup creates no billing timer and performs no provider read. The worker also fails closed in production, outside TEST mode, or when webhook ingestion and reconciliation are not both validly configured.
 
-The shared development database has the 21 repository migrations, including:
+The shared development database has all 23 repository migrations, including:
 
 - `20260906193000_paymongo_sandbox_checkout`
 - `20260906230000_paymongo_payment_projection`
+- `20260906234500_ingredient_conversion_evidence`
+- `20260906235900_compensation_admin_workflow`
 
-Both migrations are additive. Financial ledger rows are append-only and must never be deleted or edited as a recovery action.
+These migrations are additive. The billing, finance, conversion, and compensation tables were verified empty at the September 6 shared-development schema gate. Financial ledger, conversion evidence, work credit, statement-credit, and payout-event rows are append-only and must never be deleted or edited as a recovery action.
 
 ## Activation gate for a later approved TEST deployment
 
