@@ -2894,3 +2894,39 @@ This section is a continuity record for agreed future work. Every item below is 
 ### Next gate
 
 - Event processing remains deliberately pending. A later separately authorized phase must bind the provider checkout session/reference to one local billing subject and verified amount/currency, add reconciliation and processing leases, then project payment, ledger, subscription, and time-bounded entitlement state idempotently. Redirects and checkout creation remain insufficient authority.
+
+## 50. Verified TEST Checkout reconciliation and payment projection (2026-09-06)
+
+**Requirement ID:** REQ-026
+
+**Architecture decision:** ADR-020
+
+**Risk ID:** RISK-025
+
+**Uncertainty ID:** UNC-018
+
+**Change ID:** CHG-20260906-08
+
+**Verification IDs:** TEST-102, TEST-103
+
+**Documentation ID:** DOC-042
+
+### Provider meaning and implemented boundary
+
+- Official PayMongo Hosted Checkout retrieval, payment, webhook, and Subscription API material was rechecked for this phase. The [Checkout Session resource](https://docs.paymongo.com/reference/checkout-session-resource) defines Checkout as one-time use, exposes payments only to secret-key retrieval, and keeps session status separate from payment status. The [Hosted Checkout quick start](https://docs.paymongo.com/docs/payment-channels-hosted-checkout-quick-start) makes `checkout_session.payment.paid` the fulfillment authority, while the [Subscriptions guide](https://docs.paymongo.com/docs/payment-acceptance-subscriptions) requires a separate plan, customer, and subscription for recurring collection. The accepted Checkout created none of those recurring objects. The local projection therefore records one PHP monthly `ONE_TIME_ACCESS_PERIOD` with `NON_RENEWING` status and no automatic renewal. It does not call or claim the PayMongo Subscription API.
+- The processor accepts an injected checkout-reconciliation gateway. This phase adds no runtime network adapter and makes no provider call. Before retrieval, it requires one known TEST `checkout_session.payment.paid` event and an exact immutable `BillingCheckoutRequest` with owner, subject, completed session, request hash, reference, and monthly Premium price. Unknown sessions and invalid local bindings are quarantined without provider access.
+- Retrieved allowlisted evidence must remain TEST/non-live, match the exact session and merchant reference, report a paid payment and succeeded payment intent, carry unique payment and intent IDs, match PHP and the immutable price amount exactly, and contain plausible monotonic timestamps. Live, unpaid, processing, unknown, mismatched, impossible, stale, and replay-conflicting evidence cannot create finance or entitlement state.
+
+### Durable processing and atomic projection
+
+- `WebhookEventProcessing` now uses one-minute claim leases with process-local opaque tokens and stored SHA-256 token hashes. Eligible work includes pending rows, retryable failures whose backoff elapsed, and expired processing claims. Attempt count is bounded at five; transient retrieval/storage failures receive exponential retry times, while exhausted and deterministic failures remain `FAILED` with no next attempt and an open `BillingReconciliationIssue`.
+- One serializable transaction creates or replays the complete local projection: a non-renewing access record, locally issued paid-period invoice, succeeded attempt, payment transaction, two equal debit/credit ledger postings, and one `PAID_INVOICE` Premium grant with a half-open calendar-month range. Unique checkout/payment/source keys and overlap checks prevent duplicate or overlapping paid periods. A lost lease, binding change, conflict, or constraint failure commits none of those rows.
+- Structured ledger batches debit `CASH_CLEARING` and credit `DEFERRED_REVENUE` by the same positive centavo amount. Existing signed legacy ledger rows keep their prior representation. Revenue-recognition releases are outside this phase.
+- One-time access has no cancellation operation because it never renews. It stays Premium through the paid period and resolves to Free at the exclusive end instant. Refund submission and entitlement consequences remain unresolved and separate; no refund row or automatic revocation is created. Current [PayMongo refund guidance](https://developers.paymongo.com/v1/docs/refunding-transactions) states that only live transactions can be refunded, so this TEST projection cannot be used as refund acceptance evidence.
+
+### Local verification and remaining gates
+
+- A task-owned PostgreSQL 16 container applied all 21 migrations; a second deploy was empty and status was current. Local acceptance proved two concurrent workers converge to one projection, an exact second event replays without duplicate finance, an expired claim is recovered, a provider-ID replay conflict rolls back without partial rows, unknown sessions avoid retrieval, transient failure persists a retry and later succeeds, every created posting batch balances, paid periods do not overlap, no cancellation/refund rows appear, and entitlement falls back to Free at period end.
+- TEST-102 covers success, month-end period calculation, ownership/request/price binding, live/session/reference/amount/currency/status/timestamp/staleness mismatches, deterministic replay, unknown-session short circuit, and retry classification. TEST-103 checks the one-time schema shapes, claim lease fields, reconciliation persistence, and balanced-posting identities.
+- No existing Phase 3B provider resource was retrieved or changed. No PayMongo API, checkout, payment, webhook, tunnel, secret, shared Neon database, Gemini, email, OAuth, frontend, deployment, application server, or port 3000/5000/3030 was used. The PHP 199.00 value remains a local TEST placeholder.
+- Customer-facing purchase/status/expiry/refund UI, recurring renewal, cancellation, refund policy and implementation, a concrete authenticated reconciliation transport, scheduler/process hosting, shared-database migration, TEST provider retrieval acceptance, live pricing, and production enablement remain separate gates. Premium is available only where a caller uses the existing server-side entitlement resolver against the projected paid grant; no UI claim was added.

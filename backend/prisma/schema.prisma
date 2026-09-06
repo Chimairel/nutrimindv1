@@ -206,7 +206,13 @@ enum BillingSubscriptionStatus {
   PAST_DUE
   UNPAID
   CANCELLED
+  NON_RENEWING
   UNKNOWN
+}
+
+enum BillingCollectionMode {
+  PROVIDER_RECURRING
+  ONE_TIME_ACCESS_PERIOD
 }
 
 enum BillingInvoiceStatus {
@@ -232,6 +238,16 @@ enum BillingLedgerEntryType {
   REFUND
   DISPUTE
   ADJUSTMENT
+}
+
+enum BillingLedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum BillingLedgerAccount {
+  CASH_CLEARING
+  DEFERRED_REVENUE
 }
 
 enum BillingRefundStatus {
@@ -1291,6 +1307,8 @@ model BillingCheckoutRequest {
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
   auditEvents            BillingCheckoutAuditEvent[]
+  subscription           UserSubscription?
+  invoice                BillingInvoice?
 
   @@unique([userId, requestIdempotencyKey])
   @@unique([provider, environment, providerIdempotencyKey])
@@ -1337,14 +1355,18 @@ model UserSubscription {
   userId                   String?
   user                     User?                             @relation("BillingSubscriptionUser", fields: [userId], references: [id], onDelete: SetNull)
   billingSubjectKey        String                            @db.VarChar(80)
-  providerCustomerRecordId String
-  providerCustomer         ProviderCustomer                  @relation(fields: [providerCustomerRecordId], references: [id], onDelete: Restrict)
+  providerCustomerRecordId String?
+  providerCustomer         ProviderCustomer?                 @relation(fields: [providerCustomerRecordId], references: [id], onDelete: Restrict)
+  sourceCheckoutRequestId  String?                           @unique
+  sourceCheckoutRequest    BillingCheckoutRequest?           @relation(fields: [sourceCheckoutRequestId], references: [id], onDelete: Restrict)
   billingPriceId           String
   billingPrice             BillingPrice                      @relation(fields: [billingPriceId], references: [id], onDelete: Restrict)
   provider                 BillingProvider
   environment              BillingEnvironment
-  providerSubscriptionId   String                            @db.VarChar(191)
+  providerSubscriptionId   String?                           @db.VarChar(191)
   creationIdempotencyKey   String                            @db.VarChar(160)
+  collectionMode           BillingCollectionMode             @default(PROVIDER_RECURRING)
+  renewsAutomatically      Boolean                           @default(true)
   status                   BillingSubscriptionStatus         @default(INCOMPLETE)
   providerStatus           String?                           @db.VarChar(64)
   currentPeriodStart       DateTime?
@@ -1386,25 +1408,28 @@ model BillingSubscriptionCancellation {
 }
 
 model BillingInvoice {
-  id                        String                 @id @default(cuid())
+  id                        String                  @id @default(cuid())
   subscriptionId            String
-  subscription              UserSubscription       @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  subscription              UserSubscription        @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
   provider                  BillingProvider
   environment               BillingEnvironment
-  providerInvoiceId         String                 @db.VarChar(191)
-  status                    BillingInvoiceStatus   @default(DRAFT)
-  currency                  String                 @db.Char(3)
+  providerInvoiceId         String?                 @db.VarChar(191)
+  sourceCheckoutRequestId   String?                 @unique
+  sourceCheckoutRequest     BillingCheckoutRequest? @relation(fields: [sourceCheckoutRequestId], references: [id], onDelete: Restrict)
+  collectionMode            BillingCollectionMode   @default(PROVIDER_RECURRING)
+  status                    BillingInvoiceStatus    @default(DRAFT)
+  currency                  String                  @db.Char(3)
   amountDueMinor            Int
-  amountPaidMinor           Int                    @default(0)
-  amountRefundedMinor       Int                    @default(0)
+  amountPaidMinor           Int                     @default(0)
+  amountRefundedMinor       Int                     @default(0)
   servicePeriodStart        DateTime?
   servicePeriodEnd          DateTime?
   providerCreatedAt         DateTime?
   providerUpdatedAt         DateTime?
-  merchantDocumentReference String?                @db.VarChar(191)
+  merchantDocumentReference String?                 @db.VarChar(191)
   merchantDocumentIssuedAt  DateTime?
-  createdAt                 DateTime               @default(now())
-  updatedAt                 DateTime               @updatedAt
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
   paymentAttempts           PaymentAttempt[]
   transactions              BillingTransaction[]
   refunds                   BillingRefund[]
@@ -1524,6 +1549,8 @@ model WebhookEventProcessing {
   attemptCount   Int                            @default(0)
   handlerVersion String                         @db.VarChar(64)
   lockedAt       DateTime?
+  claimTokenHash String?                        @db.Char(64)
+  claimExpiresAt DateTime?
   nextAttemptAt  DateTime?
   lastErrorCode  String?                        @db.VarChar(64)
   completedAt    DateTime?
@@ -1534,25 +1561,29 @@ model WebhookEventProcessing {
 }
 
 model FinancialLedgerEntry {
-  id                     String                 @id @default(cuid())
+  id                     String                  @id @default(cuid())
   provider               BillingProvider
   environment            BillingEnvironment
-  sourceKey              String                 @db.VarChar(191)
+  sourceKey              String                  @db.VarChar(191)
   entryType              BillingLedgerEntryType
   amountMinor            Int
-  currency               String                 @db.Char(3)
+  currency               String                  @db.Char(3)
+  batchKey               String?                 @db.VarChar(191)
+  direction              BillingLedgerDirection?
+  account                BillingLedgerAccount?
   invoiceId              String?
-  invoice                BillingInvoice?        @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  invoice                BillingInvoice?         @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
   transactionId          String?
-  transaction            BillingTransaction?    @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  transaction            BillingTransaction?     @relation(fields: [transactionId], references: [id], onDelete: Restrict)
   refundId               String?
-  refund                 BillingRefund?         @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  refund                 BillingRefund?          @relation(fields: [refundId], references: [id], onDelete: Restrict)
   providerWebhookEventId String?
-  providerWebhookEvent   ProviderWebhookEvent?  @relation(fields: [providerWebhookEventId], references: [id], onDelete: Restrict)
-  reasonCode             String                 @db.VarChar(64)
-  createdAt              DateTime               @default(now())
+  providerWebhookEvent   ProviderWebhookEvent?   @relation(fields: [providerWebhookEventId], references: [id], onDelete: Restrict)
+  reasonCode             String                  @db.VarChar(64)
+  createdAt              DateTime                @default(now())
 
   @@unique([provider, environment, sourceKey])
+  @@unique([provider, environment, batchKey, direction, account], map: "FinancialLedgerEntry_balanced_posting_key")
   @@index([invoiceId, createdAt])
   @@index([transactionId, createdAt])
   @@index([refundId, createdAt])

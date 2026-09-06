@@ -119,10 +119,12 @@ Both tiers remain library-first. Neither tier promises unlimited Gemini requests
 ### 4.3 Authoritative entitlement rules
 
 - A verified paid invoice grants `PREMIUM` for one explicit service period. The grant is durable evidence distinct from the provider's mutable subscription snapshot.
+- The accepted Phase 3B Hosted Checkout is a one-time payment for one monthly access period. PayMongo's [Checkout Session resource](https://docs.paymongo.com/reference/checkout-session-resource) defines the session as one-time use; recurring billing instead requires the separate [Subscriptions flow](https://docs.paymongo.com/docs/payment-acceptance-subscriptions). The accepted Checkout does not create a PayMongo customer, plan, invoice, or recurring Subscription API object. Local rows therefore use `ONE_TIME_ACCESS_PERIOD` and `NON_RENEWING`; they must not contain invented provider customer, subscription, or invoice IDs.
 - `active` subscriptions may create or extend a grant only after the corresponding invoice is verified paid.
 - `past_due` may retain an already-paid grant and may receive at most a 72-hour grace period aligned with the documented three daily retries. It cannot create a new paid period.
 - `incomplete`, `incomplete_cancelled`, and `unpaid` create no new Premium grant.
 - Cancellation stops renewal. Access paid for the current period continues to the recorded period end unless a documented refund policy revokes it. The cancellation UI must state the effective date.
+- One-time access already has no renewal to cancel. Its period expires to Free at the exclusive end instant. A future recurring product, renewal UI, cancellation endpoint, or PayMongo Subscription API integration requires a separate acceptance phase.
 - A full refund may revoke the entitlement attributable to that invoice under the approved refund policy. A partial refund creates financial evidence but never silently changes entitlement; an admin must record the explicit outcome.
 - Expired grants resolve to Free without rewriting financial history.
 - Provider API reads may repair a stale subscription mirror. They do not erase webhook evidence or ledger entries.
@@ -142,7 +144,7 @@ This is an additive Prisma proposal. No migration is part of this phase. Financi
 | `UserSubscription` | User, price, provider subscription ID, normalized status, provider raw status, current period, cancellation fields, provider update/version timestamps | Unique external subscription by environment; no cascade delete of finance evidence |
 | `BillingInvoice` | Subscription cycle, provider invoice ID, amount due/paid/refunded, currency, normalized state, period, provider timestamps | Unique external invoice by environment; amounts internally consistent |
 | `PaymentAttempt` | Invoice/payment-intent/payment IDs, amount, status, failure category/code, idempotency key, attempt timestamps | No raw payment method or secrets; provider IDs unique where applicable |
-| `FinancialLedgerEntry` | Immutable `CHARGE`, `REFUND`, `DISPUTE`, or approved `ADJUSTMENT` evidence with signed amount, currency, source resource, event, actor/reason | Append only; idempotent source key; corrections use counter-entries |
+| `FinancialLedgerEntry` | Immutable `CHARGE`, `REFUND`, `DISPUTE`, or approved `ADJUSTMENT` evidence with amount, currency, source resource, event, actor/reason; projected Checkout receipts use paired debit/credit postings | Append only; idempotent source key; each structured batch balances; corrections use counter-entries |
 | `BillingRefund` | Payment/invoice, requested and approved amounts, provider refund ID, reason, state, requester/approver, timestamps | Cumulative amount cannot exceed paid amount; request/approval separation |
 | `EntitlementGrant` | User, entitlement key, source type/ID, effective range, grant version, optional revocation and reason | Overlap allowed only by explicit resolver policy; source unique; history retained |
 | `ReconciliationIssue` | Provider/local mismatch type, affected resource, severity, first/last seen, resolution actor/note | No automatic destructive correction; auditable closure |
@@ -187,6 +189,8 @@ INCOMPLETE -> INCOMPLETE_CANCELLED
 ```
 
 Provider events drive the mirror subject to transition validation. Terminal or newer provider evidence cannot be regressed by an older event. Cancellation is recorded separately from the paid entitlement period.
+
+The one-time Checkout path is separate: `NONE -> NON_RENEWING -> expired entitlement/Free`. `NON_RENEWING` records the paid period and explicitly has no automatic renewal or provider cancellation transition.
 
 ### 6.2 Invoice and payment attempt
 

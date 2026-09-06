@@ -5,6 +5,7 @@ export type BillingSubscriptionState =
   | 'PAST_DUE'
   | 'UNPAID'
   | 'CANCELLED'
+  | 'NON_RENEWING'
   | 'UNKNOWN';
 
 export type BillingInvoiceState = 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNKNOWN';
@@ -37,6 +38,7 @@ const SUBSCRIPTION_TRANSITIONS: Readonly<Record<BillingSubscriptionState, readon
   PAST_DUE: ['ACTIVE', 'UNPAID', 'CANCELLED'],
   UNPAID: ['ACTIVE', 'CANCELLED'],
   CANCELLED: [],
+  NON_RENEWING: [],
   UNKNOWN: [],
 };
 
