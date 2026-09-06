@@ -385,7 +385,7 @@ Phase 3A provides the disabled-by-default server-side gateway, strict TEST-only 
 
 ### Phase 4 — webhook inbox and reconciliation
 
-Mount raw-body webhook ingestion before JSON parsing, add signature/replay verification, durable inbox/outbox processing, state projections, ledger/grant writes, reconciliation, monitoring, and replay tools. Rollback: stop new checkout, keep webhook ingestion and reconciliation running until all test resources settle.
+The raw-body boundary, TEST signature/replay verification, durable inbox, leased processing, payment projection, balanced ledger/grant writes, and concrete read-only Checkout reconciliation adapter are implemented in source. Provider acceptance used one authentic signed TEST paid event and one later authenticated `GET /v1/checkout_sessions/{id}` for the same existing session. The event fixture in the projection acceptance was explicitly reconstructed from the accepted event/session identities and is not a second provider delivery. Runtime composition remains false by default and internal only: no route, scheduler, permanent worker, monitoring surface, or shared-database application exists. Rollback: keep checkout and reconciliation switches false, stop new collection, and retain immutable accepted finance evidence wherever it has been applied.
 
 ### Phase 5 — Premium entitlement surface
 
@@ -401,7 +401,7 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next payment phase is a separately authorized **TEST webhook delivery and durable inbox acceptance** after a secure public HTTPS endpoint and owner-controlled signing secret exist. It should register only the exact TEST endpoint, prove signed `checkout_session.payment.paid` delivery and duplicate replay into an immutable inbox, and add no entitlement until reconciliation and projection policy are implemented. Do not install a tunnel or expose a local port merely to satisfy this gate.
+The next payment phase is separately authorized **permanent processing operations and shared-development acceptance**. It should apply the existing migration to the approved non-production target only after an exact empty-finance/preflight audit, host the already implemented processor behind an internal authenticated worker boundary, define scheduling, backlog/lease/retry/quarantine monitoring, and prove restart-safe processing without creating another checkout or charging again. It must preserve the independent false-by-default switches, retain webhook ingestion while accepted payments settle, and keep browser returns non-authoritative. Customer billing UI, recurring collection, cancellation, refunds, commercial pricing, live mode, and production deployment remain later gates.
 
 ## 16. Explicit unresolved decisions
 

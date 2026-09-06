@@ -29,6 +29,7 @@ test('[TEST-085] PayMongo capabilities default independently to disabled without
   assert.deepEqual(loadPaymongoConfig({ NODE_ENV: 'production' }), {
     environment: 'TEST',
     checkout: { enabled: false, environment: 'TEST' },
+    reconciliation: { enabled: false, environment: 'TEST' },
     webhook: { enabled: false, environment: 'TEST' },
   });
 });
@@ -37,6 +38,7 @@ test('[TEST-085] enabled checkout fixes origins, methods, mode, timeout, and res
   const config = loadPaymongoConfig(validCheckoutEnvironment());
   assert.equal(config.checkout.enabled, true);
   assert.equal(config.webhook.enabled, false);
+  assert.equal(config.reconciliation.enabled, false);
   if (!config.checkout.enabled) return;
   assert.equal(config.checkout.apiOrigin, PAYMONGO_API_ORIGIN);
   assert.equal(config.checkout.checkoutOrigin, PAYMONGO_CHECKOUT_ORIGIN);
@@ -54,11 +56,29 @@ test('[TEST-085] webhook capability can be enabled without checkout credentials'
   assert.equal(config.webhook.signatureToleranceSeconds, 300);
 });
 
+test('[TEST-104] reconciliation can be enabled independently with only the TEST secret', () => {
+  const config = loadPaymongoConfig({
+    NODE_ENV: 'test', PAYMONGO_RECONCILIATION_ENABLED: 'true', PAYMONGO_ENVIRONMENT: 'TEST',
+    PAYMONGO_SECRET_KEY: `sk_${'test'}_${'r'.repeat(24)}`,
+  });
+  assert.equal(config.checkout.enabled, false);
+  assert.equal(config.webhook.enabled, false);
+  assert.equal(config.reconciliation.enabled, true);
+  if (!config.reconciliation.enabled) return;
+  assert.equal(config.reconciliation.apiOrigin, PAYMONGO_API_ORIGIN);
+  assert.equal(config.reconciliation.httpTimeoutMs, 5_000);
+  assert.equal(config.reconciliation.maxResponseBytes, 65_536);
+});
+
 test('[TEST-085] malformed switches, live mode, and production enablement fail closed', () => {
   assert.throws(() => loadPaymongoConfig({ PAYMONGO_INTEGRATION_ENABLED: 'yes' }), PaymongoConfigurationError);
   assert.throws(() => loadPaymongoConfig({ ...validCheckoutEnvironment(), PAYMONGO_ENVIRONMENT: 'LIVE' }), /PAYMONGO_ENVIRONMENT/);
   assert.throws(() => loadPaymongoConfig({ ...validCheckoutEnvironment(), NODE_ENV: 'production' }), /PAYMONGO_INTEGRATION_ENABLED/);
   assert.throws(() => loadPaymongoConfig({ ...validWebhookEnvironment(), NODE_ENV: 'production' }), /PAYMONGO_WEBHOOK_ENABLED/);
+  assert.throws(() => loadPaymongoConfig({
+    PAYMONGO_RECONCILIATION_ENABLED: 'true', PAYMONGO_ENVIRONMENT: 'TEST',
+    PAYMONGO_SECRET_KEY: `sk_${'test'}_${'r'.repeat(24)}`, NODE_ENV: 'production',
+  }), /PAYMONGO_RECONCILIATION_ENABLED/);
 });
 
 test('[TEST-085] weak keys, unsupported methods, and unsafe URLs are rejected by key name only', () => {
@@ -91,6 +111,7 @@ test('[TEST-085] disabled capabilities ignore stale provider settings and remain
   }), {
     environment: 'TEST',
     checkout: { enabled: false, environment: 'TEST' },
+    reconciliation: { enabled: false, environment: 'TEST' },
     webhook: { enabled: false, environment: 'TEST' },
   });
 });

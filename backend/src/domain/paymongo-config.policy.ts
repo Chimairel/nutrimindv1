@@ -32,6 +32,22 @@ export interface EnabledPaymongoCheckoutConfig {
 
 export type PaymongoCheckoutConfig = DisabledPaymongoCheckoutConfig | EnabledPaymongoCheckoutConfig;
 
+export interface DisabledPaymongoReconciliationConfig {
+  enabled: false;
+  environment: 'TEST';
+}
+
+export interface EnabledPaymongoReconciliationConfig {
+  enabled: true;
+  environment: 'TEST';
+  apiOrigin: typeof PAYMONGO_API_ORIGIN;
+  secretKey: string;
+  httpTimeoutMs: typeof PAYMONGO_HTTP_TIMEOUT_MS;
+  maxResponseBytes: typeof PAYMONGO_MAX_RESPONSE_BYTES;
+}
+
+export type PaymongoReconciliationConfig = DisabledPaymongoReconciliationConfig | EnabledPaymongoReconciliationConfig;
+
 export interface DisabledPaymongoWebhookConfig {
   enabled: false;
   environment: 'TEST';
@@ -51,6 +67,7 @@ export type PaymongoWebhookConfig = DisabledPaymongoWebhookConfig | EnabledPaymo
 export interface PaymongoConfig {
   environment: 'TEST';
   checkout: PaymongoCheckoutConfig;
+  reconciliation: PaymongoReconciliationConfig;
   webhook: PaymongoWebhookConfig;
 }
 
@@ -90,11 +107,13 @@ function parsePaymentMethods(value: string): readonly PaymongoPaymentMethod[] | 
 
 export function loadPaymongoConfig(env: NodeJS.ProcessEnv): PaymongoConfig {
   const checkoutEnabled = parseSwitch(env, 'PAYMONGO_INTEGRATION_ENABLED');
+  const reconciliationEnabled = parseSwitch(env, 'PAYMONGO_RECONCILIATION_ENABLED');
   const webhookEnabled = parseSwitch(env, 'PAYMONGO_WEBHOOK_ENABLED');
-  if (!checkoutEnabled && !webhookEnabled) {
+  if (!checkoutEnabled && !reconciliationEnabled && !webhookEnabled) {
     return {
       environment: 'TEST',
       checkout: { enabled: false, environment: 'TEST' },
+      reconciliation: { enabled: false, environment: 'TEST' },
       webhook: { enabled: false, environment: 'TEST' },
     };
   }
@@ -102,6 +121,7 @@ export function loadPaymongoConfig(env: NodeJS.ProcessEnv): PaymongoConfig {
   const invalid: string[] = [];
   if (env.NODE_ENV === 'production') {
     if (checkoutEnabled) invalid.push('PAYMONGO_INTEGRATION_ENABLED');
+    if (reconciliationEnabled) invalid.push('PAYMONGO_RECONCILIATION_ENABLED');
     if (webhookEnabled) invalid.push('PAYMONGO_WEBHOOK_ENABLED');
   }
   if (env.PAYMONGO_ENVIRONMENT !== 'TEST') invalid.push('PAYMONGO_ENVIRONMENT');
@@ -132,6 +152,22 @@ export function loadPaymongoConfig(env: NodeJS.ProcessEnv): PaymongoConfig {
     }
   }
 
+  let reconciliation: PaymongoReconciliationConfig = { enabled: false, environment: 'TEST' };
+  if (reconciliationEnabled) {
+    const secretKey = env.PAYMONGO_SECRET_KEY?.trim() || '';
+    if (!SECRET_KEY_PATTERN.test(secretKey)) invalid.push('PAYMONGO_SECRET_KEY');
+    if (invalid.length === 0) {
+      reconciliation = {
+        enabled: true,
+        environment: 'TEST',
+        apiOrigin: PAYMONGO_API_ORIGIN,
+        secretKey,
+        httpTimeoutMs: PAYMONGO_HTTP_TIMEOUT_MS,
+        maxResponseBytes: PAYMONGO_MAX_RESPONSE_BYTES,
+      };
+    }
+  }
+
   let webhook: PaymongoWebhookConfig = { enabled: false, environment: 'TEST' };
   if (webhookEnabled) {
     const webhookSecret = env.PAYMONGO_WEBHOOK_SECRET?.trim() || '';
@@ -151,5 +187,5 @@ export function loadPaymongoConfig(env: NodeJS.ProcessEnv): PaymongoConfig {
   }
 
   if (invalid.length > 0) throw new PaymongoConfigurationError([...new Set(invalid)]);
-  return { environment: 'TEST', checkout, webhook };
+  return { environment: 'TEST', checkout, reconciliation, webhook };
 }

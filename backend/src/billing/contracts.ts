@@ -27,7 +27,7 @@ export interface BillingGateway {
 }
 
 export interface BillingHttpRequest {
-  method: 'POST';
+  method: 'GET' | 'POST';
   url: string;
   headers: Readonly<Record<string, string>>;
   body: string;
@@ -39,6 +39,7 @@ export interface BillingHttpRequest {
 export interface BillingHttpResponse {
   status: number;
   body: Uint8Array;
+  headers?: Readonly<Record<string, string>>;
 }
 
 export interface BillingHttpTransport {
@@ -130,6 +131,26 @@ export interface ReconciledPaymongoCheckout {
 export interface CheckoutReconciliationGateway {
   /** Retrieve one exact Checkout session. Implementations must return an allowlisted projection only. */
   retrieveCheckoutSession(providerSessionId: string): Promise<ReconciledPaymongoCheckout>;
+}
+
+export type CheckoutReconciliationGatewayErrorCode =
+  | 'PROVIDER_AUTHENTICATION_FAILED'
+  | 'PROVIDER_CHECKOUT_NOT_FOUND'
+  | 'PROVIDER_REQUEST_REJECTED'
+  | 'PROVIDER_PAYMENT_NOT_SUCCEEDED'
+  | 'PROVIDER_TEMPORARILY_UNAVAILABLE'
+  | 'PROVIDER_RESPONSE_INVALID'
+  | 'PROVIDER_LIVE_MODE_REJECTED'
+  | 'PROVIDER_SESSION_MISMATCH';
+
+export class CheckoutReconciliationGatewayError extends Error {
+  constructor(
+    readonly code: CheckoutReconciliationGatewayErrorCode,
+    readonly retryable: boolean,
+  ) {
+    super(code);
+    this.name = 'CheckoutReconciliationGatewayError';
+  }
 }
 
 export interface PaymentProjectionBinding {

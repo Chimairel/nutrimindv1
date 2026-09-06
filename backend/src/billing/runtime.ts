@@ -10,6 +10,9 @@ import { PaymongoGateway } from '@/services/paymongo-gateway.service';
 import { PrismaCheckoutIntentRepository } from '@/services/prisma-checkout-intent.repository';
 import { PrismaWebhookInboxRepository } from '@/services/prisma-webhook-inbox.repository';
 import { PaymongoWebhookBoundary } from '@/services/paymongo-webhook-boundary.service';
+import { PaymongoPaymentProjectionService } from '@/services/paymongo-payment-projection.service';
+import { PrismaPaymentProjectionRepository } from '@/services/prisma-payment-projection.repository';
+import { PaymongoReconciliationGateway } from '@/services/paymongo-reconciliation-gateway.service';
 import prisma from '@/lib/prisma';
 
 export const paymongoConfig = loadPaymongoConfig(process.env);
@@ -56,3 +59,11 @@ export const paymongoWebhookBoundary = new PaymongoWebhookBoundary(
   paymongoConfig.webhook,
   paymongoConfig.webhook.enabled ? new PrismaWebhookInboxRepository(prisma) : unavailableWebhookRepository,
 );
+
+// Internal composition only. A later worker may call processNext(); no HTTP route or scheduler invokes it here.
+export const paymongoPaymentProjectionProcessor = paymongoConfig.reconciliation.enabled
+  ? new PaymongoPaymentProjectionService(
+    new PrismaPaymentProjectionRepository(prisma),
+    new PaymongoReconciliationGateway(paymongoConfig.reconciliation, new NodeHttpsBillingTransport()),
+  )
+  : null;

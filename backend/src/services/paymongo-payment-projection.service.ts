@@ -1,5 +1,6 @@
 import {
   CheckoutReconciliationGateway,
+  CheckoutReconciliationGatewayError,
   PaymentProjectionRepository,
   PaymentProjectionResult,
 } from '@/billing/contracts';
@@ -32,8 +33,11 @@ export class PaymongoPaymentProjectionService {
       const period = validatePaymongoPayment(binding, evidence, this.clock());
       return { decision: 'SUCCEEDED', projection: await this.repository.project(binding, evidence, period) };
     } catch (error) {
-      const retryable = !(error instanceof PaymentReconciliationError);
-      const code = error instanceof PaymentReconciliationError ? error.code : 'PROVIDER_RECONCILIATION_UNAVAILABLE';
+      const knownGatewayError = error instanceof CheckoutReconciliationGatewayError;
+      const retryable = knownGatewayError ? error.retryable : !(error instanceof PaymentReconciliationError);
+      const code = error instanceof PaymentReconciliationError || knownGatewayError
+        ? error.code
+        : 'PROVIDER_RECONCILIATION_UNAVAILABLE';
       await this.repository.fail(binding, { code, retryable });
       return retryable ? { decision: 'RETRY_SCHEDULED', code } : { decision: 'QUARANTINED', code };
     }
