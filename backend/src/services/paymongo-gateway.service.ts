@@ -6,7 +6,7 @@ import {
   HostedCheckoutRequest,
   HostedCheckoutSession,
 } from '@/billing/contracts';
-import { EnabledPaymongoConfig, PAYMONGO_API_ORIGIN } from '@/domain/paymongo-config.policy';
+import { EnabledPaymongoCheckoutConfig, PAYMONGO_API_ORIGIN } from '@/domain/paymongo-config.policy';
 import { assertPositiveMoney } from '@/domain/billing-money.policy';
 
 const CHECKOUT_PATH = '/v2/checkout_sessions';
@@ -21,7 +21,7 @@ export type PaymongoGatewayErrorCode =
   | 'PROVIDER_RESPONSE_INVALID';
 
 export class PaymongoGatewayError extends Error {
-  constructor(readonly code: PaymongoGatewayErrorCode) {
+  constructor(readonly code: PaymongoGatewayErrorCode, readonly providerCode?: string) {
     super(code);
     this.name = 'PaymongoGatewayError';
   }
@@ -50,7 +50,7 @@ function parseCheckoutResponse(body: Uint8Array, checkoutOrigin: string): Hosted
     throw new PaymongoGatewayError('PROVIDER_RESPONSE_INVALID');
   }
   const values = attributes as Record<string, unknown>;
-  if (values.livemode !== false || typeof values.checkout_url !== 'string') {
+  if (values.livemode !== false || typeof values.checkout_url !== 'string' || values.checkout_url.length > 2_048) {
     throw new PaymongoGatewayError('PROVIDER_RESPONSE_INVALID');
   }
   let checkoutUrl: URL;
@@ -72,9 +72,19 @@ function parseCheckoutResponse(body: Uint8Array, checkoutOrigin: string): Hosted
   };
 }
 
+function parseProviderErrorCode(body: Uint8Array): string | undefined {
+  try {
+    const parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(body));
+    const code = parsed?.errors?.[0]?.code;
+    return typeof code === 'string' && /^[a-z0-9_]{1,64}$/.test(code) ? code : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export class PaymongoGateway implements BillingGateway {
   constructor(
-    private readonly config: EnabledPaymongoConfig,
+    private readonly config: EnabledPaymongoCheckoutConfig,
     private readonly transport: BillingHttpTransport,
   ) {}
 
@@ -134,7 +144,7 @@ export class PaymongoGateway implements BillingGateway {
       throw new PaymongoGatewayError('PROVIDER_CONFIGURATION_ERROR');
     }
     if (response.status === 400 || response.status === 409 || response.status === 422) {
-      throw new PaymongoGatewayError('PROVIDER_REQUEST_REJECTED');
+      throw new PaymongoGatewayError('PROVIDER_REQUEST_REJECTED', parseProviderErrorCode(response.body));
     }
     if (response.status === 408 || response.status === 429 || response.status >= 500) {
       throw new PaymongoGatewayError('PROVIDER_TEMPORARILY_UNAVAILABLE');

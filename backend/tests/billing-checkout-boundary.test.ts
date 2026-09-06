@@ -7,20 +7,22 @@ import {
   HostedCheckoutRequest,
   HostedCheckoutSession,
 } from '../src/billing/contracts';
-import { EnabledPaymongoConfig, loadPaymongoConfig } from '../src/domain/paymongo-config.policy';
+import { EnabledPaymongoCheckoutConfig, loadPaymongoConfig } from '../src/domain/paymongo-config.policy';
 import { BillingCheckoutBoundary, CheckoutBoundaryError } from '../src/services/billing-checkout-boundary.service';
+import { PaymongoGatewayError } from '../src/services/paymongo-gateway.service';
 
-function enabledConfig(): EnabledPaymongoConfig {
-  return loadPaymongoConfig({
+function enabledConfig(): EnabledPaymongoCheckoutConfig {
+  const config = loadPaymongoConfig({
     NODE_ENV: 'test',
     PAYMONGO_INTEGRATION_ENABLED: 'true',
     PAYMONGO_ENVIRONMENT: 'TEST',
     PAYMONGO_SECRET_KEY: `sk_${'test'}_${'a'.repeat(24)}`,
-    PAYMONGO_WEBHOOK_SECRET: `whsk_${'b'.repeat(24)}`,
-    PAYMONGO_WEBHOOK_SECRET_VERSION: 'sandbox-v1',
+    PAYMONGO_CHECKOUT_PAYMENT_METHODS: 'card,paymaya',
     PAYMONGO_CHECKOUT_SUCCESS_URL: 'https://nutrimind.example.invalid/billing/success',
     PAYMONGO_CHECKOUT_CANCEL_URL: 'https://nutrimind.example.invalid/billing/cancel',
-  }) as EnabledPaymongoConfig;
+  });
+  assert.equal(config.checkout.enabled, true);
+  return config.checkout as EnabledPaymongoCheckoutConfig;
 }
 
 const session: HostedCheckoutSession = {
@@ -37,6 +39,7 @@ class FakeCheckoutRepository implements CheckoutIntentRepository {
     decision: 'CREATE',
     referenceNumber: 'opaque_subject_1',
     providerIdempotencyKey: 'nutrimind:checkout:opaque_1:v1',
+    claimToken: 'claim-token-synthetic',
   };
   price = {
     id: 'price_1',
@@ -50,13 +53,14 @@ class FakeCheckoutRepository implements CheckoutIntentRepository {
   seenUserId?: string;
   completed = 0;
   released = 0;
+  failureCode?: string;
   async findEligiblePrice(input: { userId: string }) {
     this.seenUserId = input.userId;
     return this.price;
   }
   async claim() { return this.claimDecision; }
   async complete() { this.completed += 1; }
-  async release() { this.released += 1; }
+  async release(input: { failureCode: string }) { this.released += 1; this.failureCode = input.failureCode; }
 }
 
 class FakeGateway implements BillingGateway {
@@ -152,4 +156,18 @@ test('[TEST-087] a gateway cannot smuggle a live or entitlement-granting respons
     /CHECKOUT_TEMPORARILY_UNAVAILABLE/);
   assert.equal(repository.completed, 0);
   assert.equal(repository.released, 1);
+});
+
+test('[TEST-100] provider rejection retains only its bounded code and becomes terminal', async () => {
+  const repository = new FakeCheckoutRepository();
+  const gateway: BillingGateway = {
+    async createHostedCheckout() {
+      throw new PaymongoGatewayError('PROVIDER_REQUEST_REJECTED', 'payment_method_not_allowed');
+    },
+  };
+  await assert.rejects(
+    () => new BillingCheckoutBoundary(enabledConfig(), repository, gateway).create(input),
+    (error: unknown) => error instanceof CheckoutBoundaryError && error.code === 'CHECKOUT_PROVIDER_REJECTED',
+  );
+  assert.equal(repository.failureCode, 'PROVIDER_REQUEST_REJECTED:payment_method_not_allowed');
 });

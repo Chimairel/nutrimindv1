@@ -1,6 +1,6 @@
 # NutriMind Payment, Subscription, and Nutritionist Compensation Architecture
 
-**Status:** Accepted architecture. Phase 1 schema/pure policies, both Phase 2 migration gates, and the inert Phase 3A PayMongo adapter/webhook boundary are complete. Phase 3A is disabled by default and has no connected HTTP transport or database repository. Real sandbox checkout, webhook delivery/persistence/processing, reconciliation, entitlement activation, UI, credentials, money movement, and deployment remain pending.
+**Status:** Accepted architecture. Phase 1 schema/pure policies, both Phase 2 migration gates, Phase 3A boundaries, and Phase 3B TEST checkout acceptance are complete. Checkout remains disabled by default; webhook delivery/persistence/processing, reconciliation, entitlement activation, UI, live money, and deployment remain pending.
 
 **Decision ID:** ADR-017
 
@@ -83,6 +83,14 @@ The provider contracts used by Phase 3A were rechecked on September 5, 2026. Cur
 The detailed webhook setup guide still defines `Paymongo-Signature` as `t`, `te`, and `li`, with HMAC-SHA256 over `timestamp.rawBody`; it requires selection of `te` for test and `li` for live events. PayMongo expects a JSON 2xx acknowledgement, times out after 30 seconds, and retries failed deliveries up to 12 times. [webhook setup](https://docs.paymongo.com/docs/developer-tools-webhook-setup-management), [retry logic](https://docs.paymongo.com/docs/developer-tools-retry-logic), [webhook resource](https://docs.paymongo.com/reference/webhook-resource)
 
 Two official inconsistencies remain open for sandbox acceptance. A general best-practices page names `X-Paymongo-Signature`, while the detailed setup guide and accepted ADR name `Paymongo-Signature`; Phase 3A follows the detailed guide. The detailed event catalogue includes `subscription.activated` and `subscription.invoice.updated`, while the webhook-resource event list omits them; Phase 3A recognizes them conservatively but must confirm endpoint registration/delivery against the actual sandbox account. Card and Maya (`paymaya`) capability remains account-specific. [best practices](https://docs.paymongo.com/docs/payment-acceptance-best-practices), [event catalogue](https://docs.paymongo.com/docs/developer-tools-webhooks-events), [webhook resource](https://docs.paymongo.com/reference/webhook-resource), [payment-method resource](https://docs.paymongo.com/reference/the-payment-method-object)
+
+### 3.7 Phase 3B official-source and sandbox evidence
+
+Official PayMongo documentation was rechecked on September 6, 2026. The current Hosted Checkout quick start requires a completed account/KYC and a TEST secret key, directs server-side Basic authentication to `POST /v2/checkout_sessions`, returns `data.attributes.checkout_url`, and makes `checkout_session.payment.paid` webhook evidence authoritative. The test-mode guide confirms Hosted Checkout supports TEST sessions. Idempotency documentation permits keys up to 255 characters, retains the first executed result for 24 hours, returns it for an exact retry, and rejects changed parameters. [Hosted Checkout quick start](https://docs.paymongo.com/docs/payment-channels-hosted-checkout-quick-start), [Hosted Checkout](https://docs.paymongo.com/docs/payment-channels-hosted-checkout), [testing](https://docs.paymongo.com/docs/payment-channels-testing), [idempotent requests](https://docs.paymongo.com/reference/idempotent-requests)
+
+The payment-method resource documents both `card` and Maya's `paymaya` identifier, while PayMongo's go-live checklist says methods must be active in account settings. The sandbox API accepted one TEST `/v2` session containing only `card`; Maya was not requested and remains unverified. No payment was completed. [payment-method resource](https://docs.paymongo.com/reference/the-payment-method-object), [payment-channel go-live checklist](https://docs.paymongo.com/docs/payment-channels-go-live-checklist)
+
+The legacy create-session reference still presents a `/v1/checkout_sessions` URL while recommending `/v2` for new integrations. The current quick start and the accepted sandbox response both use the `/v2` shape, so the adapter remains on `/v2`. No checkout-specific official account-capability error taxonomy was found; the adapter stores only a bounded machine-readable provider error code when supplied and discards provider detail text. [create checkout session reference](https://docs.paymongo.com/re/reference/create_checkout_sessions)
 
 ## 4. Product and entitlement policy
 
@@ -369,7 +377,7 @@ The disposable half passed on PostgreSQL 16.4 with exact checksum/history, objec
 
 ### Phase 3 — sandbox collection adapter
 
-Phase 3A now provides the disabled-by-default server-side gateway, strict TEST-only configuration, fixed PayMongo origins, injected transport contract, authenticated USER checkout-intent contract, request idempotency seam, sanitized errors, raw-body webhook route, signature/replay/environment/event allow-list policy, and an atomic inbox interface. The application runtime intentionally injects no HTTP transport and no checkout/webhook repository. Phase 3B must connect reviewed persistence and transport only under a separate sandbox authorization, then demonstrate a real provider-hosted USER checkout without granting entitlement from the redirect. Rollback: keep the integration switch false.
+Phase 3A provides the disabled-by-default server-side gateway, strict TEST-only configuration, fixed PayMongo origins, authenticated USER checkout boundary, sanitized errors, and the signed raw-body webhook boundary. Phase 3B connects a bounded native HTTPS transport and Prisma checkout repository only when checkout is explicitly enabled. Durable request leases preserve one provider idempotency key across retries, distinguish replay/collision/in-progress/terminal states, store only allow-listed session evidence and sanitized failures, and append audit events. A local PostgreSQL acceptance created exactly one provider-hosted TEST checkout and replayed it locally without a second provider call or any entitlement/financial projection. Checkout and webhook capability switches are independent; webhook remains disabled without its signing secret and repository. Rollback: keep both switches false and retain checkout audit evidence.
 
 ### Phase 4 — webhook inbox and reconciliation
 
@@ -389,9 +397,7 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next single phase should be **Phase 3B sandbox acceptance only: obtain owner-controlled sandbox access, confirm account/business and card/Maya test capabilities, connect the already-defined persistence and HTTP seams, and create one bounded provider-hosted test checkout without granting entitlement from its redirect**.
-
-Phase 3B requires credentials outside source, an explicit target/capability check, test-mode enforcement, one stable local/provider idempotency record, sanitized evidence, and immediate rollback through `PAYMONGO_INTEGRATION_ENABLED=false`. Webhook endpoint registration/delivery and durable database inbox evidence remain separately gated; event processing/reconciliation remains Phase 4 and must exist before Premium activation.
+The next payment phase is a separately authorized **TEST webhook delivery and durable inbox acceptance** after a secure public HTTPS endpoint and owner-controlled signing secret exist. It should register only the exact TEST endpoint, prove signed `checkout_session.payment.paid` delivery and duplicate replay into an immutable inbox, and add no entitlement until reconciliation and projection policy are implemented. Do not install a tunnel or expose a local port merely to satisfy this gate.
 
 ## 16. Explicit unresolved decisions
 

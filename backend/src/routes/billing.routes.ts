@@ -16,6 +16,8 @@ function checkoutErrorStatus(code: CheckoutBoundaryError['code']): number {
   if (code === 'CHECKOUT_REQUEST_INVALID') return 400;
   if (code === 'CHECKOUT_PRICE_UNAVAILABLE') return 404;
   if (code === 'CHECKOUT_IDEMPOTENCY_CONFLICT') return 409;
+  if (code === 'CHECKOUT_IN_PROGRESS') return 409;
+  if (code === 'CHECKOUT_PROVIDER_REJECTED') return 422;
   return 503;
 }
 

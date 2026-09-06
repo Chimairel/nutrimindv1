@@ -64,6 +64,24 @@ test('[TEST-089] successful checkout route responses explicitly deny redirect-ba
   assert.equal((state.body as { data: { entitlementGranted: boolean } }).data.entitlementGranted, false);
 });
 
+test('[TEST-100] provider capability rejection returns a sanitized 422 contract', async () => {
+  const { createCheckoutHandler } = await loadBillingRoutes();
+  const service = { async create() { throw new CheckoutBoundaryError('CHECKOUT_PROVIDER_REJECTED'); } } as unknown as BillingCheckoutBoundary;
+  const { state, response } = responseRecorder();
+  const request = {
+    user: { userId: 'user_1', email: 'synthetic@example.invalid', role: 'USER' },
+    body: { priceCode: 'PREMIUM' },
+    header() { return 'request-key-1234'; },
+  } as unknown as Request;
+  await createCheckoutHandler(service)(request, response, () => undefined);
+  assert.equal(state.status, 422);
+  assert.deepEqual(state.body, {
+    success: false,
+    error: 'Checkout is currently unavailable.',
+    errorCode: 'CHECKOUT_PROVIDER_REJECTED',
+  });
+});
+
 test('[TEST-089] checkout route requires an authenticated owner and request idempotency key', async () => {
   const { createCheckoutHandler } = await loadBillingRoutes();
   let calls = 0;

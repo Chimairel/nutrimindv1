@@ -5,7 +5,11 @@ import {
 } from '@/billing/contracts';
 import { loadPaymongoConfig } from '@/domain/paymongo-config.policy';
 import { BillingCheckoutBoundary, CheckoutBoundaryError } from '@/services/billing-checkout-boundary.service';
+import { NodeHttpsBillingTransport } from '@/services/node-https-billing.transport';
+import { PaymongoGateway } from '@/services/paymongo-gateway.service';
+import { PrismaCheckoutIntentRepository } from '@/services/prisma-checkout-intent.repository';
 import { PaymongoWebhookBoundary } from '@/services/paymongo-webhook-boundary.service';
+import prisma from '@/lib/prisma';
 
 export const paymongoConfig = loadPaymongoConfig(process.env);
 
@@ -34,15 +38,20 @@ const unavailableWebhookRepository: WebhookInboxRepository = {
   },
 };
 
-// Phase 3A deliberately leaves both persistence and network transports disconnected.
-// Later sandbox acceptance must inject reviewed adapters without changing these policies.
+const checkoutRepository = paymongoConfig.checkout.enabled
+  ? new PrismaCheckoutIntentRepository(prisma)
+  : unavailableCheckoutRepository;
+const checkoutGateway = paymongoConfig.checkout.enabled
+  ? new PaymongoGateway(paymongoConfig.checkout, new NodeHttpsBillingTransport())
+  : unavailableGateway;
+
 export const billingCheckoutBoundary = new BillingCheckoutBoundary(
-  paymongoConfig,
-  unavailableCheckoutRepository,
-  unavailableGateway,
+  paymongoConfig.checkout,
+  checkoutRepository,
+  checkoutGateway,
 );
 
 export const paymongoWebhookBoundary = new PaymongoWebhookBoundary(
-  paymongoConfig,
+  paymongoConfig.webhook,
   unavailableWebhookRepository,
 );

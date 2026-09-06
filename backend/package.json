@@ -28,6 +28,7 @@
     "plans:revalidation:apply": "tsx scripts/enqueue-legacy-plan-revalidation.ts --apply",
     "prices:psa:dry-run": "tsx scripts/import-psa-openstat-prices.ts --dry-run",
     "prices:psa:apply-local": "tsx scripts/import-psa-openstat-prices.ts --apply",
+    "test:acceptance:paymongo-sandbox": "tsx scripts/paymongo-sandbox-checkout-acceptance.ts",
     "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts"
   },
   "dependencies": {

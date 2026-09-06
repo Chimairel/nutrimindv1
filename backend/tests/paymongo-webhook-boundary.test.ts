@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash, createHmac } from 'node:crypto';
 import test from 'node:test';
 import { WebhookInboxRecord, WebhookInboxRepository, WebhookIngestDecision } from '../src/billing/contracts';
-import { EnabledPaymongoConfig, loadPaymongoConfig } from '../src/domain/paymongo-config.policy';
+import { EnabledPaymongoWebhookConfig, loadPaymongoConfig } from '../src/domain/paymongo-config.policy';
 import {
   PAYMONGO_EVENT_ALLOW_LIST,
   PaymongoWebhookBoundary,
@@ -12,17 +12,16 @@ import {
 
 const NOW_SECONDS = 1_800_000_000;
 
-function enabledConfig(): EnabledPaymongoConfig {
-  return loadPaymongoConfig({
+function enabledConfig(): EnabledPaymongoWebhookConfig {
+  const config = loadPaymongoConfig({
     NODE_ENV: 'test',
-    PAYMONGO_INTEGRATION_ENABLED: 'true',
+    PAYMONGO_WEBHOOK_ENABLED: 'true',
     PAYMONGO_ENVIRONMENT: 'TEST',
-    PAYMONGO_SECRET_KEY: `sk_${'test'}_${'a'.repeat(24)}`,
     PAYMONGO_WEBHOOK_SECRET: `whsk_${'b'.repeat(24)}`,
     PAYMONGO_WEBHOOK_SECRET_VERSION: 'sandbox-v1',
-    PAYMONGO_CHECKOUT_SUCCESS_URL: 'https://nutrimind.example.invalid/billing/success',
-    PAYMONGO_CHECKOUT_CANCEL_URL: 'https://nutrimind.example.invalid/billing/cancel',
-  }) as EnabledPaymongoConfig;
+  });
+  assert.equal(config.webhook.enabled, true);
+  return config.webhook as EnabledPaymongoWebhookConfig;
 }
 
 function body(eventType = 'checkout_session.payment.paid', livemode = false): Buffer {

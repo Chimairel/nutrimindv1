@@ -181,6 +181,24 @@ enum BillingInterval {
   MONTH
 }
 
+enum BillingCheckoutRequestStatus {
+  CLAIMED
+  RETRYABLE
+  FAILED
+  SUCCEEDED
+}
+
+enum BillingCheckoutAuditEventType {
+  CLAIMED
+  RECLAIMED
+  REPLAYED
+  COLLISION_REJECTED
+  IN_PROGRESS_REJECTED
+  PROVIDER_SESSION_CREATED
+  RETRYABLE_FAILURE
+  TERMINAL_FAILURE
+}
+
 enum BillingSubscriptionStatus {
   INCOMPLETE
   INCOMPLETE_CANCELLED
@@ -425,6 +443,7 @@ model User {
   nutritionistApplicationInvite    NutritionistApplication?          @relation("NutritionistApplicationInvitee")
   providerCustomers                ProviderCustomer[]                @relation("ProviderCustomerUser")
   billingSubscriptions             UserSubscription[]                @relation("BillingSubscriptionUser")
+  billingCheckoutRequests          BillingCheckoutRequest[]          @relation("BillingCheckoutRequestUser")
   entitlementGrants                EntitlementGrant[]                @relation("EntitlementGrantUser")
   billingCancellationsRequested    BillingSubscriptionCancellation[] @relation("BillingCancellationRequester")
   billingRefundsRequested          BillingRefund[]                   @relation("BillingRefundRequester")
@@ -1225,26 +1244,74 @@ model BillingProduct {
 }
 
 model BillingPrice {
-  id             String             @id @default(cuid())
-  productId      String
-  product        BillingProduct     @relation(fields: [productId], references: [id], onDelete: Restrict)
-  provider       BillingProvider
-  environment    BillingEnvironment
-  providerPlanId String?            @db.VarChar(191)
-  currency       String             @db.Char(3)
-  amountMinor    Int
-  interval       BillingInterval
-  intervalCount  Int                @default(1)
-  version        Int
-  isActive       Boolean            @default(false)
-  activeFrom     DateTime?
-  activeUntil    DateTime?
-  createdAt      DateTime           @default(now())
-  subscriptions  UserSubscription[]
+  id               String                   @id @default(cuid())
+  productId        String
+  product          BillingProduct           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  provider         BillingProvider
+  environment      BillingEnvironment
+  providerPlanId   String?                  @db.VarChar(191)
+  currency         String                   @db.Char(3)
+  amountMinor      Int
+  interval         BillingInterval
+  intervalCount    Int                      @default(1)
+  version          Int
+  isActive         Boolean                  @default(false)
+  activeFrom       DateTime?
+  activeUntil      DateTime?
+  createdAt        DateTime                 @default(now())
+  subscriptions    UserSubscription[]
+  checkoutRequests BillingCheckoutRequest[]
 
   @@unique([productId, environment, version])
   @@unique([provider, environment, providerPlanId])
   @@index([environment, isActive])
+}
+
+model BillingCheckoutRequest {
+  id                     String                       @id @default(cuid())
+  userId                 String?
+  user                   User?                        @relation("BillingCheckoutRequestUser", fields: [userId], references: [id], onDelete: SetNull)
+  billingSubjectKey      String                       @db.VarChar(80)
+  billingPriceId         String
+  billingPrice           BillingPrice                 @relation(fields: [billingPriceId], references: [id], onDelete: Restrict)
+  provider               BillingProvider              @default(PAYMONGO)
+  environment            BillingEnvironment           @default(TEST)
+  requestIdempotencyKey  String                       @db.VarChar(160)
+  requestHash            String                       @db.Char(64)
+  providerIdempotencyKey String                       @db.VarChar(255)
+  referenceNumber        String                       @db.VarChar(191)
+  status                 BillingCheckoutRequestStatus @default(CLAIMED)
+  claimTokenHash         String?                      @db.Char(64)
+  claimExpiresAt         DateTime?
+  attemptCount           Int                          @default(1)
+  providerSessionId      String?                      @db.VarChar(191)
+  checkoutUrl            String?                      @db.VarChar(2048)
+  failureCode            String?                      @db.VarChar(160)
+  completedAt            DateTime?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  auditEvents            BillingCheckoutAuditEvent[]
+
+  @@unique([userId, requestIdempotencyKey])
+  @@unique([provider, environment, providerIdempotencyKey])
+  @@unique([provider, environment, referenceNumber])
+  @@unique([provider, environment, providerSessionId])
+  @@index([billingSubjectKey, status])
+  @@index([status, claimExpiresAt])
+  @@index([billingPriceId, createdAt])
+}
+
+model BillingCheckoutAuditEvent {
+  id                String                        @id @default(cuid())
+  checkoutRequestId String
+  checkoutRequest   BillingCheckoutRequest        @relation(fields: [checkoutRequestId], references: [id], onDelete: Restrict)
+  eventType         BillingCheckoutAuditEventType
+  attemptNumber     Int
+  failureCode       String?                       @db.VarChar(160)
+  createdAt         DateTime                      @default(now())
+
+  @@index([checkoutRequestId, createdAt])
+  @@index([eventType, createdAt])
 }
 
 model ProviderCustomer {

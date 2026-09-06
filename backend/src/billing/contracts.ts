@@ -56,9 +56,11 @@ export interface CheckoutPrice {
 }
 
 export type CheckoutIntentClaim =
-  | { decision: 'CREATE'; referenceNumber: string; providerIdempotencyKey: string }
+  | { decision: 'CREATE'; referenceNumber: string; providerIdempotencyKey: string; claimToken: string }
   | { decision: 'REPLAY'; session: HostedCheckoutSession }
-  | { decision: 'CONFLICT' };
+  | { decision: 'CONFLICT' }
+  | { decision: 'IN_PROGRESS' }
+  | { decision: 'FAILED'; failureCode: string };
 
 export interface CheckoutIntentRepository {
   findEligiblePrice(input: {
@@ -76,12 +78,14 @@ export interface CheckoutIntentRepository {
     userId: string;
     priceId: string;
     requestIdempotencyKey: string;
+    claimToken: string;
     session: HostedCheckoutSession;
   }): Promise<void>;
   release(input: {
     userId: string;
     priceId: string;
     requestIdempotencyKey: string;
+    claimToken: string;
     failureCode: string;
   }): Promise<void>;
 }

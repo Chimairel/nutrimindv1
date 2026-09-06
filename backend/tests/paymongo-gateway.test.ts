@@ -1,22 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BillingHttpRequest, BillingHttpTransport, HostedCheckoutRequest } from '../src/billing/contracts';
-import { EnabledPaymongoConfig, loadPaymongoConfig } from '../src/domain/paymongo-config.policy';
+import { EnabledPaymongoCheckoutConfig, loadPaymongoConfig } from '../src/domain/paymongo-config.policy';
 import { PaymongoGateway, PaymongoGatewayError } from '../src/services/paymongo-gateway.service';
 
-function config(): EnabledPaymongoConfig {
+function config(): EnabledPaymongoCheckoutConfig {
   const value = loadPaymongoConfig({
     NODE_ENV: 'test',
     PAYMONGO_INTEGRATION_ENABLED: 'true',
     PAYMONGO_ENVIRONMENT: 'TEST',
     PAYMONGO_SECRET_KEY: `sk_${'test'}_${'a'.repeat(24)}`,
-    PAYMONGO_WEBHOOK_SECRET: `whsk_${'b'.repeat(24)}`,
-    PAYMONGO_WEBHOOK_SECRET_VERSION: 'sandbox-v1',
+    PAYMONGO_CHECKOUT_PAYMENT_METHODS: 'card,paymaya',
     PAYMONGO_CHECKOUT_SUCCESS_URL: 'https://nutrimind.example.invalid/billing/success',
     PAYMONGO_CHECKOUT_CANCEL_URL: 'https://nutrimind.example.invalid/billing/cancel',
   });
-  assert.equal(value.enabled, true);
-  return value as EnabledPaymongoConfig;
+  assert.equal(value.checkout.enabled, true);
+  return value.checkout as EnabledPaymongoCheckoutConfig;
 }
 
 const request: HostedCheckoutRequest = {
@@ -65,7 +64,7 @@ test('[TEST-086] adapter emits only fixed HTTPS v2 checkout requests with bounde
 
 test('[TEST-086] adapter rejects an overridden API origin before invoking transport', async () => {
   let calls = 0;
-  const unsafe = { ...config(), apiOrigin: 'https://attacker.example' } as unknown as EnabledPaymongoConfig;
+  const unsafe = { ...config(), apiOrigin: 'https://attacker.example' } as unknown as EnabledPaymongoCheckoutConfig;
   const gateway = new PaymongoGateway(unsafe, { async send() { calls += 1; throw new Error('must not run'); } });
   await assert.rejects(() => gateway.createHostedCheckout(request), (error: unknown) =>
     error instanceof PaymongoGatewayError && error.code === 'PROVIDER_CONFIGURATION_ERROR');
@@ -81,6 +80,10 @@ test('[TEST-086] adapter rejects checkout URL origin surprises and live response
     () => new PaymongoGateway(config(), { async send() { return { status: 200, body: response({ livemode: true }) }; } }).createHostedCheckout(request),
     /PROVIDER_RESPONSE_INVALID/,
   );
+  await assert.rejects(
+    () => new PaymongoGateway(config(), { async send() { return { status: 200, body: response({ checkout_url: `https://checkout.paymongo.com/${'a'.repeat(2_100)}` }) }; } }).createHostedCheckout(request),
+    /PROVIDER_RESPONSE_INVALID/,
+  );
 });
 
 test('[TEST-086] adapter maps provider errors without retaining raw error detail', async () => {
@@ -94,6 +97,19 @@ test('[TEST-086] adapter maps provider errors without retaining raw error detail
   assert.ok(caught instanceof PaymongoGatewayError);
   assert.equal(caught.code, 'PROVIDER_REQUEST_REJECTED');
   assert.doesNotMatch(caught.message, /secret provider diagnostic/);
+});
+
+test('[TEST-100] adapter preserves only a bounded provider error code classification', async () => {
+  const body = Buffer.from(JSON.stringify({ errors: [{ code: 'payment_method_not_allowed', detail: 'account detail' }] }));
+  let caught: unknown;
+  try {
+    await new PaymongoGateway(config(), { async send() { return { status: 400, body }; } }).createHostedCheckout(request);
+  } catch (error) {
+    caught = error;
+  }
+  assert.ok(caught instanceof PaymongoGatewayError);
+  assert.equal(caught.providerCode, 'payment_method_not_allowed');
+  assert.doesNotMatch(caught.message, /account detail/);
 });
 
 test('[TEST-086] adapter maps transport failures and retryable statuses to one sanitized category', async () => {

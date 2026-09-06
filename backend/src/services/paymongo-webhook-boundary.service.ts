@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { WebhookInboxRecord, WebhookInboxRepository, WebhookIngestDecision } from '@/billing/contracts';
-import { PaymongoConfig } from '@/domain/paymongo-config.policy';
+import { PaymongoWebhookConfig } from '@/domain/paymongo-config.policy';
 
 export const PAYMONGO_EVENT_ALLOW_LIST = new Set([
   'checkout_session.payment.paid',
@@ -138,7 +138,7 @@ export type WebhookBoundaryResult = {
 
 export class PaymongoWebhookBoundary {
   constructor(
-    private readonly config: PaymongoConfig,
+    private readonly config: PaymongoWebhookConfig,
     private readonly repository: WebhookInboxRepository,
     private readonly clock: () => Date = () => new Date(),
   ) {}
