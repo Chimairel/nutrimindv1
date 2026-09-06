@@ -113,7 +113,10 @@ export class PaymongoReconciliationGateway implements CheckoutReconciliationGate
     private readonly transport: BillingHttpTransport,
   ) {}
 
-  async retrieveCheckoutSession(providerSessionId: string): Promise<ReconciledPaymongoCheckout> {
+  async retrieveCheckoutSession(
+    providerSessionId: string,
+    signal?: AbortSignal,
+  ): Promise<ReconciledPaymongoCheckout> {
     if (!SESSION_ID.test(providerSessionId)) {
       throw new CheckoutReconciliationGatewayError('PROVIDER_REQUEST_REJECTED', false);
     }
@@ -130,6 +133,7 @@ export class PaymongoReconciliationGateway implements CheckoutReconciliationGate
       timeoutMs: this.config.httpTimeoutMs,
       maxResponseBytes: this.config.maxResponseBytes,
       redirect: 'error',
+      signal,
     };
     let response;
     try {

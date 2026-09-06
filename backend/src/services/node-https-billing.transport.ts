@@ -26,6 +26,7 @@ export class NodeHttpsBillingTransport implements BillingHttpTransport {
         method: request.method,
         headers: { ...request.headers, 'content-length': String(body.byteLength) },
         timeout: request.timeoutMs,
+        signal: request.signal,
       }, (response) => {
         const chunks: Buffer[] = [];
         let length = 0;

@@ -34,6 +34,7 @@ export interface BillingHttpRequest {
   timeoutMs: number;
   maxResponseBytes: number;
   redirect: 'error';
+  signal?: AbortSignal;
 }
 
 export interface BillingHttpResponse {
@@ -130,7 +131,7 @@ export interface ReconciledPaymongoCheckout {
 
 export interface CheckoutReconciliationGateway {
   /** Retrieve one exact Checkout session. Implementations must return an allowlisted projection only. */
-  retrieveCheckoutSession(providerSessionId: string): Promise<ReconciledPaymongoCheckout>;
+  retrieveCheckoutSession(providerSessionId: string, signal?: AbortSignal): Promise<ReconciledPaymongoCheckout>;
 }
 
 export type CheckoutReconciliationGatewayErrorCode =

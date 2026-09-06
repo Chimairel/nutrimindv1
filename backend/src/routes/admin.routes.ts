@@ -11,6 +11,7 @@ import {
   applicationScheduleSchema,
   applicationStageSchema,
 } from '@/validation/nutritionist-application.schemas';
+import { billingOperationsStatusService } from '@/billing/runtime';
 
 const router = Router();
 
@@ -170,6 +171,15 @@ router.get('/safety-incidents', async (_req: AuthenticatedRequest, res: Response
 router.get('/structured-safety-operations', async (_req: AuthenticatedRequest, res: Response) => {
   const data = await AdminService.getStructuredSafetyOperations();
   return res.json({ success: true, data });
+});
+
+router.get('/billing-operations', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await billingOperationsStatusService.getStatus();
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to retrieve billing operations.' });
+  }
 });
 
 export default router;

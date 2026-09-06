@@ -152,20 +152,30 @@ test('[TEST-104] unsafe origin, malformed ID, and non-JSON content fail before u
     (error: unknown) => errorCode(error, 'PROVIDER_RESPONSE_INVALID', false));
 });
 
-test('[TEST-104] runtime composition stays behind its independent switch and has no route or scheduler trigger', () => {
+test('[TEST-104] runtime composition stays behind independent reconciliation and worker switches', () => {
   const sourceRoot = join(process.cwd(), 'src');
   const runtime = readFileSync(join(sourceRoot, 'billing', 'runtime.ts'), 'utf8');
   assert.match(runtime, /paymongoConfig\.reconciliation\.enabled/);
   assert.match(runtime, /new PaymongoReconciliationGateway\(/);
   assert.match(runtime, /new PaymongoPaymentProjectionService\(/);
 
-  const externallyReachableSource = [
+  const nonWorkerSource = [
     readFileSync(join(sourceRoot, 'app.ts'), 'utf8'),
-    readFileSync(join(sourceRoot, 'server.ts'), 'utf8'),
     readFileSync(join(sourceRoot, 'services', 'cron.service.ts'), 'utf8'),
     ...readdirSync(join(sourceRoot, 'routes'))
       .filter((name) => name.endsWith('.ts'))
       .map((name) => readFileSync(join(sourceRoot, 'routes', name), 'utf8')),
   ].join('\n');
-  assert.doesNotMatch(externallyReachableSource, /paymongoPaymentProjectionProcessor|PaymongoReconciliationGateway/);
+  assert.doesNotMatch(nonWorkerSource, /paymongoPaymentProjectionProcessor|PaymongoReconciliationGateway/);
+  const server = readFileSync(join(sourceRoot, 'server.ts'), 'utf8');
+  assert.match(server, /billingProcessingWorker\.start\(\)/);
+  assert.match(server, /billingProcessingWorker\.stop\(\)/);
+  assert.doesNotMatch(server, /CronService/);
+});
+
+test('[TEST-126] reconciliation cancellation reaches the bounded transport request', async () => {
+  const controller = new AbortController();
+  const fake = transport();
+  await new PaymongoReconciliationGateway(config(), fake.adapter).retrieveCheckoutSession(SESSION, controller.signal);
+  assert.equal(fake.state().captured?.signal, controller.signal);
 });

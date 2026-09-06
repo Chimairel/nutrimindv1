@@ -1,6 +1,6 @@
 # NutriMind Payment, Subscription, and Nutritionist Compensation Architecture
 
-**Status:** Accepted architecture. Phases 1 through 5 are implemented through the TEST-only Premium entitlement surface. Checkout, webhook, and reconciliation capabilities remain independently disabled by default; permanent worker operations, shared processing acceptance, refunds, live money, and deployment remain pending.
+**Status:** Accepted architecture. Phases 1 through 5 are implemented through the TEST-only Premium entitlement surface. A source-complete durable processing worker and aggregate admin monitoring boundary are implemented behind a fourth independent false-by-default switch; shared processing acceptance, refunds, live money, and deployment remain pending.
 
 **Decision ID:** ADR-017
 
@@ -91,6 +91,10 @@ Official PayMongo documentation was rechecked on September 6, 2026. The current 
 The payment-method resource documents both `card` and Maya's `paymaya` identifier, while PayMongo's go-live checklist says methods must be active in account settings. The sandbox API accepted one TEST `/v2` session containing only `card`; Maya was not requested and remains unverified. No payment was completed. [payment-method resource](https://docs.paymongo.com/reference/the-payment-method-object), [payment-channel go-live checklist](https://docs.paymongo.com/docs/payment-channels-go-live-checklist)
 
 The legacy create-session reference still presents a `/v1/checkout_sessions` URL while recommending `/v2` for new integrations. The current quick start and the accepted sandbox response both use the `/v2` shape, so the adapter remains on `/v2`. No checkout-specific official account-capability error taxonomy was found; the adapter stores only a bounded machine-readable provider error code when supplied and discards provider detail text. [create checkout session reference](https://docs.paymongo.com/re/reference/create_checkout_sessions)
+
+### 3.8 Processing-worker operational guidance
+
+Official PayMongo developer guidance was rechecked on September 6, 2026. Webhook handlers must return a JSON 2xx acknowledgement quickly and move business work to asynchronous processing; deliveries are at least once, duplicate event IDs must be deduplicated, and failed delivery can be retried up to 12 times with exponential backoff. Repeated exhausted deliveries can disable an endpoint, so durable local retry and independent reconciliation remain necessary. PayMongo documents `too_many_requests` as a retry/backoff condition but does not publish one general numeric API limit for this integration. The worker therefore uses a conservative configurable local call budget rather than claiming a provider-wide quota. [webhook best practices](https://docs.paymongo.com/docs/developer-tools-best-practices), [retry logic](https://docs.paymongo.com/docs/developer-tools-retry-logic), [webhook resource](https://docs.paymongo.com/reference/webhook-resource), [go-live checklist](https://docs.paymongo.com/docs/developer-tools-go-live-checklist)
 
 ## 4. Product and entitlement policy
 
@@ -385,7 +389,7 @@ Phase 3A provides the disabled-by-default server-side gateway, strict TEST-only 
 
 ### Phase 4 — webhook inbox and reconciliation
 
-The raw-body boundary, TEST signature/replay verification, durable inbox, leased processing, payment projection, balanced ledger/grant writes, and concrete read-only Checkout reconciliation adapter are implemented in source. Provider acceptance used one authentic signed TEST paid event and one later authenticated `GET /v1/checkout_sessions/{id}` for the same existing session. The event fixture in the projection acceptance was explicitly reconstructed from the accepted event/session identities and is not a second provider delivery. Runtime composition remains false by default and internal only: no route, scheduler, permanent worker, monitoring surface, or shared-database application exists. Rollback: keep checkout and reconciliation switches false, stop new collection, and retain immutable accepted finance evidence wherever it has been applied.
+The raw-body boundary, TEST signature/replay verification, durable inbox, leased processing, payment projection, balanced ledger/grant writes, and concrete read-only Checkout reconciliation adapter are implemented in source. Provider acceptance used one authentic signed TEST paid event and one later authenticated `GET /v1/checkout_sessions/{id}` for the same existing session. The event fixture in the projection acceptance was explicitly reconstructed from the accepted event/session identities and is not a second provider delivery. A server-composed processing lifecycle now invokes that processor only when `BILLING_PROCESSING_WORKER_ENABLED=true` and both TEST webhook ingestion and reconciliation are validly enabled. It uses bounded batches, concurrency, a conservative provider-call upper bound, jitter, infrastructure-failure backoff, durable database claims, cancellation-aware retrieval, and graceful stop. The admin-only aggregate status route exposes queue counts, age, recent outcomes, issue count, and process-local worker state without record-level finance or user data. Shared-database application and deployed always-on operation remain unaccepted. Rollback: keep the worker, checkout, webhook, and reconciliation switches false, stop new collection, and retain immutable accepted finance evidence wherever it has been applied.
 
 ### Phase 5 — Premium entitlement surface
 
@@ -401,7 +405,7 @@ Complete every production gate and a separate go-live decision. A later ADR may 
 
 ## 15. Next bounded coding phase
 
-The next payment phase is separately authorized **permanent processing operations and shared-development acceptance**. It should apply the existing migration to the approved non-production target only after an exact empty-finance/preflight audit, host the already implemented processor behind an internal authenticated worker boundary, define scheduling, backlog/lease/retry/quarantine monitoring, and prove restart-safe processing without creating another checkout or charging again. It must preserve the independent false-by-default switches, retain webhook ingestion while accepted payments settle, and keep browser returns non-authoritative. Recurring collection, cancellation, refunds, commercial pricing, live mode, and production deployment remain later gates.
+The next payment phase is separately authorized **shared-development worker acceptance and operator runbook evidence**. It should apply no schema change, first audit the approved non-production target and existing migration history, then prove restart-safe processing, backlog visibility, lease recovery, retry/dead-letter behavior, and shutdown under the real hosting topology without creating another checkout or charging again. It must preserve all independent false-by-default switches, retain webhook ingestion while accepted payments settle, and keep browser returns non-authoritative. Recurring collection, cancellation, refunds, commercial pricing, live mode, and production deployment remain later gates.
 
 ## 16. Explicit unresolved decisions
 

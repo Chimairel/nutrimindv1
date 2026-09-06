@@ -131,3 +131,28 @@ test('[TEST-102] provider retrieval failures schedule retry without projection',
   assert.equal(repository.projections, 0);
   assert.deepEqual(repository.failures, [{ code: 'PROVIDER_RECONCILIATION_UNAVAILABLE', retryable: true }]);
 });
+
+test('[TEST-126] lifecycle cancellation reaches retrieval and releases the durable claim for retry', async () => {
+  const repository = new FakeRepository();
+  const controller = new AbortController();
+  let receivedSignal: AbortSignal | undefined;
+  let entered!: () => void;
+  const started = new Promise<void>((resolve) => { entered = resolve; });
+  const gateway: CheckoutReconciliationGateway = {
+    async retrieveCheckoutSession(_sessionId, signal) {
+      receivedSignal = signal;
+      entered();
+      await new Promise<void>((resolve) => signal?.addEventListener('abort', () => resolve(), { once: true }));
+      throw new Error('private abort detail');
+    },
+  };
+  const processing = new PaymongoPaymentProjectionService(repository, gateway, () => NOW)
+    .processNext(controller.signal);
+  await started;
+  controller.abort();
+  assert.deepEqual(await processing, {
+    decision: 'RETRY_SCHEDULED', code: 'PROVIDER_RECONCILIATION_UNAVAILABLE',
+  });
+  assert.equal(receivedSignal, controller.signal);
+  assert.deepEqual(repository.failures, [{ code: 'PROVIDER_RECONCILIATION_UNAVAILABLE', retryable: true }]);
+});

@@ -5,6 +5,11 @@ import { CheckoutReconciliationGateway, ReconciledPaymongoCheckout } from '../sr
 import { resolveBillingEntitlement } from '../src/domain/billing-entitlement.policy';
 import { PaymongoPaymentProjectionService } from '../src/services/paymongo-payment-projection.service';
 import { PrismaPaymentProjectionRepository } from '../src/services/prisma-payment-projection.repository';
+import { BillingProcessingWorker } from '../src/services/billing-processing-worker.service';
+import {
+  BillingOperationsStatusService,
+  PrismaBillingOperationsRepository,
+} from '../src/services/billing-operations-status.service';
 
 const database = new URL(process.env.DATABASE_URL || '');
 if (!['127.0.0.1', 'localhost'].includes(database.hostname) || database.port !== '55447') {
@@ -84,8 +89,12 @@ async function main() {
   const workers = [1, 2].map(() => new PaymongoPaymentProjectionService(
     new PrismaPaymentProjectionRepository(prisma, () => NOW), gateway, () => NOW,
   ));
-  const concurrent = await Promise.all(workers.map((worker) => worker.processNext()));
-  assert.deepEqual(concurrent.map((result) => result.decision).sort(), ['NO_WORK', 'SUCCEEDED']);
+  const lifecycleWorkers = workers.map((processor) => new BillingProcessingWorker({
+    enabled: true, environment: 'TEST', pollIntervalMs: 10_000, batchSize: 1,
+    concurrency: 1, providerCallBudget: 1, jitterMs: 1_000,
+  }, processor, undefined, { info() {}, error() {} }, () => NOW, () => 0));
+  const concurrent = await Promise.all(lifecycleWorkers.map((worker) => worker.runOnce()));
+  assert.equal(concurrent.reduce((sum, result) => sum + result.succeeded, 0), 1);
   assert.equal(await prisma.userSubscription.count(), 1);
   assert.equal(await prisma.billingInvoice.count(), 1);
   assert.equal(await prisma.paymentAttempt.count(), 1);
@@ -217,10 +226,23 @@ async function main() {
   assert.deepEqual(imbalanced, []);
   assert.deepEqual(overlapping, []);
 
+  const operations = await new BillingOperationsStatusService(
+    new PrismaBillingOperationsRepository(prisma),
+    () => lifecycleWorkers[0].snapshot(),
+    () => NOW,
+  ).getStatus();
+  assert.equal(operations.environment, 'TEST');
+  assert.equal(operations.queue.processing, 0);
+  assert.ok(operations.queue.deadLetter >= 3);
+  assert.ok(operations.recent.succeeded >= 1);
+  assert.doesNotMatch(JSON.stringify(operations), /sanitizedPayload|providerResourceId|billingSubjectKey|userId/);
+
   process.stdout.write(JSON.stringify({
-    concurrent: concurrent.map((result) => result.decision).sort(), replay: true, expiredClaimRecovered: true,
+    concurrentWorkerSuccesses: concurrent.reduce((sum, result) => sum + result.succeeded, 0),
+    replay: true, expiredClaimRecovered: true,
     rollbackVerified: true, durableRetryRecovered: true, overlapRejected: true,
-    balancedBatches: 3, reconciliationIssues: 3, refunds: 0, constraintProbesRejected: 3, providerCalls,
+    balancedBatches: 3, reconciliationIssues: 3, refunds: 0, constraintProbesRejected: 3,
+    aggregateOperationsVerified: true, providerCalls,
   }));
 }
 

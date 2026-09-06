@@ -23,13 +23,14 @@ export class PaymongoPaymentProjectionService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
-  async processNext(): Promise<PaymentWorkerResult> {
+  async processNext(signal?: AbortSignal): Promise<PaymentWorkerResult> {
+    signal?.throwIfAborted();
     const claim = await this.repository.claimNext();
     if (claim.decision === 'NO_WORK') return claim;
     const { binding } = claim;
     try {
       validateLocalPaymentBinding(binding);
-      const evidence = await this.gateway.retrieveCheckoutSession(binding.providerSessionId);
+      const evidence = await this.gateway.retrieveCheckoutSession(binding.providerSessionId, signal);
       const period = validatePaymongoPayment(binding, evidence, this.clock());
       return { decision: 'SUCCEEDED', projection: await this.repository.project(binding, evidence, period) };
     } catch (error) {

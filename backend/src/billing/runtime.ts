@@ -16,6 +16,12 @@ import { PaymongoReconciliationGateway } from '@/services/paymongo-reconciliatio
 import { PrismaUserBillingAccessRepository } from '@/services/prisma-user-billing-access.repository';
 import { UserBillingAccessService } from '@/services/user-billing-access.service';
 import prisma from '@/lib/prisma';
+import { loadBillingProcessingWorkerConfig } from '@/domain/billing-processing-worker.policy';
+import { BillingProcessingWorker } from '@/services/billing-processing-worker.service';
+import {
+  BillingOperationsStatusService,
+  PrismaBillingOperationsRepository,
+} from '@/services/billing-operations-status.service';
 
 export const paymongoConfig = loadPaymongoConfig(process.env);
 
@@ -67,10 +73,22 @@ export const paymongoWebhookBoundary = new PaymongoWebhookBoundary(
   paymongoConfig.webhook.enabled ? new PrismaWebhookInboxRepository(prisma) : unavailableWebhookRepository,
 );
 
-// Internal composition only. A later worker may call processNext(); no HTTP route or scheduler invokes it here.
+// The lifecycle worker below is the only automatic caller and remains separately disabled by default.
 export const paymongoPaymentProjectionProcessor = paymongoConfig.reconciliation.enabled
   ? new PaymongoPaymentProjectionService(
     new PrismaPaymentProjectionRepository(prisma),
     new PaymongoReconciliationGateway(paymongoConfig.reconciliation, new NodeHttpsBillingTransport()),
   )
   : null;
+
+export const billingProcessingWorkerConfig = loadBillingProcessingWorkerConfig(process.env, paymongoConfig);
+
+export const billingProcessingWorker = new BillingProcessingWorker(
+  billingProcessingWorkerConfig,
+  paymongoPaymentProjectionProcessor,
+);
+
+export const billingOperationsStatusService = new BillingOperationsStatusService(
+  new PrismaBillingOperationsRepository(prisma),
+  () => billingProcessingWorker.snapshot(),
+);

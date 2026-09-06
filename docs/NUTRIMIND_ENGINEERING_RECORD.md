@@ -3020,3 +3020,40 @@ This section is a continuity record for agreed future work. Every item below is 
 ### Remaining gates
 
 - Permanent worker hosting, operational scheduling/monitoring, shared-development processing acceptance, support and refund policy, approved commercial price, provider production acceptance, legal/tax decisions, recurring collection, other payment methods, and every live/production gate remain separate. The current UI is a TEST-only demonstration and checkout remains disabled by default.
+
+## 53. Disabled-by-default billing processing worker and aggregate operations status (2026-09-06)
+
+**Requirement ID:** REQ-029
+
+**Architecture decision:** ADR-023
+
+**Risk ID:** RISK-025
+
+**Change ID:** CHG-20260906-11
+
+**Verification IDs:** TEST-118 through TEST-126
+
+**Documentation ID:** DOC-045
+
+### Processing lifecycle and configuration boundary
+
+- `BILLING_PROCESSING_WORKER_ENABLED` is a fourth independent false-by-default switch. Enabling fails closed in production, outside exact TEST mode, or unless both durable webhook ingestion and read-only reconciliation are validly enabled. Disabled configuration ignores stale tuning values and starts no timer or processor work.
+- The server composes the payment processor only through the billing runtime and starts the lifecycle worker after the HTTP listener is ready. Billing work remains isolated from the meal cron and has no public trigger. SIGINT and SIGTERM stop scheduling, abort in-flight retrieval, wait for all batch consumers, close the HTTP listener, and disconnect Prisma. The scheduler uses one completion-driven timer, suppresses overlapping local ticks, adds bounded jitter, and backs off after infrastructure-level tick failure.
+- Each tick is bounded independently by batch size, concurrency, and a conservative provider-call upper bound. Multiple server instances rely on the accepted serializable database claim transaction, opaque claim-token hash, and one-minute lease to converge safely. Expired processing claims are recoverable; retryable failures keep exponential durable retry times; deterministic or exhausted failures remain dead-letter `FAILED` rows with an open reconciliation issue. Projection stays one atomic transaction and exact replay remains idempotent.
+- `AbortSignal` now flows from lifecycle shutdown through the processor and reconciliation gateway into the native HTTPS request. If cancellation happens after a durable claim, the accepted processor records a retryable sanitized failure before releasing the claim. Logs contain fixed outcome categories and aggregate counts only; thrown provider, transport, database, user, health, and payment detail is discarded.
+
+### Aggregate admin monitoring
+
+- `GET /api/admin/billing-operations` inherits authentication and `ADMIN` role enforcement from the admin router. It is read-only and returns TEST environment, pending/processing/failed counts, retryable and dead-letter subsets, oldest pending age, 24-hour success/failure counts, open reconciliation-issue count, and process-local worker enabled/lifecycle/last-run state.
+- The endpoint returns no webhook payload, signature, provider resource ID, payment ID, authorization value, secret, user or billing-subject identifier, ledger row, card data, or health data. Durable queue and issue counts come from PostgreSQL; last-run state is explicitly process-local and resets on process restart. No frontend panel was added in this bounded phase.
+
+### Verification and isolation evidence
+
+- The full backend suite reports **432 registered, 431 pass, 0 fail, and 1 unchanged clinical-policy TODO**. TEST-118 through TEST-123 cover disabled and invalid startup, bounded tuning, overlap suppression, two workers, batch/concurrency/call limits, retry/quarantine/replay outcomes, abort and timer cleanup, sanitized logs, jitter, and infrastructure backoff. TEST-124 and TEST-125 cover monitoring aggregation, timestamp bounds, response privacy, and admin-route ordering. TEST-126 proves cancellation propagation through processor, gateway, and bounded transport.
+- Prisma format, validate, and client generation pass. The backend production build and script compilation pass. A task-owned PostgreSQL 16.4 container on loopback port 55447 applied all 21 canonical migrations; a second deploy was empty, status was current, migration history contained 21 distinct completed rows, and database-to-datamodel comparison reported `No difference detected`. No schema or migration changed in this phase.
+- The updated local acceptance harness used two real lifecycle workers, the real Prisma claim/projection repository, and an injected synthetic gateway. It proved one concurrent projection, exact replay, expired-lease recovery, transient retry recovery, terminal quarantine, overlap rejection, three balanced posting batches, aggregate operations queries, and zero refund rows. Its seven counted gateway reads were in-memory fixture calls; no PayMongo or other provider endpoint was contacted.
+- A bounded disabled-worker server smoke on local port 55557 returned healthy and ready, rejected unauthenticated monitoring with 401, returned only the aggregate allow-list to a synthetic ADMIN, and logged completed SIGINT shutdown. The task-owned container, anonymous volume, newly pulled PostgreSQL image, ports 55447 and 55557, and all temporary processes were removed. Shared Neon, ports 3000/5000/3030, Antigravity, Gemini, email, OAuth, browser automation, frontend code, deployment, checkout creation, webhook registration or resend, provider key use, live mode, and money movement were untouched.
+
+### Remaining gates
+
+- This is source and disposable-local acceptance, not deployed always-on operation or shared-development processing acceptance. Checkout, webhook, reconciliation, and worker switches remain false by default. Shared target preflight/application, hosting-topology restart evidence, alert delivery and runbook acceptance, support/refund policy, approved commercial price, provider production acceptance, legal/tax decisions, recurring collection, cancellation, refunds, other payment methods, and every live/production gate remain separate.
