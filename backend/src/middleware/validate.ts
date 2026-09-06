@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
+import { sendApiError } from '@/lib/http-response';
 
 /**
  * Express middleware to validate request bodies and parameters using express-validator.
@@ -15,10 +16,7 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
       .map((err) => `${err.msg}`)
       .join(' | ');
 
-    return res.status(400).json({
-      success: false,
-      error: errorMessage || 'Validation failed for request inputs.',
-    });
+    return sendApiError(res, 400, errorMessage || 'Validation failed for request inputs.', 'VALIDATION_ERROR');
   }
 
   next();

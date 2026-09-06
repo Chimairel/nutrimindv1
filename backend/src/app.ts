@@ -6,6 +6,9 @@ import { apiLimiter } from '@/middleware/rateLimiter';
 import { verifyEmailTransporter } from '@/lib/email';
 import prisma from '@/lib/prisma';
 import { randomUUID } from 'crypto';
+import { env } from '@/config/env';
+import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
+import { logger } from '@/lib/logger';
 
 // Import Routers
 import authRouter from '@/routes/auth.routes';
@@ -23,37 +26,23 @@ import paymongoWebhookRouter from '@/routes/paymongo-webhook.routes';
 
 // Initialize Express app
 const app = express();
-if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
-
-const configuredCorsOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '')
-  .split(',')
-  .map((origin) => origin.trim().replace(/\/$/, ''))
-  .filter(Boolean);
-
-const allowedCorsOrigins =
-  configuredCorsOrigins.length > 0
-    ? configuredCorsOrigins
-    : process.env.NODE_ENV === 'production'
-      ? []
-      : ['http://localhost:3000', 'http://localhost:3001'];
+if (env.TRUST_PROXY) app.set('trust proxy', 1);
 
 // Apply security and global middleware
 app.use(helmet());
 app.use((req, res, next) => {
   const requestId = req.header('x-request-id')?.slice(0, 100) || randomUUID();
+  res.locals.requestId = requestId;
   res.setHeader('x-request-id', requestId);
   const startedAt = Date.now();
   res.on('finish', () => {
-    console.log(
-      JSON.stringify({
-        type: 'http_request',
-        requestId,
-        method: req.method,
-        path: req.path,
-        status: res.statusCode,
-        durationMs: Date.now() - startedAt,
-      })
-    );
+    logger.info('http_request', {
+      requestId,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    });
   });
   next();
 });
@@ -61,7 +50,7 @@ app.use(
   cors({
     origin(origin, callback) {
       // Requests without an Origin header are server-to-server or same-origin.
-      if (!origin || allowedCorsOrigins.includes(origin.replace(/\/$/, ''))) {
+      if (!origin || env.allowedCorsOrigins.includes(origin.replace(/\/$/, ''))) {
         callback(null, true);
         return;
       }
@@ -79,7 +68,7 @@ app.use('/api', apiLimiter); // Global API rate limit
 
 // SMTP verification is an explicit startup check because it opens an external
 // connection. Email delivery remains available even when this check is disabled.
-if (process.env.SMTP_VERIFY_ON_STARTUP === 'true') {
+if (env.SMTP_VERIFY_ON_STARTUP) {
   void verifyEmailTransporter();
 }
 
@@ -112,5 +101,8 @@ app.get('/ready', async (_req: Request, res: Response) => {
     return res.status(503).json({ success: false, message: 'NutriMind API is not ready' });
   }
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
