@@ -1,0 +1,48 @@
+name: nutrimind-production
+
+services:
+  migrate:
+    image: ${NUTRIMIND_API_IMAGE:?Set NUTRIMIND_API_IMAGE to an immutable image digest}
+    env_file:
+      - ${NUTRIMIND_BACKEND_ENV_FILE:-/etc/nutrimind/backend.env}
+    environment:
+      NODE_ENV: production
+    command: ['npx', 'prisma', 'migrate', 'deploy']
+    profiles: ['migration']
+    restart: 'no'
+
+  api:
+    image: ${NUTRIMIND_API_IMAGE:?Set NUTRIMIND_API_IMAGE to an immutable image digest}
+    env_file:
+      - ${NUTRIMIND_BACKEND_ENV_FILE:-/etc/nutrimind/backend.env}
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      API_DOCS_ENABLED: 'false'
+    ports:
+      - '127.0.0.1:5000:5000'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:5000/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    image: ${NUTRIMIND_WEB_IMAGE:?Set NUTRIMIND_WEB_IMAGE to an immutable image digest}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - '127.0.0.1:3000:3000'
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy

@@ -50,7 +50,7 @@ The repository contains meaningful implementation for these workflows. Cleanup w
 
 | Area | Current implementation | Evidence | Verification level |
 | --- | --- | --- | --- |
-| Frontend | Next.js 14 App Router, React 18, TypeScript, Tailwind, Radix UI, Axios | `frontend/package.json`, `src/app`, `src/components`, `src/lib/axios.ts` | Statically verified |
+| Frontend | Next.js 15 App Router, React 19, TypeScript, Tailwind, Radix UI, Axios | `frontend/package.json`, `src/app`, `src/components`, `src/lib/axios.ts` | Statically verified |
 | Backend | Separate Express 4/TypeScript REST API with route/controller/service layers of mixed consistency | `backend/package.json`, `src/app.ts`, `src/routes`, `src/controllers`, `src/services` | Statically verified |
 | Database | Prisma 5 schema targeting PostgreSQL; eleven migrations present | `backend/prisma/schema.prisma`, `prisma/migrations` | Schema statically verified; live DB unverified |
 | Authentication | Custom access JWT plus refresh JWT cookie; client auth context and route guard | `src/lib/jwt.ts`, `auth.service.ts`, `auth.controller.ts`, frontend `AuthContext.tsx`, `axios.ts` | Statically verified; runtime unverified |
@@ -3347,3 +3347,35 @@ This section is a continuity record for agreed future work. Every item below is 
 
 - The temporary OTP/invitation capture and local state file were removed. Deleting the test nutritionist was correctly rejected by the database because completed-review compensation evidence is append-only and restricts actor deletion. Rather than disabling that invariant or orphaning the source record, both known-password `example.com` accounts were suspended and all sessions revoked; the linked application, source meal, library draft, audit trail, and one work credit remain as an explicitly labelled shared-development audit fixture.
 - This phase used the existing shared development database and actual Gemini TEST access with owner authorization. It made no schema/migration change, SMTP delivery, Google OAuth call, PayMongo/payment/payout action, deployment, production request, or claim of clinical review. `main`, port 3030, and the unrelated Antigravity project remained untouched.
+
+## 60. Repository engineering hardening (2026-09-07)
+
+**Architecture decision:** ADR-028
+
+**Change ID:** CHG-20260907-02
+
+**Verification IDs:** TEST-153 through TEST-156
+
+**Documentation ID:** DOC-052
+
+### Scope and retained architecture
+
+- Work began from clean commit `b8dfef4` and remained isolated on `feature/engineering-hardening`. `main` remained at `d17b304`; `development` and `origin/development` remained at `a77dbd2`. No branch was merged or pushed in this phase.
+- The change applies only the engineering gaps selected after comparing two reference repositories: repository formatting and lint gates, typed runtime configuration, consistent error/response foundations, focused Zod request validation, modest module extraction, frontend unit and public browser-smoke foundations, an OpenAPI contract/explorer, dependency remediation, Docker packaging, dependency automation, and guarded deployment documentation.
+- The existing Next.js/React frontend, Express/JWT backend, Prisma/PostgreSQL persistence, domain services, and provider boundaries remain intact. No RAG/chatbot, Redis/BullMQ, Socket.IO, dependency-injection framework, authentication/hash migration, or reference-repository feature was copied without a current NutriMind need.
+
+### Implemented controls
+
+- `e078643`, `fa9168e`, `0c92b0f`, and `72aba88` establish deterministic Prettier/EditorConfig behavior, backend and frontend linting, Zod-validated runtime configuration, structured logging, shared API errors/responses and terminal middleware, Vitest/Testing Library, Playwright, and a development OpenAPI 3.1 explorer. The OpenAPI document covers more than 80 primary operations and remains off in production unless explicitly enabled.
+- `23949a9` moves the frontend to supported Next.js 15.5/React 19 packages, updates Axios/Nodemailer and vulnerable transitive resolutions, keeps Prisma available in the backend runtime image, adds non-root multi-stage images, enables Next standalone output, and supplies an optional local Compose workflow. The packaging does not bundle environment files or create/migrate a database automatically.
+- `c200bf2` extends the existing Zod middleware across body, path, and query locations; applies bounded schemas to grocery, meal, swap, weight, and FNRI actions; adds deterministic regression tests; replaces one FNRI console path with structured logging; and extracts static nutritionist library-coverage profiles from the oversized service without changing policy behavior.
+- CI now checks formatting, dependency audits, backend lint/tests/build, frontend lint/tests/build, two public/adversarial Chromium journeys, and both container builds. Dependabot covers all npm lockfiles, GitHub Actions, and both Dockerfiles. `SECURITY.md` defines private reporting and exact-release expectations.
+- Production Compose accepts only caller-supplied images, binds ports 3000/5000 to loopback, and separates `prisma migrate deploy` into a one-shot migration profile. `deploy/deploy.sh` rejects mutable image references, requires the external environment file, pulls exact digests, applies committed migrations, starts the two services, and fails unless readiness checks pass. It contains no `db push`, reset, seed, or automated database rollback.
+
+### Verification and limits
+
+- `npm run check` passed from the repository root: formatting, backend and frontend lint, **471 registered backend tests / 470 pass / 0 fail / 1 unchanged clinical-policy TODO**, **6 frontend tests / 6 pass**, backend production build, and the Next.js production build with all 42 routes.
+- `npm run test:e2e` passed **2/2** Chromium cases: the public landing rendered without console errors, and registration rejected empty, whitespace-only, and mismatched-password input. Backend, frontend, and root `npm audit` each reported zero vulnerabilities at this exact lockfile state.
+- Local and production Compose files passed configuration expansion. The production configuration check used synthetic immutable digest references and the existing local backend environment-file path; it did not disclose values or start a service.
+- Local Docker image execution could not be established because Docker Desktop's Linux engine remained unavailable after a bounded startup attempt. Image builds are therefore a configured CI gate, not a local passing claim. Next standalone compilation did pass locally.
+- No configured/shared database query or write, migration, Prisma deploy/push, seed, Gemini request, PayMongo/provider request, SMTP/OAuth action, application server, deployment, port 3030 access, or production action occurred. The single external clinical-policy TODO remains intentionally unresolved and no clinical-readiness claim is made.

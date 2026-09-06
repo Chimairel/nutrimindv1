@@ -8,16 +8,18 @@ Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODU
 
 ## Current verification status
 
-The repository contains substantial frontend and backend implementation. As of September 6, 2026:
+The repository contains substantial frontend and backend implementation. As of September 7, 2026:
 
 - Backend TypeScript no-emit check and production build: **passed**
 - Frontend TypeScript no-emit check and production build: **passed**
 - Prisma schema validation: **passed**
 - Frontend lint: **passed with zero warnings**
-- Backend deterministic unit/policy baseline: **457 pass, 0 fail, 1 external-clinical TODO**
+- Backend deterministic unit/policy baseline: **470 pass, 0 fail, 1 external-clinical TODO**
+- Frontend component baseline: **6 pass, 0 fail**
+- Public/adversarial Playwright baseline: **2 pass, 0 fail**
 - Controlled API/database integration and acceptance suites: **passed against disposable loopback PostgreSQL 16.4 databases**
 - Authenticated desktop browser coverage: **passed for current user, nutritionist, administrator, public, and authorization routes; full 390px rerun remains environment-limited**
-- Repository CI configuration: **present; remote execution is not established by local evidence**
+- Repository CI configuration: **source quality, dependency audit, backend, frontend, browser smoke, and container-build jobs are present; remote execution is not established by local evidence**
 - All 23 additive database migrations: **rehearsed locally and applied to shared development; Prisma reports the schema up to date, with the new conversion and compensation tables empty**
 - Controlled production integration and local readiness/load smokes: **passed**
 - Clinical review: **not established**
@@ -29,7 +31,7 @@ Use these status terms: Planned, Designed, Partially implemented, Implemented bu
 The accepted architecture is:
 
 ```text
-Next.js 14 frontend
+Next.js 15 frontend with React 19
   -> Axios REST requests with a bearer access token
   -> Express/TypeScript backend
   -> Prisma ORM
@@ -67,8 +69,18 @@ The intended backend layering is route -> validation/policy -> controller -> ser
 - Node.js 24 and npm, as pinned by the root `.nvmrc` and used by repository CI.
 - A PostgreSQL database for backend persistence.
 - Environment values for the integrations you intend to exercise.
+- Docker Desktop with its Linux engine running, only when using the optional container workflow.
 
 Do not commit `.env` or `.env.local` files. Never put real credentials in documentation, screenshots, fixtures, or logs.
+
+Install all three lockfiles and run the ordinary repository gate from the root:
+
+```powershell
+npm run install:all
+npm run check
+```
+
+`npm run check` verifies formatting, backend and frontend lint, deterministic backend and frontend tests, and both production builds. Run `npm run audit` for all three dependency trees and `npm run test:e2e` for the Playwright browser smoke separately.
 
 ## Backend setup
 
@@ -83,6 +95,8 @@ npm run dev
 ```
 
 The development server defaults to `http://localhost:5000`; `GET /health` is the basic health endpoint.
+
+In development, the interactive OpenAPI explorer is available at `http://localhost:5000/api/docs` and the machine-readable OpenAPI 3.1 document at `http://localhost:5000/api/openapi.json`. Production keeps both routes disabled unless `API_DOCS_ENABLED=true` is an explicit release decision. The contract documents the primary API surface; executable validation and service policies remain authoritative.
 
 Run `npx prisma migrate deploy` whenever the repository contains an unapplied migration. Do not start a source version that queries new models against an older database schema.
 
@@ -158,6 +172,8 @@ Only names and purposes are documented. No real values are included.
 | `CRON_SECRET` | Scheduled-job endpoints | Bearer secret checked by `/api/cron/*` |
 | `PORT` | Optional | Express port; defaults to `5000` |
 | `NODE_ENV` | Optional but important in deployment | Controls cookie security, rate limits, logging, and Prisma singleton behavior |
+| `TRUST_PROXY` | Reverse-proxy deployments | Trusts forwarded protocol/address information; enable only behind the documented proxy topology |
+| `API_DOCS_ENABLED` | Optional production documentation | Exposes `/api/docs` and `/api/openapi.json`; development enables them automatically |
 | `FRONTEND_URL` | Password-reset email links | Frontend base URL in email; defaults to `http://localhost:3000` |
 | `CORS_ORIGINS` | Browser API access | Comma-separated credentialed browser origins; required explicitly in production |
 | `GOOGLE_CLIENT_ID` | Google sign-in | Expected audience for backend Google ID-token verification |
@@ -184,24 +200,28 @@ Call `POST /api/cron/daily-checkin` once per day for daily nutrition aggregates 
 
 ## Available verification commands
 
-These checks passed during the August 30, 2026 verification:
+The ordinary repository gates can be run from the root:
 
 ```powershell
-# Backend
-Set-Location backend
-npm test
-npm run test:integration:production
-npx tsc --noEmit --incremental false
-npx prisma validate
-
-# Frontend
-Set-Location ..\frontend
-npx tsc --noEmit --incremental false
-npm run lint
-npm run build
+npm run check
+npm run audit
+npm run test:e2e
 ```
 
-The backend `npm test` command uses Node's built-in test runner through the existing `tsx` dependency and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, billing/compensation policies, bounded weight/list input, and fail-closed ingredient matching. `npm run test:integration:production` and the acceptance scripts require an explicitly authorized disposable database target. The frontend has no automated component test script. Repository CI installs both packages, runs the backend tests/build, and runs frontend lint/build. These checks do not establish live Gemini generation, full accessibility conformance, deployment monitoring, clinical verification, or production payment readiness.
+The backend `npm test` command uses Node's built-in test runner through `tsx` and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, billing/compensation policies, bounded weight/list input, fail-closed ingredient matching, runtime configuration, API contracts, and user-action validation. Frontend tests use Vitest and Testing Library; Playwright covers the public landing and adversarial registration paths. `npm run test:integration:production` and acceptance scripts require an explicitly authorized disposable database target. These local checks do not establish full authenticated-browser coverage, accessibility conformance, deployment monitoring, clinical verification, or production payment readiness.
+
+## Optional local Docker workflow
+
+Docker packages the existing applications; it does not replace the Next.js/Express architecture. Create `backend/.env` first, keep provider switches disabled unless their own test is authorized, and run from the repository root:
+
+```powershell
+npm run docker:config
+npm run docker:up
+```
+
+The web and API are then exposed at `http://localhost:3000` and `http://localhost:5000`. Stop them with `npm run docker:down`. Docker does not create or migrate PostgreSQL in this local Compose file; the API uses the explicitly configured `DATABASE_URL`.
+
+Deployment is a separate, guarded workflow described in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). It requires immutable image digests, runs only `prisma migrate deploy`, binds application ports to loopback, and expects HTTPS termination through Nginx or Caddy. The older operational and clinical gates still apply.
 
 ## External integrations
 
