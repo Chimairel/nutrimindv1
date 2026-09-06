@@ -2854,3 +2854,43 @@ This section is a continuity record for agreed future work. Every item below is 
 - The configured TEST secret passed shape validation without display and was absent from Git, documentation, command output, persisted checkout evidence, and the final staged secret scan. No shared Neon access/write, live key, payment credentials, webhook registration, tunnel, public port, completed payment, Gemini, email, OAuth, frontend change, deployment, or application server was used.
 - The exact labeled container, network, volume, initially absent PostgreSQL image, acceptance database, shadow database, and port 55445 were verified and removed. Docker returned to zero containers, volumes, and images with only built-in networks; port 55445 is free. Ports 3000, 5000, and Antigravity's 3030 were untouched.
 - The next payment gate requires an already-available secure public HTTPS TEST endpoint and owner-controlled webhook signing secret. It must prove signed `checkout_session.payment.paid` delivery and duplicate replay into the durable inbox before any payment, subscription, ledger, or entitlement projection. No local tunnel or placeholder endpoint should be created for that gate.
+
+## 49. PayMongo TEST webhook durable-inbox acceptance (2026-09-06)
+
+**Requirement ID:** REQ-025
+
+**Architecture decision:** ADR-020
+
+**Risk ID:** RISK-025
+
+**Uncertainty ID:** UNC-018
+
+**Change ID:** CHG-20260906-07
+
+**Verification ID:** TEST-101
+
+**Documentation ID:** DOC-041
+
+### Current provider contract and bounded implementation
+
+- Official PayMongo documentation was rechecked on September 6, 2026. Webhook registration uses authenticated `POST /v1/webhooks` with an HTTPS URL and explicit `events`; TEST delivery uses the `Paymongo-Signature` header's `t` and `te` values and HMAC-SHA256 over `timestamp.rawBody`. Hosted Checkout identifies `checkout_session.payment.paid` as its source-of-truth event. PayMongo requires a JSON 2xx acknowledgement and retries failed deliveries. The official card-testing page identifies `4343434343434345` as a successful no-3DS TEST card with any future expiry and any three-digit CVC.
+- The existing route-scoped raw parser remains before global JSON parsing and caps the body at 64 KiB. Signature verification uses the exact bytes, constant-time comparison, TEST-mode signature selection, and a five-minute past/future tolerance. Invalid, stale, malformed, live-mode, conflicting, or persistence-failed requests receive non-2xx responses.
+- The runtime now selects `PrismaWebhookInboxRepository` only when the independent false-by-default TEST webhook capability is enabled. The repository uses a serializable transaction to atomically create one immutable `ProviderWebhookEvent` and its `WebhookEventProcessing` row. The provider/environment/event ID unique key plus SHA-256 body hash distinguishes an exact duplicate from an ID/hash conflict, including uniqueness races.
+- The explicit business allow-list contains only `checkout_session.payment.paid`. Persistence retains event ID/type, TEST livemode, body hash, signing-key version, provider timestamp, receipt timestamp, resource ID/type, and disposition. It does not retain raw bodies, signatures, headers, billing/customer fields, line items, card details, payments, provider response bodies, or provider credentials. Known events remain `PENDING`; unrelated valid signed events are durably marked `IGNORED` and cannot create business work.
+
+### Authorized TEST delivery evidence
+
+- A task-owned PostgreSQL 16.4 database applied all 20 canonical migrations. A locally signed synthetic HTTP request first proved atomic insert, exact raw replay as `DUPLICATE`, and omission of embedded test email/card fragments from the sanitized payload.
+- One temporary Cloudflare Quick Tunnel exposed only the minimal acceptance listener. Exactly one PayMongo TEST webhook was registered for exactly `checkout_session.payment.paid`; its signing secret existed only in a restricted temporary state file and process memory. Exactly one new TEST Hosted Checkout was then created for the existing PHP 199.00 sandbox placeholder, using card only and `livemode: false`.
+- The owner completed the official TEST card flow. PayMongo delivered authentic signed event `evt_aF8YduaEpB1vLvC1NRM9rc8z` for exact session `cs_2c030de77711f9285b90547f`. The first request produced `INSERTED`; before acknowledging it, the acceptance listener replayed the same in-memory raw bytes and signature within tolerance and received `DUPLICATE`. The database held one row for that provider event, one pending processing row, a 64-character payload hash, the TEST signing-key version, and only the checkout-session resource identity.
+- After both the real delivery and exact replay, `UserSubscription`, `BillingInvoice`, `PaymentAttempt`, `BillingTransaction`, `FinancialLedgerEntry`, and `EntitlementGrant` each contained zero rows. Payment receipt therefore created durable pending evidence only and granted no Premium access or financial projection.
+
+### Cleanup and verification
+
+- The exact temporary PayMongo webhook was deleted through the provider API. The listener and tunnel were stopped; the task-labelled containers, network, volume, database, initially absent PostgreSQL and cloudflared images, and both restricted temporary state directories were verified and removed. Ports 5051 and 55447 are free. Ports 3000, 5000, and Antigravity's 3030 were untouched.
+- No shared Neon access or write, live key, real card or money, subscription/refund API, raw webhook persistence, Gemini, email, OAuth, frontend change, deployment, or migration change occurred.
+- TEST-101 covers atomic event/work insertion, exact replay, ID/hash conflict, minimal sanitized persistence, and ignored-event completion. The full backend suite, production build, script compilation, Prisma validation, offline production dependency audit, staged secret scan, branch/base checks, and provider/local cleanup checks are recorded with the feature commit.
+
+### Next gate
+
+- Event processing remains deliberately pending. A later separately authorized phase must bind the provider checkout session/reference to one local billing subject and verified amount/currency, add reconciliation and processing leases, then project payment, ledger, subscription, and time-bounded entitlement state idempotently. Redirects and checkout creation remain insufficient authority.

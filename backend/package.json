@@ -29,6 +29,8 @@
     "prices:psa:dry-run": "tsx scripts/import-psa-openstat-prices.ts --dry-run",
     "prices:psa:apply-local": "tsx scripts/import-psa-openstat-prices.ts --apply",
     "test:acceptance:paymongo-sandbox": "tsx scripts/paymongo-sandbox-checkout-acceptance.ts",
+    "test:acceptance:paymongo-webhook-listener": "tsx scripts/paymongo-webhook-acceptance-listener.ts",
+    "paymongo:test-webhook-admin": "tsx scripts/paymongo-test-webhook-admin.ts",
     "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts"
   },
   "dependencies": {

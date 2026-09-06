@@ -8,6 +8,7 @@ import { BillingCheckoutBoundary, CheckoutBoundaryError } from '@/services/billi
 import { NodeHttpsBillingTransport } from '@/services/node-https-billing.transport';
 import { PaymongoGateway } from '@/services/paymongo-gateway.service';
 import { PrismaCheckoutIntentRepository } from '@/services/prisma-checkout-intent.repository';
+import { PrismaWebhookInboxRepository } from '@/services/prisma-webhook-inbox.repository';
 import { PaymongoWebhookBoundary } from '@/services/paymongo-webhook-boundary.service';
 import prisma from '@/lib/prisma';
 
@@ -53,5 +54,5 @@ export const billingCheckoutBoundary = new BillingCheckoutBoundary(
 
 export const paymongoWebhookBoundary = new PaymongoWebhookBoundary(
   paymongoConfig.webhook,
-  unavailableWebhookRepository,
+  paymongoConfig.webhook.enabled ? new PrismaWebhookInboxRepository(prisma) : unavailableWebhookRepository,
 );

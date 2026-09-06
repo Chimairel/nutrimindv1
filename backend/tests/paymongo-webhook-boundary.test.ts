@@ -141,7 +141,8 @@ test('[TEST-088] malformed signed envelopes fail closed after signature verifica
 
 test('[TEST-088] explicit event allow-list excludes unrelated valid provider events', () => {
   assert.equal(PAYMONGO_EVENT_ALLOW_LIST.has('checkout_session.payment.paid'), true);
-  assert.equal(PAYMONGO_EVENT_ALLOW_LIST.has('subscription.invoice.paid'), true);
+  assert.equal(PAYMONGO_EVENT_ALLOW_LIST.size, 1);
+  assert.equal(PAYMONGO_EVENT_ALLOW_LIST.has('subscription.invoice.paid'), false);
   assert.equal(PAYMONGO_EVENT_ALLOW_LIST.has('payment.paid'), false);
   assert.equal(PAYMONGO_EVENT_ALLOW_LIST.has('payout.deposited'), false);
 });

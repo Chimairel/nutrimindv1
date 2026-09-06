@@ -89,7 +89,10 @@ async function main(): Promise<void> {
   assertLocalDatabase();
   const config = loadPaymongoConfig(process.env);
   if (!config.checkout.enabled) throw new Error('Sandbox checkout is not enabled for this process.');
-  if (config.webhook.enabled) throw new Error('Webhook intake must remain disabled for this acceptance.');
+  const webhookAcceptance = process.argv.includes('--webhook-acceptance');
+  if (config.webhook.enabled !== webhookAcceptance) {
+    throw new Error(webhookAcceptance ? 'Webhook intake must be enabled for this acceptance.' : 'Webhook intake must remain disabled for this acceptance.');
+  }
 
   const prisma = new PrismaClient();
   try {
@@ -135,11 +138,13 @@ async function main(): Promise<void> {
     const providerKey = `acceptance-provider-${randomUUID()}`;
     let providerOutcome = 'SUCCEEDED';
     let sessionId: string | undefined;
+    let checkoutUrl: string | undefined;
     try {
       const first = await boundary.create({ userId: ACCEPTANCE_USER_ID, priceCode: 'PREMIUM', requestIdempotencyKey: providerKey });
       assert.equal(first.livemode, false);
       assert.equal(first.entitlementGranted, false);
       sessionId = first.providerSessionId;
+      checkoutUrl = first.checkoutUrl;
       const replay = await boundary.create({ userId: ACCEPTANCE_USER_ID, priceCode: 'PREMIUM', requestIdempotencyKey: providerKey });
       assert.equal(replay.providerSessionId, first.providerSessionId);
       assert.equal(replay.entitlementGranted, false);
@@ -177,6 +182,7 @@ async function main(): Promise<void> {
       providerCalls: transport.calls,
       providerOutcome,
       providerSessionId: sessionId,
+      ...(webhookAcceptance ? { checkoutUrl } : {}),
       persistedStatus: persisted.status,
       persistedFailureCode: persisted.failureCode,
       auditEventCount: persisted.auditEvents.length,

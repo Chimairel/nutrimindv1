@@ -4,15 +4,6 @@ import { PaymongoWebhookConfig } from '@/domain/paymongo-config.policy';
 
 export const PAYMONGO_EVENT_ALLOW_LIST = new Set([
   'checkout_session.payment.paid',
-  'subscription.activated',
-  'subscription.past_due',
-  'subscription.unpaid',
-  'subscription.updated',
-  'subscription.invoice.created',
-  'subscription.invoice.finalized',
-  'subscription.invoice.paid',
-  'subscription.invoice.payment_failed',
-  'subscription.invoice.updated',
 ]);
 
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,190}$/;
