@@ -44,7 +44,11 @@ test('[TEST-117] navigation, route guard, and meal UI consume the dynamic server
   const sidebar = readFrontend('src/components/ui/Sidebar.tsx');
   const bottom = readFrontend('src/components/ui/BottomNav.tsx');
   const guard = readFrontend('src/components/shared/RouteGuard.tsx');
-  const meals = readFrontend('src/app/(user)/meals/page.tsx');
+  const meals = [
+    readFrontend('src/app/(user)/meals/page.tsx'),
+    readFrontend('src/features/meals/useMealsWorkspace.ts'),
+    readFrontend('src/features/meals/MealsWorkspaceModals.tsx'),
+  ].join('\n');
   const card = readFrontend('src/components/user/MealCard.tsx');
   assert.match(sidebar, /href: '\/billing'/);
   assert.match(bottom, /href: '\/billing'/);
