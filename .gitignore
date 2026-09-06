@@ -7,6 +7,9 @@
 
 # Backend build outputs
 **/dist/
+**/coverage/
+**/playwright-report/
+**/test-results/
 
 # Local Environment Secrets (CRITICAL)
 **/.env
