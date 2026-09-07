@@ -28,6 +28,7 @@ export default function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
   const clearFieldError = (field: RegistrationField) => {
     setFieldErrors((current) => {
@@ -196,6 +197,7 @@ export default function RegisterPage() {
           autoComplete="new-password"
           maxLength={128}
           error={fieldErrors.confirmPassword || (passwordsMismatch ? 'Passwords do not match.' : undefined)}
+          validationState={passwordsMismatch ? 'error' : passwordsMatch ? 'success' : 'default'}
         />
         <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
           Create account

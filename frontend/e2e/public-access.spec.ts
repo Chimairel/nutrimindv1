@@ -19,8 +19,19 @@ test('registration rejects empty, whitespace-only, and mismatched input', async 
   await page.getByLabel(/first name/i).fill('   ');
   await page.getByLabel(/last name/i).fill('   ');
   await page.getByLabel(/email address/i).fill('not-an-email');
-  await page.getByLabel(/^password$/i).fill('ValidPassword1');
-  await page.getByLabel(/confirm password/i).fill('DifferentPassword1');
+  const password = page.getByLabel(/^password$/i);
+  const confirmation = page.getByLabel(/confirm password/i);
+
+  await password.fill('ValidPassword1');
+  await password.focus();
+  await page.keyboard.press('Tab');
+  await expect(confirmation).toBeFocused();
+
+  await confirmation.fill('DifferentPassword1');
+  await expect(confirmation).toHaveAttribute('data-validation-state', 'error');
+  await confirmation.fill('ValidPassword1');
+  await expect(confirmation).toHaveAttribute('data-validation-state', 'success');
+  await confirmation.fill('DifferentPassword1');
   await page.getByRole('button', { name: /create account/i }).click();
 
   await expect(page.getByText(/passwords do not match/i)).toBeVisible();

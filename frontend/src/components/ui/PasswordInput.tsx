@@ -98,6 +98,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         />
         <button
           type="button"
+          tabIndex={-1}
           aria-label={accessibleLabel}
           aria-pressed={isVisible}
           disabled={disabled}
