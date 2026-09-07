@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export interface SwapOption {
   id: string;
@@ -43,29 +44,47 @@ export interface MealHistoryLog {
   calorieDelta?: number | null;
 }
 
+interface PendingReviewState {
+  mealCount: number;
+  planType: 'STARTER' | 'WEEKLY';
+  reviewStatus: 'PENDING_REVIEW';
+  meals: PendingMealPreview[];
+}
+
+interface CurrentPlanSnapshot {
+  meals: MealPlan[];
+  pendingReview: PendingReviewState | null;
+  swapsUsed: number;
+  swapCap: number;
+}
+
+const currentPlanResource = 'user-meals-current';
+const historyResource = (search: string, source: string, status: string) =>
+  `user-meals-history:${search}:${source}:${status}`;
+const libraryResource = (search: string, mealType: string) => `user-meals-library:${search}:${mealType}`;
+
 export function useMealsWorkspace() {
   const { user } = useAuth();
+  const ownerId = user?.userId;
+  const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
+  const cachedHistory = readSessionResource<MealHistoryLog[]>(ownerId, historyResource('', 'All', 'All'));
+  const cachedLibrary = readSessionResource<SwapOption[]>(ownerId, libraryResource('', 'All'));
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'history' | 'library'>('plan');
 
   // Meal Plan states
-  const [meals, setMeals] = useState<MealPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [meals, setMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
+  const [isLoading, setIsLoading] = useState(!cachedPlan);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingReview, setPendingReview] = useState<{
-    mealCount: number;
-    planType: 'STARTER' | 'WEEKLY';
-    reviewStatus: 'PENDING_REVIEW';
-    meals: PendingMealPreview[];
-  } | null>(null);
+  const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
   const currentPlanRequestInFlight = useRef(false);
   const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
 
   // Meal swap states
-  const [swapsUsed, setSwapsUsed] = useState(0);
-  const [swapCap, setSwapCap] = useState(3);
+  const [swapsUsed, setSwapsUsed] = useState(cachedPlan?.swapsUsed ?? 0);
+  const [swapCap, setSwapCap] = useState(cachedPlan?.swapCap ?? 3);
   const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);
   const [swapOptions, setSwapOptions] = useState<SwapOption[]>([]);
   const [isOptionsLoading, setIsOptionsLoading] = useState(false);
@@ -88,34 +107,47 @@ export function useMealsWorkspace() {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   // History Tab states
-  const [historyLogs, setHistoryLogs] = useState<MealHistoryLog[]>([]);
+  const [historyLogs, setHistoryLogs] = useState<MealHistoryLog[]>(cachedHistory ?? []);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [historyTotalCount, setHistoryTotalCount] = useState<number | null>(null);
+  const [historyTotalCount, setHistoryTotalCount] = useState<number | null>(cachedHistory?.length ?? null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
   const [historySource, setHistorySource] = useState('All');
   const [historyStatus, setHistoryStatus] = useState('All');
 
   // Library Tab states
-  const [libraryMeals, setLibraryMeals] = useState<SwapOption[]>([]);
+  const [libraryMeals, setLibraryMeals] = useState<SwapOption[]>(cachedLibrary ?? []);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
-  const [libraryTotalCount, setLibraryTotalCount] = useState<number | null>(null);
+  const [libraryTotalCount, setLibraryTotalCount] = useState<number | null>(cachedLibrary?.length ?? null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedVerifier, setSelectedVerifier] = useState<PublicVerifier | null>(null);
   const [libraryMealType, setLibraryMealType] = useState('All');
 
-  const fetchMeals = async () => {
+  const applyCurrentPlan = useCallback(
+    (snapshot: CurrentPlanSnapshot) => {
+      setMeals(snapshot.meals);
+      setPendingReview(snapshot.pendingReview);
+      setSwapsUsed(snapshot.swapsUsed);
+      setSwapCap(snapshot.swapCap);
+      writeSessionResource(ownerId, currentPlanResource, snapshot);
+    },
+    [ownerId]
+  );
+
+  const fetchMeals = useCallback(async () => {
     if (currentPlanRequestInFlight.current) return;
     currentPlanRequestInFlight.current = true;
     setError(null);
     try {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
-        setMeals(Array.isArray(res.data.data) ? res.data.data : []);
-        setPendingReview(res.data.meta?.pendingReview ?? null);
-        setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
-        setSwapCap(res.data.meta?.swapCap ?? 3);
+        applyCurrentPlan({
+          meals: Array.isArray(res.data.data) ? res.data.data : [],
+          pendingReview: res.data.meta?.pendingReview ?? null,
+          swapsUsed: res.data.meta?.swapsUsed ?? 0,
+          swapCap: res.data.meta?.swapCap ?? 3,
+        });
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -127,10 +159,13 @@ export function useMealsWorkspace() {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  };
+  }, [applyCurrentPlan]);
 
   const fetchHistory = useCallback(async () => {
-    setIsHistoryLoading(true);
+    const resource = historyResource(historySearch, historySource, historyStatus);
+    const cached = readSessionResource<MealHistoryLog[]>(user?.userId, resource);
+    if (cached) setHistoryLogs(cached);
+    setIsHistoryLoading(!cached);
     setHistoryError(null);
     try {
       const params: Record<string, string> = {};
@@ -141,6 +176,7 @@ export function useMealsWorkspace() {
       const res = await api.get('/user/meals/history', { params });
       if (res.data && res.data.success) {
         setHistoryLogs(res.data.data);
+        writeSessionResource(user?.userId, resource, res.data.data);
         if (!historySearch && historySource === 'All' && historyStatus === 'All') {
           setHistoryTotalCount(res.data.data.length);
         }
@@ -154,10 +190,13 @@ export function useMealsWorkspace() {
     } finally {
       setIsHistoryLoading(false);
     }
-  }, [historySearch, historySource, historyStatus]);
+  }, [user?.userId, historySearch, historySource, historyStatus]);
 
   const fetchLibrary = useCallback(async () => {
-    setIsLibraryLoading(true);
+    const resource = libraryResource(librarySearch, libraryMealType);
+    const cached = readSessionResource<SwapOption[]>(user?.userId, resource);
+    if (cached) setLibraryMeals(cached);
+    setIsLibraryLoading(!cached);
     setLibraryError(null);
     try {
       const params: Record<string, string> = {};
@@ -167,6 +206,7 @@ export function useMealsWorkspace() {
       const res = await api.get('/user/meals/compatible-library', { params });
       if (res.data && res.data.success) {
         setLibraryMeals(res.data.data);
+        writeSessionResource(user?.userId, resource, res.data.data);
         if (!librarySearch && libraryMealType === 'All') {
           setLibraryTotalCount(res.data.data.length);
         }
@@ -180,7 +220,7 @@ export function useMealsWorkspace() {
     } finally {
       setIsLibraryLoading(false);
     }
-  }, [libraryMealType, librarySearch]);
+  }, [user?.userId, libraryMealType, librarySearch]);
 
   useEffect(() => {
     if (user) {
@@ -208,7 +248,7 @@ export function useMealsWorkspace() {
         document.removeEventListener('visibilitychange', refreshOnVisibility);
       };
     }
-  }, [user]);
+  }, [user, fetchMeals]);
 
   useEffect(() => {
     if (!user) {
@@ -371,10 +411,12 @@ export function useMealsWorkspace() {
       // Reload current meals to update checkboxes and macro sums
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
-        setMeals(Array.isArray(res.data.data) ? res.data.data : []);
-        setPendingReview(res.data.meta?.pendingReview ?? null);
-        setSwapsUsed(res.data.meta?.swapsUsed ?? 0);
-        setSwapCap(res.data.meta?.swapCap ?? 3);
+        applyCurrentPlan({
+          meals: Array.isArray(res.data.data) ? res.data.data : [],
+          pendingReview: res.data.meta?.pendingReview ?? null,
+          swapsUsed: res.data.meta?.swapsUsed ?? 0,
+          swapCap: res.data.meta?.swapCap ?? 3,
+        });
       }
     } catch (err) {
       console.error('[WeeklyPlan] Status toggle failed:', err);
@@ -395,8 +437,12 @@ export function useMealsWorkspace() {
     try {
       const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
       if (res.data && res.data.success) {
-        setMeals(res.data.data.meals);
-        setPendingReview(res.data.data.pendingReview ?? null);
+        applyCurrentPlan({
+          meals: res.data.data.meals,
+          pendingReview: res.data.data.pendingReview ?? null,
+          swapsUsed: 0,
+          swapCap,
+        });
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

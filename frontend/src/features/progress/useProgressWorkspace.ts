@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import api from '@/lib/axios';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import type { SafetyProfileEntry } from '@/types';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health';
@@ -58,29 +59,43 @@ export interface ProgressHistory {
   dailyNutritionLogs: DailyNutritionLog[];
 }
 
+interface ProgressPageSnapshot {
+  history: ProgressHistory | null;
+  profileData: ProfileDetails | null;
+}
+
 export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const router = useRouter();
   const { user } = useAuth();
+  const ownerId = user?.userId;
+  const cachedPage = readSessionResource<ProgressPageSnapshot>(ownerId, 'user-progress-page');
+  const cachedProfile = cachedPage?.profileData?.userProfile;
   const [activeSection, setActiveSection] = useState<ProgressSection>(mode === 'health' ? 'profile' : 'overview');
-  const [history, setHistory] = useState<ProgressHistory | null>(null);
-  const [profileData, setProfileData] = useState<ProfileDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [history, setHistory] = useState<ProgressHistory | null>(cachedPage?.history ?? null);
+  const [profileData, setProfileData] = useState<ProfileDetails | null>(cachedPage?.profileData ?? null);
+  const [isLoading, setIsLoading] = useState(!cachedPage);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('week');
   const [isTimeframeDropdownOpen, setIsTimeframeDropdownOpen] = useState(false);
 
   // Form State - Biometrics & Preferences
-  const [age, setAge] = useState('');
-  const [heightCm, setHeightCm] = useState('');
-  const [weightKg, setWeightKg] = useState('');
-  const [targetWeightKg, setTargetWeightKg] = useState('');
-  const [biologicalSex, setBiologicalSex] = useState('MALE');
-  const [goal, setGoal] = useState('MAINTAIN');
-  const [activityLevel, setActivityLevel] = useState('SEDENTARY');
-  const [dietaryPreference, setDietaryPreference] = useState('OMNIVORE');
-  const [carbPreference, setCarbPreference] = useState('MODERATE');
-  const [foodCulture, setFoodCulture] = useState('Filipino');
-  const [shoppingDayOfWeek, setShoppingDayOfWeek] = useState(6);
+  const [age, setAge] = useState(String(cachedProfile?.age || ''));
+  const [heightCm, setHeightCm] = useState(String(cachedProfile?.heightCm || ''));
+  const [weightKg, setWeightKg] = useState(String(cachedProfile?.weightKg || ''));
+  const [targetWeightKg, setTargetWeightKg] = useState(String(cachedProfile?.targetWeightKg || ''));
+  const [biologicalSex, setBiologicalSex] = useState(cachedProfile?.biologicalSex || 'MALE');
+  const [goal, setGoal] = useState(cachedProfile?.goal || 'MAINTAIN');
+  const [activityLevel, setActivityLevel] = useState(cachedProfile?.activityLevel || 'SEDENTARY');
+  const [dietaryPreference, setDietaryPreference] = useState(cachedProfile?.dietaryPreference || 'OMNIVORE');
+  const [carbPreference, setCarbPreference] = useState(cachedProfile?.carbPreference || 'MODERATE');
+  const [foodCulture, setFoodCulture] = useState(normalizeFoodCulture(cachedProfile?.foodCulture));
+  const [shoppingDayOfWeek, setShoppingDayOfWeek] = useState(
+    typeof cachedProfile?.shoppingDayOfWeek === 'number'
+      ? cachedProfile.shoppingDayOfWeek
+      : cachedProfile?.shoppingDayGroup === 'WEEKDAY'
+        ? 0
+        : 6
+  );
   const [isSavingBiometrics, setIsSavingBiometrics] = useState(false);
   const [biometricsSuccess, setBiometricsSuccess] = useState<string | null>(null);
   const [biometricsError, setBiometricsError] = useState<string | null>(null);
@@ -96,17 +111,19 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [weightSuccess, setWeightSuccess] = useState<string | null>(null);
 
   // Fetch progress history and profile info
-  const fetchPageData = async () => {
-    setIsLoading(true);
+  const fetchPageData = useCallback(async () => {
     setError(null);
     try {
       const [historyRes, profileRes] = await Promise.all([api.get('/user/progress/history'), api.get('/user/profile')]);
 
+      const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;
+      const nextProfile = profileRes.data?.success ? (profileRes.data.data as ProfileDetails) : null;
+
       if (historyRes.data && historyRes.data.success) {
-        setHistory(historyRes.data.data);
+        setHistory(nextHistory);
       }
       if (profileRes.data && profileRes.data.success) {
-        const data: ProfileDetails = profileRes.data.data;
+        const data = nextProfile as ProfileDetails;
         setProfileData(data);
 
         // Pre-populate biometric form states
@@ -130,6 +147,11 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           );
         }
       }
+      writeSessionResource(ownerId, 'user-progress-page', {
+        history: nextHistory,
+        profileData: nextProfile,
+      });
+      if (nextProfile) writeSessionResource(ownerId, 'user-profile', nextProfile);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.error || 'Failed to fetch progress metrics.');
@@ -139,13 +161,18 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [ownerId]);
 
   useEffect(() => {
     if (user) {
       fetchPageData();
     }
-  }, [user]);
+  }, [user, fetchPageData]);
+
+  useEffect(() => {
+    if (!ownerId || (!history && !profileData)) return;
+    writeSessionResource(ownerId, 'user-progress-page', { history, profileData });
+  }, [ownerId, history, profileData]);
 
   // Handles updating biometrics and preferences form
   const handleBiometricsSubmit = async (e: React.FormEvent) => {
@@ -177,6 +204,11 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
       if (profileUpdate.data && profileUpdate.data.success) {
         setBiometricsSuccess('Biometrics and dietary preferences updated successfully! Calorie budget recalculated.');
         setProfileData(profileUpdate.data.data);
+        writeSessionResource(ownerId, 'user-progress-page', {
+          history,
+          profileData: profileUpdate.data.data,
+        });
+        writeSessionResource(ownerId, 'user-profile', profileUpdate.data.data);
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -224,6 +256,13 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         }
         if (profileRes.data && profileRes.data.success) {
           setProfileData(profileRes.data.data);
+        }
+        writeSessionResource(ownerId, 'user-progress-page', {
+          history: historyRes.data?.success ? historyRes.data.data : history,
+          profileData: profileRes.data?.success ? profileRes.data.data : profileData,
+        });
+        if (profileRes.data?.success) {
+          writeSessionResource(ownerId, 'user-profile', profileRes.data.data);
         }
       }
     } catch (err: unknown) {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -24,19 +24,41 @@ import {
   type OutsideMealWarning,
   type PendingReview,
 } from '@/features/dashboard/model';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+
+interface CurrentPlanSnapshot {
+  meals: MealPlan[];
+  pendingReview: PendingReview | null;
+  swapsUsed: number;
+  swapCap: number;
+}
+
+interface CheckinSnapshot {
+  isDue: boolean;
+  streak: number;
+  lastCheckinAt: string | null;
+}
+
+const currentPlanResource = 'user-meals-current';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const ownerId = user?.userId;
+  const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
+  const cachedProfile = readSessionResource<UserProfileData>(ownerId, 'user-profile');
+  const cachedOutsideMeals = readSessionResource<OutsideMealLog[]>(ownerId, 'dashboard-outside-meals');
+  const cachedWater = readSessionResource<number>(ownerId, 'dashboard-water');
+  const cachedCheckin = readSessionResource<CheckinSnapshot>(ownerId, 'dashboard-checkin');
   const router = useRouter();
-  const [currentMeals, setCurrentMeals] = useState<MealPlan[]>([]);
+  const [currentMeals, setCurrentMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cachedPlan);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationElapsedSeconds, setGenerationElapsedSeconds] = useState(0);
   const [generationStageMessage, setGenerationStageMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pendingReview, setPendingReview] = useState<PendingReview | null>(null);
+  const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
 
@@ -74,31 +96,37 @@ export default function DashboardPage() {
   const [warningData, setWarningData] = useState<OutsideMealWarning | null>(null);
 
   // Check-in status
-  const [isCheckinDue, setIsCheckinDue] = useState(false);
-  const [checkinInfo, setCheckinInfo] = useState<{
-    isDue: boolean;
-    streak: number;
-    lastCheckinAt: string | null;
-  } | null>(null);
+  const [isCheckinDue, setIsCheckinDue] = useState(Boolean(cachedCheckin?.isDue));
+  const [checkinInfo, setCheckinInfo] = useState<CheckinSnapshot | null>(cachedCheckin);
 
   // User Profile details
-  const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(null);
-  const [outsideMealLogs, setOutsideMealLogs] = useState<OutsideMealLog[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(cachedProfile?.userProfile ?? null);
+  const [outsideMealLogs, setOutsideMealLogs] = useState<OutsideMealLog[]>(cachedOutsideMeals ?? []);
 
   // Water intake state
-  const [waterIntake, setWaterIntake] = useState(0);
+  const [waterIntake, setWaterIntake] = useState(cachedWater ?? 0);
+
+  const applyCurrentPlan = useCallback(
+    (snapshot: CurrentPlanSnapshot) => {
+      setCurrentMeals(snapshot.meals);
+      setPendingReview(snapshot.pendingReview);
+      writeSessionResource(ownerId, currentPlanResource, snapshot);
+    },
+    [ownerId]
+  );
 
   // Fetch user profile metrics
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await api.get('/user/profile');
       if (res.data?.success) {
         setUserProfile(res.data.data.userProfile);
+        writeSessionResource(ownerId, 'user-profile', res.data.data);
       }
     } catch (err) {
       console.error('[Dashboard] Failed to fetch user profile', err);
     }
-  };
+  }, [ownerId]);
 
   // Hydration is persisted by the backend using the Manila business day.
   useEffect(() => {
@@ -106,10 +134,14 @@ export default function DashboardPage() {
     void api
       .get('/user/water/today')
       .then((response) => {
-        if (response.data?.success) setWaterIntake(response.data.data.totalMl || 0);
+        if (response.data?.success) {
+          const totalMl = response.data.data.totalMl || 0;
+          setWaterIntake(totalMl);
+          writeSessionResource(ownerId, 'dashboard-water', totalMl);
+        }
       })
       .catch(() => undefined);
-  }, [user]);
+  }, [user, ownerId]);
 
   const handleAddWater = async (amount: number) => {
     const nextWater = Math.max(0, waterIntake + amount);
@@ -117,31 +149,37 @@ export default function DashboardPage() {
     try {
       if (amount > 0) {
         const response = await api.post('/user/water', { amountMl: amount });
-        setWaterIntake(response.data?.data?.totalMl ?? nextWater);
+        const totalMl = response.data?.data?.totalMl ?? nextWater;
+        setWaterIntake(totalMl);
+        writeSessionResource(ownerId, 'dashboard-water', totalMl);
       } else {
         const response = await api.post('/user/water/remove', { amountMl: Math.abs(amount) });
-        setWaterIntake(response.data?.data?.totalMl ?? nextWater);
+        const totalMl = response.data?.data?.totalMl ?? nextWater;
+        setWaterIntake(totalMl);
+        writeSessionResource(ownerId, 'dashboard-water', totalMl);
       }
     } catch {
       setWaterIntake((current) => Math.max(0, current - amount));
     }
   };
 
-  const fetchOutsideMealLogs = async () => {
+  const fetchOutsideMealLogs = useCallback(async () => {
     try {
       const res = await api.get('/user/meals/history', {
         params: { source: 'USER_LOGGED', status: 'DONE' },
       });
       if (res.data?.success) {
-        setOutsideMealLogs(Array.isArray(res.data.data) ? res.data.data : []);
+        const logs = Array.isArray(res.data.data) ? res.data.data : [];
+        setOutsideMealLogs(logs);
+        writeSessionResource(ownerId, 'dashboard-outside-meals', logs);
       }
     } catch (err) {
       console.error('[Dashboard] Failed to fetch outside-meal history', err);
     }
-  };
+  }, [ownerId]);
 
   // Load active plan meals
-  const fetchCurrentPlan = async () => {
+  const fetchCurrentPlan = useCallback(async () => {
     if (currentPlanRequestInFlight.current) return;
     currentPlanRequestInFlight.current = true;
     setError(null);
@@ -163,8 +201,12 @@ export default function DashboardPage() {
         }
       }
       if (res.data && res.data.success) {
-        setCurrentMeals(Array.isArray(res.data.data) ? res.data.data : []);
-        setPendingReview(res.data.meta?.pendingReview ?? null);
+        applyCurrentPlan({
+          meals: Array.isArray(res.data.data) ? res.data.data : [],
+          pendingReview: res.data.meta?.pendingReview ?? null,
+          swapsUsed: res.data.meta?.swapsUsed ?? 0,
+          swapCap: res.data.meta?.swapCap ?? 3,
+        });
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -176,19 +218,20 @@ export default function DashboardPage() {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  };
+  }, [applyCurrentPlan]);
 
-  const checkCheckinStatus = async () => {
+  const checkCheckinStatus = useCallback(async () => {
     try {
       const res = await api.get('/user/checkin/status');
       if (res.data?.success) {
         setCheckinInfo(res.data.data);
         setIsCheckinDue(Boolean(res.data.data?.isDue));
+        writeSessionResource(ownerId, 'dashboard-checkin', res.data.data);
       }
     } catch (err) {
       console.error('[Dashboard] Failed to fetch checkin status', err);
     }
-  };
+  }, [ownerId]);
 
   useEffect(() => {
     if (user) {
@@ -219,7 +262,7 @@ export default function DashboardPage() {
         document.removeEventListener('visibilitychange', refreshOnVisibility);
       };
     }
-  }, [user]);
+  }, [user, fetchCurrentPlan, checkCheckinStatus, fetchProfile, fetchOutsideMealLogs]);
 
   // Handles scheduled meal checkoff toggles
   const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
@@ -228,8 +271,12 @@ export default function DashboardPage() {
       // Fetch plan again to sync local UI check marks and total calories
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
-        setCurrentMeals(Array.isArray(res.data.data) ? res.data.data : []);
-        setPendingReview(res.data.meta?.pendingReview ?? null);
+        applyCurrentPlan({
+          meals: Array.isArray(res.data.data) ? res.data.data : [],
+          pendingReview: res.data.meta?.pendingReview ?? null,
+          swapsUsed: res.data.meta?.swapsUsed ?? 0,
+          swapCap: res.data.meta?.swapCap ?? 3,
+        });
       }
     } catch (err) {
       console.error('[Dashboard] Status toggle failed:', err);
@@ -282,8 +329,12 @@ export default function DashboardPage() {
         setGenerationProgress(100);
         setGenerationStageMessage('Your plan is ready for review.');
         await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
-        setCurrentMeals(res.data.data.meals);
-        setPendingReview(res.data.data.pendingReview ?? null);
+        applyCurrentPlan({
+          meals: res.data.data.meals,
+          pendingReview: res.data.data.pendingReview ?? null,
+          swapsUsed: 0,
+          swapCap: 3,
+        });
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

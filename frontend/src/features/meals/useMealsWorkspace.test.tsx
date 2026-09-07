@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMealsWorkspace } from './useMealsWorkspace';
+import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 
 const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }));
 
@@ -23,6 +24,7 @@ function successfulResponseFor(url: string) {
 
 describe('useMealsWorkspace', () => {
   beforeEach(() => {
+    clearSessionResourceCache();
     getMock.mockReset();
     getMock.mockImplementation(async (url: string) => successfulResponseFor(url));
   });
@@ -52,6 +54,35 @@ describe('useMealsWorkspace', () => {
     act(() => window.dispatchEvent(new Event('focus')));
     await waitFor(() => expect(resolveRefresh).toBeTypeOf('function'));
     expect(result.current.isLoading).toBe(false);
+
+    await act(async () => {
+      resolveRefresh?.(successfulResponseFor('/user/meals/current'));
+    });
+  });
+
+  it('restores the previous plan immediately after route remount and revalidates silently', async () => {
+    getMock.mockImplementation(async (url: string) => {
+      if (url === '/user/meals/current') {
+        return { data: { success: true, data: [{ id: 'cached-meal' }], meta: {} } };
+      }
+      return successfulResponseFor(url);
+    });
+    const firstRender = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(firstRender.result.current.isLoading).toBe(false));
+    firstRender.unmount();
+
+    let resolveRefresh: ((value: ReturnType<typeof successfulResponseFor>) => void) | undefined;
+    getMock.mockImplementation((url: string) => {
+      if (url !== '/user/meals/current') return Promise.resolve(successfulResponseFor(url));
+      return new Promise((resolve) => {
+        resolveRefresh = resolve;
+      });
+    });
+
+    const secondRender = renderHook(() => useMealsWorkspace());
+    expect(secondRender.result.current.isLoading).toBe(false);
+    expect(secondRender.result.current.meals).toEqual([{ id: 'cached-meal' }]);
+    await waitFor(() => expect(resolveRefresh).toBeTypeOf('function'));
 
     await act(async () => {
       resolveRefresh?.(successfulResponseFor('/user/meals/current'));

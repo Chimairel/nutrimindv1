@@ -3,10 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import type { BillingAccessView } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export function useBillingAccess() {
-  const [data, setData] = useState<BillingAccessView | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const ownerId = user?.userId;
+  const cachedAccess = readSessionResource<BillingAccessView>(ownerId, 'user-billing-access');
+  const [data, setData] = useState<BillingAccessView | null>(cachedAccess);
+  const [isLoading, setIsLoading] = useState(!cachedAccess);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -14,6 +19,7 @@ export function useBillingAccess() {
     try {
       const response = await api.get('/billing/access');
       setData(response.data.data as BillingAccessView);
+      writeSessionResource(ownerId, 'user-billing-access', response.data.data as BillingAccessView);
       return response.data.data as BillingAccessView;
     } catch {
       setError('Billing access status is temporarily unavailable.');
@@ -21,11 +27,11 @@ export function useBillingAccess() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (ownerId) void refresh();
+  }, [ownerId, refresh]);
 
   return { data, isLoading, error, refresh };
 }

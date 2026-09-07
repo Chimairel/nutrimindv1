@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Progress from '@/components/ui/Progress';
 import axios from 'axios';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
   AlertTriangle,
   Check,
@@ -47,6 +48,11 @@ interface CurrentMealPlanResponse {
   };
 }
 
+interface GroceryPageSnapshot {
+  groceryList: GroceryList | null;
+  pendingMealCount: number;
+}
+
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
 const normalizeCategory = (category?: string) => category?.trim() || 'Other';
@@ -58,17 +64,32 @@ const getInitialExpandedCategory = (items: GroceryItem[]) => {
 
 export default function GroceryListPage() {
   const { user } = useAuth();
-  const [groceryList, setGroceryList] = useState<GroceryList | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const ownerId = user?.userId;
+  const cachedPage = readSessionResource<GroceryPageSnapshot>(ownerId, 'user-grocery-page');
+  const [groceryList, setGroceryList] = useState<GroceryList | null>(cachedPage?.groceryList ?? null);
+  const [isLoading, setIsLoading] = useState(!cachedPage);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroceryFilter>('all');
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [pendingMealCount, setPendingMealCount] = useState(0);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    cachedPage?.groceryList?.groceryItems.length
+      ? new Set([getInitialExpandedCategory(cachedPage.groceryList.groceryItems)])
+      : new Set()
+  );
+  const [pendingMealCount, setPendingMealCount] = useState(cachedPage?.pendingMealCount ?? 0);
+
+  const cachePage = useCallback(
+    (nextList: GroceryList | null, nextPendingMealCount: number) => {
+      writeSessionResource(ownerId, 'user-grocery-page', {
+        groceryList: nextList,
+        pendingMealCount: nextPendingMealCount,
+      });
+    },
+    [ownerId]
+  );
 
   // Fetches current user grocery list
-  const fetchGroceryList = async () => {
-    setIsLoading(true);
+  const fetchGroceryList = useCallback(async () => {
     setError(null);
     try {
       const [groceryRes, mealsRes] = await Promise.all([
@@ -86,6 +107,7 @@ export default function GroceryListPage() {
         // behind after a safety recheck moves the plan back into review.
         const nextList = approvedMeals.length > 0 ? ((groceryRes.data.data ?? null) as GroceryList | null) : null;
         setGroceryList(nextList);
+        cachePage(nextList, nextPendingMealCount);
         setExpandedCategories(
           nextList?.groceryItems?.length ? new Set([getInitialExpandedCategory(nextList.groceryItems)]) : new Set()
         );
@@ -99,13 +121,13 @@ export default function GroceryListPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [cachePage]);
 
   useEffect(() => {
     if (user) {
       fetchGroceryList();
     }
-  }, [user]);
+  }, [user, fetchGroceryList]);
 
   // Toggles grocery item checked status
   const handleToggleItem = async (itemId: string) => {
@@ -118,7 +140,9 @@ export default function GroceryListPage() {
       }
       return item;
     });
-    setGroceryList({ ...groceryList, groceryItems: updatedItems });
+    const nextList = { ...groceryList, groceryItems: updatedItems };
+    setGroceryList(nextList);
+    cachePage(nextList, pendingMealCount);
 
     try {
       await api.patch(`/user/grocery/items/${itemId}/toggle`);
@@ -132,16 +156,19 @@ export default function GroceryListPage() {
   const handleTogglePantry = async (itemId: string) => {
     if (!groceryList) return;
     const previous = groceryList;
-    setGroceryList({
+    const nextList = {
       ...groceryList,
       groceryItems: groceryList.groceryItems.map((item) =>
         item.id === itemId ? { ...item, isPantryStaple: !item.isPantryStaple } : item
       ),
-    });
+    };
+    setGroceryList(nextList);
+    cachePage(nextList, pendingMealCount);
     try {
       await api.patch(`/user/grocery/items/${itemId}/pantry`);
     } catch {
       setGroceryList(previous);
+      cachePage(previous, pendingMealCount);
     }
   };
 

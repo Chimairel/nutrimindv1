@@ -3440,3 +3440,28 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-162 reproduces the reported 2,780-kcal allocation and proves the three observed undersized meals are rejected. TEST-163 verifies filtering, deterministic proximity ranking, and input immutability. Strict request-schema tests cover absent, valid, malformed, and unknown regeneration input.
 - The complete root `npm run check` gate passed: architecture and formatting, lint with zero warnings, **476 registered backend tests / 475 pass / 0 fail / 1 unchanged clinical-policy TODO**, **10 frontend tests / 10 pass**, backend production compilation with 67 alias rewrites, and the Next.js production build with all 42 routes.
 - No existing plan, meal log, profile, shared-database row, Gemini request, provider request, migration, or environment value was changed during implementation or verification. Persisted undersized plans remain historical evidence until the user explicitly confirms regeneration; this change does not fabricate additional consumption or rewrite past intake.
+
+## 63. Account-scoped route data reuse (2026-09-07)
+
+**Architecture decision:** ADR-031
+
+**Defect ID:** DEF-039
+
+**Change ID:** CHG-20260907-05
+
+**Verification IDs:** TEST-164 through TEST-165
+
+**Documentation ID:** DOC-055
+
+### Defect and correction
+
+- Manual navigation testing showed a blocking `Analyzing weekly schedule` or equivalent loader whenever an authenticated user returned to a sidebar destination. Next.js was already prefetching route code, but each route component discarded its API-backed React state when unmounted and initialized its next mount as loading.
+- A memory-only session resource cache now retains recently rendered data for ten minutes, namespaced by authenticated user ID. Dashboard, Meals, Grocery, Progress, Health Profile, account Profile, and Billing initialize from that data and immediately render it while their normal API requests revalidate silently in the background.
+- Current-plan state is shared between Dashboard and Meals. Meal history and compatible-library results are keyed by their exact filters. Grocery mutations update the cached projection optimistically, and profile, progress, hydration, check-in, outside-meal, and billing state update their corresponding snapshots after successful reads or writes.
+- The cache never writes health, billing, or meal data to `localStorage`, `sessionStorage`, cookies, or disk. Login, logout, and failed authoritative session refresh clear every entry; owner-prefixed keys prevent one authenticated account from reading another account's snapshot. A browser reload or ten-minute expiry returns to the ordinary first-load behavior.
+
+### Verification and scope
+
+- TEST-164 proves owner isolation, expiry, and targeted invalidation. TEST-165 mounts the Meals workspace, caches one plan, unmounts it as route navigation would, and proves a second mount exposes that plan without a blocking loader while a deliberately delayed server revalidation remains in flight.
+- The complete root `npm run check` gate passed: architecture and formatting, backend and frontend lint with zero warnings, **476 registered backend tests / 475 pass / 0 fail / 1 unchanged clinical-policy TODO**, **13 frontend tests / 13 pass**, backend production compilation with 67 alias rewrites, and the Next.js production build with all 42 routes. The public/adversarial Chromium smoke wave also passed **2/2** after the development server was cleanly restarted following the production build.
+- This is a client rendering and request-state change only. No shared-database query or mutation, migration, Gemini request, payment/provider request, environment value, deployment, or production action was performed.

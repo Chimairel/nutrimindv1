@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Role } from '@/types';
 import { decodeToken, cookieHelper } from '@/lib/auth';
 import api from '@/lib/axios';
+import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 
 export interface UserSession {
   userId: string;
@@ -79,6 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.warn('[AuthContext] Failed to fetch live profile status, using token fallbacks.', error);
       // If we fail because we are unauthenticated, clear session
+      clearSessionResourceCache();
       setUser(null);
       return null;
     } finally {
@@ -124,6 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (token: string) => {
+    clearSessionResourceCache();
     // Save access token in cookie for the client middleware & interceptor
     // Refresh token is now stored as an HttpOnly cookie by the backend
     cookieHelper.set('nutrimind_session', token, 7);
@@ -179,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Clear client access token cache
       // Refresh token HttpOnly cookie is cleared by the backend logout endpoint
       cookieHelper.clear('nutrimind_session');
+      clearSessionResourceCache();
       setUser(null);
       setIsLoading(false);
       router.push('/login');

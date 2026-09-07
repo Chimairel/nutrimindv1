@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
 import type { SafetyProfileEntry } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export interface UserProfileData {
   id: string;
@@ -48,16 +50,19 @@ export interface UserProfileData {
 }
 
 export function useProfile() {
-  const [profile, setProfile] = useState<UserProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const ownerId = user?.userId;
+  const cachedProfile = readSessionResource<UserProfileData>(ownerId, 'user-profile');
+  const [profile, setProfile] = useState<UserProfileData | null>(cachedProfile);
+  const [isLoading, setIsLoading] = useState(!cachedProfile);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
-    setIsLoading(true);
     try {
       const res = await api.get('/user/profile');
       if (res.data?.success) {
         setProfile(res.data.data);
+        writeSessionResource(ownerId, 'user-profile', res.data.data);
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };
@@ -65,11 +70,11 @@ export function useProfile() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (ownerId) fetchProfile();
+  }, [ownerId, fetchProfile]);
 
   return { profile, isLoading, error, refresh: fetchProfile };
 }
