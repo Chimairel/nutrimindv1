@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 import api from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
-import type { SafetyProfileEntry } from '@/types';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import type { UserProfileData } from '@/hooks/useProfile';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health';
@@ -28,31 +28,7 @@ export interface DailyNutritionLog {
   logDate: string;
 }
 
-export interface ProfileDetails {
-  id: string;
-  name: string;
-  email: string;
-  userProfile?: {
-    age?: number;
-    biologicalSex?: string;
-    heightCm?: number;
-    weightKg?: number;
-    targetWeightKg?: number;
-    goal?: string;
-    dailyCalorieTarget?: number;
-    activityLevel?: string;
-    dietaryPreference?: string;
-    carbPreference?: string;
-    foodCulture?: string;
-    otherConditions?: string;
-    otherAllergies?: string;
-    shoppingDayGroup?: string;
-    shoppingDayOfWeek?: number;
-  };
-  healthConditions?: string[];
-  allergies?: string[];
-  safetyEntries?: SafetyProfileEntry[];
-}
+export type ProfileDetails = UserProfileData;
 
 export interface ProgressHistory {
   weightLogs: WeightLog[];
@@ -153,11 +129,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
       });
       if (nextProfile) writeSessionResource(ownerId, 'user-profile', nextProfile);
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to fetch progress metrics.');
-      } else {
-        setError('Failed to reach backend API.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
     } finally {
       setIsLoading(false);
     }
@@ -211,11 +183,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         writeSessionResource(ownerId, 'user-profile', profileUpdate.data.data);
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setBiometricsError(err.response?.data?.error || 'Failed to update biometrics.');
-      } else {
-        setBiometricsError('Failed to reach server.');
-      }
+      setBiometricsError(getApiErrorMessage(err, 'Failed to update biometrics.'));
     } finally {
       setIsSavingBiometrics(false);
     }
@@ -266,11 +234,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         }
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setWeightFormError(err.response?.data?.error || 'Failed to log weight.');
-      } else {
-        setWeightFormError('Failed to reach server.');
-      }
+      setWeightFormError(getApiErrorMessage(err, 'Failed to log weight.'));
     } finally {
       setIsSubmittingWeight(false);
     }

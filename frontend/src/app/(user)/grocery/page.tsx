@@ -4,11 +4,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Progress from '@/components/ui/Progress';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
   AlertTriangle,
@@ -113,11 +113,7 @@ export default function GroceryListPage() {
         );
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to retrieve grocery list.');
-      } else {
-        setError('Failed to contact backend API.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
     } finally {
       setIsLoading(false);
     }
@@ -192,11 +188,7 @@ export default function GroceryListPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <PortalLoadingState message="Preparing grocery list..." />;
   }
 
   const getGroupedItems = () => {

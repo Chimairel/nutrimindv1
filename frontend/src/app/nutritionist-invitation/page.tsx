@@ -3,7 +3,7 @@
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import AuthShell from '@/components/auth/AuthShell';
 import Button from '@/components/ui/Button';
@@ -33,11 +33,7 @@ function InvitationForm() {
       await api.post('/nutritionist-applications/activate', { token, password });
       setSuccess(true);
     } catch (caught) {
-      setError(
-        axios.isAxiosError(caught)
-          ? caught.response?.data?.error || 'Account activation failed.'
-          : 'Account activation failed.'
-      );
+      setError(getApiErrorMessage(caught, 'Account activation failed.'));
     } finally {
       setIsLoading(false);
     }

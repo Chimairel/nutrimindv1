@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import api from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export interface QueueItem {
   id: string;
@@ -91,9 +91,6 @@ export interface ReviewPayload {
   };
 }
 
-const getApiError = (error: unknown, fallback: string) =>
-  axios.isAxiosError(error) ? error.response?.data?.error || fallback : fallback;
-
 export type ReviewEditForm = {
   mealName: string;
   description: string;
@@ -175,7 +172,7 @@ export function useNutritionistReviews() {
       }
     } catch (err: unknown) {
       console.error('Failed to fetch card details:', err);
-      setErrorMsg(getApiError(err, 'Failed to load meal card details.'));
+      setErrorMsg(getApiErrorMessage(err, 'Failed to load meal card details.'));
     } finally {
       setDetailLoading(false);
     }
@@ -211,7 +208,7 @@ export function useNutritionistReviews() {
       setIsEditing(false);
     } catch (err: unknown) {
       console.error('Approve failed:', err);
-      setErrorMsg(getApiError(err, 'Approval failed. Please refresh the queue.'));
+      setErrorMsg(getApiErrorMessage(err, 'Approval failed. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }
@@ -234,7 +231,7 @@ export function useNutritionistReviews() {
       setRejectNote('');
     } catch (err: unknown) {
       console.error('Reject failed:', err);
-      setErrorMsg(getApiError(err, 'Rejection failed. Please refresh the queue.'));
+      setErrorMsg(getApiErrorMessage(err, 'Rejection failed. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }

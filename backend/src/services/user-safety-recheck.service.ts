@@ -288,6 +288,16 @@ export class UserSafetyRecheckService {
         const minUsage = Math.min(...rotationPool.map((candidate) => candidate.usageCount));
         const candidates = rotationPool.filter((candidate) => candidate.usageCount === minUsage);
         const selectedLibraryMeal = candidates[Math.floor(Math.random() * candidates.length)];
+        const replacementLogData = {
+          source: MealLogSource.SAFETY_REPLACED,
+          mealName: selectedLibraryMeal.mealName,
+          calories: selectedLibraryMeal.calories,
+          proteinG: selectedLibraryMeal.proteinG,
+          carbsG: selectedLibraryMeal.carbsG,
+          fatG: selectedLibraryMeal.fatG,
+          dataSource: MealLogDataSource.FNRI,
+          status: MealLogStatus.PENDING,
+        };
 
         await prisma.$transaction(async (tx) => {
           await tx.mealPlan.update({
@@ -329,27 +339,11 @@ export class UserSafetyRecheckService {
           });
           await tx.mealLog.upsert({
             where: { mealPlanId: meal.id },
-            update: {
-              source: MealLogSource.SAFETY_REPLACED,
-              mealName: selectedLibraryMeal.mealName,
-              calories: selectedLibraryMeal.calories,
-              proteinG: selectedLibraryMeal.proteinG,
-              carbsG: selectedLibraryMeal.carbsG,
-              fatG: selectedLibraryMeal.fatG,
-              dataSource: MealLogDataSource.FNRI,
-              status: MealLogStatus.PENDING,
-            },
+            update: replacementLogData,
             create: {
               userId,
               mealPlanId: meal.id,
-              source: MealLogSource.SAFETY_REPLACED,
-              mealName: selectedLibraryMeal.mealName,
-              calories: selectedLibraryMeal.calories,
-              proteinG: selectedLibraryMeal.proteinG,
-              carbsG: selectedLibraryMeal.carbsG,
-              fatG: selectedLibraryMeal.fatG,
-              dataSource: MealLogDataSource.FNRI,
-              status: MealLogStatus.PENDING,
+              ...replacementLogData,
             },
           });
         });
@@ -373,6 +367,16 @@ export class UserSafetyRecheckService {
 
         try {
           const replacement = await generateGenerativeJSON<any>(prompt, systemInstruction);
+          const replacementLogData = {
+            source: MealLogSource.SAFETY_REPLACED,
+            mealName: replacement.mealName,
+            calories: parseFloat(replacement.calories || 0),
+            proteinG: parseFloat(replacement.proteinG || 0),
+            carbsG: parseFloat(replacement.carbsG || 0),
+            fatG: parseFloat(replacement.fatG || 0),
+            dataSource: MealLogDataSource.GEMINI_ESTIMATED,
+            status: MealLogStatus.PENDING,
+          };
 
           await prisma.$transaction(async (tx) => {
             // Update MealPlan slot
@@ -418,27 +422,11 @@ export class UserSafetyRecheckService {
 
             await tx.mealLog.upsert({
               where: { mealPlanId: meal.id },
-              update: {
-                source: MealLogSource.SAFETY_REPLACED,
-                mealName: replacement.mealName,
-                calories: parseFloat(replacement.calories || 0),
-                proteinG: parseFloat(replacement.proteinG || 0),
-                carbsG: parseFloat(replacement.carbsG || 0),
-                fatG: parseFloat(replacement.fatG || 0),
-                dataSource: MealLogDataSource.GEMINI_ESTIMATED,
-                status: MealLogStatus.PENDING,
-              },
+              update: replacementLogData,
               create: {
                 userId,
                 mealPlanId: meal.id,
-                source: MealLogSource.SAFETY_REPLACED,
-                mealName: replacement.mealName,
-                calories: parseFloat(replacement.calories || 0),
-                proteinG: parseFloat(replacement.proteinG || 0),
-                carbsG: parseFloat(replacement.carbsG || 0),
-                fatG: parseFloat(replacement.fatG || 0),
-                dataSource: MealLogDataSource.GEMINI_ESTIMATED,
-                status: MealLogStatus.PENDING,
+                ...replacementLogData,
               },
             });
           });

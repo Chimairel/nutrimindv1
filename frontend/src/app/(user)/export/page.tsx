@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Button from '@/components/ui/Button';
-import axios from 'axios';
 import { AlertTriangle, ArrowLeft, Ban, CheckCircle, Download, GlassWater } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { hasSameRestrictionContext, normalizeRestrictionContext } from '@/lib/restriction-context';
 
 interface MealPlan {
   id: string;
@@ -51,20 +52,6 @@ interface ProfileDetails {
   healthConditions?: string[];
   allergies?: string[];
 }
-
-const normalizeContext = (values: string[] | undefined) =>
-  Array.from(
-    new Set((values || []).map((value) => value.trim().toUpperCase()).filter((value) => value && value !== 'NONE'))
-  ).sort();
-
-const hasSameContext = (left: string[] | undefined, right: string[] | undefined) => {
-  const normalizedLeft = normalizeContext(left);
-  const normalizedRight = normalizeContext(right);
-  return (
-    normalizedLeft.length === normalizedRight.length &&
-    normalizedLeft.every((value, index) => value === normalizedRight[index])
-  );
-};
 
 export default function NutritionExportPage() {
   const { user } = useAuth();
@@ -118,11 +105,7 @@ export default function NutritionExportPage() {
         );
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to load clinical datasets.');
-      } else {
-        setError('Failed to reach backend server.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to load clinical datasets.'));
     } finally {
       setIsLoading(false);
     }
@@ -135,16 +118,7 @@ export default function NutritionExportPage() {
   }, [user]);
 
   if (isLoading) {
-    return (
-      <div className="flex h-[70vh] items-center justify-center bg-[#0d1b15] text-brand-text">
-        <div className="flex flex-col items-center gap-3">
-          <LoadingSpinner size="lg" />
-          <p className="text-xs font-semibold tracking-widest text-brand-green uppercase animate-pulse">
-            Preparing Nutrition Summary...
-          </p>
-        </div>
-      </div>
-    );
+    return <PortalLoadingState className="bg-[#0d1b15]" message="Preparing Nutrition Summary..." />;
   }
 
   if (error) {
@@ -191,10 +165,11 @@ export default function NutritionExportPage() {
 
   const groupedDays = getGroupedDays();
   const profile = profileData?.userProfile || {};
-  const conditions = normalizeContext(profileData?.healthConditions);
-  const allergies = normalizeContext(profileData?.allergies);
+  const conditions = normalizeRestrictionContext(profileData?.healthConditions);
+  const allergies = normalizeRestrictionContext(profileData?.allergies);
   const isReportCurrent = reportData
-    ? hasSameContext(reportData.basedOnConditions, conditions) && hasSameContext(reportData.basedOnAllergies, allergies)
+    ? hasSameRestrictionContext(reportData.basedOnConditions, conditions) &&
+      hasSameRestrictionContext(reportData.basedOnAllergies, allergies)
     : false;
 
   return (

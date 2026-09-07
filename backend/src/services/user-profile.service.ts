@@ -24,6 +24,25 @@ interface ProfileUpdateData {
   foodCulture?: string;
 }
 
+type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
+type OnboardingEvaluationUser = Omit<OnboardingEvaluationInput, 'profile' | 'conditions' | 'allergies'> & {
+  userProfile: OnboardingEvaluationInput['profile'];
+  healthConditions: Array<{ condition: string }>;
+  allergies: Array<{ allergen: string }>;
+};
+
+function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
+  return evaluateOnboardingStatus({
+    onboardingDone: user.onboardingDone,
+    tosAccepted: user.tosAccepted,
+    acceptedTermsVersion: user.acceptedTermsVersion,
+    acceptedPrivacyVersion: user.acceptedPrivacyVersion,
+    profile: user.userProfile,
+    conditions: user.healthConditions.map((item) => item.condition),
+    allergies: user.allergies.map((item) => item.allergen),
+  });
+}
+
 export class UserProfileService {
   static async updateUserProfile(userId: string, data: ProfileUpdateData) {
     const safeData: ProfileUpdateData = {};
@@ -128,15 +147,7 @@ export class UserProfileService {
       throw new Error('User profile must be initialized before completing onboarding.');
     }
 
-    const onboardingStatus = evaluateOnboardingStatus({
-      onboardingDone: user.onboardingDone,
-      tosAccepted: user.tosAccepted,
-      acceptedTermsVersion: user.acceptedTermsVersion,
-      acceptedPrivacyVersion: user.acceptedPrivacyVersion,
-      profile: user.userProfile,
-      conditions: user.healthConditions.map((item) => item.condition),
-      allergies: user.allergies.map((item) => item.allergen),
-    });
+    const onboardingStatus = evaluateUserOnboardingStatus(user);
     if (!onboardingStatus.readyToComplete) {
       throw new Error(`Onboarding is incomplete. Continue at ${onboardingStatus.nextPath}.`);
     }
@@ -244,15 +255,7 @@ export class UserProfileService {
       return null;
     }
 
-    const onboardingStatus = evaluateOnboardingStatus({
-      onboardingDone: user.onboardingDone,
-      tosAccepted: user.tosAccepted,
-      acceptedTermsVersion: user.acceptedTermsVersion,
-      acceptedPrivacyVersion: user.acceptedPrivacyVersion,
-      profile: user.userProfile,
-      conditions: user.healthConditions.map((item) => item.condition),
-      allergies: user.allergies.map((item) => item.allergen),
-    });
+    const onboardingStatus = evaluateUserOnboardingStatus(user);
 
     // Transform into clean structure for client
     return {

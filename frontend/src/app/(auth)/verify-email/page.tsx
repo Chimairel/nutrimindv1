@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import AuthShell from '@/components/auth/AuthShell';
 import { AlertTriangle, CheckCircle2, LogOut, Mail } from 'lucide-react';
 
@@ -54,8 +55,7 @@ export default function VerifyEmailPage() {
           }, 1500);
         }
       } catch (err: unknown) {
-        const axiosErr = err as { response?: { data?: { error?: string } } };
-        setError(axiosErr.response?.data?.error || 'Verification failed. Please try again.');
+        setError(getApiErrorMessage(err, 'Verification failed. Please try again.'));
         setOtp(Array(6).fill(''));
         inputRefs.current[0]?.focus();
       } finally {
@@ -116,8 +116,7 @@ export default function VerifyEmailPage() {
       setResendCooldown(60);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      setError(axiosErr.response?.data?.error || 'Failed to resend code.');
+      setError(getApiErrorMessage(err, 'Failed to resend code.'));
     }
   };
 

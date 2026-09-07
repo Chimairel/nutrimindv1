@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Stethoscope } from 'lucide-react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { NutritionistApplicationCard } from '@/features/admin-nutritionists/NutritionistApplicationCard';
 import { ProfessionalGrid } from '@/features/admin-nutritionists/ProfessionalGrid';
 import type {
@@ -75,11 +76,7 @@ export default function AdminNutritionistsPage() {
   const verified = nutritionists.filter((item) => item.isVerified);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <span className="animate-pulse text-brand-muted">Loading professional governance records...</span>
-      </div>
-    );
+    return <PortalLoadingState message="Loading professional governance records..." />;
   }
 
   const applicationCards = (items: NutritionistApplication[]) =>
@@ -206,5 +203,5 @@ function ApplicationSection({
 }
 
 function getAdminApplicationError(caught: unknown, fallback: string) {
-  return axios.isAxiosError(caught) ? caught.response?.data?.error || fallback : fallback;
+  return getApiErrorMessage(caught, fallback);
 }

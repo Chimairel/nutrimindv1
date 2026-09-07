@@ -2,14 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import AuthShell from '@/components/auth/AuthShell';
 import {
   getRegistrationFieldErrors,
@@ -66,11 +65,7 @@ export default function RegisterPage() {
         setError(response.data.error || 'Failed to complete registration.');
       }
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'An error occurred during account creation. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'An error occurred during account creation. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -99,22 +94,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <GoogleSignInButton label="signup_with" />
-
-      <div className="my-5 flex items-center gap-4">
-        <div className="h-px flex-1 bg-brand-border/70" />
-        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-muted">
-          or use email
-        </span>
-        <div className="h-px flex-1 bg-brand-border/70" />
-      </div>
-
-      {error && (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span className="leading-5">{error}</span>
-        </div>
-      )}
+      <AuthFormPrelude googleLabel="signup_with" error={error} compact />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

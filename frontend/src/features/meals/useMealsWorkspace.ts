@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import type { MealPlan } from '@/types';
+import type { MealPlan, PublicVerifier } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 
 export interface SwapOption {
   id: string;
@@ -19,16 +20,6 @@ export interface SwapOption {
   verifiedBy: string;
   prcLicenseNumber: string;
   verifier?: PublicVerifier | null;
-}
-
-export interface PublicVerifier {
-  name: string;
-  prcLicenseNumber: string;
-  prcLicenseExpiry: string;
-  specialization?: string | null;
-  yearsOfExperience?: number | null;
-  university?: string | null;
-  bio?: string | null;
 }
 
 export interface MealHistoryLog {
@@ -76,6 +67,7 @@ export function useMealsWorkspace() {
   const [meals, setMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [isLoading, setIsLoading] = useState(!cachedPlan);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
@@ -150,11 +142,7 @@ export function useMealsWorkspace() {
         });
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to fetch weekly plan menu.');
-      } else {
-        setError('Failed to reach backend API.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
     } finally {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
@@ -182,11 +170,7 @@ export function useMealsWorkspace() {
         }
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setHistoryError(err.response?.data?.error || 'Failed to fetch meal history.');
-      } else {
-        setHistoryError('Failed to fetch meal history.');
-      }
+      setHistoryError(getApiErrorMessage(err, 'Failed to fetch meal history.'));
     } finally {
       setIsHistoryLoading(false);
     }
@@ -212,11 +196,7 @@ export function useMealsWorkspace() {
         }
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setLibraryError(err.response?.data?.error || 'Failed to load library meals.');
-      } else {
-        setLibraryError('Failed to load library meals.');
-      }
+      setLibraryError(getApiErrorMessage(err, 'Failed to load library meals.'));
     } finally {
       setIsLibraryLoading(false);
     }
@@ -311,11 +291,7 @@ export function useMealsWorkspace() {
         setSwapCap(res.data.data.swapCap ?? 3);
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setSwapOptionsError(err.response?.data?.error || 'Failed to load eligible swap options.');
-      } else {
-        setSwapOptionsError('Failed to load eligible swap options.');
-      }
+      setSwapOptionsError(getApiErrorMessage(err, 'Failed to load eligible swap options.'));
     } finally {
       setIsOptionsLoading(false);
     }
@@ -358,11 +334,7 @@ export function useMealsWorkspace() {
         }
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setPreviewError(err.response?.data?.error || 'Failed to check swap preview.');
-      } else {
-        setPreviewError('Failed to check swap preview.');
-      }
+      setPreviewError(getApiErrorMessage(err, 'Failed to check swap preview.'));
     } finally {
       setIsCheckingPreview(false);
       setIsSwapping(false);
@@ -394,11 +366,7 @@ export function useMealsWorkspace() {
         await fetchMeals();
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setSwapOptionsError(err.response?.data?.error || 'Failed to complete swap.');
-      } else {
-        setSwapOptionsError('Failed to complete swap.');
-      }
+      setSwapOptionsError(getApiErrorMessage(err, 'Failed to complete swap.'));
     } finally {
       setIsSwapping(false);
     }
@@ -433,10 +401,12 @@ export function useMealsWorkspace() {
     }
 
     setIsRegenerating(true);
+    regenerationProgress.begin('Preparing a replacement weekly plan.');
     setError(null);
     try {
       const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
       if (res.data && res.data.success) {
+        regenerationProgress.complete('Your replacement plan is ready for review.');
         applyCurrentPlan({
           meals: res.data.data.meals,
           pendingReview: res.data.data.pendingReview ?? null,
@@ -445,11 +415,7 @@ export function useMealsWorkspace() {
         });
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Gemini failed to regenerate weekly plan.');
-      } else {
-        setError('Regeneration failed.');
-      }
+      setError(getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.'));
     } finally {
       setIsRegenerating(false);
     }
@@ -605,6 +571,7 @@ export function useMealsWorkspace() {
     meals,
     isLoading,
     isRegenerating,
+    regenerationProgress,
     error,
     pendingReview,
     selectedPlanDateKey,

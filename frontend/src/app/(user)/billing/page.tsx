@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import axios from 'axios';
 import { ArrowRight, CalendarClock, Check, Crown, RefreshCw, Repeat2, ShieldCheck, Sparkles } from 'lucide-react';
 import api from '@/lib/axios';
 import {
@@ -13,22 +12,10 @@ import { useBillingAccess } from '@/hooks/useBillingAccess';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-
-const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat('en-PH', {
-    timeZone: 'Asia/Manila',
-    dateStyle: 'long',
-    timeStyle: 'short',
-  }).format(new Date(value));
-
-const formatMoney = (amountMinor: number) =>
-  new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    minimumFractionDigits: 2,
-  }).format(amountMinor / 100);
+import { getApiErrorCode } from '@/lib/api-error';
+import { formatPhpMinor as formatMoney, formatPhilippineDateTime as formatDateTime } from '@/lib/formatters';
 
 export default function BillingPage() {
   const { data, isLoading, error, refresh } = useBillingAccess();
@@ -52,7 +39,7 @@ export default function BillingPage() {
       const checkoutUrl = validateHostedCheckoutUrl(response.data?.data?.checkoutUrl);
       window.location.assign(checkoutUrl);
     } catch (caught: unknown) {
-      const code = axios.isAxiosError(caught) ? caught.response?.data?.errorCode : null;
+      const code = getApiErrorCode(caught);
       if (code === 'CHECKOUT_PROVIDER_REJECTED' || code === 'CHECKOUT_REQUEST_INVALID') {
         clearPremiumCheckoutAttemptKey();
       }
@@ -69,11 +56,7 @@ export default function BillingPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center" aria-label="Loading billing access">
-        <LoadingSpinner />
-      </div>
-    );
+    return <PortalLoadingState message="Loading billing access..." />;
   }
 
   if (error || !data) {

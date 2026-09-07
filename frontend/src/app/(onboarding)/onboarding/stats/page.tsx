@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import { Goal, ActivityLevel } from '@/types';
 import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -162,11 +162,7 @@ export default function OnboardingStatsPage() {
       // Advance to step 2: Preferences
       router.push('/onboarding/preferences');
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to save stats. Please verify your connection.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to save stats. Please verify your connection.'));
     } finally {
       setIsLoading(false);
     }

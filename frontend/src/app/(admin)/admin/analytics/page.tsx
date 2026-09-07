@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
@@ -15,22 +15,10 @@ import {
   UtensilsCrossed,
   Users,
 } from 'lucide-react';
-import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-
-interface Analytics {
-  totalUsers: number;
-  totalNutritionists: number;
-  verifiedNutritionists: number;
-  activeMealPlans: number;
-  pendingReviews: number;
-  libraryCount: number;
-  totalMealLogs: number;
-  totalFoodItems: number;
-  totalAliases: number;
-}
+import { useAdminAnalytics } from '@/features/admin-analytics/useAdminAnalytics';
 interface Metric {
   label: string;
   value: number;
@@ -54,29 +42,9 @@ const MetricCard = ({ metric }: { metric: Metric }) => {
 };
 
 export default function AdminAnalyticsPage() {
-  const [data, setData] = useState<Analytics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, isLoading } = useAdminAnalytics();
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get('/admin/analytics');
-        if (response.data?.success) setData(response.data.data);
-      } catch (error) {
-        console.error('Failed to fetch analytics:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAnalytics();
-  }, []);
-
-  if (isLoading)
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+  if (isLoading) return <PortalLoadingState message="Loading analytics..." />;
   if (!data) return <div className="mt-20 text-center text-brand-muted">Failed to load analytics data.</div>;
 
   const verificationRate =

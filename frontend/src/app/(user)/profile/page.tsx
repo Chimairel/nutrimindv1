@@ -9,7 +9,7 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
 import api from '@/lib/axios';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { User, Lock, CheckCircle, AlertTriangle, LogOut, Mail, Palette, ShieldCheck, Trash2 } from 'lucide-react';
 
 type ProfilePanel = 'account' | 'security' | 'avatar' | 'privacy';
@@ -58,11 +58,7 @@ export default function ProfilePage() {
       });
       await logout();
     } catch (error: unknown) {
-      setDeletionError(
-        axios.isAxiosError(error)
-          ? error.response?.data?.error || 'Account deletion failed.'
-          : 'Account deletion failed.'
-      );
+      setDeletionError(getApiErrorMessage(error, 'Account deletion failed.'));
     } finally {
       setIsDeleting(false);
     }
@@ -107,11 +103,7 @@ export default function ProfilePage() {
         });
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setAccountError(err.response?.data?.error || 'Failed to update account settings.');
-      } else {
-        setAccountError('Failed to update account settings.');
-      }
+      setAccountError(getApiErrorMessage(err, 'Failed to update account settings.'));
     } finally {
       setIsSavingAccount(false);
     }
@@ -142,11 +134,7 @@ export default function ProfilePage() {
         setConfirmPassword('');
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setPasswordError(err.response?.data?.error || 'Failed to update password.');
-      } else {
-        setPasswordError('Failed to update password.');
-      }
+      setPasswordError(getApiErrorMessage(err, 'Failed to update password.'));
     } finally {
       setIsUpdatingPassword(false);
     }

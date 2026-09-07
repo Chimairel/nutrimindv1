@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import { AlertTriangle, CheckCircle2, Plus, X } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import type { SafetyEntryDomain, SafetyProfileEntry, SafetySupportState } from '@/types';
 import type { SafetyInputValue } from '@/lib/safety-intake';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface CatalogueItem {
   code: string;
@@ -152,11 +152,7 @@ export default function StructuredSafetyIntake({
       );
       setConfirmed(false);
     } catch (caught: unknown) {
-      setError(
-        axios.isAxiosError(caught)
-          ? caught.response?.data?.error || 'Unable to review these entries.'
-          : 'Unable to review these entries.'
-      );
+      setError(getApiErrorMessage(caught, 'Unable to review these entries.'));
     } finally {
       setIsBusy(false);
     }
@@ -170,11 +166,7 @@ export default function StructuredSafetyIntake({
       const response = await api.post('/user/onboarding/safety', { entries: inputs, confirmed: true });
       await onSaved(response.data.data.entries, response.data.data.changed);
     } catch (caught: unknown) {
-      setError(
-        axios.isAxiosError(caught)
-          ? caught.response?.data?.error || 'Unable to save these entries.'
-          : 'Unable to save these entries.'
-      );
+      setError(getApiErrorMessage(caught, 'Unable to save these entries.'));
     } finally {
       setIsBusy(false);
     }

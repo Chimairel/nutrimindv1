@@ -8,10 +8,11 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { NutritionReport } from '@/types';
-import axios from 'axios';
 import { AlertTriangle, ClipboardList, Download, XCircle, Check, Droplet } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { hasSameRestrictionContext } from '@/lib/restriction-context';
 
 export default function NutritionReportPage() {
   const router = useRouter();
@@ -62,25 +63,6 @@ export default function NutritionReportPage() {
       .filter((value) => value && value !== 'NONE');
   };
 
-  const normalizeContext = (values: unknown) =>
-    Array.from(
-      new Set(
-        (Array.isArray(values) ? values : [])
-          .filter((value): value is string => typeof value === 'string')
-          .map((value) => value.trim().toUpperCase())
-          .filter((value) => value && value !== 'NONE')
-      )
-    ).sort();
-
-  const hasSameContext = (left: unknown, right: unknown) => {
-    const normalizedLeft = normalizeContext(left);
-    const normalizedRight = normalizeContext(right);
-    return (
-      normalizedLeft.length === normalizedRight.length &&
-      normalizedLeft.every((value, index) => value === normalizedRight[index])
-    );
-  };
-
   useEffect(() => {
     const fetchReport = async () => {
       setIsLoading(true);
@@ -114,13 +96,7 @@ export default function NutritionReportPage() {
           }
         }
       } catch (err) {
-        if (axios.isAxiosError(err)) {
-          setError(
-            err.response?.data?.error || 'Unable to load your customized report. Please verify your connection.'
-          );
-        } else {
-          setError('An unexpected error occurred. Please try again.');
-        }
+        setError(getApiErrorMessage(err, 'Unable to load your customized report. Please verify your connection.'));
       } finally {
         setIsLoading(false);
       }
@@ -142,11 +118,7 @@ export default function NutritionReportPage() {
       // Proceed to the dashboard
       router.push('/dashboard');
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to acknowledge the report. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to acknowledge the report. Please try again.'));
     } finally {
       setIsAcknowledging(false);
     }
@@ -162,11 +134,7 @@ export default function NutritionReportPage() {
       }
       setReport(response.data.data);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Unable to regenerate your report. Please try again.');
-      } else {
-        setError('Unable to regenerate your report. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'Unable to regenerate your report. Please try again.'));
     } finally {
       setIsRegenerating(false);
     }
@@ -193,16 +161,7 @@ export default function NutritionReportPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <LoadingSpinner size="lg" />
-          <p className="text-sm text-brand-muted animate-pulse font-display font-semibold">
-            Analyzing metrics & compiling standard FNRI data...
-          </p>
-        </div>
-      </div>
-    );
+    return <PortalLoadingState fullScreen message="Analyzing metrics & compiling standard FNRI data..." />;
   }
 
   if (!report) {
@@ -221,8 +180,8 @@ export default function NutritionReportPage() {
   }
 
   const reportMatchesCurrentProfile = profileData
-    ? hasSameContext(report.basedOnConditions, profileData.conditions) &&
-      hasSameContext(report.basedOnAllergies, profileData.allergies)
+    ? hasSameRestrictionContext(report.basedOnConditions, profileData.conditions) &&
+      hasSameRestrictionContext(report.basedOnAllergies, profileData.allergies)
     : false;
 
   if (!reportMatchesCurrentProfile) {

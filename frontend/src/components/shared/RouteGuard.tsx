@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -93,22 +93,14 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
   // Render a full-screen loading spinner while the status is being resolved
   if (isLoading || redirectTarget) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-brand-bg">
-        <LoadingSpinner />
-      </div>
-    );
+    return <PortalLoadingState fullScreen />;
   }
 
   // Double-check authorization matching before rendering sensitive components
   const isProtectedPath = !isPublicRoute;
 
   if (isProtectedPath && !user) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-brand-bg">
-        <LoadingSpinner />
-      </div>
-    );
+    return <PortalLoadingState fullScreen />;
   }
 
   return <>{children}</>;

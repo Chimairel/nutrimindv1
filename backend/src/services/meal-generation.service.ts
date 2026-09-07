@@ -38,7 +38,7 @@ import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
-import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { isMealWithinSlotCalorieRange, rankCalorieCompatibleMeals } from '@/domain/meal-calorie-allocation.policy';
 
 interface GeneratedMeal {
@@ -312,32 +312,18 @@ export class MealGenerationService {
       'Applying your goals, preferences, and health safeguards.'
     );
     // 1. Fetch live user details, profile, conditions, and allergies
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        userProfile: true,
-        healthConditions: true,
-        allergies: true,
-        safetyProfileEntries: true,
-      },
-    });
-
-    if (!user || !user.userProfile) {
-      throw new Error('User profile must be initialized before generating a meal plan.');
-    }
-
-    const profile = user.userProfile;
-    const safetyRestrictions = adaptUserSafetyRestrictions({
-      safetyEntries: user.safetyProfileEntries,
-      healthConditions: user.healthConditions.map((item) => item.condition),
-      allergies: user.allergies.map((item) => item.allergen),
-      otherConditions: profile.otherConditions,
-      otherAllergies: profile.otherAllergies,
-    });
-    const userConditions = safetyRestrictions.conditions;
-    const userAllergens = safetyRestrictions.allergies;
-    const otherConditions = safetyRestrictions.customConditions.join(', ');
-    const otherAllergies = safetyRestrictions.customFoodRestrictions.join(', ');
+    const {
+      profile,
+      safetyRestrictions,
+      conditions: userConditions,
+      allergens: userAllergens,
+      otherConditions,
+      otherAllergies,
+    } = await loadUserNutritionContext(
+      prisma,
+      userId,
+      'User profile must be initialized before generating a meal plan.'
+    );
     const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
 
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;

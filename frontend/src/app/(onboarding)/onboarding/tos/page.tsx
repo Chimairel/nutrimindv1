@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import Checkbox from '@/components/ui/Checkbox';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
 import type { SafetyProfileEntry } from '@/types';
@@ -144,11 +144,7 @@ export default function OnboardingTosPage() {
       // 4. Redirect to the newly generated Nutrition Report screen
       router.push('/nutrition-report');
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'An error occurred while finalizing onboarding. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
     } finally {
       setIsLoading(false);
     }

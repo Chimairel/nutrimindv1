@@ -20,6 +20,7 @@ import {
 } from '@/domain/structured-restriction.adapter';
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
+import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 
 export class SwapLimitReachedError extends Error {
   readonly code = 'WEEKLY_SWAP_LIMIT_REACHED';
@@ -31,6 +32,21 @@ export class SwapLimitReachedError extends Error {
 }
 
 type SwapReservationClient = Pick<Prisma.TransactionClient, 'planSwapTracker'>;
+type SwapMealReadClient = Pick<Prisma.TransactionClient, 'mealPlan'>;
+
+async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId: string, mealPlanId: string) {
+  const mealPlan = await client.mealPlan.findFirst({
+    where: getOwnedMealPlanWhere(userId, mealPlanId),
+    include: { mealLogs: { where: { userId } } },
+  });
+  if (!mealPlan) throw new Error('Meal plan slot not found.');
+
+  assertUserActionableMealPlan(mealPlan);
+  if (mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED')) {
+    throw new Error('Cannot swap a meal that has already been eaten or skipped.');
+  }
+  return mealPlan;
+}
 
 export async function reserveWeeklySwap(
   transaction: SwapReservationClient,
@@ -58,6 +74,34 @@ export const certifiedLibraryMealInclude = {
     include: { user: { select: { name: true } } },
   },
 } as const;
+
+type CertifiedLibraryMeal = Prisma.MealLibraryGetPayload<{ include: typeof certifiedLibraryMealInclude }>;
+
+export function toPublicSwapOption(meal: CertifiedLibraryMeal) {
+  return {
+    id: meal.id,
+    mealName: meal.mealName,
+    description: meal.description,
+    mealType: meal.mealType,
+    calories: meal.calories,
+    proteinG: meal.proteinG,
+    carbsG: meal.carbsG,
+    fatG: meal.fatG,
+    verifiedBy: meal.verifiedByNutritionist?.user.name || 'System',
+    prcLicenseNumber: meal.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
+    verifier: meal.verifiedByNutritionist
+      ? {
+          name: meal.verifiedByNutritionist.user.name,
+          prcLicenseNumber: meal.verifiedByNutritionist.prcLicenseNumber,
+          prcLicenseExpiry: meal.verifiedByNutritionist.prcLicenseExpiry,
+          specialization: meal.verifiedByNutritionist.specialization,
+          yearsOfExperience: meal.verifiedByNutritionist.yearsOfExperience,
+          university: meal.verifiedByNutritionist.university,
+          bio: meal.verifiedByNutritionist.bio,
+        }
+      : null,
+  };
+}
 
 export type UserCompatibilityProfile = {
   dietaryPreference: string | null;
@@ -112,42 +156,11 @@ export class MealSwapService {
    */
   static async getEligibleSwapOptions(userId: string, mealPlanId: string) {
     // 1. Fetch the target meal plan slot
-    const mealPlan = await prisma.mealPlan.findFirst({
-      where: getOwnedMealPlanWhere(userId, mealPlanId),
-      include: {
-        mealLogs: {
-          where: { userId },
-        },
-      },
-    });
-
-    if (!mealPlan) {
-      throw new Error('Meal plan slot not found.');
-    }
-    assertUserActionableMealPlan(mealPlan);
-
-    // Check if slot has already been logged as DONE or SKIPPED
-    const isLogged = mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED');
-    if (isLogged) {
-      throw new Error('Cannot swap a meal that has already been eaten or skipped.');
-    }
+    const mealPlan = await loadActionableUnloggedMealPlan(prisma, userId, mealPlanId);
 
     // 2. Fetch user profile, health conditions, and allergies
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        userProfile: true,
-        healthConditions: true,
-        allergies: true,
-        safetyProfileEntries: true,
-      },
-    });
-
-    if (!user || !user.userProfile) {
-      throw new Error('User profile not found.');
-    }
-
-    const { userProfile, healthConditions, allergies } = user;
+    const { user, profile: userProfile } = await loadUserNutritionContext(prisma, userId, 'User profile not found.');
+    const { healthConditions, allergies } = user;
     const userConditions = healthConditions.map((c) => c.condition);
     const userAllergens = allergies.map((a) => a.allergen);
 
@@ -203,29 +216,7 @@ export class MealSwapService {
     );
 
     return {
-      swapOptions: eligibleMeals.map((m) => ({
-        id: m.id,
-        mealName: m.mealName,
-        description: m.description,
-        mealType: m.mealType,
-        calories: m.calories,
-        proteinG: m.proteinG,
-        carbsG: m.carbsG,
-        fatG: m.fatG,
-        verifiedBy: m.verifiedByNutritionist?.user.name || 'System',
-        prcLicenseNumber: m.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
-        verifier: m.verifiedByNutritionist
-          ? {
-              name: m.verifiedByNutritionist.user.name,
-              prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
-              prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
-              specialization: m.verifiedByNutritionist.specialization,
-              yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
-              university: m.verifiedByNutritionist.university,
-              bio: m.verifiedByNutritionist.bio,
-            }
-          : null,
-      })),
+      swapOptions: eligibleMeals.map(toPublicSwapOption),
       swapsUsed: swapTracker.swapsUsed,
       swapCap,
     };
@@ -252,17 +243,13 @@ export class MealSwapService {
       throw new Error('Selected replacement meal is not available or approved.');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
-    });
-    if (!user?.userProfile) throw new Error('User profile not found.');
+    const { user, profile: userProfile } = await loadUserNutritionContext(prisma, userId, 'User profile not found.');
     if (
       !isCertifiedLibraryMealCompatible(
         libraryMeal,
         user.healthConditions.map((item) => item.condition),
         user.allergies.map((item) => item.allergen),
-        { ...user.userProfile, safetyEntries: user.safetyProfileEntries }
+        { ...userProfile, safetyEntries: user.safetyProfileEntries }
       )
     ) {
       throw new Error('Selected replacement meal is not certified for your current health profile.');
@@ -327,42 +314,11 @@ export class MealSwapService {
   ) {
     const swapResult = await prisma.$transaction(async (tx) => {
       // 1. Fetch target meal plan slot
-      const mealPlan = await tx.mealPlan.findFirst({
-        where: getOwnedMealPlanWhere(userId, mealPlanId),
-        include: {
-          mealLogs: {
-            where: { userId },
-          },
-        },
-      });
-
-      if (!mealPlan) {
-        throw new Error('Meal plan slot not found.');
-      }
-      assertUserActionableMealPlan(mealPlan);
-
-      // Check if slot has already been logged as DONE or SKIPPED
-      const isLogged = mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED');
-      if (isLogged) {
-        throw new Error('Cannot swap a meal that has already been eaten or skipped.');
-      }
+      const mealPlan = await loadActionableUnloggedMealPlan(tx, userId, mealPlanId);
 
       // 2. Fetch user profile, health conditions, and allergies
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        include: {
-          userProfile: true,
-          healthConditions: true,
-          allergies: true,
-          safetyProfileEntries: true,
-        },
-      });
-
-      if (!user || !user.userProfile) {
-        throw new Error('User profile not found.');
-      }
-
-      const { userProfile, healthConditions, allergies } = user;
+      const { user, profile: userProfile } = await loadUserNutritionContext(tx, userId, 'User profile not found.');
+      const { healthConditions, allergies } = user;
       const userConditions = healthConditions.map((c) => c.condition);
       const userAllergens = allergies.map((a) => a.allergen);
 
@@ -612,21 +568,8 @@ export class MealSwapService {
    */
   static async getCompatibleLibraryMeals(userId: string, mealType?: MealType, search?: string) {
     // 1. Fetch user profile, health conditions, and allergies
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        userProfile: true,
-        healthConditions: true,
-        allergies: true,
-        safetyProfileEntries: true,
-      },
-    });
-
-    if (!user || !user.userProfile) {
-      throw new Error('User profile not found.');
-    }
-
-    const { userProfile, healthConditions, allergies } = user;
+    const { user, profile: userProfile } = await loadUserNutritionContext(prisma, userId, 'User profile not found.');
+    const { healthConditions, allergies } = user;
     const userConditions = healthConditions.map((c) => c.condition);
     const userAllergens = allergies.map((a) => a.allergen);
 
@@ -656,28 +599,6 @@ export class MealSwapService {
       })
     );
 
-    return eligibleMeals.map((m) => ({
-      id: m.id,
-      mealName: m.mealName,
-      description: m.description,
-      mealType: m.mealType,
-      calories: m.calories,
-      proteinG: m.proteinG,
-      carbsG: m.carbsG,
-      fatG: m.fatG,
-      verifiedBy: m.verifiedByNutritionist?.user.name || 'System',
-      prcLicenseNumber: m.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
-      verifier: m.verifiedByNutritionist
-        ? {
-            name: m.verifiedByNutritionist.user.name,
-            prcLicenseNumber: m.verifiedByNutritionist.prcLicenseNumber,
-            prcLicenseExpiry: m.verifiedByNutritionist.prcLicenseExpiry,
-            specialization: m.verifiedByNutritionist.specialization,
-            yearsOfExperience: m.verifiedByNutritionist.yearsOfExperience,
-            university: m.verifiedByNutritionist.university,
-            bio: m.verifiedByNutritionist.bio,
-          }
-        : null,
-    }));
+    return eligibleMeals.map(toPublicSwapOption);
   }
 }

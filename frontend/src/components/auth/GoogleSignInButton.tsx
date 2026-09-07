@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { AlertTriangle } from 'lucide-react';
 
 /**
@@ -128,8 +129,7 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
         setError(res.data.error || 'Google sign-in failed.');
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      setError(axiosErr.response?.data?.error || 'Google authentication failed. Please try again.');
+      setError(getApiErrorMessage(err, 'Google authentication failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }

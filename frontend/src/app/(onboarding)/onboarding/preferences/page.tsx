@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import { DietaryPreference, CarbPreference } from '@/types';
 import { Egg, Apple, Wheat, Check, AlertTriangle, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
@@ -49,11 +49,7 @@ export default function OnboardingPreferencesPage() {
       // Proceed to Step 3: Conditions
       router.push('/onboarding/conditions');
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to save preferences. Please check your connection.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to save preferences. Please check your connection.'));
     } finally {
       setIsLoading(false);
     }

@@ -5,6 +5,7 @@ import { Receipt, RefreshCw } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { CompensationForms, type PeriodForm, type PolicyForm } from '@/features/compensation-admin/CompensationForms';
 import { CompensationDecisionSections } from '@/features/compensation-admin/CompensationDecisionSections';
 import {
@@ -100,9 +101,7 @@ export default function AdminCompensationPage() {
   };
 
   if (loading && !data) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center text-brand-muted">Loading compensation ledger…</div>
-    );
+    return <PortalLoadingState message="Loading compensation ledger..." />;
   }
 
   return (

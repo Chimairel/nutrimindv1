@@ -2,7 +2,11 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import type { BillingAccessEvidence, BillingAccessRepository } from '@/services/user-billing-access.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
-import { MAX_PAST_DUE_GRACE_HOURS } from '@/domain/billing-entitlement.policy';
+import {
+  buildPremiumEntitlementGrantWhere,
+  mapPremiumEntitlementEvidence,
+  premiumEntitlementGrantSelect,
+} from '@/domain/billing-entitlement-evidence';
 
 export class PrismaUserBillingAccessRepository implements BillingAccessRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -18,28 +22,14 @@ export class PrismaUserBillingAccessRepository implements BillingAccessRepositor
     userId: string,
     at: Date
   ): Promise<BillingAccessEvidence | null> {
-    const earliestRelevantEnd = new Date(at.getTime() - MAX_PAST_DUE_GRACE_HOURS * 60 * 60 * 1000);
     const user = await client.user.findFirst({
       where: { id: userId, role: 'USER', isSuspended: false },
       select: {
         id: true,
         entitlementGrants: {
-          where: {
-            entitlementKey: 'PREMIUM',
-            effectiveFrom: { lte: at },
-            effectiveUntil: { gt: earliestRelevantEnd },
-            OR: [{ revokedAt: null }, { revokedAt: { gt: at } }],
-          },
+          where: buildPremiumEntitlementGrantWhere(at),
           orderBy: { effectiveUntil: 'desc' },
-          select: {
-            id: true,
-            source: true,
-            effectiveFrom: true,
-            effectiveUntil: true,
-            revokedAt: true,
-            invoice: { select: { status: true } },
-            subscription: { select: { id: true, status: true, pastDueAt: true } },
-          },
+          select: premiumEntitlementGrantSelect,
         },
         billingCheckoutRequests: {
           where: { provider: 'PAYMONGO', environment: 'TEST' },
@@ -126,26 +116,7 @@ export class PrismaUserBillingAccessRepository implements BillingAccessRepositor
         ])
       : [null, null];
 
-    const grants = user.entitlementGrants.map((grant) => ({
-      id: grant.id,
-      subscriptionId: grant.subscription?.id ?? null,
-      source: grant.source,
-      invoiceStatus: grant.invoice?.status ?? null,
-      effectiveFrom: grant.effectiveFrom,
-      effectiveUntil: grant.effectiveUntil,
-      revokedAt: grant.revokedAt,
-    }));
-    const subscriptions = user.entitlementGrants.flatMap((grant) =>
-      grant.subscription
-        ? [
-            {
-              id: grant.subscription.id,
-              status: grant.subscription.status,
-              pastDueAt: grant.subscription.pastDueAt,
-            },
-          ]
-        : []
-    );
+    const { grants, subscriptions } = mapPremiumEntitlementEvidence(user.entitlementGrants);
 
     const rangeStart = planRange?._min.scheduledDate;
     const rangeEnd = planRange?._max.scheduledDate;

@@ -6,17 +6,11 @@ import { CheckCircle2, Clock3, Crown, RefreshCw, ShieldCheck } from 'lucide-reac
 import { useBillingAccess } from '@/hooks/useBillingAccess';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import { formatPhilippineDateTime as formatExpiry } from '@/lib/formatters';
 
 const MAX_POLLS = 10;
 const POLL_INTERVAL_MS = 2_000;
-
-const formatExpiry = (value: string) =>
-  new Intl.DateTimeFormat('en-PH', {
-    timeZone: 'Asia/Manila',
-    dateStyle: 'long',
-    timeStyle: 'short',
-  }).format(new Date(value));
 
 export default function BillingSuccessPage() {
   const { data, isLoading, error, refresh } = useBillingAccess();
@@ -35,11 +29,7 @@ export default function BillingSuccessPage() {
   }, [data, polls, refresh]);
 
   if (isLoading && !data) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center" aria-label="Checking payment verification">
-        <LoadingSpinner />
-      </div>
-    );
+    return <PortalLoadingState message="Checking payment verification..." />;
   }
 
   const active = data?.current.tier === 'PREMIUM';

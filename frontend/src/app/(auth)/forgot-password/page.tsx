@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, MailCheck } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -27,11 +27,7 @@ export default function ForgotPasswordPage() {
       await api.post('/auth/forgot-password', { email });
       setSuccess(true);
     } catch (err) {
-      setError(
-        axios.isAxiosError(err)
-          ? err.response?.data?.error || 'Something went wrong. Please try again.'
-          : 'An unexpected error occurred.'
-      );
+      setError(getApiErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setIsLoading(false);
     }

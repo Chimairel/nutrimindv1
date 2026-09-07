@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
 import { z } from 'zod';
-import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 
 const NUTRITION_REPORT_SYSTEM_CONTEXT = `
 You are generating a nutrition report for a system with this
@@ -70,32 +70,12 @@ export class NutritionReportService {
 
   private static async generateReportOnce(userId: string): Promise<StoredNutritionReport> {
     // 1. Fetch live user details, profile, conditions, and allergies
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        userProfile: true,
-        healthConditions: true,
-        allergies: true,
-        safetyProfileEntries: true,
-      },
-    });
-
-    if (!user || !user.userProfile) {
-      throw new Error('User profile must be initialized before generating a nutrition report.');
-    }
-
-    const profile = user.userProfile;
-    const safetyRestrictions = adaptUserSafetyRestrictions({
-      safetyEntries: user.safetyProfileEntries,
-      healthConditions: user.healthConditions.map((item) => item.condition),
-      allergies: user.allergies.map((item) => item.allergen),
-      otherConditions: profile.otherConditions,
-      otherAllergies: profile.otherAllergies,
-    });
-    const conditions = safetyRestrictions.conditions;
-    const allergens = safetyRestrictions.allergies;
-    const otherConditions = safetyRestrictions.customConditions.join(', ');
-    const otherAllergies = safetyRestrictions.customFoodRestrictions.join(', ');
+    const { profile, safetyRestrictions, conditions, allergens, otherConditions, otherAllergies } =
+      await loadUserNutritionContext(
+        prisma,
+        userId,
+        'User profile must be initialized before generating a nutrition report.'
+      );
 
     // Verify stats exist
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;

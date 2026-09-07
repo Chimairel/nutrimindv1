@@ -4,7 +4,7 @@ import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import PasswordInput from '@/components/ui/PasswordInput';
@@ -34,11 +34,7 @@ function ResetPasswordForm() {
       await api.post('/auth/reset-password', { token, password });
       setSuccess(true);
     } catch (err) {
-      setError(
-        axios.isAxiosError(err)
-          ? err.response?.data?.error || 'Failed to reset password.'
-          : 'An unexpected error occurred.'
-      );
+      setError(getApiErrorMessage(err, 'Failed to reset password.'));
     } finally {
       setIsLoading(false);
     }

@@ -7,10 +7,10 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { ArrowLeft, Coffee, Sun, Moon, Apple, Check, X, AlertCircle, ShieldCheck } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { MealType, MealPlanStatus, PublicVerifier } from '@/types';
 
 interface Ingredient {
@@ -60,11 +60,7 @@ export default function MealDetailPage() {
         setMeal(res.data.data);
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to retrieve meal details.');
-      } else {
-        setError('Failed to reach backend API.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to retrieve meal details.'));
     } finally {
       setIsLoading(false);
     }
@@ -88,22 +84,14 @@ export default function MealDetailPage() {
         setMeal(res.data.data);
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to update status.');
-      } else {
-        setError('Failed to reach server.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to update status.'));
     } finally {
       setIsUpdating(false);
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <PortalLoadingState message="Loading meal details..." />;
   }
 
   if (error || !meal) {

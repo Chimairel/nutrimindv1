@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import PublicHeader from '@/components/shared/PublicHeader';
 import api from '@/lib/axios';
 import { ApplicationSidebar } from '@/features/nutritionist-application/ApplicationSidebar';
@@ -181,5 +181,5 @@ function ModeSelector({ mode, onChange }: { mode: 'apply' | 'track'; onChange: (
 }
 
 function getApplicationError(caught: unknown, fallback: string) {
-  return axios.isAxiosError(caught) ? caught.response?.data?.error || fallback : fallback;
+  return getApiErrorMessage(caught, fallback);
 }

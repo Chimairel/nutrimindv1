@@ -3,7 +3,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import api from '@/lib/axios';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface CheckinModalProps {
   isOpen: boolean;
@@ -50,11 +50,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
       await api.post('/user/checkin/submit', { changed: false });
       onClose();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to submit check-in.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to submit check-in.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -77,11 +73,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
       onPlanRegenerated();
       onClose();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to update check-in and regenerate plan.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to update check-in and regenerate plan.'));
     } finally {
       setIsSubmitting(false);
     }

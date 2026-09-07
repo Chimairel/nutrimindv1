@@ -1,7 +1,7 @@
 'use client';
 
 import Button from '@/components/ui/Button';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -88,11 +88,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
   } = useProgressWorkspace(mode);
 
   if (isLoading) {
-    return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <PortalLoadingState message="Loading progress data..." />;
   }
 
   // Custom SVG Weight Graph calculations

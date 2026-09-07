@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export interface Flag {
   id: string;
@@ -288,8 +289,7 @@ export function useNutritionistLibrary() {
         setActiveModal(null);
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setActionError(error.response?.data?.error || 'Failed to certify the current evidence revision.');
+      setActionError(getApiErrorMessage(err, 'Failed to certify the current evidence revision.'));
     } finally {
       setActionLoading(false);
     }
@@ -317,8 +317,7 @@ export function useNutritionistLibrary() {
         setActiveModal(null);
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setActionError(error.response?.data?.error || 'Failed to update library meal.');
+      setActionError(getApiErrorMessage(err, 'Failed to update library meal.'));
     } finally {
       setActionLoading(false);
     }
@@ -337,8 +336,7 @@ export function useNutritionistLibrary() {
         setActiveModal(null);
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setActionError(error.response?.data?.error || 'Failed to delete library meal.');
+      setActionError(getApiErrorMessage(err, 'Failed to delete library meal.'));
     } finally {
       setActionLoading(false);
     }
@@ -359,8 +357,7 @@ export function useNutritionistLibrary() {
         setFlagReason('');
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setActionError(error.response?.data?.error || 'Failed to submit flag.');
+      setActionError(getApiErrorMessage(err, 'Failed to submit flag.'));
     } finally {
       setActionLoading(false);
     }
@@ -394,8 +391,7 @@ export function useNutritionistLibrary() {
         setActiveModal(null);
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setActionError(error.response?.data?.error || 'Failed to resolve flag.');
+      setActionError(getApiErrorMessage(err, 'Failed to resolve flag.'));
     } finally {
       setActionLoading(false);
     }

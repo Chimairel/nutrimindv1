@@ -3,6 +3,7 @@ import api from '@/lib/axios';
 import type { SafetyProfileEntry } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export interface UserProfileData {
   id: string;
@@ -65,8 +66,7 @@ export function useProfile() {
         writeSessionResource(ownerId, 'user-profile', res.data.data);
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      setError(axiosErr.response?.data?.error || 'Failed to fetch profile');
+      setError(getApiErrorMessage(err, 'Failed to fetch profile'));
     } finally {
       setIsLoading(false);
     }

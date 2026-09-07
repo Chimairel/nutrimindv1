@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import Progress from '@/components/ui/Progress';
 import { ShoppingDayOfWeek } from '@/types';
 import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } from 'lucide-react';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -54,11 +54,7 @@ export default function OnboardingShoppingDayPage() {
       await refreshSession();
       router.push('/onboarding/tos');
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to save your preference. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(getApiErrorMessage(err, 'Failed to save your preference. Please try again.'));
     } finally {
       setIsLoading(false);
     }

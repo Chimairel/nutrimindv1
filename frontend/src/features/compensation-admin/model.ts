@@ -70,13 +70,9 @@ export type CompensationAction = (key: string, request: () => Promise<unknown>, 
 export const compensationFieldClass =
   'min-h-11 w-full rounded-2xl border border-brand-border bg-brand-bgAlt px-4 text-sm text-brand-text outline-none focus:border-brand-green';
 
-export const peso = (minor: number) =>
-  new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(minor / 100);
-
-export const shortDate = (value: string) =>
-  new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format(new Date(value));
+export { formatPhpMinor as peso, formatPhilippineDate as shortDate } from '@/lib/formatters';
 
 export function compensationApiError(error: unknown, fallback: string) {
-  const candidate = error as { response?: { data?: { error?: unknown } } };
-  return typeof candidate.response?.data?.error === 'string' ? candidate.response.data.error : fallback;
+  return getApiErrorMessage(error, fallback);
 }
+import { getApiErrorMessage } from '@/lib/api-error';

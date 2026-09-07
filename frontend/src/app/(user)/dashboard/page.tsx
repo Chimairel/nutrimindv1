@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
-import axios from 'axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Calendar, Plus, AlertTriangle, Utensils, Sparkles } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
@@ -25,6 +25,7 @@ import {
   type PendingReview,
 } from '@/features/dashboard/model';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
@@ -54,9 +55,13 @@ export default function DashboardPage() {
   const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
   const [isLoading, setIsLoading] = useState(!cachedPlan);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationElapsedSeconds, setGenerationElapsedSeconds] = useState(0);
-  const [generationStageMessage, setGenerationStageMessage] = useState<string | null>(null);
+  const {
+    progress: generationProgress,
+    elapsedSeconds: generationElapsedSeconds,
+    stageMessage: generationStageMessage,
+    begin: beginGenerationProgress,
+    complete: completeGenerationProgress,
+  } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const generationRequestInFlight = useRef(false);
@@ -187,9 +192,7 @@ export default function DashboardPage() {
       let res = await api.get('/user/meals/current');
       const hasCurrentPlan = (res.data?.data?.length ?? 0) > 0 || Boolean(res.data?.meta?.pendingReview);
       if (!hasCurrentPlan) {
-        setGenerationProgress(5);
-        setGenerationStageMessage('Checking the current meal-plan cycle.');
-        setGenerationElapsedSeconds(0);
+        beginGenerationProgress('Checking the current meal-plan cycle.');
         setIsGenerating(true);
         try {
           const rolloverRes = await api.post('/user/meals/rollover');
@@ -209,16 +212,12 @@ export default function DashboardPage() {
         });
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || "Failed to load today's scheduled plan.");
-      } else {
-        setError('Failed to contact backend API.');
-      }
+      setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
     } finally {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan]);
+  }, [applyCurrentPlan, beginGenerationProgress]);
 
   const checkCheckinStatus = useCallback(async () => {
     try {
@@ -283,51 +282,18 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => {
-    if (!isGenerating) return;
-
-    const startedAt = Date.now();
-    let pollInFlight = false;
-    const updateServerProgress = async () => {
-      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
-      setGenerationElapsedSeconds(elapsedSeconds);
-      if (pollInFlight) return;
-      pollInFlight = true;
-      try {
-        const response = await api.get('/user/meals/generation-status');
-        const job = response.data?.data;
-        if (job) {
-          setGenerationProgress(job.progressPct ?? 0);
-          setGenerationStageMessage(job.stageMessage ?? null);
-        }
-      } catch {
-        // The generation request remains authoritative; a transient status poll
-        // failure must not cancel it or fabricate progress.
-      } finally {
-        pollInFlight = false;
-      }
-    };
-
-    void updateServerProgress();
-    const interval = window.setInterval(() => void updateServerProgress(), 1000);
-    return () => window.clearInterval(interval);
-  }, [isGenerating]);
-
   // Triggers 7-day meal plan generation
   const handleGeneratePlan = async () => {
     if (generationRequestInFlight.current || pendingReview) return;
 
     generationRequestInFlight.current = true;
-    setGenerationProgress(5);
-    setGenerationStageMessage('Preparing your nutrition profile.');
-    setGenerationElapsedSeconds(0);
+    beginGenerationProgress();
     setIsGenerating(true);
     setError(null);
     try {
       const res = await api.post('/user/meals/generate');
       if (res.data && res.data.success) {
-        setGenerationProgress(100);
-        setGenerationStageMessage('Your plan is ready for review.');
+        completeGenerationProgress();
         await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
         applyCurrentPlan({
           meals: res.data.data.meals,
@@ -337,11 +303,7 @@ export default function DashboardPage() {
         });
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Gemini failed to generate standard plan.');
-      } else {
-        setError('Generation execution failed.');
-      }
+      setError(getApiErrorMessage(err, 'Gemini failed to generate standard plan.'));
     } finally {
       generationRequestInFlight.current = false;
       setIsGenerating(false);
@@ -381,11 +343,7 @@ export default function DashboardPage() {
         }
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setLogError(err.response?.data?.error || 'Failed to check outside meal.');
-      } else {
-        setLogError('Failed to contact server.');
-      }
+      setLogError(getApiErrorMessage(err, 'Failed to check outside meal.'));
     } finally {
       setIsLogging(false);
     }
@@ -402,16 +360,7 @@ export default function DashboardPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <LoadingSpinner size="lg" />
-          <p className="text-sm text-brand-muted animate-pulse font-display font-semibold">
-            Synchronizing dynamic clinical context...
-          </p>
-        </div>
-      </div>
-    );
+    return <PortalLoadingState message="Synchronizing dynamic clinical context..." />;
   }
 
   const activeDate = uniqueDates[selectedDayOffset] ?? new Date();

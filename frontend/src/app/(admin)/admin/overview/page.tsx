@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   BookOpenText,
@@ -17,33 +17,10 @@ import {
   ShieldAlert,
   Bot,
 } from 'lucide-react';
-import api from '@/lib/axios';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-
-interface Analytics {
-  totalUsers: number;
-  totalNutritionists: number;
-  verifiedNutritionists: number;
-  activeMealPlans: number;
-  pendingReviews: number;
-  libraryCount: number;
-  totalMealLogs: number;
-  totalFoodItems: number;
-  totalAliases: number;
-  overdueReviews: number;
-  activeReviewClaims: number;
-  expiredVerifiedNutritionists: number;
-  completeLibraryEvidence: number;
-  incompleteLibraryEvidence: number;
-  staleLibraryEvidence: number;
-  failedGenerationJobs24h: number;
-  stuckGenerationJobs: number;
-  aiSuccess24h: number;
-  aiFailures24h: number;
-  adaptationReviews30d: number;
-  pendingPlansStartingSoon: number;
-}
+import { useAdminAnalytics } from '@/features/admin-analytics/useAdminAnalytics';
 
 interface Metric {
   label: string;
@@ -53,29 +30,10 @@ interface Metric {
 }
 
 export default function AdminOverviewPage() {
-  const [data, setData] = useState<Analytics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get('/admin/analytics');
-        if (response.data?.success) setData(response.data.data);
-      } catch (error) {
-        console.error('Failed to fetch analytics:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAnalytics();
-  }, []);
+  const { data, isLoading } = useAdminAnalytics();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <span className="animate-pulse text-brand-muted">Loading system pulse...</span>
-      </div>
-    );
+    return <PortalLoadingState message="Loading system pulse..." />;
   }
   if (!data) {
     return <div className="mt-20 text-center text-brand-muted">Failed to load analytics.</div>;

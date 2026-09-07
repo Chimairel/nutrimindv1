@@ -3465,3 +3465,32 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-164 proves owner isolation, expiry, and targeted invalidation. TEST-165 mounts the Meals workspace, caches one plan, unmounts it as route navigation would, and proves a second mount exposes that plan without a blocking loader while a deliberately delayed server revalidation remains in flight.
 - The complete root `npm run check` gate passed: architecture and formatting, backend and frontend lint with zero warnings, **476 registered backend tests / 475 pass / 0 fail / 1 unchanged clinical-policy TODO**, **13 frontend tests / 13 pass**, backend production compilation with 67 alias rewrites, and the Next.js production build with all 42 routes. The public/adversarial Chromium smoke wave also passed **2/2** after the development server was cleanly restarted following the production build.
 - This is a client rendering and request-state change only. No shared-database query or mutation, migration, Gemini request, payment/provider request, environment value, deployment, or production action was performed.
+
+## 64. Cross-codebase reuse and loading-state consolidation (2026-09-07)
+
+**Architecture decision:** ADR-032
+
+**Change ID:** CHG-20260907-06
+
+**Verification IDs:** TEST-166 through TEST-167
+
+**Documentation ID:** DOC-056
+
+### Audit method and refactor boundary
+
+- The handwritten frontend and backend source trees were inspected with repository search, TypeScript compilation, and an exact clone detector configured for at least eight lines and seventy tokens. The work refactored repeated mechanisms only; similar-looking clinical, authorization, privacy, lifecycle, PDF, and endpoint-validation code remains explicit where its invariants or owners differ.
+- Route-level loading now uses one `PortalLoadingState`. Dashboard generation and explicit Meals regeneration use one server-backed `useMealGenerationProgress` hook and the same `MealPlanGenerationProgress` presentation, so later loading-style or polling corrections have one implementation path.
+- Admin overview and analytics use one account-scoped analytics hook. Admin and nutritionist shells use one configurable role layout. Conditions and Allergies onboarding use one configurable structured-safety step, and login/register share their provider/error prelude.
+- Frontend API error extraction moved from 45 structural branches to one fail-safe helper. Restriction-context comparison, Philippine currency/date formatting, shared public-verifier/profile types, and repeated compensation presentation utilities also have one source of truth. The unused legacy `useMeals` hook was removed.
+- Backend meal generation, nutrition-report generation, previews, swaps, and compatible-library reads share one user nutrition-context loader. Billing access readers share the exact premium evidence window, selection, and projection. Swap actionability checks, public swap-option mapping, onboarding-status adaptation, and safety-replacement log payloads were also consolidated.
+
+### Measured result and retained similarities
+
+- At the measured intermediate checkpoint, exact-clone scanning found 21 clone groups and 355 duplicated lines (0.63%). The final scan found 17 groups and 269 duplicated lines (0.48%), a reduction of four groups and 86 detected lines; the complete patch also removes substantially more hand-written repetition that falls below clone-detector thresholds.
+- Remaining reported similarities are not automatically defects. They include intentionally separate public profile/privacy projections, endpoint-specific authentication validation and response contracts, semantically different nutritionist-library mutations, static PDF/table markup, client/server date policy counterparts, and meal-card/detail presentations with different interaction ownership. Collapsing those merely to reduce a scanner count would weaken clarity or couple unrelated change paths.
+
+### Verification and scope
+
+- TEST-166 covers shared API-error fallbacks, normalized restriction-context equality, and the common server-reported meal-generation progress lifecycle. TEST-167 covers the shared premium-entitlement evidence window and grant/subscription projection.
+- The complete root `npm run check` gate passed: source architecture, Prettier, backend and frontend lint with zero warnings, **478 registered backend tests / 477 pass / 0 fail / 1 unchanged clinical-policy TODO**, **19 frontend tests / 19 pass**, backend production compilation with 69 alias rewrites, and the Next.js production build with all 42 routes. The public/adversarial Chromium wave passed **2/2** after the NutriMind development server was restarted following the production build.
+- No schema or migration changed. No database query or mutation, Gemini request, PayMongo/provider operation, SMTP/OAuth call, environment change, deployment, or production action occurred. `main` and `development` were not checked out or modified.

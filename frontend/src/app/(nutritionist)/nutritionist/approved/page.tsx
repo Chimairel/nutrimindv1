@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Coffee, Sun, Moon, Apple, Utensils, CheckCircle } from 'lucide-react';
@@ -48,11 +48,7 @@ export default function NutritionistApprovedPage() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <PortalLoadingState message="Loading approved plans..." />;
   }
 
   const mealTypeLabels: Record<string, { label: string; icon: React.ReactNode }> = {

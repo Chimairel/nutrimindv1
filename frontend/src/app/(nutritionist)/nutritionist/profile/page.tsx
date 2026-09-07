@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,11 +68,7 @@ export default function NutritionistProfilePage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <span className="text-brand-muted animate-pulse">Loading...</span>
-      </div>
-    );
+    return <PortalLoadingState message="Loading professional profile..." />;
   }
 
   return (

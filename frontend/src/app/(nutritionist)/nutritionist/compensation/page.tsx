@@ -5,6 +5,9 @@ import { Clock3, Receipt, ShieldCheck, WalletCards } from 'lucide-react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { formatPhpMinor as peso, formatPhilippineDate as date } from '@/lib/formatters';
 
 type Credit = {
   id: string;
@@ -42,10 +45,6 @@ type CompensationData = {
   credits: Credit[];
   statements: Statement[];
 };
-const peso = (minor: number) =>
-  new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(minor / 100);
-const date = (value: string) => new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format(new Date(value));
-
 export default function NutritionistCompensationPage() {
   const [data, setData] = useState<CompensationData | null>(null);
   const [error, setError] = useState('');
@@ -53,15 +52,10 @@ export default function NutritionistCompensationPage() {
     api
       .get('/nutritionist/compensation')
       .then((response) => setData(response.data.data))
-      .catch((reason) => setError(reason.response?.data?.error || 'Could not load your compensation records.'));
+      .catch((reason) => setError(getApiErrorMessage(reason, 'Could not load your compensation records.')));
   }, []);
   if (error) return <div className="portal-page mt-16 text-center text-red-400">{error}</div>;
-  if (!data)
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center text-brand-muted">
-        Loading your compensation records…
-      </div>
-    );
+  if (!data) return <PortalLoadingState message="Loading your compensation records..." />;
   return (
     <div className="portal-page space-y-7">
       <PortalPageHeader

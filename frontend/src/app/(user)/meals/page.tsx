@@ -3,6 +3,8 @@
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
@@ -40,6 +42,7 @@ export default function WeeklyPlanPage() {
     meals,
     isLoading,
     isRegenerating,
+    regenerationProgress,
     error,
     pendingReview,
     setSelectedPlanDateKey,
@@ -84,18 +87,17 @@ export default function WeeklyPlanPage() {
     remainingSwapCount,
   } = workspace;
 
-  if (isLoading || isRegenerating) {
+  if (isRegenerating) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <LoadingSpinner size="lg" />
-          <p className="text-sm text-brand-muted animate-pulse font-display font-semibold">
-            {isRegenerating ? 'Regenerating 7-day AI plan...' : 'Analyzing weekly schedule...'}
-          </p>
-        </div>
-      </div>
+      <MealPlanGenerationProgress
+        progress={regenerationProgress.progress}
+        elapsedSeconds={regenerationProgress.elapsedSeconds}
+        stageMessage={regenerationProgress.stageMessage}
+      />
     );
   }
+
+  if (isLoading) return <PortalLoadingState message="Analyzing weekly schedule..." />;
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
