@@ -61,6 +61,7 @@ export function useMealsWorkspace() {
   } | null>(null);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
   const currentPlanRequestInFlight = useRef(false);
+  const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
 
   // Meal swap states
   const [swapsUsed, setSwapsUsed] = useState(0);
@@ -89,6 +90,7 @@ export function useMealsWorkspace() {
   // History Tab states
   const [historyLogs, setHistoryLogs] = useState<MealHistoryLog[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyTotalCount, setHistoryTotalCount] = useState<number | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
   const [historySource, setHistorySource] = useState('All');
@@ -97,6 +99,7 @@ export function useMealsWorkspace() {
   // Library Tab states
   const [libraryMeals, setLibraryMeals] = useState<SwapOption[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
+  const [libraryTotalCount, setLibraryTotalCount] = useState<number | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedVerifier, setSelectedVerifier] = useState<PublicVerifier | null>(null);
@@ -105,7 +108,6 @@ export function useMealsWorkspace() {
   const fetchMeals = async () => {
     if (currentPlanRequestInFlight.current) return;
     currentPlanRequestInFlight.current = true;
-    setIsLoading(true);
     setError(null);
     try {
       const res = await api.get('/user/meals/current');
@@ -139,6 +141,9 @@ export function useMealsWorkspace() {
       const res = await api.get('/user/meals/history', { params });
       if (res.data && res.data.success) {
         setHistoryLogs(res.data.data);
+        if (!historySearch && historySource === 'All' && historyStatus === 'All') {
+          setHistoryTotalCount(res.data.data.length);
+        }
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -162,6 +167,9 @@ export function useMealsWorkspace() {
       const res = await api.get('/user/meals/compatible-library', { params });
       if (res.data && res.data.success) {
         setLibraryMeals(res.data.data);
+        if (!librarySearch && libraryMealType === 'All') {
+          setLibraryTotalCount(res.data.data.length);
+        }
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -201,6 +209,18 @@ export function useMealsWorkspace() {
       };
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      secondaryDataPrefetchedForUserRef.current = null;
+      return;
+    }
+
+    if (secondaryDataPrefetchedForUserRef.current === user.userId) return;
+    secondaryDataPrefetchedForUserRef.current = user.userId;
+    fetchHistory();
+    fetchLibrary();
+  }, [user, fetchHistory, fetchLibrary]);
 
   useEffect(() => {
     if (user) {
@@ -561,6 +581,7 @@ export function useMealsWorkspace() {
     previewError,
     historyLogs,
     isHistoryLoading,
+    historyTotalCount,
     historyError,
     historySearch,
     setHistorySearch,
@@ -570,6 +591,7 @@ export function useMealsWorkspace() {
     setHistoryStatus,
     libraryMeals,
     isLibraryLoading,
+    libraryTotalCount,
     libraryError,
     librarySearch,
     setLibrarySearch,

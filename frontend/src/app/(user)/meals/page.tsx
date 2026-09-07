@@ -47,6 +47,7 @@ export default function WeeklyPlanPage() {
     swapCap,
     historyLogs,
     isHistoryLoading,
+    historyTotalCount,
     historyError,
     historySearch,
     setHistorySearch,
@@ -56,6 +57,7 @@ export default function WeeklyPlanPage() {
     setHistoryStatus,
     libraryMeals,
     isLibraryLoading,
+    libraryTotalCount,
     libraryError,
     librarySearch,
     setLibrarySearch,
@@ -184,8 +186,8 @@ export default function WeeklyPlanPage() {
           {(
             [
               ['plan', 'Plan', Calendar, displayedMealCount],
-              ['history', 'History', History, historyLogs.length],
-              ['library', 'Library', BookOpen, libraryMeals.length],
+              ['history', 'History', History, historyTotalCount ?? '…'],
+              ['library', 'Library', BookOpen, libraryTotalCount ?? '…'],
             ] as const
           ).map(([value, label, Icon, count]) => (
             <button
