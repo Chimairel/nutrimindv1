@@ -39,6 +39,7 @@ import {
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { isMealWithinSlotCalorieRange, rankCalorieCompatibleMeals } from '@/domain/meal-calorie-allocation.policy';
 
 interface GeneratedMeal {
   dayNumber: number;
@@ -71,7 +72,11 @@ export class MealGenerationService {
    * weekStartDay) or a full WEEKLY plan, based on the user's shoppingDayGroup.
    * Falls back to a 7-day WEEKLY plan for users without a shoppingDayGroup.
    */
-  static async generatePlanForUser(userId: string, now: Date = new Date()): Promise<string> {
+  static async generatePlanForUser(
+    userId: string,
+    now: Date = new Date(),
+    options: { replaceExisting?: boolean } = {}
+  ): Promise<string> {
     const profile = await prisma.userProfile.findUnique({ where: { userId } });
     const window = getOnDemandMealPlanWindow(
       {
@@ -84,7 +89,7 @@ export class MealGenerationService {
     console.log(
       `[Meal Generation] Generating ${window.planType} plan: ${window.numDays} day(s) from ${getManilaDateKey(window.startDate)}.`
     );
-    return MealGenerationService.generateWindowOnce(userId, window);
+    return MealGenerationService.generateWindowOnce(userId, window, options.replaceExisting === true);
   }
 
   private static async findExistingPlan(
@@ -106,13 +111,17 @@ export class MealGenerationService {
     return existingPlan?.planGroupId ?? null;
   }
 
-  private static async generateWindowOnce(userId: string, window: MealPlanGenerationWindow): Promise<string> {
+  private static async generateWindowOnce(
+    userId: string,
+    window: MealPlanGenerationWindow,
+    replaceExisting = false
+  ): Promise<string> {
     const endDate = getScheduledMealDate(window.startDate, Math.max(0, window.numDays - 1));
     const existing = await MealGenerationService.findExistingPlan(userId, window.planType, {
       startDate: window.startDate,
       endDate,
     });
-    if (existing) return existing;
+    if (existing && !replaceExisting) return existing;
 
     let job = null;
     let claimedNewJob = false;
@@ -149,7 +158,7 @@ export class MealGenerationService {
         startDate: window.startDate,
         endDate,
       });
-      if (completedByPeer) return completedByPeer;
+      if (completedByPeer && !replaceExisting) return completedByPeer;
 
       const staleCutoff = new Date(Date.now() - MealGenerationService.GENERATION_JOB_TTL_MS);
       const reclaimed = await prisma.mealPlanGenerationJob.updateMany({
@@ -423,11 +432,12 @@ export class MealGenerationService {
           return true;
         });
 
-        if (matches.length > 0) {
-          // Variant rotation (by usageCount ascending, then random selection from those with min usage)
-          const minUsage = Math.min(...matches.map((m) => m.usageCount));
-          const candidates = matches.filter((m) => m.usageCount === minUsage);
-          const selected = candidates[Math.floor(Math.random() * candidates.length)];
+        // A certified base recipe is reusable only when its reviewed serving
+        // also fits this user's allocated meal target. Prefer the closest fit;
+        // smaller recipes fall through to personalized generation.
+        const selected = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType)[0];
+
+        if (selected) {
           selectedLibraryMealIds.add(selected.id);
 
           matchedSlots.push({
@@ -491,10 +501,10 @@ export class MealGenerationService {
                 mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
                 mealName: z.string(),
                 description: z.string(),
-                calories: z.number(),
-                proteinG: z.number(),
-                carbsG: z.number(),
-                fatG: z.number(),
+                calories: z.number().positive(),
+                proteinG: z.number().nonnegative(),
+                carbsG: z.number().nonnegative(),
+                fatG: z.number().nonnegative(),
                 ingredients: z
                   .array(
                     z.object({
@@ -515,6 +525,19 @@ export class MealGenerationService {
               },
               {
                 message: `Must generate exactly the requested slots: ${JSON.stringify(fallbackSlots.map((s) => ({ day: s.dayNumber, type: s.mealType })))}`,
+              }
+            )
+            .refine(
+              (meals) =>
+                meals.every((meal) =>
+                  isMealWithinSlotCalorieRange({
+                    calories: meal.calories,
+                    dailyCalorieTarget,
+                    mealType: meal.mealType,
+                  })
+                ),
+              {
+                message: 'Every generated meal must satisfy its allocated daily-calorie range.',
               }
             ),
         });

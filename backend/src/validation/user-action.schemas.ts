@@ -8,6 +8,8 @@ export const resourceIdParamsSchema = z.object({ id: boundedId }).strict();
 
 export const mealStatusBodySchema = z.object({ status: z.enum(['DONE', 'SKIPPED', 'PENDING']) }).strict();
 
+export const mealGenerationBodySchema = z.object({ replaceExisting: z.boolean().optional() }).strict();
+
 export const outsideMealBodySchema = z
   .object({
     mealName: z.string().trim().min(1).max(160),

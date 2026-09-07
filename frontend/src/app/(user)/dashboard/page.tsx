@@ -144,7 +144,6 @@ export default function DashboardPage() {
   const fetchCurrentPlan = async () => {
     if (currentPlanRequestInFlight.current) return;
     currentPlanRequestInFlight.current = true;
-    setIsLoading(true);
     setError(null);
     try {
       let res = await api.get('/user/meals/current');

@@ -1,3 +1,5 @@
+import { getMealSlotCalorieRange, isPrimaryMealType } from './meal-calorie-allocation.policy';
+
 export type MealGenerationSlot = {
   dayNumber: number;
   mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
@@ -65,7 +67,13 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
   systemInstruction: string;
   prompt: string;
 } {
-  const requestedSlots = input.slots.map((slot) => `- Day ${slot.dayNumber}: ${slot.mealType}`).join('\n');
+  const requestedSlots = input.slots
+    .map((slot) => {
+      if (!isPrimaryMealType(slot.mealType)) return `- Day ${slot.dayNumber}: ${slot.mealType}`;
+      const range = getMealSlotCalorieRange(input.dailyCalorieTarget, slot.mealType);
+      return `- Day ${slot.dayNumber}: ${slot.mealType} — target ${range.target} kcal (allowed ${range.minimum}-${range.maximum} kcal)`;
+    })
+    .join('\n');
 
   const conditions = input.conditions.join(', ') || 'NONE';
   const allergens = input.allergens.join(', ') || 'NONE';
@@ -93,6 +101,7 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `[PHILIPPINE FOOD COMPOSITION REFERENCE]\n` +
     `${input.foodReference}\n\n` +
     `Hard Rules:\n` +
+    `- Each meal must stay inside the calorie range stated beside its requested slot; do not return a smaller base portion.\n` +
     `- Respect every recorded food restriction in all recipes; exclude canonical restrictions and retain review gates for unsupported entries.\n` +
     `- Filter out high-sodium foods and condiments when the user has HYPERTENSION.\n` +
     `- Limit simple carbohydrates, refined-rice portions, and added sugars when the user has DIABETES.\n` +

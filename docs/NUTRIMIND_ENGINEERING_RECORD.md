@@ -3414,3 +3414,29 @@ This section is a continuity record for agreed future work. Every item below is 
 - The adversarial public browser wave passed **2/2** Playwright Chromium cases: public entry points rendered without console failures, and registration rejected empty, whitespace-only, and mismatched-password input.
 - Root, backend, and frontend dependency audits each reported zero known vulnerabilities at the checked lockfile state. A fresh full `docker compose build` completed for both images after the standalone-path correction, and the final loopback runtime probes returned HTTP 200 from both the frontend root and backend health endpoint.
 - Final cleanup left no task-labelled probe container. The working tree was clean at `7f3cb33` on `refactor/modular-architecture`; `main` remained `d17b304` and `development` remained `a77dbd2`. No branch was merged or pushed by this phase.
+
+## 62. Calorie-aligned meal selection and non-blocking dashboard refresh (2026-09-07)
+
+**Architecture decision:** ADR-030
+
+**Defect ID:** DEF-038
+
+**Change ID:** CHG-20260907-04
+
+**Verification IDs:** TEST-162 through TEST-163
+
+**Documentation ID:** DOC-054
+
+### Defect and correction
+
+- Manual testing exposed an approved starter-plan day containing 234, 442, and 447 kcal meals—1,123 kcal in total—against the user's stored 2,780 kcal gain-weight target. The tracker was arithmetically correct; generation had selected certified library recipes by meal type, dietary tags, goal tag, and safety evidence without testing whether the reviewed serving size could satisfy that user's allocated calorie target.
+- A pure calorie-allocation policy now assigns 30% of the daily target to breakfast, 40% to lunch, and 30% to dinner, with a documented fifteen-percent per-slot tolerance. Library candidates outside that band are not silently scaled or selected; they fall through to personalized generation. Compatible candidates are ranked by calorie proximity, usage count, and stable identity without mutating the source collection.
+- The Gemini prompt now states the exact target and accepted range for every requested slot. Its response schema rejects non-positive nutrients and meals outside the same calorie range, so an under-target response advances through the existing model fallback rather than being persisted as a successful plan.
+- The explicit Meals-page regeneration action now sends a strictly validated replacement request after the existing user confirmation. Replacement skips idempotent reuse but does not cancel the prior plan until the new plan is fully prepared and enters the existing atomic persistence transaction. Ordinary first-time generation and rollover retain their idempotent behavior.
+- Dashboard focus and visibility refreshes no longer re-enable the initial blocking loader. They keep the rendered dashboard visible while the current plan refreshes in the background, matching the Meals workspace behavior.
+
+### Verification and scope
+
+- TEST-162 reproduces the reported 2,780-kcal allocation and proves the three observed undersized meals are rejected. TEST-163 verifies filtering, deterministic proximity ranking, and input immutability. Strict request-schema tests cover absent, valid, malformed, and unknown regeneration input.
+- The complete root `npm run check` gate passed: architecture and formatting, lint with zero warnings, **476 registered backend tests / 475 pass / 0 fail / 1 unchanged clinical-policy TODO**, **10 frontend tests / 10 pass**, backend production compilation with 67 alias rewrites, and the Next.js production build with all 42 routes.
+- No existing plan, meal log, profile, shared-database row, Gemini request, provider request, migration, or environment value was changed during implementation or verification. Persisted undersized plans remain historical evidence until the user explicitly confirms regeneration; this change does not fabricate additional consumption or rewrite past intake.

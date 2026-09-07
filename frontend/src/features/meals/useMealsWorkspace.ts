@@ -393,7 +393,7 @@ export function useMealsWorkspace() {
     setIsRegenerating(true);
     setError(null);
     try {
-      const res = await api.post('/user/meals/generate');
+      const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
       if (res.data && res.data.success) {
         setMeals(res.data.data.meals);
         setPendingReview(res.data.data.pendingReview ?? null);

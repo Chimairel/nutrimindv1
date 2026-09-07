@@ -60,7 +60,9 @@ export class MealsController {
       }
 
       console.log('[MealsController] Starting authenticated meal plan generation.');
-      const planGroupId = await MealGenerationService.generatePlanForUser(userId);
+      const planGroupId = await MealGenerationService.generatePlanForUser(userId, new Date(), {
+        replaceExisting: req.body.replaceExisting === true,
+      });
 
       // Fetch the new group once, but expose only actionable rows as meals.
       // Pending rows are represented by a count/status summary, never as

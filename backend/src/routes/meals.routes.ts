@@ -6,6 +6,7 @@ import { requireReadyUser } from '@/middleware/userPrerequisites';
 import { validateZodRequest } from '@/middleware/validateZod';
 import {
   compatibleLibraryQuerySchema,
+  mealGenerationBodySchema,
   mealStatusBodySchema,
   outsideMealBodySchema,
   resourceIdParamsSchema,
@@ -24,7 +25,7 @@ router.use(requireReadyUser);
  * Route: POST /api/user/meals/generate
  * Description: Generates a 7-day, 21-meal plan.
  */
-router.post('/generate', MealsController.generateMealPlan);
+router.post('/generate', validateZodRequest({ body: mealGenerationBodySchema }), MealsController.generateMealPlan);
 router.get('/generation-status', MealsController.getGenerationStatus);
 
 /**
