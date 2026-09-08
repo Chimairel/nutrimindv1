@@ -1,0 +1,59 @@
+# NutriMind meal-image acquisition report
+
+## Outcome
+
+- Canonical application meals inventoried: **51**
+- Licensed Philippine food candidates retained: **117**
+- Minimum requested candidate target: **100** (met with a 17-image rejection buffer)
+- Planned local fallback categories: **7**
+- Remote images downloaded: **0**
+- Cloudinary uploads performed: **0**
+- Application or database records changed: **0**
+
+## Source and rights record
+
+The candidate pool comes from Wikimedia Commons category
+`Images from Wiki Loves Food 2024 in the Philippines`. Every retained row reports
+the creator, canonical Commons source page, original file URL, dimensions,
+license name, and license URL returned by the Commons API.
+
+All 117 retained candidates currently report `CC BY-SA 4.0`. That license
+requires attribution, a license link, and identification of changes. Share-alike
+requirements must be assessed before edited derivatives are published. This
+repository records source facts for engineering review; it is not legal advice.
+
+## Important separation
+
+The 117-source pool is not the Meal Library. NutriMind currently has only 51
+canonical meal definitions. The source pool helps select images for those meals
+and supplies research material for a later 49-meal catalogue expansion, but an
+available photograph does not establish nutrition values, FNRI linkage,
+clinical compatibility, or nutritionist approval.
+
+No candidate has been silently attached to a meal. The canonical assignment
+sheet starts every row as `UNASSIGNED`; the source pool starts every image as
+`NEEDS_VISUAL_AND_CATALOGUE_REVIEW`.
+
+## Artifacts
+
+- `generated/canonical-meal-image-inventory.csv`: stable application asset keys
+  and fallback categories for all 51 current meals.
+- `generated/philippine-food-source-pool.csv`: the 117 candidate photographs and
+  their complete source/license metadata.
+- `generated/CANDIDATE_ATTRIBUTIONS.md`: readable candidate credit index.
+- `generated/philippine-food-source-pool-review.html`: remote-thumbnail contact
+  sheet; clicking a photo opens the canonical Commons file page.
+- `generated/placeholder-asset-plan.csv`: planned local fallback assets.
+- `tools/meal-images/*.py`: reproducible standard-library-only builders.
+
+## Approval gate before Cloudinary
+
+1. Visually approve or reject candidates for dish accuracy, framing, and card
+   crop suitability.
+2. Select exact images for canonical meals; use a labelled representative image
+   only where there is no accurate match.
+3. Design and approve the seven local fallback assets.
+4. If expanding to 100 actual Meal Library recipes, design and FNRI-link the 49
+   new meal definitions and send them through nutritionist review separately.
+5. Only then configure Cloudinary, upload approved assets, and persist provider
+   IDs plus attribution metadata in NutriMind.
