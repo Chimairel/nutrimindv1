@@ -67,3 +67,14 @@ python tools/meal-images/build_consumption_first_subjects.py `
 
 See `CONSUMPTION_FIRST_SCOPE.md` for the DOST-FNRI evidence and the boundary
 between reported food consumption and inferred meal-photo subjects.
+
+Find licensed Wikimedia candidates for those subjects with:
+
+```powershell
+python tools/meal-images/build_consumption_candidates.py `
+  --subjects docs/meal-images/generated/consumption-first-photo-subjects.csv `
+  --output-dir docs/meal-images/generated
+```
+
+Automated matches remain `NEEDS_VISUAL_REVIEW`; a valid Creative Commons license
+does not prove that the image accurately depicts the requested preparation.

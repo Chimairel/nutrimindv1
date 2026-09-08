@@ -11,6 +11,11 @@
 - Cloudinary uploads performed: **0**
 - Application or database records changed: **0**
 
+The consumption-first Commons matcher was smoke-tested against three subjects
+and returned licensed candidates for all three, but at least one was not a good
+semantic match. The complete 100-subject run is therefore intentionally not
+treated as an approval process; candidate selection must remain reviewable.
+
 ## Source and rights record
 
 The candidate pool comes from Wikimedia Commons category
