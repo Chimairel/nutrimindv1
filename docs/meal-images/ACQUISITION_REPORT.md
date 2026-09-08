@@ -3,6 +3,7 @@
 ## Outcome
 
 - Canonical application meals inventoried: **51**
+- Consumption-first photo subjects prioritized: **100**
 - Licensed Philippine food candidates retained: **117**
 - Minimum requested candidate target: **100** (met with a 17-image rejection buffer)
 - Planned local fallback categories: **7**
@@ -24,11 +25,15 @@ repository records source facts for engineering review; it is not legal advice.
 
 ## Important separation
 
-The 117-source pool is not the Meal Library. NutriMind currently has only 51
-canonical meal definitions. The source pool helps select images for those meals
-and supplies research material for a later 49-meal catalogue expansion, but an
-available photograph does not establish nutrition values, FNRI linkage,
-clinical compatibility, or nutritionist approval.
+The 117-source pool is not the Meal Library, and it is no longer the primary
+definition of image coverage. The primary 100-subject backlog is consumption
+first: it represents foods and familiar meal combinations eaten by Filipinos,
+including globally common items such as eggs, rice, noodles, sandwiches, and
+oatmeal. The Philippine-dish source pool is supplemental.
+
+NutriMind currently has only 51 canonical meal definitions. An available
+photograph does not establish nutrition values, FNRI linkage, clinical
+compatibility, or nutritionist approval.
 
 No candidate has been silently attached to a meal. The canonical assignment
 sheet starts every row as `UNASSIGNED`; the source pool starts every image as
@@ -40,6 +45,8 @@ sheet starts every row as `UNASSIGNED`; the source pool starts every image as
   and fallback categories for all 51 current meals.
 - `generated/philippine-food-source-pool.csv`: the 117 candidate photographs and
   their complete source/license metadata.
+- `generated/consumption-first-photo-subjects.csv`: the evidence-led primary
+  backlog of 100 everyday meal-photo subjects.
 - `generated/CANDIDATE_ATTRIBUTIONS.md`: readable candidate credit index.
 - `generated/philippine-food-source-pool-review.html`: remote-thumbnail contact
   sheet; clicking a photo opens the canonical Commons file page.

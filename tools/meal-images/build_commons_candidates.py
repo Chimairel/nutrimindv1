@@ -195,7 +195,7 @@ def build_contact_sheet(rows: list[dict[str, str]], output_path: Path) -> None:
                 f"""
                 <article class="candidate">
                   <a href="{html.escape(row['source_page_url'])}" target="_blank" rel="noreferrer">
-                    <img src="{html.escape(row['thumbnail_url'])}" alt="{html.escape(row['description'] or row['source_title'])}">
+                    <span class="image-frame"><img loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" src="{html.escape(row['thumbnail_url'])}" alt=""><span class="image-fallback">Preview unavailable<br>Open the source page</span></span>
                   </a>
                   <p><strong>#{row['candidate_rank']} {html.escape(row['source_title'])}</strong></p>
                   <p>{html.escape(row['creator'])} · {html.escape(row['license'])}</p>
@@ -207,7 +207,7 @@ def build_contact_sheet(rows: list[dict[str, str]], output_path: Path) -> None:
         )
     output_path.write_text(
         """<!doctype html><html><head><meta charset="utf-8"><title>NutriMind image candidates</title>
-        <style>body{font:14px system-ui;margin:24px;background:#f5f7f5;color:#13241d}section{margin:0 0 36px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.candidate{background:white;padding:12px;border:1px solid #ccd8d0;border-radius:12px}.candidate img{width:100%;height:160px;object-fit:cover;border-radius:8px}.candidate p{margin:8px 0 0;overflow-wrap:anywhere}</style>
+        <style>body{font:14px system-ui;margin:24px;background:#f5f7f5;color:#13241d}section{margin:0 0 36px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.candidate{background:white;padding:12px;border:1px solid #ccd8d0;border-radius:12px}.image-frame{display:grid;width:100%;height:160px;border-radius:8px;overflow:hidden;background:#e5ece7}.image-frame>*{grid-area:1/1}.image-frame img{width:100%;height:160px;object-fit:cover;z-index:1}.image-fallback{display:grid;place-items:center;text-align:center;padding:16px;color:#52645b;font-weight:650}.candidate p{margin:8px 0 0;overflow-wrap:anywhere}</style>
         </head><body><h1>NutriMind Wikimedia Commons candidates</h1><p>Every item still requires visual approval. Clicking an image opens its source and license page.</p>"""
         + "".join(cards)
         + "</body></html>",

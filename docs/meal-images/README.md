@@ -54,3 +54,16 @@ python tools/meal-images/build_philippine_food_pool.py `
 This second manifest is input for designing the missing 49 canonical meals. A
 photograph's availability is not evidence that a dish belongs in the clinical
 catalogue; FNRI linkage and nutritionist review remain separate requirements.
+
+## Consumption-first priority backlog
+
+The primary backlog is now based on what Filipino adults commonly consume, not
+whether a dish originated in the Philippines. Generate it with:
+
+```powershell
+python tools/meal-images/build_consumption_first_subjects.py `
+  --output docs/meal-images/generated/consumption-first-photo-subjects.csv
+```
+
+See `CONSUMPTION_FIRST_SCOPE.md` for the DOST-FNRI evidence and the boundary
+between reported food consumption and inferred meal-photo subjects.
