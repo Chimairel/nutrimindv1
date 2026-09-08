@@ -6,21 +6,23 @@ NutriMind is a Philippines-focused nutrition and meal-planning capstone applicat
 
 Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODUCTION_OPERATIONS_RUNBOOK.md). Public production startup remains gated on the qualified sign-off recorded in [`docs/CLINICAL_POLICY_APPROVAL.md`](docs/CLINICAL_POLICY_APPROVAL.md).
 
+Administrator-managed nutrition sources, aggregate consumption releases, FNRI mappings, publication, and rollback use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md).
+
 ## Current verification status
 
-The repository contains substantial frontend and backend implementation. As of September 7, 2026:
+The repository contains substantial frontend and backend implementation. As of September 9, 2026:
 
 - Backend TypeScript no-emit check and production build: **passed**
 - Frontend TypeScript no-emit check and production build: **passed**
 - Prisma schema validation: **passed**
 - Frontend lint: **passed with zero warnings**
-- Backend deterministic unit/policy baseline: **470 pass, 0 fail, 1 external-clinical TODO**
-- Frontend component baseline: **6 pass, 0 fail**
+- Backend deterministic unit/policy baseline: **496 pass, 0 fail, 1 external-clinical TODO**
+- Frontend component baseline: **19 pass, 0 fail**
 - Public/adversarial Playwright baseline: **2 pass, 0 fail**
 - Controlled API/database integration and acceptance suites: **passed against disposable loopback PostgreSQL 16.4 databases**
 - Authenticated desktop browser coverage: **passed for current user, nutritionist, administrator, public, and authorization routes; full 390px rerun remains environment-limited**
 - Repository CI configuration: **source quality, dependency audit, backend, frontend, browser smoke, and container-build jobs are present; remote execution is not established by local evidence**
-- All 23 additive database migrations: **rehearsed locally and applied to shared development; Prisma reports the schema up to date, with the new conversion and compensation tables empty**
+- The repository's 25 additive database migrations: **rehearsed locally with no datamodel drift; the latest outside-meal and admin-data migrations remain unapplied to shared development**
 - Controlled production integration and local readiness/load smokes: **passed**
 - Clinical review: **not established**
 

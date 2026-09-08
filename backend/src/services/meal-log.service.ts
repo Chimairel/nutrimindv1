@@ -13,7 +13,7 @@ import {
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
-import { selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
+import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
 import {
   assertValidOutsideMealMacros,
   outsideMealReviewPriority,
@@ -403,10 +403,17 @@ export class MealLogService {
     const alias = exact
       ? null
       : await prisma.foodAlias.findFirst({
-          where: { alias: { equals: item.name, mode: 'insensitive' } },
+          where: {
+            OR: [
+              { normalizedAlias: normalizeFoodName(item.name) },
+              { alias: { equals: item.name, mode: 'insensitive' } },
+            ],
+          },
           include: { foodItem: true },
         });
-    let food = exact ?? alias?.foodItem ?? null;
+    const trustedAlias =
+      alias?.foodItem && (alias.verifiedAt !== null || selectStrongFNRIMatch(item.name, [alias.foodItem]));
+    let food = exact ?? (trustedAlias ? alias.foodItem : null);
     if (!food) {
       const firstToken = normalize(item.name).split(/\s+/)[0];
       const candidates = await prisma.foodItem.findMany({

@@ -17,6 +17,7 @@ export interface MealGenerationPromptInput {
   otherConditions?: string;
   otherAllergies?: string;
   foodReference: string;
+  popularFoodReference?: string;
 }
 
 const RESPONSE_CONTRACT = `
@@ -100,6 +101,10 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `${MEAL_GENERATION_CUISINE_POLICY}\n` +
     `[PHILIPPINE FOOD COMPOSITION REFERENCE]\n` +
     `${input.foodReference}\n\n` +
+    (input.popularFoodReference
+      ? `[ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE]\n${input.popularFoodReference}\n` +
+        `Use this only as an accessibility and familiarity signal. It never overrides the patient profile, clinical safeguards, or calorie ranges.\n\n`
+      : '') +
     `Hard Rules:\n` +
     `- Each meal must stay inside the calorie range stated beside its requested slot; do not return a smaller base portion.\n` +
     `- Respect every recorded food restriction in all recipes; exclude canonical restrictions and retain review gates for unsupported entries.\n` +

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset, lookupIngredient } from '@/lib/fnri';
+import { getActiveFoodConsumptionContext } from '@/services/food-consumption-context.service';
 import {
   MealType,
   MealPlanStatus,
@@ -456,7 +457,10 @@ export class MealGenerationService {
         console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
 
         // Fetch a balanced FNRI reference across common food categories.
-        const localFoodsContext = await getFNRISubset();
+        const [localFoodsContext, popularFoodReference] = await Promise.all([
+          getFNRISubset(),
+          getActiveFoodConsumptionContext(),
+        ]);
         const formattedFoodsContext = localFoodsContext
           .map(
             (f) =>
@@ -476,6 +480,7 @@ export class MealGenerationService {
           otherConditions,
           otherAllergies,
           foodReference: formattedFoodsContext,
+          popularFoodReference,
         });
 
         // Define Zod response schema with refinement to guarantee exact slot matching

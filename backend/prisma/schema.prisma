@@ -497,6 +497,39 @@ enum IngredientConversionRedistributionStatus {
   LICENSE_REVIEW_REQUIRED
 }
 
+enum ReferenceDataDomain {
+  FOOD_COMPOSITION
+  FOOD_CONSUMPTION
+  INGREDIENT_PRICE
+  MEAL_CATALOGUE
+  MEAL_MEDIA
+}
+
+enum ReferenceDataReleaseStatus {
+  DRAFT
+  STAGED
+  ACTIVE
+  RETIRED
+}
+
+enum ReferenceDataActivationAction {
+  PUBLISH
+  ROLLBACK
+}
+
+enum ConsumptionGeographyLevel {
+  NATIONAL
+  REGION
+  PROVINCE_HUC
+}
+
+enum ConsumptionMappingStatus {
+  EXACT
+  MANUAL
+  REVIEW_REQUIRED
+  UNMAPPED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -575,6 +608,10 @@ model User {
   compensationPeriodsClosed        CompensationPeriod[]              @relation("CompensationPeriodCloser")
   compensationStatementsPrepared   CompensationStatement[]           @relation("CompensationStatementPreparer")
   compensationAdjustmentsRejected  CompensationAdjustment[]          @relation("CompensationAdjustmentRejector")
+  referenceDataReleasesCreated     ReferenceDataRelease[]            @relation("ReferenceDataReleaseCreator")
+  referenceDataReleasesActivated   ReferenceDataRelease[]            @relation("ReferenceDataReleaseActivator")
+  referenceDataActivations         ReferenceDataReleaseActivation[]  @relation("ReferenceDataActivationActor")
+  foodAliasesVerified              FoodAlias[]                       @relation("FoodAliasAdminVerifier")
 }
 
 model Account {
@@ -768,14 +805,111 @@ model FoodItem {
   priceMappings          IngredientPriceCommodityMapping[]
   conversionEvidenceFrom IngredientConversionEvidence[]    @relation("IngredientConversionFromFood")
   conversionEvidenceTo   IngredientConversionEvidence[]    @relation("IngredientConversionToFood")
+  consumptionStats       FoodConsumptionStat[]
 }
 
 model FoodAlias {
-  id         String   @id @default(cuid())
-  foodItemId String
-  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
-  alias      String
-  createdAt  DateTime @default(now())
+  id                String    @id @default(cuid())
+  foodItemId        String
+  foodItem          FoodItem  @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  alias             String
+  normalizedAlias   String?   @unique @db.VarChar(180)
+  verifiedByAdminId String?
+  verifiedByAdmin   User?     @relation("FoodAliasAdminVerifier", fields: [verifiedByAdminId], references: [id], onDelete: Restrict)
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([foodItemId, verifiedAt])
+}
+
+model ReferenceDataSource {
+  id              String                 @id @default(cuid())
+  code            String                 @unique @db.VarChar(80)
+  name            String                 @db.VarChar(180)
+  agencyName      String                 @db.VarChar(180)
+  domain          ReferenceDataDomain
+  homepageUrl     String                 @db.VarChar(500)
+  termsUrl        String?                @db.VarChar(500)
+  attributionText String                 @db.VarChar(300)
+  updateCadence   String?                @db.VarChar(120)
+  isEnabled       Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  releases        ReferenceDataRelease[]
+
+  @@index([domain, isEnabled])
+}
+
+model ReferenceDataRelease {
+  id                 String                           @id @default(cuid())
+  sourceId           String
+  source             ReferenceDataSource              @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  versionLabel       String                           @db.VarChar(120)
+  surveyYear         Int?
+  sourceUrl          String                           @db.VarChar(500)
+  sourcePublishedAt  DateTime?
+  retrievedAt        DateTime
+  contentSha256      String?                          @db.Char(64)
+  status             ReferenceDataReleaseStatus       @default(DRAFT)
+  notes              String?                          @db.VarChar(500)
+  createdByAdminId   String
+  createdByAdmin     User                             @relation("ReferenceDataReleaseCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  activatedByAdminId String?
+  activatedByAdmin   User?                            @relation("ReferenceDataReleaseActivator", fields: [activatedByAdminId], references: [id], onDelete: Restrict)
+  activatedAt        DateTime?
+  retiredAt          DateTime?
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
+  consumptionStats   FoodConsumptionStat[]
+  activations        ReferenceDataReleaseActivation[] @relation("ActivatedReferenceDataRelease")
+  replacements       ReferenceDataReleaseActivation[] @relation("ReplacedReferenceDataRelease")
+
+  @@unique([sourceId, versionLabel])
+  @@index([sourceId, status, createdAt])
+  @@index([status, activatedAt])
+}
+
+model ReferenceDataReleaseActivation {
+  id                String                        @id @default(cuid())
+  releaseId         String
+  release           ReferenceDataRelease          @relation("ActivatedReferenceDataRelease", fields: [releaseId], references: [id], onDelete: Restrict)
+  replacedReleaseId String?
+  replacedRelease   ReferenceDataRelease?         @relation("ReplacedReferenceDataRelease", fields: [replacedReleaseId], references: [id], onDelete: Restrict)
+  actorAdminId      String
+  actorAdmin        User                          @relation("ReferenceDataActivationActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
+  action            ReferenceDataActivationAction
+  createdAt         DateTime                      @default(now())
+
+  @@index([releaseId, createdAt])
+  @@index([actorAdminId, createdAt])
+}
+
+model FoodConsumptionStat {
+  id               String                    @id @default(cuid())
+  releaseId        String
+  release          ReferenceDataRelease      @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  sourceRowKey     String                    @db.VarChar(191)
+  populationGroup  String                    @db.VarChar(120)
+  geographyLevel   ConsumptionGeographyLevel
+  regionCode       String?                   @db.VarChar(40)
+  regionName       String?                   @db.VarChar(120)
+  provinceHucCode  String?                   @db.VarChar(40)
+  provinceHucName  String?                   @db.VarChar(160)
+  placeType        String?                   @db.VarChar(40)
+  foodNameRaw      String                    @db.VarChar(240)
+  foodItemId       String?
+  foodItem         FoodItem?                 @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  mappingStatus    ConsumptionMappingStatus
+  rank             Int?
+  percentConsuming Float?
+  meanIntakeG      Float?
+  sampleSize       Int?
+  createdAt        DateTime                  @default(now())
+
+  @@unique([releaseId, sourceRowKey])
+  @@index([releaseId, geographyLevel, populationGroup, rank], map: "FoodConsumptionStat_release_geo_population_rank_idx")
+  @@index([foodItemId, geographyLevel])
+  @@index([mappingStatus, releaseId])
 }
 
 model MealPlan {

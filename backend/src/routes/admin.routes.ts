@@ -23,12 +23,14 @@ import {
   recordManualPayoutSchema,
   reverseWorkCreditSchema,
 } from '@/validation/compensation.schemas';
+import adminDataRouter from '@/routes/admin-data.routes';
 
 const router = Router();
 
 // Apply auth + ADMIN role restriction
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+router.use('/data', adminDataRouter);
 
 /**
  * GET /api/admin/analytics

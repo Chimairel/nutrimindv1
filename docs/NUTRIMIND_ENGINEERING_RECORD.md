@@ -3523,3 +3523,30 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-183 used the owner-authorized existing local Gemini credential without copying or displaying it. The initial live response exposed an under-specified outside-meal prompt: models returned alternate `low`/`high` fields and omitted required macros. The prompt now provides one exact complete JSON contract. A fresh logical estimate succeeded and passed Zod validation through the configured fallback, consumed one NutriMind AI usage unit, counted provisionally, created a review, and became non-provisional after the synthetic verified nutritionist accepted it. Only synthetic food text was sent.
 - The migration was not applied to a shared database. No authenticated browser journey, deployment, payment action, or real clinical review is established by this local acceptance evidence.
 - The exact labelled container, its tmpfs database, loopback port 55461, and the PostgreSQL image that was absent before the task were removed after evidence capture. Port 55461 is free, and no `.env` file was created in the isolated worktree.
+
+## 66. Administrator-governed nutrition reference data (2026-09-09)
+
+**Architecture decision:** ADR-034
+
+**Change ID:** CHG-20260909-02
+
+**Verification IDs:** TEST-184 through TEST-188
+
+**Documentation ID:** DOC-058
+
+### Decision and implementation
+
+- Dynamic nutrition evidence now has an explicit governance boundary. Administrators register provenance-bearing sources and immutable versioned releases; application code continues to own validation, calculations, authorization, and clinical safety policy. Nutritionist meal certification remains a separate role-only workflow.
+- The additive data model introduces source, release, release-activation, and aggregate food-consumption records. Releases move through `DRAFT`, `STAGED`, `ACTIVE`, and `RETIRED`; only one release per source can be active. Published aggregate rows cannot be updated or deleted, and publication or restoration retains the replaced release plus actor evidence.
+- The first bounded importer accepts strict aggregate CSV evidence at national, regional, or province/HUC level. It rejects unknown columns, invalid geographic shapes and measures, duplicate identities, overlarge input, and respondent-level assumptions. Exact FNRI names and verified aliases map automatically; ambiguity remains review-required and unknown labels remain explicitly unmapped.
+- Administrators can add audited FNRI aliases, but normalized collisions with another canonical food or alias fail closed. Canonical nutrient composition remains read-only in this workspace.
+- `/admin/data` provides data-estate counts, source and release creation, downloadable import format, draft import, release inspection, deliberate FNRI mapping, staged publication, historical restoration, FNRI search, and alias verification. The endpoints inherit the existing authenticated ADMIN router boundary and are documented in OpenAPI.
+- Active nationally aggregated rows with exact or manual FNRI mappings become a compact accessibility/familiarity reference for otherwise unmatched meal-generation slots. That evidence is read directly from the active release and is explicitly subordinate to calorie allocation, dietary preference, allergies, and clinical safeguards.
+- Operating procedures, source terms, restricted-file handling, publication, and rollback are documented in `docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`.
+
+### Verification and scope
+
+- The complete root `npm run check` gate passes: source architecture, Prettier, backend and frontend lint, **497 registered backend tests / 496 pass / 0 fail / 1 unchanged clinical-policy TODO**, **19 frontend tests / 19 pass**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes including `/admin/data`. Prisma format, validation, and generation also pass.
+- A task-owned PostgreSQL 16.4 container on `127.0.0.1:55463` applied all 25 canonical migrations. The new migration SHA-256 was `b98093fd0e1afe28dd047cbde6c9c6f18eb3e30acbc269d87e47fe9d9407bd86`. A second deploy was empty, migration status was current, and database-to-Prisma comparison reported `No difference detected` after assigning an explicit stable index name.
+- The local acceptance journey created two synthetic releases, imported exact and unmapped aggregate rows, staged and published evidence, proved active evidence reaches the generation context, proved active row mutation is rejected by PostgreSQL, verified an audited alias, published a replacement, restored the prior release, and retained exactly one active release with three activation events and eleven audit events.
+- No shared database, restricted FNRI microdata, real user data, Gemini request, PayMongo/provider action, SMTP/OAuth call, deployment, or production environment was accessed. The new migration remains unapplied to shared development. The dirty Gemini UI branch and its main worktree were untouched. The task-owned container, tmpfs database, pulled PostgreSQL image, and loopback port were removed after evidence capture.
