@@ -6,7 +6,7 @@ import { NutritionistService } from '@/services/nutritionist.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import requireEligibleNutritionist from '@/middleware/nutritionistEligibility';
 import { certifyMealLibrarySafetySchema } from '@/domain/meal-library-safety-review.schema';
-import validateZodBody from '@/middleware/validateZod';
+import validateZodBody, { validateZodRequest } from '@/middleware/validateZod';
 import {
   libraryFlagResolutionSchema,
   libraryMealEditSchema,
@@ -15,6 +15,9 @@ import {
 } from '@/validation/nutritionist.schemas';
 import { NutritionistCompensationService } from '@/services/compensation-admin.service';
 import { isNutritionistReviewConflict } from '@/domain/nutritionist-review-http.policy';
+import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
+import { outsideMealReviewBodySchema, outsideMealReviewParamsSchema } from '@/validation/user-action.schemas';
+import { asyncHandler } from '@/middleware/errorHandler';
 
 const router = Router();
 
@@ -22,6 +25,32 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+
+router.get(
+  '/outside-meal-reviews',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const data = await OutsideMealReviewService.queue(req.nutritionistProfileId!);
+    res.status(200).json({ success: true, data });
+  })
+);
+
+router.post(
+  '/outside-meal-reviews/:id/claim',
+  validateZodRequest({ params: outsideMealReviewParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const data = await OutsideMealReviewService.claim(req.nutritionistProfileId!, req.params.id);
+    res.status(200).json({ success: true, data });
+  })
+);
+
+router.patch(
+  '/outside-meal-reviews/:id',
+  validateZodRequest({ params: outsideMealReviewParamsSchema, body: outsideMealReviewBodySchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const data = await OutsideMealReviewService.resolve(req.nutritionistProfileId!, req.params.id, req.body);
+    res.status(200).json({ success: true, data });
+  })
+);
 
 /**
  * GET /api/nutritionist/queue

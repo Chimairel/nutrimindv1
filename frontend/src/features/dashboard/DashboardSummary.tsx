@@ -14,6 +14,8 @@ type Metrics = {
   carbsTarget: number;
   fatConsumed: number;
   fatTarget: number;
+  provisionalCalories: number;
+  unresolvedMealCount: number;
 };
 
 type Props = {
@@ -87,7 +89,20 @@ export function DashboardSummary(props: Props) {
           className="min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-1"
           contentClassName="flex min-h-[300px] items-center justify-center p-6"
         >
-          <CalorieRing consumed={props.metrics.caloriesConsumed} target={props.metrics.caloriesTarget} />
+          <div className="flex flex-col items-center gap-1 text-center">
+            <CalorieRing consumed={props.metrics.caloriesConsumed} target={props.metrics.caloriesTarget} />
+            {props.metrics.provisionalCalories > 0 && (
+              <p className="rounded-full bg-status-pending-bg px-3 py-1 text-[11px] font-bold text-status-pending-text">
+                Includes {Math.round(props.metrics.provisionalCalories)} provisional kcal
+              </p>
+            )}
+            {props.metrics.unresolvedMealCount > 0 && (
+              <p className="text-[11px] font-semibold text-brand-muted">
+                {props.metrics.unresolvedMealCount} outside{' '}
+                {props.metrics.unresolvedMealCount === 1 ? 'log has' : 'logs have'} unresolved food excluded
+              </p>
+            )}
+          </div>
         </Card>
         <Card
           className="min-h-[300px] border border-brand-border/60 bg-brand-surface md:col-span-2"

@@ -365,6 +365,7 @@ export class MealsController {
       const allLogs = await prisma.mealLog.findMany({
         where,
         include: {
+          outsideItems: true,
           mealPlan: {
             include: {
               swapLogs: {
@@ -391,6 +392,10 @@ export class MealsController {
           dataSource: l.dataSource as string,
           status: l.status as string,
           warningType: l.warningType ?? null,
+          nutritionCompleteness: l.nutritionCompleteness,
+          provisionalCalories: l.provisionalCalories,
+          mealType: l.mealType,
+          outsideItems: l.outsideItems,
           loggedAt: l.loggedAt.toISOString(),
           calorieDelta: latestSwap ? latestSwap.calorieDelta : null,
         };
@@ -420,15 +425,16 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { mealName, mealType, warningAcknowledged, confirmationId, notes } = req.body;
-      if (!mealName || !mealType) {
-        return res.status(400).json({ success: false, error: 'Missing mealName or mealType parameters.' });
-      }
+      const { mealName, items, mealType, useAiEstimate, requestKey, warningAcknowledged, confirmationId, notes } =
+        req.body;
 
       const result = await MealLogService.logOutsideMeal({
         userId,
         mealName,
+        items,
         mealType,
+        useAiEstimate,
+        requestKey,
         warningAcknowledged,
         confirmationId,
         notes,
@@ -440,7 +446,8 @@ export class MealsController {
       });
     } catch (error: any) {
       console.error('[MealsController] logOutsideMeal error:', error);
-      return res.status(500).json({
+      const status = typeof error?.statusCode === 'number' ? error.statusCode : 500;
+      return res.status(status).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to check or log outside meal.'),
       });

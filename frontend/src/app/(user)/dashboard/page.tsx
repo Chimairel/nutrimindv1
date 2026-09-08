@@ -21,6 +21,7 @@ import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import {
   calculateDashboardMetrics,
   type OutsideMealLog,
+  type OutsideMealInputItem,
   type OutsideMealWarning,
   type PendingReview,
 } from '@/features/dashboard/model';
@@ -96,6 +97,7 @@ export default function DashboardPage() {
   const [logNotes, setLogNotes] = useState('');
   const [isLogging, setIsLogging] = useState(false);
   const [logError, setLogError] = useState<string | null>(null);
+  const outsideMealRequestKey = useRef<string | null>(null);
 
   // Warning Pre-check State
   const [warningData, setWarningData] = useState<OutsideMealWarning | null>(null);
@@ -311,13 +313,19 @@ export default function DashboardPage() {
   };
 
   // Submits the outside meal log (handles precheck warning cascades)
-  const handleLogOutsideMeal = async (forceAcknowledge = false) => {
+  const handleLogOutsideMeal = async (
+    forceAcknowledge = false,
+    options?: { useAiEstimate: boolean; items: OutsideMealInputItem[] }
+  ) => {
     setLogError(null);
     setIsLogging(true);
     try {
       const res = await api.post('/user/meals/log-outside', {
         mealName: logMealName.trim(),
+        items: forceAcknowledge ? undefined : options?.items,
         mealType: logMealType,
+        useAiEstimate: forceAcknowledge ? undefined : options?.useAiEstimate,
+        requestKey: forceAcknowledge ? undefined : (outsideMealRequestKey.current ??= crypto.randomUUID()),
         warningAcknowledged: forceAcknowledge,
         confirmationId: forceAcknowledge ? warningData?.confirmationId : undefined,
         notes: logNotes.trim(),
@@ -332,6 +340,9 @@ export default function DashboardPage() {
             warnings: payload.warnings,
             reasons: payload.reasons,
             estimate: payload.estimate,
+            items: payload.items,
+            summary: payload.summary,
+            usedAi: payload.usedAi,
           });
         } else {
           // Logged successfully! Close modal and refresh data
@@ -339,6 +350,7 @@ export default function DashboardPage() {
           setLogMealName('');
           setLogNotes('');
           setWarningData(null);
+          outsideMealRequestKey.current = null;
           await Promise.all([fetchCurrentPlan(), fetchOutsideMealLogs()]);
         }
       }
@@ -381,6 +393,7 @@ export default function DashboardPage() {
   const closeOutsideMealModal = () => {
     setIsLogModalOpen(false);
     setWarningData(null);
+    outsideMealRequestKey.current = null;
     setLogError(null);
     setLogMealName('');
     setLogNotes('');
@@ -487,7 +500,10 @@ export default function DashboardPage() {
         onMealTypeChange={setLogMealType}
         onNotesChange={setLogNotes}
         onSubmit={handleLogOutsideMeal}
-        onWarningCancel={() => setWarningData(null)}
+        onWarningCancel={() => {
+          setWarningData(null);
+          outsideMealRequestKey.current = null;
+        }}
         warning={warningData}
       />
 

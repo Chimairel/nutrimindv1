@@ -37,7 +37,8 @@ export type AIConfidenceFlag = 'SAFE' | 'CAUTION' | 'NEEDS_REVIEW';
 
 export type MealLogSource = 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED';
 
-export type MealLogDataSource = 'FNRI' | 'GEMINI_ESTIMATED' | 'SYSTEM';
+export type MealLogDataSource =
+  'FNRI' | 'GEMINI_ESTIMATED' | 'SYSTEM' | 'VERIFIED_LIBRARY' | 'USER_REPORTED' | 'NUTRITIONIST_REVIEWED' | 'MIXED';
 
 export type MealLogStatus = 'DONE' | 'PENDING' | 'SKIPPED';
 
@@ -205,6 +206,9 @@ export interface MealLog {
   warningAcknowledged: boolean;
   loggedAt: string;
   notes?: string;
+  mealType?: MealType;
+  nutritionCompleteness?: 'COMPLETE' | 'PARTIAL' | 'UNRESOLVED';
+  provisionalCalories?: number;
 }
 
 export interface WeightLog {

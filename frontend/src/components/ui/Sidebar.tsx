@@ -108,6 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     ],
     NUTRITIONIST: [
       { label: 'Review queue', href: '/nutritionist/reviews', icon: ClipboardList },
+      { label: 'Outside meals', href: '/nutritionist/outside-meals', icon: UtensilsCrossed },
       { label: 'Approved plans', href: '/nutritionist/approved', icon: CheckSquare2 },
       { label: 'Meal library', href: '/nutritionist/library', icon: BookOpen },
       { label: 'Compensation', href: '/nutritionist/compensation', icon: Receipt },
