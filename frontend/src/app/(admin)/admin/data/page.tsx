@@ -1,22 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { DatabaseZap, RefreshCw, ShieldCheck } from 'lucide-react';
+import { BookOpen, DatabaseZap, FileInput, LayoutDashboard, RefreshCw, ShieldCheck, Waypoints } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import DataForms from '@/features/admin-data/DataForms';
-import DataSummary from '@/features/admin-data/DataSummary';
+import DataWorkspaceOverview from '@/features/admin-data/DataWorkspaceOverview';
 import FoodCatalogue from '@/features/admin-data/FoodCatalogue';
 import ReleaseOperations from '@/features/admin-data/ReleaseOperations';
-import type { ApiEnvelope, DataWorkspace, FoodPage } from '@/features/admin-data/types';
+import type { AdminDataSection, ApiEnvelope, DataWorkspace, FoodPage } from '@/features/admin-data/types';
 import { getApiError } from '@/features/admin-data/types';
 
 export default function AdminDataPage() {
   const [workspace, setWorkspace] = useState<DataWorkspace | null>(null);
   const [foods, setFoods] = useState<FoodPage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [section, setSection] = useState<AdminDataSection>('overview');
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
 
   const load = useCallback(async (quiet = false) => {
@@ -24,7 +26,7 @@ export default function AdminDataPage() {
     try {
       const [workspaceResponse, foodsResponse] = await Promise.all([
         api.get<ApiEnvelope<DataWorkspace>>('/admin/data'),
-        api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', { params: { page: 1, limit: 25 } }),
+        api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', { params: { page: 1, limit: 12 } }),
       ]);
       setWorkspace(workspaceResponse.data.data);
       setFoods(foodsResponse.data.data);
@@ -94,22 +96,52 @@ export default function AdminDataPage() {
         </div>
       )}
 
-      <DataSummary summary={workspace.summary} />
-      <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800 dark:text-amber-200">
-        <p className="font-bold">Separation of responsibilities</p>
-        <p className="mt-1 leading-relaxed">
-          Admins govern source provenance, releases, aggregate survey data, and FNRI aliases. Nutritionists remain the
-          only role that can clinically approve meals. Raw FNRI nutrient values are intentionally read-only here.
-        </p>
-      </div>
-      <DataForms sources={workspace.sources} onChanged={changed} onError={failed} />
-      <ReleaseOperations
-        releases={workspace.releases}
-        csvTemplate={workspace.consumptionCsvTemplate}
-        onChanged={changed}
-        onError={failed}
-      />
-      <FoodCatalogue initialFoods={foods} onChanged={changed} onError={failed} />
+      <Tabs value={section} onValueChange={(value) => setSection(value as AdminDataSection)}>
+        <TabsList
+          aria-label="Nutrition data workspace"
+          className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <TabsTrigger value="overview" className="min-w-fit flex-1 gap-2">
+            <LayoutDashboard className="h-4 w-4" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="sources" className="min-w-fit flex-1 gap-2">
+            <Waypoints className="h-4 w-4" /> Sources & releases
+          </TabsTrigger>
+          <TabsTrigger value="imports" className="min-w-fit flex-1 gap-2">
+            <FileInput className="h-4 w-4" /> Import & publish
+          </TabsTrigger>
+          <TabsTrigger value="catalogue" className="min-w-fit flex-1 gap-2">
+            <BookOpen className="h-4 w-4" /> FNRI catalogue
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <DataWorkspaceOverview
+            summary={workspace.summary}
+            releaseCount={workspace.releases.length}
+            onNavigate={setSection}
+          />
+        </TabsContent>
+        <TabsContent value="sources">
+          <DataForms sources={workspace.sources} onChanged={changed} onError={failed} />
+        </TabsContent>
+        <TabsContent value="imports">
+          <ReleaseOperations
+            releases={workspace.releases}
+            csvTemplate={workspace.consumptionCsvTemplate}
+            onChanged={changed}
+            onError={failed}
+          />
+        </TabsContent>
+        <TabsContent value="catalogue">
+          <FoodCatalogue
+            initialFoods={foods}
+            canonicalFoodCount={workspace.summary.foodItems}
+            onChanged={changed}
+            onError={failed}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -66,12 +66,14 @@ export interface FoodAlias {
 export interface FoodItem {
   id: string;
   name: string;
-  energyKcal: number;
+  calories: number;
   proteinG: number;
   carbsG: number;
   fatG: number;
   aliases: FoodAlias[];
 }
+
+export type AdminDataSection = 'overview' | 'sources' | 'imports' | 'catalogue';
 
 export interface FoodPage {
   foods: FoodItem[];

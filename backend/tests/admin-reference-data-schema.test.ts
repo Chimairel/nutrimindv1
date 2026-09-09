@@ -17,6 +17,11 @@ const consumptionContext = readFileSync(
 );
 const mealPrompt = readFileSync(resolve(process.cwd(), 'src/domain/meal-generation-cuisine.policy.ts'), 'utf8');
 const adminPage = readFileSync(resolve(process.cwd(), '../frontend/src/app/(admin)/admin/data/page.tsx'), 'utf8');
+const adminOverview = readFileSync(
+  resolve(process.cwd(), '../frontend/src/features/admin-data/DataWorkspaceOverview.tsx'),
+  'utf8'
+);
+const adminUi = `${adminPage}\n${adminOverview}`;
 const adminLayout = readFileSync(resolve(process.cwd(), '../frontend/src/app/(admin)/layout.tsx'), 'utf8');
 const openApi = readFileSync(resolve(process.cwd(), 'src/docs/openapi.ts'), 'utf8');
 
@@ -76,9 +81,9 @@ test('[TEST-187] only mapped active aggregate evidence can influence unmatched-s
 });
 
 test('[TEST-188] admin UI exposes governed imports without adding a nutritionist approval shortcut', () => {
-  assert.match(adminPage, /Nutrition data center/);
-  assert.match(adminPage, /Separation of responsibilities/);
+  assert.match(adminUi, /Nutrition data center/);
+  assert.match(adminUi, /Admins govern sources, aggregate survey releases, and FNRI aliases/);
   assert.match(adminLayout, /href: '\/admin\/data'/);
   assert.match(openApi, /\/api\/admin\/data\/releases\/\{id\}\/publish/);
-  assert.doesNotMatch(adminPage, /api\.(post|patch)\([^\n]*nutritionist/);
+  assert.doesNotMatch(adminUi, /api\.(post|patch)\([^\n]*nutritionist/);
 });

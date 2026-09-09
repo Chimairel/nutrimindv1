@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -23,19 +23,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
+    const generatedId = useId();
+    const resolvedId = id ?? (label ? generatedId : undefined);
     const resolvedValidationState = error ? 'error' : validationState;
-    const messageId = id && (error || helperText) ? `${id}-${error ? 'error' : 'help'}` : undefined;
+    const messageId = resolvedId && (error || helperText) ? `${resolvedId}-${error ? 'error' : 'help'}` : undefined;
     const describedBy = [ariaDescribedBy, messageId].filter(Boolean).join(' ') || undefined;
 
     return (
       <div className="flex w-full flex-col gap-2">
         {label && (
-          <label htmlFor={id} className="font-display text-xs font-bold tracking-wide text-brand-text/90">
+          <label htmlFor={resolvedId} className="font-display text-xs font-bold tracking-wide text-brand-text/90">
             {label}
           </label>
         )}
         <input
-          id={id}
+          id={resolvedId}
           ref={ref}
           aria-describedby={describedBy}
           aria-invalid={error ? true : ariaInvalid}

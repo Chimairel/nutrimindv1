@@ -39,12 +39,14 @@ export default function DataSummary({ summary }: { summary: WorkspaceSummary }) 
       <p className="portal-section-label mb-4">Data estate</p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map(({ label, value, detail, icon: Icon }) => (
-          <Card key={label} className="p-5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-              <Icon className="h-[18px] w-[18px]" />
-            </span>
-            <p className="mt-6 font-display text-3xl font-black tracking-[-0.04em] text-brand-text">{value}</p>
-            <p className="mt-1 text-xs font-bold text-brand-text">{label}</p>
+          <Card key={label} className="p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                <Icon className="h-4 w-4" />
+              </span>
+              <p className="font-display text-2xl font-black tracking-[-0.04em] text-brand-text sm:text-3xl">{value}</p>
+            </div>
+            <p className="mt-4 text-xs font-bold text-brand-text">{label}</p>
             <p className="mt-1 text-[11px] text-brand-muted">{detail}</p>
           </Card>
         ))}

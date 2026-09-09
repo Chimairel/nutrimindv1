@@ -11,11 +11,12 @@ import { getApiError } from './types';
 
 interface FoodCatalogueProps {
   initialFoods: FoodPage;
+  canonicalFoodCount: number;
   onChanged: (message: string) => Promise<void>;
   onError: (message: string) => void;
 }
 
-export default function FoodCatalogue({ initialFoods, onChanged, onError }: FoodCatalogueProps) {
+export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChanged, onError }: FoodCatalogueProps) {
   const [result, setResult] = useState(initialFoods);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<FoodItem | null>(null);
@@ -23,12 +24,12 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
 
   useEffect(() => setResult(initialFoods), [initialFoods]);
 
-  async function findFoods(event?: FormEvent) {
+  async function findFoods(event?: FormEvent, page = 1) {
     event?.preventDefault();
     setLoading(true);
     try {
       const response = await api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', {
-        params: { page: 1, limit: 25, search: search || undefined },
+        params: { page, limit: initialFoods.limit, search: search || undefined },
       });
       setResult(response.data.data);
     } catch (error) {
@@ -46,7 +47,7 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
       await api.post('/admin/data/food-aliases', { foodItemId: selected.id, alias: form.get('alias') });
       event.currentTarget.reset();
       setSelected(null);
-      await findFoods();
+      await findFoods(undefined, result.page);
       await onChanged('Verified alias saved. New imports and food lookup can use it.');
     } catch (error) {
       onError(getApiError(error, 'Could not save the alias.'));
@@ -62,7 +63,8 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
             <div>
               <h2 className="font-display text-lg font-black">FNRI catalogue and aliases</h2>
               <p className="text-xs text-brand-muted">
-                The 1,542 nutrient records remain canonical; admins may add audited search and import labels.
+                {canonicalFoodCount.toLocaleString()} nutrient records remain canonical; admins may add audited search
+                and import labels.
               </p>
             </div>
           </div>
@@ -70,6 +72,7 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
       >
         <form className="flex gap-2" onSubmit={findFoods}>
           <Input
+            label="Search FNRI catalogue"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search canonical names or aliases"
@@ -78,7 +81,7 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
             <Search className="h-4 w-4" /> Search
           </Button>
         </form>
-        <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-brand-muted">
+        <p aria-live="polite" className="mt-3 font-mono text-[10px] uppercase tracking-wider text-brand-muted">
           {result.total.toLocaleString()} matching records
         </p>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -88,7 +91,7 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
                 <div className="min-w-0">
                   <p className="font-bold text-brand-text">{food.name}</p>
                   <p className="mt-1 text-[11px] text-brand-muted">
-                    {food.energyKcal} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g per 100 g
+                    {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g per 100 g
                   </p>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => setSelected(food)}>
@@ -111,15 +114,54 @@ export default function FoodCatalogue({ initialFoods, onChanged, onError }: Food
             </div>
           ))}
         </div>
+        {result.totalPages > 1 && (
+          <nav aria-label="FNRI catalogue pages" className="mt-5 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={loading || result.page <= 1}
+              onClick={() => void findFoods(undefined, result.page - 1)}
+            >
+              Previous
+            </Button>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+              Page {result.page} of {result.totalPages}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={loading || result.page >= result.totalPages}
+              onClick={() => void findFoods(undefined, result.page + 1)}
+            >
+              Next
+            </Button>
+          </nav>
+        )}
         {selected && (
-          <form onSubmit={addAlias} className="mt-5 rounded-[24px] border border-brand-green/20 bg-brand-green/5 p-5">
-            <p className="font-bold text-brand-text">Add a verified alias for {selected.name}</p>
+          <form
+            role="region"
+            aria-labelledby="verified-alias-heading"
+            onSubmit={addAlias}
+            className="mt-5 rounded-[24px] border border-brand-green/20 bg-brand-green/5 p-5"
+          >
+            <p id="verified-alias-heading" className="font-bold text-brand-text">
+              Add a verified alias for {selected.name}
+            </p>
             <p className="mt-1 text-xs text-brand-muted">
               Aliases affect food matching, so collisions with another FNRI record are rejected and every change is
               audited.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              <Input name="alias" placeholder="Example: boiled egg" minLength={2} required autoFocus />
+              <Input
+                name="alias"
+                label="Verified alias"
+                placeholder="Example: boiled egg"
+                minLength={2}
+                required
+                autoFocus
+              />
               <Button type="submit">Verify alias</Button>
               <Button type="button" variant="ghost" onClick={() => setSelected(null)}>
                 Cancel

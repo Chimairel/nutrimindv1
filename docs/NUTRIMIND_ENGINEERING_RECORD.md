@@ -3574,3 +3574,28 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-190 is the shared-development migration deployment and repeat status check. TEST-191 is the no-DML migration scan plus privacy-safe postflight table-count probe.
 - `origin/development` was verified as an ancestor of the combined branch before advancement, so the integration can be published as a normal fast-forward. `main` remains outside this integration and is intentionally reserved for the later manual-acceptance checkpoint.
 - No Gemini, PayMongo, SMTP, OAuth, Cloudinary, or production deployment request was made during this integration. No real nutritionist review or browser-level manual acceptance is claimed by these automated checks.
+
+## 68. Guided administrator data workspace (2026-09-09)
+
+**Defect ID:** DEF-040
+
+**Change ID:** CHG-20260909-04
+
+**Verification IDs:** TEST-192 through TEST-194
+
+**Documentation ID:** DOC-060
+
+### Defects and correction
+
+- Manual inspection found the administrator data center rendered every responsibility in one long page, leaving the empty-state workflow difficult to understand. The workspace is now divided into four accessible tabs: Overview, Sources & releases, Import & publish, and FNRI catalogue. Only the selected responsibility is rendered.
+- Overview provides a four-step source-to-publication guide, completion indicators derived from live data, a next-action button, compact estate metrics, and a concise explanation of the administrator/nutritionist boundary.
+- The catalogue previously expected a nonexistent `energyKcal` property even though the established API returns `calories`, producing blank calorie labels. The frontend contract and both catalogue consumers now use `calories` consistently.
+- The hard-coded 1,542-record caption now uses the live canonical count. Catalogue requests return twelve records at a time and expose server-backed Previous/Next controls with the current and total page count, so every search match is reachable without restoring the original unbounded page.
+- The shared Input primitive now generates a stable ID whenever a visible label is supplied, making existing label text programmatically associated with its field throughout the application. The alias editor is an explicitly labelled region with a labelled input.
+
+### Verification and scope
+
+- TEST-192 covers generated input IDs, label association, helper/error descriptions, live calorie rendering, dynamic catalogue counts, pagination presence, and the accessible alias editor. The frontend suite now reports **36 pass / 0 fail** across 11 files.
+- TEST-193 is the complete repository gate: source architecture, formatting, backend and frontend lint with zero warnings, **497 registered backend tests / 496 pass / 0 fail / 1 unchanged clinical-policy TODO**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes.
+- TEST-194 used the synthetic local administrator account for browser inspection. It verified all four tab selections, associated source-form labels, a calorie-bearing 12-row catalogue page, page-one to page-two navigation, and the labelled alias editor. No source, release, alias, mapping, import, or database row was created or changed.
+- This was an administrator UI and frontend contract correction only. No schema, migration, shared-database mutation, Gemini request, PayMongo/provider action, environment change, deployment, or production action occurred.

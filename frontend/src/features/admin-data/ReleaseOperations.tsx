@@ -404,7 +404,7 @@ function ConsumptionMappingPanel({
               >
                 {food.name}
                 <span className="mt-1 block text-[11px] font-normal text-brand-muted">
-                  {food.energyKcal} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g
+                  {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g
                 </span>
               </button>
             ))}
