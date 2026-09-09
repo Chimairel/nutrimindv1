@@ -3550,3 +3550,27 @@ This section is a continuity record for agreed future work. Every item below is 
 - A task-owned PostgreSQL 16.4 container on `127.0.0.1:55463` applied all 25 canonical migrations. The new migration SHA-256 was `b98093fd0e1afe28dd047cbde6c9c6f18eb3e30acbc269d87e47fe9d9407bd86`. A second deploy was empty, migration status was current, and database-to-Prisma comparison reported `No difference detected` after assigning an explicit stable index name.
 - The local acceptance journey created two synthetic releases, imported exact and unmapped aggregate rows, staged and published evidence, proved active evidence reaches the generation context, proved active row mutation is rejected by PostgreSQL, verified an audited alias, published a replacement, restored the prior release, and retained exactly one active release with three activation events and eleven audit events.
 - No shared database, restricted FNRI microdata, real user data, Gemini request, PayMongo/provider action, SMTP/OAuth call, deployment, or production environment was accessed. The new migration remains unapplied to shared development. The dirty Gemini UI branch and its main worktree were untouched. The task-owned container, tmpfs database, pulled PostgreSQL image, and loopback port were removed after evidence capture.
+
+## 67. Combined development integration and shared-development schema activation (2026-09-09)
+
+**Architecture decisions:** ADR-033 and ADR-034
+
+**Change ID:** CHG-20260909-03
+
+**Verification IDs:** TEST-189 through TEST-191
+
+**Documentation ID:** DOC-059
+
+### Integration and database action
+
+- The reviewed Gemini UI/UX work was preserved in commit `5592389`, then merged with `codex/admin-data-management` on `feature/ui-ux-enhancement` in merge commit `c1134c8`. The combined history therefore contains the reusable motion/accessibility enhancements, outside-meal intelligence, meal-image research tools, and administrator-governed nutrition reference data without squashing their evidence.
+- Before any shared-database write, the complete combined source gate passed and Prisma reported exactly the two expected pending additive migrations: `20260908120000_outside_meal_intelligence` and `20260909130000_admin_reference_data_management`.
+- The configured shared **development** Neon database was updated only through `prisma migrate deploy`. Both pending migrations applied successfully, a subsequent status check reported all **25 migrations current**, and Prisma Client generation completed. No `db push`, reset, seed, manual SQL, or environment-file change was used.
+- A static migration scan found no `INSERT`, `UPDATE`, `DELETE`, or `TRUNCATE` statements in either migration. Privacy-safe postflight counts confirmed the new reference-data source, release, activation, consumption-stat, outside-meal item, revision, review, and AI-usage tables were empty. One pre-existing synthetic outside-meal preview remained present.
+
+### Verification and branch policy
+
+- TEST-189 is the full combined root gate: source architecture, formatting, backend and frontend lint with zero warnings, **497 registered backend tests / 496 pass / 0 fail / 1 unchanged clinical-policy TODO**, **32 frontend tests / 32 pass**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes.
+- TEST-190 is the shared-development migration deployment and repeat status check. TEST-191 is the no-DML migration scan plus privacy-safe postflight table-count probe.
+- `origin/development` was verified as an ancestor of the combined branch before advancement, so the integration can be published as a normal fast-forward. `main` remains outside this integration and is intentionally reserved for the later manual-acceptance checkpoint.
+- No Gemini, PayMongo, SMTP, OAuth, Cloudinary, or production deployment request was made during this integration. No real nutritionist review or browser-level manual acceptance is claimed by these automated checks.
