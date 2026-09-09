@@ -16,7 +16,10 @@ import { Calendar, Plus, AlertTriangle, Utensils, Sparkles } from 'lucide-react'
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { DashboardMealSchedule } from '@/features/dashboard/DashboardMealSchedule';
-import { DashboardSummary } from '@/features/dashboard/DashboardSummary';
+import { DashboardNutritionBudgets, DashboardHealthSnapshot } from '@/features/dashboard/DashboardSummary';
+import { DashboardHero } from '@/features/dashboard/DashboardHero';
+import { NutritionistGuidanceCard } from '@/features/dashboard/NutritionistGuidanceCard';
+import { GroceryPreviewCard } from '@/features/dashboard/GroceryPreviewCard';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import {
   calculateDashboardMetrics,
@@ -107,6 +110,7 @@ export default function DashboardPage() {
   const [checkinInfo, setCheckinInfo] = useState<CheckinSnapshot | null>(cachedCheckin);
 
   // User Profile details
+  const [fullProfile, setFullProfile] = useState<UserProfileData | null>(cachedProfile);
   const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(cachedProfile?.userProfile ?? null);
   const [outsideMealLogs, setOutsideMealLogs] = useState<OutsideMealLog[]>(cachedOutsideMeals ?? []);
 
@@ -127,6 +131,7 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/user/profile');
       if (res.data?.success) {
+        setFullProfile(res.data.data);
         setUserProfile(res.data.data.userProfile);
         writeSessionResource(ownerId, 'user-profile', res.data.data);
       }
@@ -402,23 +407,6 @@ export default function DashboardPage() {
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <PortalPageHeader
-          icon={Sparkles}
-          eyebrow="Daily nutrition cockpit"
-          title={<>Mabuhay, {user?.name.split(' ')[0]}.</>}
-          description="Your accessible, culturally aware meal plan, daily targets, and review-aware nutrition progress in one connected view."
-          actions={
-            <Button
-              variant="primary"
-              onClick={() => router.push('/meals')}
-              className="flex items-center gap-2 text-xs font-bold"
-            >
-              <Calendar className="h-4 w-4" />
-              <span>Open weekly plan</span>
-            </Button>
-          }
-        />
-
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -427,20 +415,48 @@ export default function DashboardPage() {
         )}
 
         {currentMeals.length === 0 && !pendingReview ? (
-          <div className="py-12">
-            <EmptyState
-              icon={<Utensils className="h-8 w-8 text-brand-green" />}
-              title="No Active Meal Plan"
-              description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
-              actionText="Generate Meal Plan"
-              onAction={handleGeneratePlan}
+          <>
+            <PortalPageHeader
+              icon={Sparkles}
+              eyebrow="Daily nutrition cockpit"
+              title={<>Mabuhay, {user?.name.split(' ')[0]}.</>}
+              description="Your accessible, culturally aware meal plan, daily targets, and review-aware nutrition progress in one connected view."
+              actions={
+                <Button
+                  variant="primary"
+                  onClick={() => router.push('/meals')}
+                  className="flex items-center gap-2 text-xs font-bold"
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span>Open weekly plan</span>
+                </Button>
+              }
             />
-          </div>
+            <div className="py-12">
+              <EmptyState
+                icon={<Utensils className="h-8 w-8 text-brand-green" />}
+                title="No Active Meal Plan"
+                description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
+                actionText="Generate Meal Plan"
+                onAction={handleGeneratePlan}
+              />
+            </div>
+          </>
         ) : (
           <>
+            <DashboardHero
+              userName={user?.name}
+              dailyCalorieTarget={userProfile?.dailyCalorieTarget}
+              goal={userProfile?.goal}
+              locality={userProfile?.mealLocalityPreference || userProfile?.planningRegionName}
+              planType={pendingReview?.planType}
+              isPendingReview={Boolean(pendingReview)}
+              onOpenWeeklyPlan={() => router.push('/meals')}
+            />
+
             {daySelectors.length > 0 && (
               <div
-                className="order-1 mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none"
+                className="mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none"
                 aria-label="Meal plan dates"
               >
                 {daySelectors.map((item) => {
@@ -459,21 +475,41 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
-            <DashboardSummary
-              checkinDue={isCheckinDue}
-              checkinStreak={checkinInfo?.streak ?? 0}
-              metrics={metrics}
-              onAddWater={handleAddWater}
-              onOpenCheckin={() => setIsCheckinDue(true)}
-              profile={userProfile}
-              waterIntake={waterIntake}
-            />
-            <DashboardMealSchedule
-              activeDate={activeDate}
-              approvedMeals={metrics.mealsList}
-              onStatusToggle={handleMealStatusToggle}
-              pendingReview={pendingReview}
-            />
+
+            {/* Modular Eggify-Inspired Grid Layout */}
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+              {/* Primary Content Column: Meals and Nutrition Budgets */}
+              <div className="flex flex-col gap-6 lg:col-span-8">
+                <DashboardMealSchedule
+                  activeDate={activeDate}
+                  approvedMeals={metrics.mealsList}
+                  onStatusToggle={handleMealStatusToggle}
+                  pendingReview={pendingReview}
+                />
+                <DashboardNutritionBudgets metrics={metrics} />
+              </div>
+
+              {/* Contextual Right Rail: Nutritionist Guidance, Grocery Checklist, Health Snapshot */}
+              <div className="flex flex-col gap-6 lg:col-span-4">
+                <NutritionistGuidanceCard
+                  healthConditions={fullProfile?.healthConditions ?? []}
+                  allergies={fullProfile?.allergies ?? []}
+                  isPendingReview={Boolean(pendingReview)}
+                  verifierName={metrics.mealsList[0]?.verifier?.name}
+                  prcLicenseNumber={metrics.mealsList[0]?.verifier?.prcLicenseNumber}
+                />
+                <GroceryPreviewCard ownerId={ownerId} onNavigateToGrocery={() => router.push('/grocery')} />
+                <DashboardHealthSnapshot
+                  checkinDue={isCheckinDue}
+                  checkinStreak={checkinInfo?.streak ?? 0}
+                  onAddWater={handleAddWater}
+                  onOpenCheckin={() => setIsCheckinDue(true)}
+                  profile={userProfile}
+                  waterIntake={waterIntake}
+                  layout="stack"
+                />
+              </div>
+            </div>
           </>
         )}
       </div>

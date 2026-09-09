@@ -9,7 +9,19 @@ import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import MealImage from '@/components/user/MealImage';
-import { ArrowLeft, Coffee, Sun, Moon, Apple, Check, X, AlertCircle, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Coffee,
+  Sun,
+  Moon,
+  Apple,
+  Check,
+  X,
+  AlertCircle,
+  ShieldCheck,
+  Camera,
+  ExternalLink,
+} from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { MealType, MealPlanStatus, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
@@ -167,8 +179,10 @@ export default function MealDetailPage() {
           image={meal.image}
           mealName={meal.mealName}
           mealType={meal.mealType}
+          ingredients={meal.ingredients}
           className="mb-6 h-64 w-full"
           priority
+          variant="detail"
           showAttributionLinks
         />
 
@@ -340,6 +354,67 @@ export default function MealDetailPage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {meal.image && (
+            <section
+              className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
+              aria-label="Image Governance and Attribution"
+            >
+              <div className="flex items-center gap-2 text-brand-green">
+                <Camera className="h-4 w-4 shrink-0" />
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-brand-text">
+                  Image Governance &amp; Attribution
+                </h3>
+              </div>
+              <div className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
+                {meal.image.kind === 'REPRESENTATIVE' && (
+                  <p className="flex items-start gap-1.5 font-medium text-amber-400/90">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" aria-hidden="true" />
+                    <span>
+                      <strong>Representative photograph</strong> · Pictured preparation, garnish, or secondary
+                      ingredients may differ from the NutriMind recipe.
+                    </span>
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs">
+                  {meal.image.attribution.creator && (
+                    <span className="font-semibold text-brand-text">Photo by {meal.image.attribution.creator}</span>
+                  )}
+                  {meal.image.attribution.sourcePageUrl && (
+                    <a
+                      href={meal.image.attribution.sourcePageUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center gap-1 text-brand-green underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"
+                      aria-label="View original image source page in new tab"
+                    >
+                      <span>Source page</span>
+                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    </a>
+                  )}
+                  {meal.image.attribution.licenseUrl && (
+                    <a
+                      href={meal.image.attribution.licenseUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center gap-1 text-brand-green underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"
+                      aria-label="View license details in new tab"
+                    >
+                      <span>{meal.image.attribution.licenseCode || 'License'}</span>
+                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+                {meal.image.attribution.modifications && (
+                  <p className="text-[10px] text-brand-muted/80">{meal.image.attribution.modifications}</p>
+                )}
+                <p className="border-t border-brand-border/60 pt-2 text-[10px] italic text-brand-muted/70">
+                  Nutritional and clinical accuracy is determined solely by FNRI-linked recipe data, not by photograph
+                  contents.
+                </p>
+              </div>
+            </section>
           )}
         </div>
 

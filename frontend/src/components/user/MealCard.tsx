@@ -154,11 +154,18 @@ export default function MealCard({
           `}
           contentClassName="flex h-full flex-col justify-between p-5"
         >
-          <MealImage image={image} mealName={mealName} mealType={mealType} className="mb-4 h-32 w-full" />
+          <MealImage
+            image={image}
+            mealName={mealName}
+            mealType={mealType}
+            className="mb-3.5 h-36 w-full"
+            variant="compact"
+            ingredients={ingredients}
+          />
           {/* Card Top Row */}
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-2">
-              <Icon className="h-4.5 w-4.5 text-brand-green" />
+              <Icon className="h-4 w-4 text-brand-green" />
               <span className="text-[10px] font-extrabold tracking-wider text-brand-muted uppercase">
                 {activeLabel.label}
               </span>
@@ -208,8 +215,12 @@ export default function MealCard({
               {mealName}
             </h3>
 
-            <div className="text-[11px] font-bold text-brand-muted mt-2">
-              {Math.round(calories)} kcal · {Math.round(proteinG)}g P · {Math.round(carbsG)}g C · {Math.round(fatG)}g F
+            <div className="mt-3 flex items-center justify-between border-t border-brand-border/40 pt-2.5">
+              <span className="text-[11px] font-bold text-brand-muted">
+                {Math.round(calories)} kcal · {Math.round(proteinG)}g P · {Math.round(carbsG)}g C · {Math.round(fatG)}g
+                F
+              </span>
+              <span className="text-[11px] font-extrabold text-brand-green">View &rarr;</span>
             </div>
           </div>
         </Card>
@@ -218,6 +229,14 @@ export default function MealCard({
       {/* Detailed Info Dialog Popup Modal */}
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={`${activeLabel.label} Details`} size="md">
         <div className="flex flex-col gap-5 text-left select-none p-1">
+          <MealImage
+            image={image}
+            mealName={mealName}
+            mealType={mealType}
+            className="h-44 w-full"
+            variant="compact"
+            ingredients={ingredients}
+          />
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Icon className="h-5 w-5 text-brand-green" />
