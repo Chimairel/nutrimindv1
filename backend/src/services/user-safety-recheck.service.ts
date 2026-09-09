@@ -10,6 +10,7 @@ import {
   MealLogStatus,
   MealIngredientDataSource,
   MealLibrarySafetyEvidenceStatus,
+  Prisma,
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
@@ -318,6 +319,9 @@ export class UserSafetyRecheckService {
               reviewApprovalCount: 1,
               nutritionistId: selectedLibraryMeal.verifiedByNutritionistId,
               reviewedAt: new Date(),
+              // The previous meal's selection rationale must not survive a
+              // safety replacement whose evidence was not captured here.
+              selectionEvidence: Prisma.DbNull,
             },
           });
 
@@ -398,6 +402,7 @@ export class UserSafetyRecheckService {
                 reviewApprovalCount: 0,
                 nutritionistId: null,
                 reviewedAt: null,
+                selectionEvidence: Prisma.DbNull,
               },
             });
 

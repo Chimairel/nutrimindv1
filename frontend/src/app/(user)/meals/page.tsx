@@ -561,6 +561,7 @@ export default function WeeklyPlanPage() {
                           swapCap={swapCap}
                           scheduledDate={meal.scheduledDate}
                           verifier={meal.verifier}
+                          explanation={meal.explanation}
                         />
                       ))}
                     </div>

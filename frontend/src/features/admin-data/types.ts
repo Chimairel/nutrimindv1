@@ -29,7 +29,7 @@ export interface DataRelease {
   status: ReleaseStatus;
   activatedAt?: string | null;
   retiredAt?: string | null;
-  source: Pick<DataSource, 'code' | 'name' | 'domain' | 'isEnabled'>;
+  source: Pick<DataSource, 'code' | 'name' | 'domain' | 'isEnabled' | 'updateCadence'>;
   createdByAdmin: { name: string };
   activatedByAdmin?: { name: string } | null;
   mappings: Record<string, number>;

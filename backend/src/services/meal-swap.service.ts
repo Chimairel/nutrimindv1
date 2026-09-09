@@ -387,6 +387,9 @@ export class MealSwapService {
           reviewApprovalCount: 1,
           nutritionistId: libraryMeal.verifiedByNutritionistId,
           reviewedAt: new Date(),
+          // The original generation evidence no longer describes this
+          // user-selected replacement. Do not retain a stale rationale.
+          selectionEvidence: Prisma.DbNull,
         },
       });
 

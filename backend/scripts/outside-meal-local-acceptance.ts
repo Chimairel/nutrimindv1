@@ -25,12 +25,16 @@ function assertCommit(result: LogResult): asserts result is CommitResult {
 
 function requireDisposableDatabase(): void {
   const database = new URL(process.env.DATABASE_URL || '');
+  const expectedPort = process.env.NUTRIMIND_OUTSIDE_ACCEPTANCE_PORT || '55461';
+  if (!/^\d{2,5}$/.test(expectedPort)) throw new Error('Outside-meal acceptance port is invalid.');
   if (
     !['127.0.0.1', 'localhost'].includes(database.hostname) ||
-    database.port !== '55461' ||
+    database.port !== expectedPort ||
     database.pathname !== '/nutrimind_outside'
   ) {
-    throw new Error('Outside-meal acceptance requires the disposable database at 127.0.0.1:55461/nutrimind_outside.');
+    throw new Error(
+      `Outside-meal acceptance requires the disposable database at 127.0.0.1:${expectedPort}/nutrimind_outside.`
+    );
   }
 }
 

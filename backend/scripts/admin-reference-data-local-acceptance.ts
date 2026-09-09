@@ -5,8 +5,9 @@ import { getActiveFoodConsumptionContext } from '@/services/food-consumption-con
 
 function assertDisposableTarget() {
   const url = new URL(process.env.DATABASE_URL || '');
-  if (url.hostname !== '127.0.0.1' || url.port !== '55463' || url.pathname !== '/nutrimind_admin_data') {
-    throw new Error('Acceptance is locked to the task-owned loopback database on port 55463.');
+  const expectedPort = process.env.NUTRIMIND_ADMIN_DATA_ACCEPTANCE_PORT || '55463';
+  if (url.hostname !== '127.0.0.1' || url.port !== expectedPort || url.pathname !== '/nutrimind_admin_data') {
+    throw new Error(`Acceptance is locked to the task-owned loopback database on port ${expectedPort}.`);
   }
 }
 

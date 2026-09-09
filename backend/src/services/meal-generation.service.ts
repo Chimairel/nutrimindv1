@@ -40,8 +40,14 @@ import {
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
-import { isMealWithinSlotCalorieRange, rankCalorieCompatibleMeals } from '@/domain/meal-calorie-allocation.policy';
+import {
+  getMealSlotCalorieRange,
+  isMealWithinSlotCalorieRange,
+  isPrimaryMealType,
+  rankCalorieCompatibleMeals,
+} from '@/domain/meal-calorie-allocation.policy';
 import { formatMealLocalityPreference, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
+import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
 
 interface GroundedFoodReference {
   id: string;
@@ -576,6 +582,26 @@ export class MealGenerationService {
     );
 
     const newPlanGroupId = randomUUID();
+    const evidenceCapturedAt = new Date().toISOString();
+    const selectionEvidenceFor = (
+      source: MealSelectionEvidence['source'],
+      mealType: MealType
+    ): MealSelectionEvidence => {
+      const range = isPrimaryMealType(mealType) ? getMealSlotCalorieRange(dailyCalorieTarget, mealType) : null;
+      return {
+        schemaVersion: 1,
+        source,
+        dailyCalorieTarget,
+        slotCalorieTarget: range?.target ?? null,
+        slotCalorieLower: range?.minimum ?? null,
+        slotCalorieUpper: range?.maximum ?? null,
+        localityPreference: profile.mealLocalityPreference,
+        planningLocationLabel: formatMealLocalityPreference(profile),
+        consumptionEvidenceScope: localizedConsumption.matchedScope?.label ?? null,
+        consumptionEvidenceRelease: localizedConsumption.releaseLabel,
+        capturedAt: evidenceCapturedAt,
+      };
+    };
     const targetPlanEndDate = getScheduledMealDate(startDate, Math.max(0, numDays - 1));
     const userHasConditions = userConditions.length > 0 && !userConditions.includes(HealthConditionType.NONE);
     const createdPlansList: any[] = [];
@@ -746,6 +772,10 @@ export class MealGenerationService {
                 safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
                 highRiskReviewRequired,
                 reviewApprovalCount: highRiskReviewRequired ? 2 : 1,
+                selectionEvidence: selectionEvidenceFor(
+                  'VERIFIED_LIBRARY',
+                  slot.mealType
+                ) as unknown as Prisma.InputJsonValue,
                 ingredients: {
                   create: ingredientsData,
                 },
@@ -781,6 +811,10 @@ export class MealGenerationService {
               requiresSafetyRevalidation: true,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
+              selectionEvidence: selectionEvidenceFor(
+                'AI_GENERATED',
+                meal.mealType
+              ) as unknown as Prisma.InputJsonValue,
               ingredients: {
                 create: meal.ingredientsData,
               },

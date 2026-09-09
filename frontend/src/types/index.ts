@@ -175,6 +175,16 @@ export interface MealPlan {
   ingredients?: MealIngredient[];
   mealLogs?: MealLog[];
   verifier?: PublicVerifier | null;
+  explanation?: MealExplanation;
+}
+
+export interface MealExplanation {
+  source: 'VERIFIED_LIBRARY' | 'AI_GENERATED' | 'LEGACY_UNKNOWN';
+  reviewState: 'NUTRITIONIST_VERIFIED' | 'APPROVED' | 'PENDING_REVIEW';
+  nutritionEvidence: 'ALL_FNRI' | 'MIXED' | 'ESTIMATED' | 'UNAVAILABLE';
+  calorieFit: 'WITHIN_TARGET' | 'OUTSIDE_TARGET' | 'UNAVAILABLE';
+  bullets: string[];
+  limitation?: string;
 }
 
 export interface PublicVerifier {
@@ -193,6 +203,7 @@ export interface MealIngredient {
   foodItemId?: string;
   ingredientName: string;
   category?: string;
+  dataSource?: 'FNRI' | 'GEMINI_ESTIMATED';
 }
 
 export interface MealLog {

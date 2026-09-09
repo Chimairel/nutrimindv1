@@ -20,6 +20,7 @@ export interface LocalizedFoodConsumptionContext {
   text: string;
   matchedScope: ConsumptionScope | null;
   items: ConsumptionContextItem[];
+  releaseLabel: string | null;
 }
 
 export interface PlanningLocationOptions {
@@ -126,7 +127,7 @@ export async function getLocalizedFoodConsumptionContext(
     })
   );
 
-  if (!resolved.scope) return { text: '', matchedScope: null, items: [] };
+  if (!resolved.scope) return { text: '', matchedScope: null, items: [], releaseLabel: null };
 
   const scope = resolved.scope;
   const rows = resolved.rows;
@@ -150,7 +151,13 @@ export async function getLocalizedFoodConsumptionContext(
     })
     .join('\n');
 
-  return { text, matchedScope: scope, items };
+  const firstRelease = uniqueRows[0]?.release;
+  return {
+    text,
+    matchedScope: scope,
+    items,
+    releaseLabel: firstRelease ? `${firstRelease.source.code} ${firstRelease.versionLabel}` : null,
+  };
 }
 
 /** Backward-compatible national helper for non-localized callers. */

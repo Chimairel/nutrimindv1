@@ -114,6 +114,19 @@ async function main() {
         requiresSafetyRevalidation: false,
         safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
         reviewApprovalCount: 1,
+        selectionEvidence: {
+          schemaVersion: 1,
+          source: 'VERIFIED_LIBRARY',
+          dailyCalorieTarget: 1800,
+          slotCalorieTarget: 540,
+          slotCalorieLower: 459,
+          slotCalorieUpper: 621,
+          localityPreference: 'NATIONAL',
+          planningLocationLabel: 'Philippines',
+          consumptionEvidenceScope: null,
+          consumptionEvidenceRelease: null,
+          capturedAt: new Date().toISOString(),
+        },
         ingredients: {
           create: original.ingredients.map((ingredient) => ({
             ingredientName: ingredient.ingredientName,
@@ -155,6 +168,7 @@ async function main() {
     assert.equal(planAfter.status, 'APPROVED');
     assert.equal(planAfter.requiresSafetyRevalidation, false);
     assert.notEqual(planAfter.libraryMealId, original.id);
+    assert.equal(planAfter.selectionEvidence, null, 'A safety replacement must not retain the prior meal rationale.');
     assert.ok(replacements.some((meal) => meal.id === planAfter.libraryMealId));
     assert.ok(groceryAfter);
     assert.notEqual(groceryAfter.id, groceryBefore.id);

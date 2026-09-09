@@ -14,6 +14,9 @@ import {
   MealLogStatus,
   MealPlanStatus,
   MealType,
+  OutsideMealCompatibilityStatus,
+  OutsideMealItemSource,
+  OutsideMealNutritionStatus,
   PlanType,
   Role,
 } from '@prisma/client';
@@ -190,6 +193,26 @@ async function main() {
       mealName: 'Synthetic preview meal',
       mealType: MealType.LUNCH,
       estimate: exactPreviewEstimate,
+      items: [
+        {
+          name: exactPreviewEstimate.name,
+          portionGrams: null,
+          source: OutsideMealItemSource.USER_REPORTED,
+          nutritionStatus: OutsideMealNutritionStatus.USER_REPORTED,
+          compatibilityStatus: OutsideMealCompatibilityStatus.INSUFFICIENT_EVIDENCE,
+          includedInTotals: true,
+          calories: exactPreviewEstimate.calories,
+          proteinG: exactPreviewEstimate.proteinG,
+          carbsG: exactPreviewEstimate.carbsG,
+          fatG: exactPreviewEstimate.fatG,
+          calorieLow: null,
+          calorieHigh: null,
+          foodItemId: null,
+          mealLibraryId: null,
+          ingredients: exactPreviewEstimate.ingredients,
+          warnings: ['Synthetic integration warning.'],
+        },
+      ],
       warnings: ['CONDITION'],
       reasons: ['Synthetic integration warning.'],
       expiresAt: new Date(Date.now() + 60_000),
@@ -204,7 +227,7 @@ async function main() {
   });
   assert.equal(confirmedOutsideMeal.warningRequired, false);
   assert.equal(confirmedOutsideMeal.log.calories, exactPreviewEstimate.calories);
-  assert.equal(confirmedOutsideMeal.log.warningType, 'CONDITION');
+  assert.equal(confirmedOutsideMeal.log.warningType, 'OUTSIDE_MEAL_REVIEW');
   assert.ok((await prisma.outsideMealPreview.findUnique({ where: { id: outsidePreview.id } }))?.consumedAt);
   await assert.rejects(
     () =>

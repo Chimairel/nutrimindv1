@@ -12,8 +12,9 @@ import {
 } from '../src/services/billing-operations-status.service';
 
 const database = new URL(process.env.DATABASE_URL || '');
-if (!['127.0.0.1', 'localhost'].includes(database.hostname) || database.port !== '55447') {
-  throw new Error('Local payment projection acceptance requires 127.0.0.1:55447.');
+const expectedPort = process.env.NUTRIMIND_PAYMENT_ACCEPTANCE_PORT || '55447';
+if (!['127.0.0.1', 'localhost'].includes(database.hostname) || database.port !== expectedPort) {
+  throw new Error(`Local payment projection acceptance requires 127.0.0.1:${expectedPort}.`);
 }
 
 const prisma = new PrismaClient();
@@ -52,7 +53,15 @@ function evidence(session: string, reference: string, paidAt: string, paymentId:
   };
 }
 
-async function createCheckout(userId: string, priceId: string, suffix: string, sessionId: string, reference: string) {
+async function createCheckout(
+  userId: string,
+  priceId: string,
+  suffix: string,
+  sessionId: string,
+  reference: string,
+  completedAt: string
+) {
+  const completed = new Date(completedAt);
   return prisma.billingCheckoutRequest.create({
     data: {
       userId,
@@ -68,7 +77,8 @@ async function createCheckout(userId: string, priceId: string, suffix: string, s
       attemptCount: 1,
       providerSessionId: sessionId,
       checkoutUrl: `https://checkout.paymongo.com/${sessionId}`,
-      completedAt: new Date('2026-09-06T12:00:01.000Z'),
+      completedAt: completed,
+      createdAt: new Date(completed.getTime() - 1_000),
     },
   });
 }
@@ -138,7 +148,7 @@ async function main() {
 
   const session1 = 'cs_acceptance_one_12345678';
   const ref1 = 'nmco_acceptance_one_12345678';
-  await createCheckout(user.id, price.id, 'a', session1, ref1);
+  await createCheckout(user.id, price.id, 'a', session1, ref1, '2026-09-06T12:59:59Z');
   await createEvent('a', session1, new Date('2026-09-06T13:01:00Z'));
   evidenceBySession.set(session1, evidence(session1, ref1, '2026-09-06T13:00:00Z', 'pay_acceptance_one_12345678'));
 
@@ -201,7 +211,7 @@ async function main() {
 
   const session2 = 'cs_acceptance_two_12345678';
   const ref2 = 'nmco_acceptance_two_12345678';
-  await createCheckout(user.id, price.id, 'c', session2, ref2);
+  await createCheckout(user.id, price.id, 'c', session2, ref2, '2026-10-07T12:59:59Z');
   await createEvent('c', session2, new Date('2026-10-07T13:01:00Z'), {
     status: 'PROCESSING',
     lockedAt: new Date('2026-10-07T12:00:00Z'),
@@ -214,7 +224,7 @@ async function main() {
 
   const overlapSession = 'cs_acceptance_overlap_12345678';
   const overlapReference = 'nmco_acceptance_overlap_12345678';
-  await createCheckout(user.id, price.id, 'g', overlapSession, overlapReference);
+  await createCheckout(user.id, price.id, 'g', overlapSession, overlapReference, '2026-10-20T12:59:59Z');
   await createEvent('g', overlapSession, new Date('2026-10-20T13:01:00Z'));
   evidenceBySession.set(
     overlapSession,
@@ -225,7 +235,7 @@ async function main() {
 
   const session3 = 'cs_acceptance_three_12345678';
   const ref3 = 'nmco_acceptance_three_12345678';
-  await createCheckout(user.id, price.id, 'd', session3, ref3);
+  await createCheckout(user.id, price.id, 'd', session3, ref3, '2026-11-08T12:59:59Z');
   await createEvent('d', session3, new Date('2026-11-08T13:01:00Z'));
   evidenceBySession.set(session3, evidence(session3, ref3, '2026-11-08T13:00:00Z', 'pay_acceptance_two_12345678'));
   const beforeConflict = {
@@ -258,7 +268,7 @@ async function main() {
 
   const session4 = 'cs_acceptance_retry_12345678';
   const ref4 = 'nmco_acceptance_retry_12345678';
-  await createCheckout(user.id, price.id, 'f', session4, ref4);
+  await createCheckout(user.id, price.id, 'f', session4, ref4, '2026-12-09T12:59:59Z');
   const retryEvent = await createEvent('f', session4, new Date('2026-12-09T13:01:00Z'));
   assert.deepEqual(await workers[0].processNext(), {
     decision: 'RETRY_SCHEDULED',

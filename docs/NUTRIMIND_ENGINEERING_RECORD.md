@@ -3656,3 +3656,45 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-202 used one exact reserved `example.invalid` USER fixture in the local browser. Health Profile exposed the two labelled autocomplete fields, `Philippines → Central Visayas → Cebu City` stops, national default, and fallback explanation. Selecting Cebu City and saving returned the success state; a separate fresh route load retained slider value 2 and the local fallback description. Exact cleanup deleted the fixture and all cascading rows, leaving zero matching users.
 - The deterministic suites pass: **507 registered backend tests / 506 pass / 0 fail / 1 unchanged clinical-policy TODO** and **40 frontend tests / 40 pass**. Backend and frontend production builds pass, both linters report zero warnings, formatting passes after applying Prettier to the changed modules, and the source architecture ceiling remains satisfied.
 - This change does not claim that region or Province/HUC consumption rows exist. Missing governed consumption evidence continues to fall back transparently. No Gemini, PayMongo, SMTP, OAuth, Cloudinary, production deployment, or real clinical-review action was performed.
+
+## 71. Auditable meal rationale and connected production-hardening journeys (2026-09-09)
+
+**Architecture decision:** ADR-037
+
+**Defect IDs:** DEF-041 through DEF-043
+
+**Change ID:** CHG-20260909-07
+
+**Verification IDs:** TEST-203 through TEST-216
+
+**Documentation ID:** DOC-063
+
+### Decision and implementation
+
+- New meal-plan rows persist immutable, versioned selection evidence: generation source, daily and slot calorie targets, accepted slot range, locality strength and label, matched aggregate-consumption scope and release, and capture time. The API derives a bounded public explanation from those stored facts instead of asking an AI model to invent a retrospective rationale.
+- Dashboard cards, the Meals workspace, and meal detail now expose `Why this meal?`, including verified-library versus AI origin, calorie fit, FNRI ingredient coverage, locality evidence, and professional review state. Legacy rows fail honestly to unavailable exact selection evidence rather than receiving fabricated history.
+- User swaps and safety replacements explicitly clear the prior row's selection evidence. A replaced meal can therefore never inherit the calorie or locality rationale of the meal it replaced; its public response retains only facts still supported by the replacement and reports the missing exact evidence.
+- The administrator data Overview now reports active evidence freshness, retrieval age, and source review cadence. It explicitly distinguishes source freshness from clinical validity and gives an honest no-active-release state.
+- Migration `20260909203000_add_meal_selection_evidence` adds one nullable JSON evidence column without rewriting historical plans. It was applied with `prisma migrate deploy` to the configured shared development database; all 28 migrations are current and the Prisma schema validates.
+- Acceptance harnesses were brought forward with the production contracts: outside-meal smoke data now uses itemized revisions, loopback-only database ports are configurable for Windows excluded-port ranges, and payment fixtures persist deterministic creation/completion/provider timelines. The latter correction preserves the timestamp safety policy rather than weakening it.
+
+### Connected journey evidence
+
+- TEST-203 through TEST-206 cover deterministic calorie, locality, provenance, review, legacy-unavailable, verified-library, and copy-integrity explanations. The backend deterministic suite reports **511 registered / 510 pass / 0 fail / 1 unchanged qualified-clinical-policy TODO**.
+- TEST-207 is the production integration smoke journey: exact outside-meal preview persistence, idempotent writes, atomic review claims, refresh-token rotation, safety certification and invalidation, check-in idempotency, and generation contention all pass.
+- TEST-208 is the live three-role HTTP journey: a synthetic nutritionist applies, an administrator stages/schedules/approves the application, the invited nutritionist activates, a new user registers and verifies email, completes structured onboarding and consent, acknowledges the generated report, generates a review-required plan, and the same eligible nutritionist claims and approves a meal. The user response exposes verifier credentials through the privacy allowlist without email or phone leakage. Exact finalization suspends both actors, revokes their sessions, and preserves append-only work credit.
+- TEST-209 is the public Chromium wave: landing behavior and empty, whitespace, and mismatched registration inputs pass **2/2** without application console errors after a clean development-server restart.
+- TEST-210 is authenticated browser acceptance. The administrator workspace displayed the real no-active-release freshness state. A reserved synthetic user displayed persisted source, calorie range, locality fallback, FNRI provenance, and approval facts on the dynamic meal detail page; exact cleanup removed that user.
+- TEST-211 is the outside-meal database journey: Free FNRI, user-reported, and unresolved items; nullable unresolved exclusion; replay protection; exclusive nutritionist claims; provisional correction from 410 to 330 kcal; one notification; and zero provider calls all pass.
+- TEST-212 is the governed-data journey: two releases, three activations, eleven audits, active-row immutability, replacement publication, historical restoration, and propagation into generation context all pass.
+- TEST-213 is Free/Premium access under concurrent reservations: server-authoritative 3/6 swap caps and zero provider calls pass.
+- TEST-214 is payment projection: concurrent workers produce one projection, replay is idempotent, expired claims recover, transient provider failure retries durably, overlapping access and replay conflicts quarantine, ledger batches balance, persisted finance rows reject mutation, and aggregate operations output remains privacy bounded.
+- TEST-215 is the compensation journey: review work creates append-only credits, statement approval and manual off-platform payout preserve maker-checker separation, and zero provider calls occur. The structured safety journeys also pass intake idempotency, report invalidation, automatic certified replacement, stale-rationale removal, revision history, and grocery refresh.
+- TEST-216 is the repository gate plus dependency audit: source architecture, Prettier, backend and frontend lint, deterministic tests, both production builds, all 44 frontend routes, and all three package-lock vulnerability scans pass with **0 known vulnerabilities**.
+
+### Honest production boundary
+
+- This evidence supports a production-hardening checkpoint, not a claim of zero defects, clinical certification, or live deployment. The calorie-floor policy still has one intentional TODO awaiting a qualified clinical reviewer; code does not invent that threshold.
+- The 51 certified library recipes have fixed portions averaging roughly 323 kcal for breakfast and 384 kcal for lunch/dinner. Under the current ±15% calorie-fit policy they cannot alone fill a realistic 1,900-kcal three-meal week. The safe runtime behavior is to use the library where it fits and route unmatched AI-generated slots through professional review; the old `combined-library-flow-acceptance` assumption of 21 distinct library meals and zero AI calls at 1,900 kcal is therefore obsolete and is not counted as a pass. Broader certified serving ranges or additional higher-calorie recipes require explicit product and clinical design rather than silent portion inflation.
+- Google email/password authentication works in local acceptance. Google Identity Services still reports that `http://localhost:3000` is absent from the Google Cloud OAuth client's authorized JavaScript origins; that provider-console configuration is a manual environment action, not a code correction.
+- No live PayMongo charge, production credential, deployment, real nutritionist decision, or claim of current regional consumption evidence was made. Until an administrator publishes a governed active consumption release, locality retrieval falls back transparently to the certified catalogue and FNRI grounding.

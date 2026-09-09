@@ -18,6 +18,7 @@ import {
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
+import { buildMealExplanation } from '@/domain/meal-explanation.policy';
 
 function toPublicVerifier(
   nutritionist: {
@@ -42,9 +43,32 @@ function toPublicVerifier(
   };
 }
 
-function serializeActionableMeal<T extends { nutritionist: Parameters<typeof toPublicVerifier>[0] }>(meal: T) {
-  const { nutritionist, ...publicMeal } = meal;
-  return { ...publicMeal, verifier: toPublicVerifier(nutritionist) };
+function serializeActionableMeal<
+  T extends {
+    nutritionist: Parameters<typeof toPublicVerifier>[0];
+    selectionEvidence: unknown;
+    libraryMealId: string | null;
+    status: string;
+    aiConfidenceFlag: string;
+    calories: number;
+    ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
+  },
+>(meal: T) {
+  const { nutritionist, selectionEvidence, ...publicMeal } = meal;
+  const verifier = toPublicVerifier(nutritionist);
+  return {
+    ...publicMeal,
+    verifier,
+    explanation: buildMealExplanation({
+      libraryMealId: meal.libraryMealId,
+      status: meal.status,
+      aiConfidenceFlag: meal.aiConfidenceFlag,
+      calories: meal.calories,
+      verifierName: verifier?.name,
+      ingredients: meal.ingredients,
+      selectionEvidence,
+    }),
+  };
 }
 
 export class MealsController {

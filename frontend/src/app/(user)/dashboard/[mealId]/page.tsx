@@ -11,7 +11,7 @@ import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { ArrowLeft, Coffee, Sun, Moon, Apple, Check, X, AlertCircle, ShieldCheck } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { MealType, MealPlanStatus, PublicVerifier } from '@/types';
+import { MealType, MealPlanStatus, PublicVerifier, MealExplanation } from '@/types';
 
 interface Ingredient {
   id: string;
@@ -38,6 +38,7 @@ interface MealDetail {
   ingredients: Ingredient[];
   mealLogs: MealLog[];
   verifier?: PublicVerifier | null;
+  explanation?: MealExplanation;
 }
 
 export default function MealDetailPage() {
@@ -250,6 +251,28 @@ export default function MealDetailPage() {
                 'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
             </p>
           </div>
+
+          {meal.explanation && (
+            <section
+              className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
+              aria-label="Why this meal"
+            >
+              <h3 className="text-xs font-extrabold text-brand-text">Why this meal?</h3>
+              <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
+                {meal.explanation.bullets.map((bullet) => (
+                  <li key={bullet} className="flex gap-2">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+              {meal.explanation.limitation && (
+                <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
+                  {meal.explanation.limitation}
+                </p>
+              )}
+            </section>
+          )}
 
           {meal.verifier && (
             <button

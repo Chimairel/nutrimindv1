@@ -5,8 +5,8 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier } from '@/types';
-import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw, ShieldCheck } from 'lucide-react';
+import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation } from '@/types';
+import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw, ShieldCheck, ListChecks } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
 interface Ingredient {
@@ -41,6 +41,7 @@ interface MealCardProps {
   scheduledDate?: string;
   onCardClick?: () => void;
   verifier?: PublicVerifier | null;
+  explanation?: MealExplanation;
 }
 
 export default function MealCard({
@@ -62,6 +63,7 @@ export default function MealCard({
   scheduledDate,
   onCardClick,
   verifier,
+  explanation,
 }: MealCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
@@ -277,6 +279,31 @@ export default function MealCard({
             {description ||
               'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
           </p>
+
+          {explanation && (
+            <section
+              className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
+              aria-label="Why this meal"
+            >
+              <div className="flex items-center gap-2 text-xs font-extrabold text-brand-text">
+                <ListChecks className="h-4 w-4 text-brand-green" />
+                Why this meal?
+              </div>
+              <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
+                {explanation.bullets.map((bullet) => (
+                  <li key={bullet} className="flex gap-2">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+              {explanation.limitation && (
+                <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
+                  {explanation.limitation}
+                </p>
+              )}
+            </section>
+          )}
 
           {verifier && (
             <button

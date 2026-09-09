@@ -955,6 +955,7 @@ model MealPlan {
   firstApprovedByNutritionistId String?
   firstApprovedByNutritionist   NutritionistProfile? @relation("FirstMealPlanApproval", fields: [firstApprovedByNutritionistId], references: [id], onDelete: Restrict)
   firstApprovedAt               DateTime?
+  selectionEvidence             Json?
 
   // Relations
   ingredients MealIngredient[]

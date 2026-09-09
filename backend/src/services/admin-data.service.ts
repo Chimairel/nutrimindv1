@@ -55,7 +55,7 @@ export class AdminDataService {
         take: 100,
         orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
         include: {
-          source: { select: { code: true, name: true, domain: true, isEnabled: true } },
+          source: { select: { code: true, name: true, domain: true, isEnabled: true, updateCadence: true } },
           createdByAdmin: { select: { name: true } },
           activatedByAdmin: { select: { name: true } },
           _count: { select: { consumptionStats: true, activations: true } },

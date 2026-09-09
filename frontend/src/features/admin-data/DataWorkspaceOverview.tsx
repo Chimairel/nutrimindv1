@@ -1,18 +1,25 @@
 'use client';
 
-import { CheckCircle2, CircleDashed, Database, FileInput, FilePlus2, RadioTower } from 'lucide-react';
+import { CalendarClock, CheckCircle2, CircleDashed, Database, FileInput, FilePlus2, RadioTower } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import DataSummary from './DataSummary';
-import type { AdminDataSection, WorkspaceSummary } from './types';
+import type { AdminDataSection, DataRelease, WorkspaceSummary } from './types';
 
 interface DataWorkspaceOverviewProps {
   summary: WorkspaceSummary;
   releaseCount: number;
+  releases: DataRelease[];
   onNavigate: (section: AdminDataSection) => void;
 }
 
-export default function DataWorkspaceOverview({ summary, releaseCount, onNavigate }: DataWorkspaceOverviewProps) {
+export default function DataWorkspaceOverview({
+  summary,
+  releaseCount,
+  releases,
+  onNavigate,
+}: DataWorkspaceOverviewProps) {
+  const activeReleases = releases.filter((release) => release.status === 'ACTIVE');
   const steps = [
     {
       title: 'Register a source',
@@ -58,6 +65,47 @@ export default function DataWorkspaceOverview({ summary, releaseCount, onNavigat
   return (
     <div className="space-y-5">
       <DataSummary summary={summary} />
+      <Card className="p-5">
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-5 w-5 text-brand-green" />
+          <div>
+            <h2 className="font-display text-base font-black text-brand-text">Active evidence freshness</h2>
+            <p className="text-xs text-brand-muted">
+              Operational age and the source-defined review cadence; this is not a clinical-validity claim.
+            </p>
+          </div>
+        </div>
+        {activeReleases.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+            No active reference-data release. Locality-based meal evidence will fall back to the governed catalogue.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {activeReleases.map((release) => {
+              const retrievedDaysAgo = Math.max(
+                0,
+                Math.floor((Date.now() - new Date(release.retrievedAt).getTime()) / 86_400_000)
+              );
+              return (
+                <div key={release.id} className="rounded-2xl border border-brand-border/55 bg-brand-bgAlt/40 p-4">
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
+                    {release.source.domain}
+                  </p>
+                  <p className="mt-1 text-sm font-black text-brand-text">
+                    {release.source.code} · {release.versionLabel}
+                  </p>
+                  <p className="mt-2 text-xs text-brand-muted">
+                    Retrieved {retrievedDaysAgo} day{retrievedDaysAgo === 1 ? '' : 's'} ago
+                  </p>
+                  <p className="mt-1 text-xs text-brand-muted">
+                    Review cadence: {release.source.updateCadence || 'not recorded'}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
       <div className="grid gap-5 xl:grid-cols-[1.4fr_0.6fr]">
         <Card
           header={

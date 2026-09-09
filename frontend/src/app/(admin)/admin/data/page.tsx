@@ -119,6 +119,7 @@ export default function AdminDataPage() {
           <DataWorkspaceOverview
             summary={workspace.summary}
             releaseCount={workspace.releases.length}
+            releases={workspace.releases}
             onNavigate={setSection}
           />
         </TabsContent>
