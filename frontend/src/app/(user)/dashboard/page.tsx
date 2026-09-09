@@ -12,7 +12,7 @@ import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Calendar, Plus, AlertTriangle, Utensils, Sparkles } from 'lucide-react';
+import { Calendar, Plus, AlertTriangle, Utensils, Sparkles, Target } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
@@ -404,7 +404,7 @@ export default function DashboardPage() {
 
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -412,34 +412,45 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {currentMeals.length === 0 && !pendingReview ? (
-          <>
-            <PortalPageHeader
-              icon={Sparkles}
-              eyebrow="Daily nutrition cockpit"
-              title={<>Mabuhay, {user?.name.split(' ')[0]}.</>}
-              description="Your accessible, culturally aware meal plan, daily targets, and review-aware nutrition progress in one connected view."
-              actions={
-                <Button
-                  variant="primary"
-                  onClick={() => router.push('/meals')}
-                  className="flex items-center gap-2 text-xs font-bold"
-                >
-                  <Calendar className="h-4 w-4" />
-                  <span>Open weekly plan</span>
-                </Button>
-              }
-            />
-            <div className="py-12">
-              <EmptyState
-                icon={<Utensils className="h-8 w-8 text-brand-green" />}
-                title="No Active Meal Plan"
-                description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
-                actionText="Generate Meal Plan"
-                onAction={handleGeneratePlan}
-              />
+        {/* Permanent Top Greeting Header */}
+        <PortalPageHeader
+          icon={Sparkles}
+          eyebrow="Daily nutrition cockpit"
+          title={<>Mabuhay, {user?.name ? user.name.split(' ')[0] : 'Friend'}.</>}
+          description="Your accessible, culturally aware meal plan, daily targets, and review-aware nutrition progress in one connected view."
+          actions={
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2 rounded-2xl border border-brand-border bg-brand-surface px-3.5 py-2 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+                <Target className="h-4 w-4 text-brand-green dark:text-brand-accent shrink-0" />
+                <span className="font-display text-sm font-black text-brand-text dark:text-white">
+                  {Math.round(userProfile?.dailyCalorieTarget ?? 2000).toLocaleString()}
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-brand-muted dark:text-white/40">
+                  kcal / day
+                </span>
+              </div>
+              <Button
+                variant="primary"
+                onClick={() => router.push('/meals')}
+                className="flex items-center gap-2 text-xs font-bold"
+              >
+                <Calendar className="h-4 w-4" />
+                <span>Open weekly plan</span>
+              </Button>
             </div>
-          </>
+          }
+        />
+
+        {currentMeals.length === 0 && !pendingReview ? (
+          <div className="py-12">
+            <EmptyState
+              icon={<Utensils className="h-8 w-8 text-brand-green" />}
+              title="No Active Meal Plan"
+              description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
+              actionText="Generate Meal Plan"
+              onAction={handleGeneratePlan}
+            />
+          </div>
         ) : (
           <>
             {daySelectors.length > 0 && (
@@ -490,7 +501,7 @@ export default function DashboardPage() {
               onOpenWeeklyPlan={() => router.push('/meals')}
             />
 
-            <div className="mx-auto grid w-full max-w-[960px] grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
               <NutritionistGuidanceCard
                 healthConditions={fullProfile?.healthConditions ?? []}
                 allergies={fullProfile?.allergies ?? []}
