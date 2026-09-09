@@ -3599,3 +3599,32 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-193 is the complete repository gate: source architecture, formatting, backend and frontend lint with zero warnings, **497 registered backend tests / 496 pass / 0 fail / 1 unchanged clinical-policy TODO**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes.
 - TEST-194 used the synthetic local administrator account for browser inspection. It verified all four tab selections, associated source-form labels, a calorie-bearing 12-row catalogue page, page-one to page-two navigation, and the labelled alias editor. No source, release, alias, mapping, import, or database row was created or changed.
 - This was an administrator UI and frontend contract correction only. No schema, migration, shared-database mutation, Gemini request, PayMongo/provider action, environment change, deployment, or production action occurred.
+
+## 69. Locality-aware grounded meal retrieval (2026-09-09)
+
+**Architecture decision:** ADR-035
+
+**Change ID:** CHG-20260909-05
+
+**Verification IDs:** TEST-195 through TEST-199
+
+**Documentation ID:** DOC-061
+
+### Decision and implementation
+
+- NutriMind uses hybrid structured retrieval rather than granting Gemini database access or treating vector similarity as nutrition authority. The backend retrieves eligible nutritionist-certified meal patterns, bounded FNRI composition records, and mapped active aggregate food-consumption evidence before invoking Gemini for unmatched slots.
+- User profiles now store only a coarse meal-planning geography: national, region, or province/highly urbanized city. Exact addresses are neither requested nor persisted. Food culture remains a separate preference so current shopping location does not become a cuisine stereotype.
+- Consumption retrieval follows one deterministic fallback chain: exact province/HUC, its region, then national evidence. Only enabled sources, active releases, explicit FNRI mappings, and aggregate rows qualify. The prompt identifies the scope actually matched and retains source/release provenance.
+- The authenticated onboarding endpoint exposes region and province/HUC suggestions only from active published evidence. Free text remains accepted because an unmatched locality fails safely to broader evidence instead of blocking onboarding.
+- Retrieved FNRI records carry exact database IDs and per-100 g composition in the prompt. Gemini must return the exact ID or `null`; invented and out-of-context IDs are never trusted. Valid retrieved IDs resolve directly to their canonical database food record, while existing deterministic lookup and nutritionist-review behavior remains in force for other ingredients.
+- Eligible certified meals are locality-ranked only after safety and calorie-range eligibility; the existing calorie-distance, usage, and stable-ID order is preserved among meals with equal local-evidence coverage. Up to 24 compatible certified patterns can ground AI construction for otherwise unmatched slots; modified AI recipes remain pending review.
+- The shared onboarding and health-profile location component explains the privacy boundary and fallback behavior. The final onboarding review includes the selected planning location, and nutrition-report context uses the same coarse location.
+
+### Schema and verification
+
+- Migration `20260909170000_add_user_planning_location` adds three bounded profile columns, an index, and a database shape constraint. A disposable PostgreSQL 16.4 rehearsal applied all 26 migrations, rejected an invalid regional shape, accepted a valid `Cebu City, Central Visayas` shape, and rolled its synthetic transaction back.
+- The migration was then applied with `prisma migrate deploy` to the configured shared development database. A repeat status check reported all 26 migrations current. The migration contains no `INSERT`, `UPDATE`, `DELETE`, or `TRUNCATE`; six existing profiles received the schema default `NATIONAL`, while the consumption-source, active-release, and consumption-row counts remained zero.
+- TEST-195 checks location and provenance sections plus the exact FNRI-ID response contract. TEST-196 checks province/HUC-to-region-to-national fallback, proves retrieval stops at the first populated scope, proves empty chains exhaust safely, and rejects incoherent location input. TEST-197 covers the reusable frontend fieldset, accessible fields, level-specific fallback text, privacy text, and national-reset behavior. TEST-198 is the disposable migration and constraint rehearsal.
+- TEST-199 is the complete repository gate: source architecture, formatting, backend and frontend lint, **504 registered backend tests / 503 pass / 0 fail / 1 unchanged clinical-policy TODO**, **39 frontend tests / 39 pass**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes.
+- Authenticated browser acceptance used one exact reserved `example.invalid` USER fixture. The Health profile rendered national, region, and province/HUC states with associated controls and the no-street-address disclosure; a synthetic `Cebu City, Central Visayas` preference saved successfully, recalculated the calorie target, and remained present after a full route reload. The planning-location suggestion endpoint returned `200` with an empty governed catalogue, matching the zero-release database state. The fixture initially omitted the canonical `NONE` condition/allergy rows and correctly failed the existing onboarding-completeness gate; those fixture prerequisites were then supplied before the authoritative save. Exact cleanup deleted the one fixture account and cascaded profile, safety, report, and session data, leaving zero matching users.
+- No consumption dataset was fabricated or published. Until an administrator publishes mapped official evidence, the retrieval layer uses its certified-meal and FNRI grounding and the consumption branch returns no locality claim. No Gemini, PayMongo, SMTP, OAuth, Cloudinary, production, or real clinical-review action occurred in this implementation batch.

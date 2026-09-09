@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
+import { formatPlanningLocation } from '@/domain/planning-location.policy';
 import { z } from 'zod';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 
@@ -118,6 +119,7 @@ export class NutritionReportService {
       `- Dietary Preference Pattern: ${profile.dietaryPreference || 'OMNIVORE'}\n` +
       `- Carb Intake Level: ${profile.carbPreference || 'MODERATE'}\n` +
       `- Regional Cooking Style & Cultural Background: ${profile.foodCulture || 'Filipino'}\n` +
+      `- Meal-Planning Location: ${formatPlanningLocation(profile)}\n` +
       `\n` +
       `[CLINICAL CONSTRAINTS]\n` +
       `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +

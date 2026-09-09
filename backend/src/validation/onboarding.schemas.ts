@@ -5,6 +5,7 @@ const goalSchema = z.enum(['LOSE_WEIGHT', 'GAIN_WEIGHT', 'MAINTAIN', 'BUILD_MUSC
 const activitySchema = z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE']);
 const dietarySchema = z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN']);
 const carbSchema = z.enum(['LOW', 'MODERATE', 'HIGH']);
+const planningGeographySchema = z.enum(['NATIONAL', 'REGION', 'PROVINCE_HUC']);
 const sexSchema = z.enum(['MALE', 'FEMALE']);
 const conditionSchema = z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT', 'NONE']);
 const allergySchema = z.enum(['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS', 'NONE']);
@@ -44,11 +45,45 @@ export const onboardingProfileSchema = z
     dietaryPreference: dietarySchema.optional(),
     carbPreference: carbSchema.optional(),
     foodCulture: z.string().trim().min(1).max(80).optional(),
+    planningGeographyLevel: planningGeographySchema.optional(),
+    planningRegionName: z.string().trim().min(1).max(120).nullable().optional(),
+    planningProvinceHucName: z.string().trim().min(1).max(160).nullable().optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
     if (Object.keys(data).length === 0) {
       ctx.addIssue({ code: 'custom', message: 'At least one supported profile field is required.' });
+    }
+    if (
+      !data.planningGeographyLevel &&
+      (data.planningRegionName !== undefined || data.planningProvinceHucName !== undefined)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planningGeographyLevel'],
+        message: 'A planning geography level is required when changing location.',
+      });
+    }
+    if (data.planningGeographyLevel === 'NATIONAL' && (data.planningRegionName || data.planningProvinceHucName)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planningGeographyLevel'],
+        message: 'National planning cannot include a region or province/HUC.',
+      });
+    }
+    if (data.planningGeographyLevel === 'REGION' && (!data.planningRegionName || data.planningProvinceHucName)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planningRegionName'],
+        message: 'Regional planning requires a region and no province/HUC.',
+      });
+    }
+    if (data.planningGeographyLevel === 'PROVINCE_HUC' && (!data.planningRegionName || !data.planningProvinceHucName)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planningProvinceHucName'],
+        message: 'Province/HUC planning requires both a region and province/HUC.',
+      });
     }
     if (data.weightKg === undefined || data.targetWeightKg === undefined || !data.goal) return;
 

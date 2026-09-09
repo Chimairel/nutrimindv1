@@ -7,6 +7,7 @@ import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
+import PlanningLocationFields from '@/components/user/PlanningLocationFields';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
 import {
@@ -61,6 +62,12 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setCarbPreference,
     foodCulture,
     setFoodCulture,
+    planningGeographyLevel,
+    setPlanningGeographyLevel,
+    planningRegionName,
+    setPlanningRegionName,
+    planningProvinceHucName,
+    setPlanningProvinceHucName,
     shoppingDayOfWeek,
     setShoppingDayOfWeek,
     isSavingBiometrics,
@@ -659,6 +666,18 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                 onChange={(e) => setFoodCulture(e.target.value)}
                 placeholder="e.g. Filipino, Asian"
               />
+              <div className="md:col-span-2">
+                <PlanningLocationFields
+                  level={planningGeographyLevel}
+                  regionName={planningRegionName}
+                  provinceHucName={planningProvinceHucName}
+                  onLevelChange={setPlanningGeographyLevel}
+                  onRegionNameChange={setPlanningRegionName}
+                  onProvinceHucNameChange={setPlanningProvinceHucName}
+                  disabled={isSavingBiometrics}
+                  idPrefix="profile-planning-location"
+                />
+              </div>
               <div>
                 <label
                   htmlFor="profile-shopping-day"

@@ -180,6 +180,7 @@ export async function getFNRISubset() {
         where: { category },
         orderBy: { name: 'asc' },
         select: {
+          id: true,
           name: true,
           category: true,
           calories: true,

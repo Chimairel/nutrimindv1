@@ -648,6 +648,9 @@ model UserProfile {
   dietaryPreference  DietaryPreference?
   carbPreference     CarbPreference?
   foodCulture        String?
+  planningGeographyLevel ConsumptionGeographyLevel @default(NATIONAL)
+  planningRegionName     String?                   @db.VarChar(120)
+  planningProvinceHucName String?                  @db.VarChar(160)
   dailyCalorieTarget Int?
   otherConditions    String? // Free-text custom health conditions (e.g., "Gout, Celiac")
   otherAllergies     String? // Free-text custom food allergies (e.g., "Soy, Sesame")

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
 import type { SafetyProfileEntry } from '@/types';
+import type { PlanningGeographyLevel } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -28,6 +29,9 @@ export interface UserProfileData {
     dietaryPreference?: string;
     carbPreference?: string;
     foodCulture?: string;
+    planningGeographyLevel?: PlanningGeographyLevel;
+    planningRegionName?: string;
+    planningProvinceHucName?: string;
     dailyCalorieTarget?: number;
     otherConditions?: string;
     otherAllergies?: string;

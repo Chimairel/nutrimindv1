@@ -48,6 +48,7 @@ export type AssignmentStatus = 'PENDING' | 'ACTIVE' | 'ENDED';
 
 export type ShoppingDayGroup = 'WEEKEND' | 'WEEKDAY';
 export type ShoppingDayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type PlanningGeographyLevel = 'NATIONAL' | 'REGION' | 'PROVINCE_HUC';
 
 export type PlanType = 'STARTER' | 'WEEKLY';
 
@@ -90,6 +91,9 @@ export interface UserProfile {
   dietaryPreference?: DietaryPreference;
   carbPreference?: CarbPreference;
   foodCulture?: string;
+  planningGeographyLevel?: PlanningGeographyLevel;
+  planningRegionName?: string;
+  planningProvinceHucName?: string;
   dailyCalorieTarget?: number;
   shoppingDayGroup?: ShoppingDayGroup;
   shoppingDayOfWeek?: ShoppingDayOfWeek;

@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset, lookupIngredient } from '@/lib/fnri';
-import { getActiveFoodConsumptionContext } from '@/services/food-consumption-context.service';
+import { getLocalizedFoodConsumptionContext } from '@/services/food-consumption-context.service';
 import {
   MealType,
   MealPlanStatus,
@@ -41,13 +41,24 @@ import {
 } from '@/domain/meal-plan-production-safety.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { isMealWithinSlotCalorieRange, rankCalorieCompatibleMeals } from '@/domain/meal-calorie-allocation.policy';
+import { formatPlanningLocation, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
+
+interface GroundedFoodReference {
+  id: string;
+  name: string;
+  category: string | null;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
 
 interface GeneratedMeal {
   dayNumber: number;
   mealType: MealType;
   mealName: string;
   description: string;
-  ingredients: { name: string; quantity?: number; unit?: string }[];
+  ingredients: { foodItemId: string | null; name: string; quantity?: number; unit?: string }[];
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -332,6 +343,9 @@ export class MealGenerationService {
       throw new Error('Please complete your onboarding profile statistics first.');
     }
 
+    const localizedConsumption = await getLocalizedFoodConsumptionContext(profile);
+    const localizedFoodIds = new Set(localizedConsumption.items.map((food) => food.id));
+
     // --- STEP 1: Check MealLibrary for pre-verified clinical matches ---
     console.log(`[Meal Generation] Step 1: Checking MealLibrary for pre-verified clinical matches...`);
     await MealGenerationService.updateGenerationProgress(
@@ -378,6 +392,16 @@ export class MealGenerationService {
         ingredients: safety.ingredients,
       })
     ).map(({ meal }) => meal);
+    const localizedCertifiedMealReference = rankMealsByLocalizedFoodEvidence(
+      [...eligibleLibraryMeals].sort((left, right) => right.usageCount - left.usageCount),
+      localizedFoodIds
+    )
+      .slice(0, 24)
+      .map(
+        (meal) =>
+          `- [MEAL_LIBRARY_ID=${meal.id}] ${meal.mealName} (${meal.mealType}; ${meal.calories} kcal; ingredients: ${meal.ingredients.map((ingredient) => ingredient.ingredientName).join(', ')})`
+      )
+      .join('\n');
 
     const matchedSlots: {
       dayNumber: number;
@@ -422,7 +446,8 @@ export class MealGenerationService {
         // A certified base recipe is reusable only when its reviewed serving
         // also fits this user's allocated meal target. Prefer the closest fit;
         // smaller recipes fall through to personalized generation.
-        const selected = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType)[0];
+        const calorieEligibleMatches = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType);
+        const selected = rankMealsByLocalizedFoodEvidence(calorieEligibleMatches, localizedFoodIds)[0];
 
         if (selected) {
           selectedLibraryMealIds.add(selected.id);
@@ -444,6 +469,7 @@ export class MealGenerationService {
     }
 
     // --- STEP 2: Fallback/Generation for unmatched slots ---
+    const groundedFoodById = new Map<string, GroundedFoodReference>();
     const aiMeals = await runMealGenerationFallbackForUnmatchedSlots(
       unmatchedSlots,
       async (fallbackSlots): Promise<GeneratedMeal[]> => {
@@ -457,14 +483,16 @@ export class MealGenerationService {
         console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
 
         // Fetch a balanced FNRI reference across common food categories.
-        const [localFoodsContext, popularFoodReference] = await Promise.all([
-          getFNRISubset(),
-          getActiveFoodConsumptionContext(),
-        ]);
-        const formattedFoodsContext = localFoodsContext
+        const localFoodsContext = await getFNRISubset();
+        const retrievedFoods = [...localizedConsumption.items, ...localFoodsContext].filter((food) => {
+          if (groundedFoodById.has(food.id)) return false;
+          groundedFoodById.set(food.id, food);
+          return true;
+        });
+        const formattedFoodsContext = retrievedFoods
           .map(
             (f) =>
-              `- ${f.name} (Cat: ${f.category}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g)`
+              `- [FNRI_ID=${f.id}] ${f.name} (Cat: ${f.category}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g per 100g)`
           )
           .join('\n');
 
@@ -475,12 +503,15 @@ export class MealGenerationService {
           dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
           carbPreference: profile.carbPreference || 'MODERATE',
           foodCulture: profile.foodCulture || 'Filipino',
+          planningLocationLabel: formatPlanningLocation(profile),
           conditions: userConditions,
           allergens: userAllergens,
           otherConditions,
           otherAllergies,
           foodReference: formattedFoodsContext,
-          popularFoodReference,
+          certifiedMealReference: localizedCertifiedMealReference,
+          popularFoodReference: localizedConsumption.text,
+          consumptionEvidenceScope: localizedConsumption.matchedScope?.label,
         });
 
         // Define Zod response schema with refinement to guarantee exact slot matching
@@ -499,6 +530,7 @@ export class MealGenerationService {
                 ingredients: z
                   .array(
                     z.object({
+                      foodItemId: z.string().trim().min(1).nullable(),
                       name: z.string().trim().min(1),
                       quantity: z.number().positive().max(10_000),
                       unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
@@ -585,6 +617,18 @@ export class MealGenerationService {
 
       for (const ingredient of rawMeal.ingredients) {
         const ingredientName = ingredient.name;
+        const groundedFood = ingredient.foodItemId ? groundedFoodById.get(ingredient.foodItemId) : undefined;
+        if (groundedFood) {
+          ingredientsData.push({
+            ingredientName: groundedFood.name,
+            category: groundedFood.category || 'PANTRY',
+            foodItemId: groundedFood.id,
+            dataSource: MealIngredientDataSource.FNRI,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+          });
+          continue;
+        }
         try {
           const lookup = await lookupIngredient(ingredientName);
           if (lookup.source === 'ESTIMATED') {

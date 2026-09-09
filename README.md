@@ -44,6 +44,8 @@ Authentication uses custom short-lived access JWTs and refresh JWT cookies. The 
 
 Weekly plan-cycle and shopping-day behavior uses `Asia/Manila`. Some older daily logging/aggregation paths still use server-local date operations and remain tracked for hardening.
 
+Meal generation uses a hybrid retrieval pipeline rather than giving Gemini database access. The backend first screens nutritionist-certified meals, retrieves bounded FNRI records and published aggregate consumption evidence for the user's coarse planning location, and supplies exact record identifiers in the prompt. Locality falls back from province/HUC to region and then national evidence. Gemini can compose unmatched slots, but the backend resolves its ingredient identifiers and retains the existing review and clinical-safety gates.
+
 ## Repository layout
 
 | Path | Responsibility |

@@ -12,12 +12,15 @@ export interface MealGenerationPromptInput {
   dietaryPreference: string;
   carbPreference: string;
   foodCulture: string;
+  planningLocationLabel: string;
   conditions: string[];
   allergens: string[];
   otherConditions?: string;
   otherAllergies?: string;
   foodReference: string;
+  certifiedMealReference?: string;
   popularFoodReference?: string;
+  consumptionEvidenceScope?: string;
 }
 
 const RESPONSE_CONTRACT = `
@@ -39,7 +42,7 @@ Required response format:
       "carbsG": number,
       "fatG": number,
       "ingredients": [
-        { "name": string, "quantity": number, "unit": "g" | "mL" | "piece" | "tbsp" | "tsp" | "cup" | "can" | "pack" }
+        { "foodItemId": string | null, "name": string, "quantity": number, "unit": "g" | "mL" | "piece" | "tbsp" | "tsp" | "cup" | "can" | "pack" }
       ]
     }
   ]
@@ -48,6 +51,8 @@ Required response format:
 Rules:
 - mealType must be EXACTLY one of the four values shown above, uppercase, with no variations
 - every ingredient requires a realistic positive quantity for one serving and one supported unit
+- copy foodItemId exactly when using a supplied FNRI record; use null when no supplied record is an exact match
+- never invent, shorten, or alter an FNRI ID
 - use g or mL whenever practical; use piece, tbsp, tsp, cup, can, or pack only when that is how a shopper normally buys or measures it
 - Return ONLY valid JSON. Do not include markdown, code fences, backticks, a preamble, or explanatory text outside the JSON
 `;
@@ -95,17 +100,24 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `- Dietary Preference: ${input.dietaryPreference}\n` +
     `- Carb Intake Level: ${input.carbPreference}\n` +
     `- Preferred Food Culture: ${input.foodCulture} (influence only; this does not restrict the plan to one cuisine)\n\n` +
+    `- Meal-planning location: ${input.planningLocationLabel} (coarse locality for availability and familiarity only)\n\n` +
     `[CLINICAL SAFEGUARDS]\n` +
     `- Medical Conditions: ${conditions}${input.otherConditions ? '; Additional: ' + input.otherConditions : ''}\n` +
     `- Food restrictions to EXCLUDE or REVIEW: ${allergens}${input.otherAllergies ? '; Additional: ' + input.otherAllergies : ''}\n\n` +
     `${MEAL_GENERATION_CUISINE_POLICY}\n` +
     `[PHILIPPINE FOOD COMPOSITION REFERENCE]\n` +
     `${input.foodReference}\n\n` +
+    (input.certifiedMealReference
+      ? `[RETRIEVED NUTRITIONIST-CERTIFIED MEAL PATTERNS]\n${input.certifiedMealReference}\n` +
+        `Use these as trusted local meal patterns, but still satisfy the requested slot calorie range and patient profile. Any changed recipe remains pending review.\n\n`
+      : '') +
     (input.popularFoodReference
-      ? `[ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE]\n${input.popularFoodReference}\n` +
+      ? `[ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE — ${input.consumptionEvidenceScope || 'available scope'}]\n${input.popularFoodReference}\n` +
         `Use this only as an accessibility and familiarity signal. It never overrides the patient profile, clinical safeguards, or calorie ranges.\n\n`
       : '') +
     `Hard Rules:\n` +
+    `- Prefer the supplied FNRI records and copy their exact FNRI_ID values into foodItemId. Set foodItemId to null for ingredients outside that retrieved set.\n` +
+    `- Prefer retrieved certified meal patterns when they fit, but never copy a pattern that conflicts with a patient constraint.\n` +
     `- Each meal must stay inside the calorie range stated beside its requested slot; do not return a smaller base portion.\n` +
     `- Respect every recorded food restriction in all recipes; exclude canonical restrictions and retain review gates for unsupported entries.\n` +
     `- Filter out high-sodium foods and condiments when the user has HYPERTENSION.\n` +

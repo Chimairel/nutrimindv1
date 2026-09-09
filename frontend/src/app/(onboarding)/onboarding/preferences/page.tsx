@@ -13,6 +13,8 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
+import PlanningLocationFields from '@/components/user/PlanningLocationFields';
+import type { PlanningGeographyLevel } from '@/types';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
@@ -21,6 +23,9 @@ export default function OnboardingPreferencesPage() {
   const [dietary, setDietary] = useState<DietaryPreference>('OMNIVORE');
   const [carb, setCarb] = useState<CarbPreference>('MODERATE');
   const [culture, setCulture] = useState('Filipino');
+  const [planningLevel, setPlanningLevel] = useState<PlanningGeographyLevel>('NATIONAL');
+  const [planningRegion, setPlanningRegion] = useState('');
+  const [planningProvinceHuc, setPlanningProvinceHuc] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,6 +35,9 @@ export default function OnboardingPreferencesPage() {
     if (saved.dietaryPreference) setDietary(saved.dietaryPreference as DietaryPreference);
     if (saved.carbPreference) setCarb(saved.carbPreference as CarbPreference);
     if (saved.foodCulture) setCulture(normalizeFoodCulture(saved.foodCulture));
+    if (saved.planningGeographyLevel) setPlanningLevel(saved.planningGeographyLevel);
+    setPlanningRegion(saved.planningRegionName || '');
+    setPlanningProvinceHuc(saved.planningProvinceHucName || '');
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +51,9 @@ export default function OnboardingPreferencesPage() {
         dietaryPreference: dietary,
         carbPreference: carb,
         foodCulture: normalizeFoodCulture(culture),
+        planningGeographyLevel: planningLevel,
+        planningRegionName: planningLevel === 'NATIONAL' ? null : planningRegion.trim(),
+        planningProvinceHucName: planningLevel === 'PROVINCE_HUC' ? planningProvinceHuc.trim() : null,
       });
       await refreshSession();
 
@@ -190,6 +201,17 @@ export default function OnboardingPreferencesPage() {
               disabled={isLoading}
               maxLength={80}
               helperText="Describe your regional preferences so the AI can prioritize local ingredients (e.g. malunggay, ampalaya, kangkong)."
+            />
+
+            <PlanningLocationFields
+              level={planningLevel}
+              regionName={planningRegion}
+              provinceHucName={planningProvinceHuc}
+              onLevelChange={setPlanningLevel}
+              onRegionNameChange={setPlanningRegion}
+              onProvinceHucNameChange={setPlanningProvinceHuc}
+              disabled={isLoading}
+              idPrefix="onboarding-planning-location"
             />
 
             <Button

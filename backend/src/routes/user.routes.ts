@@ -27,6 +27,7 @@ import { weeklyCheckinSchema } from '@/validation/checkin.schemas';
 import { z } from 'zod';
 import { WaterService } from '@/services/water.service';
 import { UserPrivacyService } from '@/services/user-privacy.service';
+import { getActivePlanningLocationOptions } from '@/services/food-consumption-context.service';
 
 const router = Router();
 
@@ -56,6 +57,16 @@ router.post(
   UserController.updateProfile
 );
 router.get('/onboarding/suggestions', requireVerifiedUser, UserController.getSuggestions);
+router.get('/onboarding/planning-locations', requireVerifiedUser, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    return res.status(200).json({ success: true, data: await getActivePlanningLocationOptions() });
+  } catch (error: unknown) {
+    return res.status(500).json({
+      success: false,
+      error: sanitizeErrorMessage(error, 'Failed to retrieve meal-planning locations.'),
+    });
+  }
+});
 router.post(
   '/onboarding/conditions',
   requireVerifiedUser,

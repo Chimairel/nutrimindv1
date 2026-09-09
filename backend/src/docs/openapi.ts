@@ -92,6 +92,12 @@ const routes: RouteDocumentation[] = [
   { method: 'get', path: '/api/user/onboarding/safety-catalogue', tag: 'Onboarding', summary: 'Read safety catalogue' },
   { method: 'post', path: '/api/user/onboarding/profile', tag: 'Onboarding', summary: 'Save biometric profile' },
   { method: 'post', path: '/api/user/onboarding/preferences', tag: 'Onboarding', summary: 'Save food preferences' },
+  {
+    method: 'get',
+    path: '/api/user/onboarding/planning-locations',
+    tag: 'Onboarding',
+    summary: 'List coarse locations available in active aggregate food-consumption evidence',
+  },
   { method: 'post', path: '/api/user/onboarding/conditions', tag: 'Onboarding', summary: 'Save health conditions' },
   { method: 'post', path: '/api/user/onboarding/allergies', tag: 'Onboarding', summary: 'Save allergies' },
   { method: 'post', path: '/api/user/onboarding/shopping-day', tag: 'Onboarding', summary: 'Save shopping schedule' },

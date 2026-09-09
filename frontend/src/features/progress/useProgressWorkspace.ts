@@ -6,6 +6,7 @@ import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import type { UserProfileData } from '@/hooks/useProfile';
+import type { PlanningGeographyLevel } from '@/types';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health';
@@ -65,6 +66,11 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [dietaryPreference, setDietaryPreference] = useState(cachedProfile?.dietaryPreference || 'OMNIVORE');
   const [carbPreference, setCarbPreference] = useState(cachedProfile?.carbPreference || 'MODERATE');
   const [foodCulture, setFoodCulture] = useState(normalizeFoodCulture(cachedProfile?.foodCulture));
+  const [planningGeographyLevel, setPlanningGeographyLevel] = useState<PlanningGeographyLevel>(
+    cachedProfile?.planningGeographyLevel || 'NATIONAL'
+  );
+  const [planningRegionName, setPlanningRegionName] = useState(cachedProfile?.planningRegionName || '');
+  const [planningProvinceHucName, setPlanningProvinceHucName] = useState(cachedProfile?.planningProvinceHucName || '');
   const [shoppingDayOfWeek, setShoppingDayOfWeek] = useState(
     typeof cachedProfile?.shoppingDayOfWeek === 'number'
       ? cachedProfile.shoppingDayOfWeek
@@ -114,6 +120,9 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
           setCarbPreference(data.userProfile.carbPreference || 'MODERATE');
           setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
+          setPlanningGeographyLevel(data.userProfile.planningGeographyLevel || 'NATIONAL');
+          setPlanningRegionName(data.userProfile.planningRegionName || '');
+          setPlanningProvinceHucName(data.userProfile.planningProvinceHucName || '');
           setShoppingDayOfWeek(
             typeof data.userProfile.shoppingDayOfWeek === 'number'
               ? data.userProfile.shoppingDayOfWeek
@@ -166,6 +175,9 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         dietaryPreference,
         carbPreference,
         foodCulture,
+        planningGeographyLevel,
+        planningRegionName: planningGeographyLevel === 'NATIONAL' ? null : planningRegionName.trim(),
+        planningProvinceHucName: planningGeographyLevel === 'PROVINCE_HUC' ? planningProvinceHucName.trim() : null,
       });
 
       // 2. Save the exact shopping day preference
@@ -339,6 +351,12 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     setCarbPreference,
     foodCulture,
     setFoodCulture,
+    planningGeographyLevel,
+    setPlanningGeographyLevel,
+    planningRegionName,
+    setPlanningRegionName,
+    planningProvinceHucName,
+    setPlanningProvinceHucName,
     shoppingDayOfWeek,
     setShoppingDayOfWeek,
     isSavingBiometrics,

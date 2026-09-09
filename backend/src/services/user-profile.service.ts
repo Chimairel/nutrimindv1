@@ -5,6 +5,7 @@ import {
   ActivityLevel,
   DietaryPreference,
   CarbPreference,
+  ConsumptionGeographyLevel,
   HealthConditionType,
   HealthProfileRevisionType,
   Prisma,
@@ -22,6 +23,9 @@ interface ProfileUpdateData {
   dietaryPreference?: DietaryPreference;
   carbPreference?: CarbPreference;
   foodCulture?: string;
+  planningGeographyLevel?: ConsumptionGeographyLevel;
+  planningRegionName?: string | null;
+  planningProvinceHucName?: string | null;
 }
 
 type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
@@ -57,11 +61,20 @@ export class UserProfileService {
       'dietaryPreference',
       'carbPreference',
       'foodCulture',
+      'planningGeographyLevel',
+      'planningRegionName',
+      'planningProvinceHucName',
     ];
     for (const field of supportedFields) {
       if (data[field] !== undefined) {
         (safeData as Record<string, unknown>)[field] = data[field];
       }
+    }
+    if (safeData.planningGeographyLevel === ConsumptionGeographyLevel.NATIONAL) {
+      safeData.planningRegionName = null;
+      safeData.planningProvinceHucName = null;
+    } else if (safeData.planningGeographyLevel === ConsumptionGeographyLevel.REGION) {
+      safeData.planningProvinceHucName = null;
     }
 
     return prisma.$transaction(async (tx) => {

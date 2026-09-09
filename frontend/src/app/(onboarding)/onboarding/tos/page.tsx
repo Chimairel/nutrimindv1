@@ -11,6 +11,7 @@ import Checkbox from '@/components/ui/Checkbox';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
+import type { UserProfileData } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
 import type { SafetyProfileEntry } from '@/types';
 
@@ -57,6 +58,16 @@ function formatPlanSchedule(dayOfWeek?: number, legacyGroup?: string) {
   return 'Not provided';
 }
 
+function formatPlanningLocation(profile?: UserProfileData['userProfile']) {
+  if (!profile || profile.planningGeographyLevel === 'NATIONAL' || !profile.planningGeographyLevel) {
+    return 'Philippines — national evidence';
+  }
+  if (profile.planningGeographyLevel === 'PROVINCE_HUC' && profile.planningProvinceHucName) {
+    return `${profile.planningProvinceHucName}, ${profile.planningRegionName}`;
+  }
+  return profile.planningRegionName || 'Philippines — national evidence';
+}
+
 export default function OnboardingTosPage() {
   const router = useRouter();
   const { refreshSession } = useAuth();
@@ -91,6 +102,7 @@ export default function OnboardingTosPage() {
         ['Diet', formatOnboardingValue(userProfile?.dietaryPreference)],
         ['Carbohydrate preference', formatOnboardingValue(userProfile?.carbPreference)],
         ['Food culture', normalizeFoodCulture(userProfile?.foodCulture)],
+        ['Meal-planning location', formatPlanningLocation(userProfile)],
       ],
     },
     {
