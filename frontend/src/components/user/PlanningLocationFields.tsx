@@ -8,6 +8,7 @@ import api from '@/lib/axios';
 interface PlanningLocationOptions {
   regions: string[];
   provinceHucs: Array<{ name: string; regionName: string }>;
+  source?: { label: string; version: string; url: string };
 }
 
 interface PlanningLocationFieldsProps {
@@ -19,10 +20,10 @@ interface PlanningLocationFieldsProps {
   onProvinceHucNameChange: (value: string) => void;
   disabled?: boolean;
   idPrefix?: string;
+  required?: boolean;
 }
 
 export default function PlanningLocationFields({
-  level,
   regionName,
   provinceHucName,
   onLevelChange,
@@ -30,6 +31,7 @@ export default function PlanningLocationFields({
   onProvinceHucNameChange,
   disabled = false,
   idPrefix = 'planning-location',
+  required = false,
 }: PlanningLocationFieldsProps) {
   const [options, setOptions] = useState<PlanningLocationOptions>({ regions: [], provinceHucs: [] });
 
@@ -56,14 +58,20 @@ export default function PlanningLocationFields({
     [options.provinceHucs, regionName]
   );
 
-  const handleLevelChange = (nextLevel: PlanningGeographyLevel) => {
-    onLevelChange(nextLevel);
-    if (nextLevel === 'NATIONAL') {
-      onRegionNameChange('');
-      onProvinceHucNameChange('');
-    } else if (nextLevel === 'REGION') {
-      onProvinceHucNameChange('');
-    }
+  const handleRegionChange = (value: string) => {
+    onRegionNameChange(value);
+    const currentProvinceStillMatches = options.provinceHucs.some(
+      (option) =>
+        option.name.toLowerCase() === provinceHucName.trim().toLowerCase() &&
+        option.regionName.toLowerCase() === value.trim().toLowerCase()
+    );
+    if (provinceHucName && !currentProvinceStillMatches) onProvinceHucNameChange('');
+    onLevelChange(value.trim() ? 'REGION' : 'NATIONAL');
+  };
+
+  const handleProvinceHucChange = (value: string) => {
+    onProvinceHucNameChange(value);
+    onLevelChange(value.trim() && regionName.trim() ? 'PROVINCE_HUC' : regionName.trim() ? 'REGION' : 'NATIONAL');
   };
 
   return (
@@ -72,54 +80,31 @@ export default function PlanningLocationFields({
         Meal-planning location
       </legend>
       <p className="mb-4 text-xs leading-relaxed text-brand-muted">
-        Used only to prioritize aggregate local food evidence. Do not enter a street address.
+        Start typing to search. NutriMind stores only your Region and Province/HUC—never a street address.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className={level === 'NATIONAL' ? 'sm:col-span-2' : ''}>
-          <label
-            htmlFor={`${idPrefix}-level`}
-            className="mb-2 block text-xs font-bold uppercase tracking-wider text-brand-muted"
-          >
-            Evidence area
-          </label>
-          <select
-            id={`${idPrefix}-level`}
-            value={level}
-            onChange={(event) => handleLevelChange(event.target.value as PlanningGeographyLevel)}
-            disabled={disabled}
-            className="w-full rounded-xl border border-brand-border bg-brand-bgAlt px-4 py-3 text-sm text-brand-text outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/15 disabled:opacity-60"
-          >
-            <option value="NATIONAL">Philippines — national</option>
-            <option value="REGION">Region</option>
-            <option value="PROVINCE_HUC">Province or highly urbanized city</option>
-          </select>
-        </div>
-        {level !== 'NATIONAL' && (
-          <Input
-            id={`${idPrefix}-region`}
-            list={`${idPrefix}-region-options`}
-            label="Region"
-            value={regionName}
-            onChange={(event) => onRegionNameChange(event.target.value)}
-            placeholder="e.g. Central Visayas"
-            maxLength={120}
-            required
-            disabled={disabled}
-          />
-        )}
-        {level === 'PROVINCE_HUC' && (
-          <Input
-            id={`${idPrefix}-province-huc`}
-            list={`${idPrefix}-province-huc-options`}
-            label="Province / HUC"
-            value={provinceHucName}
-            onChange={(event) => onProvinceHucNameChange(event.target.value)}
-            placeholder="e.g. Cebu City"
-            maxLength={160}
-            required
-            disabled={disabled}
-          />
-        )}
+        <Input
+          id={`${idPrefix}-region`}
+          list={`${idPrefix}-region-options`}
+          label="Region"
+          value={regionName}
+          onChange={(event) => handleRegionChange(event.target.value)}
+          placeholder="Start typing, e.g. Central Visayas"
+          maxLength={120}
+          required={required}
+          disabled={disabled}
+        />
+        <Input
+          id={`${idPrefix}-province-huc`}
+          list={`${idPrefix}-province-huc-options`}
+          label="Province / highly urbanized city"
+          value={provinceHucName}
+          onChange={(event) => handleProvinceHucChange(event.target.value)}
+          placeholder={regionName ? 'Start typing, e.g. Cebu' : 'Choose a region first'}
+          maxLength={160}
+          required={required}
+          disabled={disabled || !regionName.trim()}
+        />
       </div>
       <datalist id={`${idPrefix}-region-options`}>
         {options.regions.map((region) => (
@@ -131,12 +116,10 @@ export default function PlanningLocationFields({
           <option key={`${option.regionName}:${option.name}`} value={option.name} />
         ))}
       </datalist>
-      {level !== 'NATIONAL' && (
-        <p className="mt-3 text-[11px] leading-relaxed text-brand-muted">
-          If no published evidence matches this area, NutriMind automatically falls back to{' '}
-          {level === 'PROVINCE_HUC' ? 'regional and then national data' : 'national data'}.
-        </p>
-      )}
+      <p className="mt-3 text-[11px] leading-relaxed text-brand-muted">
+        Suggestions use the PSA PSGC {options.source?.version || 'reference list'}. Your separate meal-locality setting
+        decides whether recommendations use Philippines, regional, or local familiarity evidence.
+      </p>
     </fieldset>
   );
 }

@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import PlanningLocationFields from '@/components/user/PlanningLocationFields';
+import MealLocalityPreferenceControl from '@/components/user/MealLocalityPreferenceControl';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
 import {
@@ -68,6 +69,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setPlanningRegionName,
     planningProvinceHucName,
     setPlanningProvinceHucName,
+    mealLocalityPreference,
+    setMealLocalityPreference,
     shoppingDayOfWeek,
     setShoppingDayOfWeek,
     isSavingBiometrics,
@@ -676,6 +679,15 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                   onProvinceHucNameChange={setPlanningProvinceHucName}
                   disabled={isSavingBiometrics}
                   idPrefix="profile-planning-location"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <MealLocalityPreferenceControl
+                  value={mealLocalityPreference}
+                  regionName={planningRegionName}
+                  provinceHucName={planningProvinceHucName}
+                  onChange={setMealLocalityPreference}
+                  disabled={isSavingBiometrics}
                 />
               </div>
               <div>

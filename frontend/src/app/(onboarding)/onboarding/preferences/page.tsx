@@ -14,7 +14,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import PlanningLocationFields from '@/components/user/PlanningLocationFields';
-import type { PlanningGeographyLevel } from '@/types';
+import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
@@ -26,6 +26,7 @@ export default function OnboardingPreferencesPage() {
   const [planningLevel, setPlanningLevel] = useState<PlanningGeographyLevel>('NATIONAL');
   const [planningRegion, setPlanningRegion] = useState('');
   const [planningProvinceHuc, setPlanningProvinceHuc] = useState('');
+  const [mealLocalityPreference, setMealLocalityPreference] = useState<MealLocalityPreference>('NATIONAL');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,6 +39,7 @@ export default function OnboardingPreferencesPage() {
     if (saved.planningGeographyLevel) setPlanningLevel(saved.planningGeographyLevel);
     setPlanningRegion(saved.planningRegionName || '');
     setPlanningProvinceHuc(saved.planningProvinceHucName || '');
+    setMealLocalityPreference(saved.mealLocalityPreference || 'NATIONAL');
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,6 +56,7 @@ export default function OnboardingPreferencesPage() {
         planningGeographyLevel: planningLevel,
         planningRegionName: planningLevel === 'NATIONAL' ? null : planningRegion.trim(),
         planningProvinceHucName: planningLevel === 'PROVINCE_HUC' ? planningProvinceHuc.trim() : null,
+        mealLocalityPreference,
       });
       await refreshSession();
 
@@ -212,6 +215,7 @@ export default function OnboardingPreferencesPage() {
               onProvinceHucNameChange={setPlanningProvinceHuc}
               disabled={isLoading}
               idPrefix="onboarding-planning-location"
+              required
             />
 
             <Button

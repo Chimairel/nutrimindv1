@@ -96,7 +96,7 @@ const routes: RouteDocumentation[] = [
     method: 'get',
     path: '/api/user/onboarding/planning-locations',
     tag: 'Onboarding',
-    summary: 'List coarse locations available in active aggregate food-consumption evidence',
+    summary: 'List official coarse planning locations plus active consumption-evidence locations',
   },
   { method: 'post', path: '/api/user/onboarding/conditions', tag: 'Onboarding', summary: 'Save health conditions' },
   { method: 'post', path: '/api/user/onboarding/allergies', tag: 'Onboarding', summary: 'Save allergies' },

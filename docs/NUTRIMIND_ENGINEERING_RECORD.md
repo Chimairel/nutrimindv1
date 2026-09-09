@@ -3628,3 +3628,31 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-199 is the complete repository gate: source architecture, formatting, backend and frontend lint, **504 registered backend tests / 503 pass / 0 fail / 1 unchanged clinical-policy TODO**, **39 frontend tests / 39 pass**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes.
 - Authenticated browser acceptance used one exact reserved `example.invalid` USER fixture. The Health profile rendered national, region, and province/HUC states with associated controls and the no-street-address disclosure; a synthetic `Cebu City, Central Visayas` preference saved successfully, recalculated the calorie target, and remained present after a full route reload. The planning-location suggestion endpoint returned `200` with an empty governed catalogue, matching the zero-release database state. The fixture initially omitted the canonical `NONE` condition/allergy rows and correctly failed the existing onboarding-completeness gate; those fixture prerequisites were then supplied before the authoritative save. Exact cleanup deleted the one fixture account and cascaded profile, safety, report, and session data, leaving zero matching users.
 - No consumption dataset was fabricated or published. Until an administrator publishes mapped official evidence, the retrieval layer uses its certified-meal and FNRI grounding and the consumption branch returns no locality claim. No Gemini, PayMongo, SMTP, OAuth, Cloudinary, production, or real clinical-review action occurred in this implementation batch.
+
+## 70. Independent meal-locality strength and PSGC autocomplete (2026-09-09)
+
+**Architecture decision:** ADR-036
+
+**Change ID:** CHG-20260909-06
+
+**Verification IDs:** TEST-200 through TEST-202
+
+**Documentation ID:** DOC-062
+
+### Decision and implementation
+
+- Saved location identity and recommendation strength are now independent. `planningRegionName` and `planningProvinceHucName` retain the user's coarse location, while the new `mealLocalityPreference` chooses `NATIONAL`, `REGIONAL`, or `LOCAL` retrieval. Moving the control never deletes the saved location.
+- Onboarding replaces the previous evidence-level selector with two always-visible searchable inputs: Region and Province/highly urbanized city. New onboarding submissions require both fields. The browser filters Province/HUC suggestions by the selected Region, clears an incompatible locality when Region changes, and never requests a street address.
+- Autocomplete is backed by an attributed PSA Philippine Standard Geographic Code 2Q 2026 snapshot containing 18 regions, 82 provinces, and 33 highly urbanized cities. Governed active consumption-release locations are merged without case-insensitive duplicates. The geographic list supplies valid choices; it does not fabricate food-consumption evidence.
+- Health Profile adds an accessible three-stop range control labelled dynamically as `Philippines`, the saved Region, and the saved Province/HUC. Arrow keys and the three labelled stops are supported. Regional and local stops remain unavailable until the corresponding saved location exists.
+- Retrieval now follows the strength control: national uses national evidence only; regional uses Region then national; local uses Province/HUC, then Region, then national. Existing safety, calorie, dietary, budget, certified-meal, FNRI identity, and nutritionist-review rules remain higher priority.
+- Invalid Region or Province/HUC combinations fail request validation against the bundled PSGC hierarchy. Service-layer normalization also clamps impossible standalone preference updates to the most specific valid saved level. Existing profiles received the backward-compatible `NATIONAL` preference.
+
+### Schema and verification
+
+- Migration `20260909183000_add_meal_locality_preference` adds one non-null enum-backed profile column with a `NATIONAL` default and no data rewrite. A disposable PostgreSQL 16 Alpine database on loopback port 54339 applied all 27 migrations from zero; the resulting column was verified as non-null, enum-backed, and defaulting to `NATIONAL`. The exact task-owned container was then removed.
+- The same migration was applied through `prisma migrate deploy` to the configured shared development database. A repeat status check reported all 27 migrations current. No `db push`, reset, seed, manual shared-database DML, or environment-file change was used.
+- TEST-200 proves location identity remains unchanged while all three preference values produce their exact fallback chains. TEST-201 proves the PSGC snapshot attribution, 18-region and 115 province/HUC totals, uniqueness, and representative Cebu and Negros Island mappings. Frontend component tests cover the two searchable inputs, removal of the old selector, incompatible-locality clearing, dynamic stops, keyboard-compatible range input, and unavailable lower-level stops.
+- TEST-202 used one exact reserved `example.invalid` USER fixture in the local browser. Health Profile exposed the two labelled autocomplete fields, `Philippines → Central Visayas → Cebu City` stops, national default, and fallback explanation. Selecting Cebu City and saving returned the success state; a separate fresh route load retained slider value 2 and the local fallback description. Exact cleanup deleted the fixture and all cascading rows, leaving zero matching users.
+- The deterministic suites pass: **507 registered backend tests / 506 pass / 0 fail / 1 unchanged clinical-policy TODO** and **40 frontend tests / 40 pass**. Backend and frontend production builds pass, both linters report zero warnings, formatting passes after applying Prettier to the changed modules, and the source architecture ceiling remains satisfied.
+- This change does not claim that region or Province/HUC consumption rows exist. Missing governed consumption evidence continues to fall back transparently. No Gemini, PayMongo, SMTP, OAuth, Cloudinary, production deployment, or real clinical-review action was performed.

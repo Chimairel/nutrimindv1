@@ -6,7 +6,7 @@ import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import type { UserProfileData } from '@/hooks/useProfile';
-import type { PlanningGeographyLevel } from '@/types';
+import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health';
@@ -71,6 +71,9 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   );
   const [planningRegionName, setPlanningRegionName] = useState(cachedProfile?.planningRegionName || '');
   const [planningProvinceHucName, setPlanningProvinceHucName] = useState(cachedProfile?.planningProvinceHucName || '');
+  const [mealLocalityPreference, setMealLocalityPreference] = useState<MealLocalityPreference>(
+    cachedProfile?.mealLocalityPreference || 'NATIONAL'
+  );
   const [shoppingDayOfWeek, setShoppingDayOfWeek] = useState(
     typeof cachedProfile?.shoppingDayOfWeek === 'number'
       ? cachedProfile.shoppingDayOfWeek
@@ -123,6 +126,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           setPlanningGeographyLevel(data.userProfile.planningGeographyLevel || 'NATIONAL');
           setPlanningRegionName(data.userProfile.planningRegionName || '');
           setPlanningProvinceHucName(data.userProfile.planningProvinceHucName || '');
+          setMealLocalityPreference(data.userProfile.mealLocalityPreference || 'NATIONAL');
           setShoppingDayOfWeek(
             typeof data.userProfile.shoppingDayOfWeek === 'number'
               ? data.userProfile.shoppingDayOfWeek
@@ -155,6 +159,14 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     writeSessionResource(ownerId, 'user-progress-page', { history, profileData });
   }, [ownerId, history, profileData]);
 
+  useEffect(() => {
+    if (!planningRegionName.trim() && mealLocalityPreference !== 'NATIONAL') {
+      setMealLocalityPreference('NATIONAL');
+    } else if (!planningProvinceHucName.trim() && mealLocalityPreference === 'LOCAL') {
+      setMealLocalityPreference('REGIONAL');
+    }
+  }, [mealLocalityPreference, planningProvinceHucName, planningRegionName]);
+
   // Handles updating biometrics and preferences form
   const handleBiometricsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,6 +190,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         planningGeographyLevel,
         planningRegionName: planningGeographyLevel === 'NATIONAL' ? null : planningRegionName.trim(),
         planningProvinceHucName: planningGeographyLevel === 'PROVINCE_HUC' ? planningProvinceHucName.trim() : null,
+        mealLocalityPreference,
       });
 
       // 2. Save the exact shopping day preference
@@ -357,6 +370,8 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     setPlanningRegionName,
     planningProvinceHucName,
     setPlanningProvinceHucName,
+    mealLocalityPreference,
+    setMealLocalityPreference,
     shoppingDayOfWeek,
     setShoppingDayOfWeek,
     isSavingBiometrics,

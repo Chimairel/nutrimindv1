@@ -41,7 +41,7 @@ import {
 } from '@/domain/meal-plan-production-safety.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { isMealWithinSlotCalorieRange, rankCalorieCompatibleMeals } from '@/domain/meal-calorie-allocation.policy';
-import { formatPlanningLocation, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
+import { formatMealLocalityPreference, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 
 interface GroundedFoodReference {
   id: string;
@@ -503,7 +503,7 @@ export class MealGenerationService {
           dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
           carbPreference: profile.carbPreference || 'MODERATE',
           foodCulture: profile.foodCulture || 'Filipino',
-          planningLocationLabel: formatPlanningLocation(profile),
+          planningLocationLabel: formatMealLocalityPreference(profile),
           conditions: userConditions,
           allergens: userAllergens,
           otherConditions,

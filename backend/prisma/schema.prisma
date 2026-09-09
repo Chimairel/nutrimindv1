@@ -523,6 +523,12 @@ enum ConsumptionGeographyLevel {
   PROVINCE_HUC
 }
 
+enum MealLocalityPreference {
+  NATIONAL
+  REGIONAL
+  LOCAL
+}
+
 enum ConsumptionMappingStatus {
   EXACT
   MANUAL
@@ -635,30 +641,31 @@ model Session {
 }
 
 model UserProfile {
-  id                 String             @id @default(cuid())
-  userId             String             @unique
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  age                Int?
-  biologicalSex      String? // "MALE" or "FEMALE"
-  heightCm           Float?
-  weightKg           Float?
-  targetWeightKg     Float?
-  goal               Goal?
-  activityLevel      ActivityLevel?
-  dietaryPreference  DietaryPreference?
-  carbPreference     CarbPreference?
-  foodCulture        String?
-  planningGeographyLevel ConsumptionGeographyLevel @default(NATIONAL)
-  planningRegionName     String?                   @db.VarChar(120)
-  planningProvinceHucName String?                  @db.VarChar(160)
-  dailyCalorieTarget Int?
-  otherConditions    String? // Free-text custom health conditions (e.g., "Gout, Celiac")
-  otherAllergies     String? // Free-text custom food allergies (e.g., "Soy, Sesame")
-  shoppingDayGroup   ShoppingDayGroup? // Determines weekly plan cycle anchor day
-  shoppingDayOfWeek  Int? // 0=Sunday ... 6=Saturday; cycle starts the following day
-  lastCheckinAt      DateTime?
-  checkinStreak      Int                @default(0)
-  updatedAt          DateTime           @updatedAt
+  id                      String                    @id @default(cuid())
+  userId                  String                    @unique
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age                     Int?
+  biologicalSex           String? // "MALE" or "FEMALE"
+  heightCm                Float?
+  weightKg                Float?
+  targetWeightKg          Float?
+  goal                    Goal?
+  activityLevel           ActivityLevel?
+  dietaryPreference       DietaryPreference?
+  carbPreference          CarbPreference?
+  foodCulture             String?
+  planningGeographyLevel  ConsumptionGeographyLevel @default(NATIONAL)
+  planningRegionName      String?                   @db.VarChar(120)
+  planningProvinceHucName String?                   @db.VarChar(160)
+  mealLocalityPreference  MealLocalityPreference    @default(NATIONAL)
+  dailyCalorieTarget      Int?
+  otherConditions         String? // Free-text custom health conditions (e.g., "Gout, Celiac")
+  otherAllergies          String? // Free-text custom food allergies (e.g., "Soy, Sesame")
+  shoppingDayGroup        ShoppingDayGroup? // Determines weekly plan cycle anchor day
+  shoppingDayOfWeek       Int? // 0=Sunday ... 6=Saturday; cycle starts the following day
+  lastCheckinAt           DateTime?
+  checkinStreak           Int                       @default(0)
+  updatedAt               DateTime                  @updatedAt
 }
 
 model HealthCondition {

@@ -1,9 +1,11 @@
 export type PlanningGeographyLevel = 'NATIONAL' | 'REGION' | 'PROVINCE_HUC';
+export type MealLocalityPreference = 'NATIONAL' | 'REGIONAL' | 'LOCAL';
 
 export interface PlanningLocation {
   planningGeographyLevel?: PlanningGeographyLevel | null;
   planningRegionName?: string | null;
   planningProvinceHucName?: string | null;
+  mealLocalityPreference?: MealLocalityPreference | null;
 }
 
 export interface ConsumptionScope {
@@ -32,12 +34,12 @@ function clean(value?: string | null): string | null {
  * coarse and affects familiarity evidence only; it is not a clinical input.
  */
 export function buildConsumptionScopeChain(location?: PlanningLocation | null): ConsumptionScope[] {
-  const level = location?.planningGeographyLevel ?? 'NATIONAL';
+  const preference = location?.mealLocalityPreference ?? 'NATIONAL';
   const regionName = clean(location?.planningRegionName);
   const provinceHucName = clean(location?.planningProvinceHucName);
   const scopes: ConsumptionScope[] = [];
 
-  if (level === 'PROVINCE_HUC' && regionName && provinceHucName) {
+  if (preference === 'LOCAL' && regionName && provinceHucName) {
     scopes.push({
       level: 'PROVINCE_HUC',
       regionName,
@@ -46,7 +48,7 @@ export function buildConsumptionScopeChain(location?: PlanningLocation | null): 
     });
   }
 
-  if ((level === 'REGION' || level === 'PROVINCE_HUC') && regionName) {
+  if ((preference === 'REGIONAL' || preference === 'LOCAL') && regionName) {
     scopes.push({ level: 'REGION', regionName, provinceHucName: null, label: regionName });
   }
 
@@ -55,7 +57,21 @@ export function buildConsumptionScopeChain(location?: PlanningLocation | null): 
 }
 
 export function formatPlanningLocation(location?: PlanningLocation | null): string {
-  return buildConsumptionScopeChain(location)[0].label;
+  const regionName = clean(location?.planningRegionName);
+  const provinceHucName = clean(location?.planningProvinceHucName);
+  if (provinceHucName && regionName) return `${provinceHucName}, ${regionName}`;
+  return regionName ?? 'Philippines';
+}
+
+export function formatMealLocalityPreference(location?: PlanningLocation | null): string {
+  const preference = location?.mealLocalityPreference ?? 'NATIONAL';
+  if (preference === 'LOCAL' && clean(location?.planningProvinceHucName)) {
+    return clean(location?.planningProvinceHucName)!;
+  }
+  if (preference === 'REGIONAL' && clean(location?.planningRegionName)) {
+    return clean(location?.planningRegionName)!;
+  }
+  return 'Philippines';
 }
 
 /**

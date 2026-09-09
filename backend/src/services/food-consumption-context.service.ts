@@ -4,6 +4,7 @@ import {
   type ConsumptionScope,
   type PlanningLocation,
 } from '@/domain/planning-location.policy';
+import { PSGC_PLANNING_GEOGRAPHY, PSGC_PROVINCE_HUCS, PSGC_REGIONS } from '@/data/philippine-planning-geography';
 
 interface ConsumptionContextItem {
   id: string;
@@ -24,6 +25,15 @@ export interface LocalizedFoodConsumptionContext {
 export interface PlanningLocationOptions {
   regions: string[];
   provinceHucs: Array<{ name: string; regionName: string }>;
+  source: {
+    label: string;
+    version: string;
+    url: string;
+  };
+}
+
+function normalizedKey(value: string): string {
+  return value.trim().toLocaleLowerCase('en-PH');
 }
 
 export async function getActivePlanningLocationOptions(): Promise<PlanningLocationOptions> {
@@ -41,14 +51,30 @@ export async function getActivePlanningLocationOptions(): Promise<PlanningLocati
     distinct: ['regionName', 'provinceHucName'],
     orderBy: [{ regionName: 'asc' }, { provinceHucName: 'asc' }],
   });
-  const regions = [...new Set(rows.map((row) => row.regionName).filter((name): name is string => Boolean(name)))];
-  const provinceHucs = rows
+  const activeRegions = rows.map((row) => row.regionName).filter((name): name is string => Boolean(name));
+  const activeProvinceHucs = rows
     .filter(
       (row): row is { regionName: string; provinceHucName: string } =>
         Boolean(row.regionName) && Boolean(row.provinceHucName)
     )
     .map((row) => ({ name: row.provinceHucName, regionName: row.regionName }));
-  return { regions, provinceHucs };
+  const regionsByKey = new Map<string, string>(PSGC_REGIONS.map((name) => [normalizedKey(name), name]));
+  activeRegions.forEach((name) => regionsByKey.set(normalizedKey(name), name));
+  const provinceHucsByKey = new Map<string, { name: string; regionName: string }>(
+    PSGC_PROVINCE_HUCS.map((option) => [`${normalizedKey(option.regionName)}:${normalizedKey(option.name)}`, option])
+  );
+  activeProvinceHucs.forEach((option) =>
+    provinceHucsByKey.set(`${normalizedKey(option.regionName)}:${normalizedKey(option.name)}`, option)
+  );
+  return {
+    regions: [...regionsByKey.values()],
+    provinceHucs: [...provinceHucsByKey.values()],
+    source: {
+      label: PSGC_PLANNING_GEOGRAPHY.sourceLabel,
+      version: PSGC_PLANNING_GEOGRAPHY.sourceVersion,
+      url: PSGC_PLANNING_GEOGRAPHY.sourceUrl,
+    },
+  };
 }
 
 /**

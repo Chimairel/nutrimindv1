@@ -6,6 +6,7 @@ import {
   DietaryPreference,
   CarbPreference,
   ConsumptionGeographyLevel,
+  MealLocalityPreference,
   HealthConditionType,
   HealthProfileRevisionType,
   Prisma,
@@ -26,6 +27,7 @@ interface ProfileUpdateData {
   planningGeographyLevel?: ConsumptionGeographyLevel;
   planningRegionName?: string | null;
   planningProvinceHucName?: string | null;
+  mealLocalityPreference?: MealLocalityPreference;
 }
 
 type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
@@ -64,20 +66,46 @@ export class UserProfileService {
       'planningGeographyLevel',
       'planningRegionName',
       'planningProvinceHucName',
+      'mealLocalityPreference',
     ];
     for (const field of supportedFields) {
       if (data[field] !== undefined) {
         (safeData as Record<string, unknown>)[field] = data[field];
       }
     }
-    if (safeData.planningGeographyLevel === ConsumptionGeographyLevel.NATIONAL) {
-      safeData.planningRegionName = null;
-      safeData.planningProvinceHucName = null;
-    } else if (safeData.planningGeographyLevel === ConsumptionGeographyLevel.REGION) {
-      safeData.planningProvinceHucName = null;
-    }
-
     return prisma.$transaction(async (tx) => {
+      const existing = await tx.userProfile.findUnique({
+        where: { userId },
+        select: {
+          planningGeographyLevel: true,
+          planningRegionName: true,
+          planningProvinceHucName: true,
+          mealLocalityPreference: true,
+        },
+      });
+      const effectiveLevel =
+        safeData.planningGeographyLevel ?? existing?.planningGeographyLevel ?? ConsumptionGeographyLevel.NATIONAL;
+      const effectiveRegion =
+        safeData.planningRegionName !== undefined ? safeData.planningRegionName : existing?.planningRegionName;
+      const effectiveProvinceHuc =
+        safeData.planningProvinceHucName !== undefined
+          ? safeData.planningProvinceHucName
+          : existing?.planningProvinceHucName;
+      const requestedLocality =
+        safeData.mealLocalityPreference ?? existing?.mealLocalityPreference ?? MealLocalityPreference.NATIONAL;
+
+      if (effectiveLevel === ConsumptionGeographyLevel.NATIONAL || !effectiveRegion) {
+        safeData.planningRegionName = null;
+        safeData.planningProvinceHucName = null;
+        safeData.mealLocalityPreference = MealLocalityPreference.NATIONAL;
+      } else if (effectiveLevel === ConsumptionGeographyLevel.REGION || !effectiveProvinceHuc) {
+        safeData.planningProvinceHucName = null;
+        safeData.mealLocalityPreference =
+          requestedLocality === MealLocalityPreference.LOCAL ? MealLocalityPreference.REGIONAL : requestedLocality;
+      } else {
+        safeData.mealLocalityPreference = requestedLocality;
+      }
+
       const profile = await tx.userProfile.upsert({
         where: { userId },
         update: safeData,

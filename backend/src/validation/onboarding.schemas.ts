@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/domain/onboarding.policy';
+import { isPsgcProvinceHucForRegion, isPsgcRegion } from '@/data/philippine-planning-geography';
 
 const goalSchema = z.enum(['LOSE_WEIGHT', 'GAIN_WEIGHT', 'MAINTAIN', 'BUILD_MUSCLE']);
 const activitySchema = z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE']);
 const dietarySchema = z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN']);
 const carbSchema = z.enum(['LOW', 'MODERATE', 'HIGH']);
 const planningGeographySchema = z.enum(['NATIONAL', 'REGION', 'PROVINCE_HUC']);
+const mealLocalityPreferenceSchema = z.enum(['NATIONAL', 'REGIONAL', 'LOCAL']);
 const sexSchema = z.enum(['MALE', 'FEMALE']);
 const conditionSchema = z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT', 'NONE']);
 const allergySchema = z.enum(['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS', 'NONE']);
@@ -48,6 +50,7 @@ export const onboardingProfileSchema = z
     planningGeographyLevel: planningGeographySchema.optional(),
     planningRegionName: z.string().trim().min(1).max(120).nullable().optional(),
     planningProvinceHucName: z.string().trim().min(1).max(160).nullable().optional(),
+    mealLocalityPreference: mealLocalityPreferenceSchema.optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -83,6 +86,41 @@ export const onboardingProfileSchema = z
         code: 'custom',
         path: ['planningProvinceHucName'],
         message: 'Province/HUC planning requires both a region and province/HUC.',
+      });
+    }
+    if (data.planningRegionName && !isPsgcRegion(data.planningRegionName)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planningRegionName'],
+        message: 'Choose a region from the official PSGC suggestions.',
+      });
+    }
+    if (
+      data.planningRegionName &&
+      data.planningProvinceHucName &&
+      !isPsgcProvinceHucForRegion(data.planningRegionName, data.planningProvinceHucName)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planningProvinceHucName'],
+        message: 'Choose a province/HUC that belongs to the selected region.',
+      });
+    }
+    if (data.mealLocalityPreference === 'REGIONAL' && data.planningRegionName === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['mealLocalityPreference'],
+        message: 'Regional locality requires a region.',
+      });
+    }
+    if (
+      data.mealLocalityPreference === 'LOCAL' &&
+      (data.planningRegionName === null || data.planningProvinceHucName === null)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['mealLocalityPreference'],
+        message: 'Local locality requires a region and province/HUC.',
       });
     }
     if (data.weightKg === undefined || data.targetWeightKg === undefined || !data.goal) return;

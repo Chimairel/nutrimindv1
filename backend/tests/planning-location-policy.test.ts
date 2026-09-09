@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   buildConsumptionScopeChain,
   formatPlanningLocation,
+  formatMealLocalityPreference,
   rankMealsByLocalizedFoodEvidence,
   resolveFirstAvailableConsumptionScope,
 } from '../src/domain/planning-location.policy';
@@ -13,6 +14,7 @@ test('[TEST-196] planning location falls back from province/HUC to region and na
     planningGeographyLevel: 'PROVINCE_HUC',
     planningRegionName: 'Central Visayas',
     planningProvinceHucName: 'Cebu City',
+    mealLocalityPreference: 'LOCAL',
   });
 
   assert.deepEqual(
@@ -23,6 +25,38 @@ test('[TEST-196] planning location falls back from province/HUC to region and na
   assert.equal(
     formatPlanningLocation({ planningGeographyLevel: 'REGION', planningRegionName: 'Bicol Region' }),
     'Bicol Region'
+  );
+  assert.equal(
+    formatMealLocalityPreference({
+      planningRegionName: 'Central Visayas',
+      planningProvinceHucName: 'Cebu City',
+      mealLocalityPreference: 'REGIONAL',
+    }),
+    'Central Visayas'
+  );
+});
+
+test('[TEST-200] meal-locality preference is independent from saved location', () => {
+  const location = {
+    planningGeographyLevel: 'PROVINCE_HUC' as const,
+    planningRegionName: 'Central Visayas',
+    planningProvinceHucName: 'Cebu City',
+  };
+  assert.deepEqual(
+    buildConsumptionScopeChain({ ...location, mealLocalityPreference: 'NATIONAL' }).map((s) => s.level),
+    ['NATIONAL']
+  );
+  assert.deepEqual(
+    buildConsumptionScopeChain({ ...location, mealLocalityPreference: 'REGIONAL' }).map((s) => s.level),
+    ['REGION', 'NATIONAL']
+  );
+  assert.deepEqual(
+    buildConsumptionScopeChain({ ...location, mealLocalityPreference: 'LOCAL' }).map((s) => s.level),
+    ['PROVINCE_HUC', 'REGION', 'NATIONAL']
+  );
+  assert.equal(
+    formatPlanningLocation({ ...location, mealLocalityPreference: 'NATIONAL' }),
+    'Cebu City, Central Visayas'
   );
 });
 
@@ -41,6 +75,7 @@ test('[TEST-196] profile validation accepts only coherent coarse location shapes
       planningGeographyLevel: 'PROVINCE_HUC',
       planningRegionName: 'Central Visayas',
       planningProvinceHucName: 'Cebu City',
+      mealLocalityPreference: 'LOCAL',
     }).success,
     true
   );
@@ -65,6 +100,7 @@ test('[TEST-196] retrieval stops at the first populated fallback scope', async (
       planningGeographyLevel: 'PROVINCE_HUC',
       planningRegionName: 'Central Visayas',
       planningProvinceHucName: 'Cebu City',
+      mealLocalityPreference: 'LOCAL',
     },
     async (scope) => {
       visited.push(scope.level);
@@ -80,7 +116,7 @@ test('[TEST-196] retrieval stops at the first populated fallback scope', async (
 test('[TEST-196] retrieval returns empty evidence after exhausting every scope', async () => {
   const visited: string[] = [];
   const result = await resolveFirstAvailableConsumptionScope(
-    { planningGeographyLevel: 'REGION', planningRegionName: 'Bicol Region' },
+    { planningGeographyLevel: 'REGION', planningRegionName: 'Bicol Region', mealLocalityPreference: 'REGIONAL' },
     async (scope) => {
       visited.push(scope.level);
       return [];
