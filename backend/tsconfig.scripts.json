@@ -12,6 +12,7 @@
     "scripts/billing-shared-acceptance-audit.ts",
     "scripts/billing-shared-worker-acceptance.ts",
     "scripts/measure-structured-library-coverage.ts",
+    "scripts/outside-meal-local-acceptance.ts",
     "scripts/structured-safety-replacement-acceptance.ts"
   ]
 }

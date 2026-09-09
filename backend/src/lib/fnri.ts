@@ -46,17 +46,17 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
   console.log(`[FNRI Lookup] Step 2: Searching alias database for: "${cleanName}"`);
   const aliasMatch = await prisma.foodAlias.findFirst({
     where: {
-      alias: {
-        equals: cleanName,
-        mode: 'insensitive',
-      },
+      OR: [{ normalizedAlias: normalizeFoodName(cleanName) }, { alias: { equals: cleanName, mode: 'insensitive' } }],
     },
     include: {
       foodItem: true,
     },
   });
 
-  if (aliasMatch?.foodItem && selectStrongFNRIMatch(cleanName, [aliasMatch.foodItem])) {
+  if (
+    aliasMatch?.foodItem &&
+    (aliasMatch.verifiedAt !== null || selectStrongFNRIMatch(cleanName, [aliasMatch.foodItem]))
+  ) {
     console.log(`[FNRI Lookup] Alias match resolved to "${aliasMatch.foodItem.name}" for search term: "${cleanName}"`);
     return {
       food: aliasMatch.foodItem,

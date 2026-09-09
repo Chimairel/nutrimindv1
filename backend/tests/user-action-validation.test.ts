@@ -33,3 +33,24 @@ test('[TEST-151] user action schemas normalize valid boundary input', () => {
     mealType: 'DINNER',
   });
 });
+
+test('[TEST-180] outside meal item nutrition is strict, bounded, and supports mixed inputs', () => {
+  const parsed = outsideMealBodySchema.parse({
+    mealType: 'SNACK',
+    useAiEstimate: true,
+    requestKey: 'outside-meal-123',
+    items: [
+      { name: 'Rice', portionGrams: 150 },
+      { name: 'Packaged yogurt', reportedNutrition: { calories: 120, proteinG: 5, carbsG: 18, fatG: 3 } },
+    ],
+  });
+  assert.equal(parsed.items?.length, 2);
+  assert.throws(() => outsideMealBodySchema.parse({ mealType: 'LUNCH' }));
+  assert.throws(() => outsideMealBodySchema.parse({ mealType: 'LUNCH', mealName: 'Rice', warningAcknowledged: true }));
+  assert.throws(() =>
+    outsideMealBodySchema.parse({
+      mealType: 'LUNCH',
+      items: [{ name: 'Rice', reportedNutrition: { calories: -1, proteinG: 0, carbsG: 0, fatG: 0 } }],
+    })
+  );
+});

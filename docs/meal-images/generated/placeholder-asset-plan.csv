@@ -1,0 +1,8 @@
+﻿fallback_key,alt_text,planned_asset_path,status
+breakfast,Representative breakfast image,frontend/public/images/meals/fallback/breakfast.webp,TO_BE_DESIGNED
+lunch,Representative lunch image,frontend/public/images/meals/fallback/lunch.webp,TO_BE_DESIGNED
+dinner,Representative dinner image,frontend/public/images/meals/fallback/dinner.webp,TO_BE_DESIGNED
+seafood,Representative seafood meal image,frontend/public/images/meals/fallback/seafood.webp,TO_BE_DESIGNED
+poultry-and-egg,Representative poultry or egg meal image,frontend/public/images/meals/fallback/poultry-and-egg.webp,TO_BE_DESIGNED
+red-meat,Representative meat meal image,frontend/public/images/meals/fallback/red-meat.webp,TO_BE_DESIGNED
+plant-based,Representative plant-based meal image,frontend/public/images/meals/fallback/plant-based.webp,TO_BE_DESIGNED

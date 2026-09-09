@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BarChart3, LayoutDashboard, Users, Stethoscope, ShieldCheck, Receipt } from 'lucide-react';
+import { BarChart3, DatabaseZap, LayoutDashboard, Users, Stethoscope, ShieldCheck, Receipt } from 'lucide-react';
 import PortalRoleLayout from '@/components/shared/PortalRoleLayout';
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/nutritionists', label: 'Nutritionists', icon: Stethoscope },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/admin/data', label: 'Data', icon: DatabaseZap },
   { href: '/admin/operations', label: 'Operations', icon: ShieldCheck },
   { href: '/admin/compensation', label: 'Pay', icon: Receipt },
 ];

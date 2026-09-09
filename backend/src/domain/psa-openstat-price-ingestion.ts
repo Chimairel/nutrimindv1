@@ -255,7 +255,7 @@ const MONTHS = [
   'December',
 ] as const;
 
-function parseCsv(content: string): string[][] {
+export function parseCsv(content: string): string[][] {
   if (content.charCodeAt(0) === 0xfeff) content = content.slice(1);
   const rows: string[][] = [];
   let row: string[] = [];

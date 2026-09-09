@@ -26,6 +26,7 @@ import {
   UtensilsCrossed,
   Crown,
   Receipt,
+  DatabaseZap,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
@@ -109,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     ],
     NUTRITIONIST: [
       { label: 'Review queue', href: '/nutritionist/reviews', icon: ClipboardList },
+      { label: 'Outside meals', href: '/nutritionist/outside-meals', icon: UtensilsCrossed },
       { label: 'Approved plans', href: '/nutritionist/approved', icon: CheckSquare2 },
       { label: 'Meal library', href: '/nutritionist/library', icon: BookOpen },
       { label: 'Compensation', href: '/nutritionist/compensation', icon: Receipt },
@@ -119,6 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Users', href: '/admin/users', icon: Users },
       { label: 'Nutritionists', href: '/admin/nutritionists', icon: Stethoscope },
       { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+      { label: 'Data', href: '/admin/data', icon: DatabaseZap },
       { label: 'Operations', href: '/admin/operations', icon: ShieldCheck },
       { label: 'Compensation', href: '/admin/compensation', icon: Receipt },
     ],

@@ -9,7 +9,30 @@ export interface OutsideMealLog {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  provisionalCalories?: number;
+  nutritionCompleteness?: 'COMPLETE' | 'PARTIAL' | 'UNRESOLVED';
 }
+
+export type OutsideMealInputItem = {
+  name: string;
+  portionGrams?: number;
+  reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
+};
+
+export type OutsideMealPreviewItem = {
+  name: string;
+  portionGrams: number | null;
+  source: 'VERIFIED_LIBRARY' | 'FNRI' | 'USER_REPORTED' | 'GEMINI_ESTIMATED' | 'NUTRITIONIST_REVIEWED' | 'UNRESOLVED';
+  nutritionStatus: string;
+  includedInTotals: boolean;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  calorieLow: number | null;
+  calorieHigh: number | null;
+  warnings: string[];
+};
 
 export type PendingReview = {
   mealCount: number;
@@ -23,6 +46,14 @@ export type OutsideMealWarning = {
   warnings: string[];
   reasons: string[];
   estimate: { calories: number; proteinG: number; carbsG: number; fatG: number };
+  items: OutsideMealPreviewItem[];
+  summary: {
+    provisionalCalories: number;
+    provisionalItemCount: number;
+    unresolvedItemCount: number;
+    completeness: 'COMPLETE' | 'PARTIAL' | 'UNRESOLVED';
+  };
+  usedAi: boolean;
 };
 
 export function calculateDashboardMetrics(input: {
@@ -42,6 +73,10 @@ export function calculateDashboardMetrics(input: {
   const total = (field: 'calories' | 'proteinG' | 'carbsG' | 'fatG') =>
     doneMeals.reduce((sum, meal) => sum + meal[field], 0) + outsideMeals.reduce((sum, meal) => sum + meal[field], 0);
   const scheduled = [...mealsList, ...pendingMeals];
+  const provisionalCalories = outsideMeals.reduce((sum, meal) => sum + (meal.provisionalCalories ?? 0), 0);
+  const unresolvedMealCount = outsideMeals.filter(
+    (meal) => meal.nutritionCompleteness && meal.nutritionCompleteness !== 'COMPLETE'
+  ).length;
   const target = (field: 'calories' | 'proteinG' | 'carbsG' | 'fatG', fallback: number) =>
     scheduled.reduce((sum, meal) => sum + meal[field], 0) || fallback;
 
@@ -55,5 +90,7 @@ export function calculateDashboardMetrics(input: {
     carbsTarget: target('carbsG', 220),
     fatConsumed: total('fatG'),
     fatTarget: target('fatG', 60),
+    provisionalCalories,
+    unresolvedMealCount,
   };
 }

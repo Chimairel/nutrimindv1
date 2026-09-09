@@ -103,6 +103,10 @@ enum MealLogDataSource {
   FNRI
   GEMINI_ESTIMATED
   SYSTEM
+  VERIFIED_LIBRARY
+  USER_REPORTED
+  NUTRITIONIST_REVIEWED
+  MIXED
 }
 
 enum MealIngredientDataSource {
@@ -124,6 +128,49 @@ enum NotificationType {
   WEEKLY_CHECKIN
   MEAL_FLAGGED
   FLAG_RESOLVED
+  OUTSIDE_MEAL_REVIEWED
+  OUTSIDE_MEAL_MORE_INFO
+}
+
+enum OutsideMealItemSource {
+  VERIFIED_LIBRARY
+  FNRI
+  USER_REPORTED
+  GEMINI_ESTIMATED
+  NUTRITIONIST_REVIEWED
+  UNRESOLVED
+}
+
+enum OutsideMealNutritionStatus {
+  REFERENCE_RESOLVED
+  USER_REPORTED
+  PENDING_REVIEW
+  VERIFIED
+  CORRECTED
+  NEEDS_MORE_INFO
+  UNRESOLVED
+}
+
+enum OutsideMealCompatibilityStatus {
+  NO_KNOWN_CONFLICT
+  CAUTION
+  REVIEW_REQUIRED
+  CONFLICT_DETECTED
+  INSUFFICIENT_EVIDENCE
+}
+
+enum OutsideMealCompleteness {
+  COMPLETE
+  PARTIAL
+  UNRESOLVED
+}
+
+enum OutsideMealReviewStatus {
+  PENDING
+  CLAIMED
+  VERIFIED
+  CORRECTED
+  NEEDS_MORE_INFO
 }
 
 enum AssignmentStatus {
@@ -450,6 +497,39 @@ enum IngredientConversionRedistributionStatus {
   LICENSE_REVIEW_REQUIRED
 }
 
+enum ReferenceDataDomain {
+  FOOD_COMPOSITION
+  FOOD_CONSUMPTION
+  INGREDIENT_PRICE
+  MEAL_CATALOGUE
+  MEAL_MEDIA
+}
+
+enum ReferenceDataReleaseStatus {
+  DRAFT
+  STAGED
+  ACTIVE
+  RETIRED
+}
+
+enum ReferenceDataActivationAction {
+  PUBLISH
+  ROLLBACK
+}
+
+enum ConsumptionGeographyLevel {
+  NATIONAL
+  REGION
+  PROVINCE_HUC
+}
+
+enum ConsumptionMappingStatus {
+  EXACT
+  MANUAL
+  REVIEW_REQUIRED
+  UNMAPPED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -503,6 +583,7 @@ model User {
   safetyProfileEntries             SafetyProfileEntry[]
   auditEvents                      AuditEvent[]
   outsideMealPreviews              OutsideMealPreview[]
+  outsideMealAiUsage               OutsideMealAiUsage[]
   waterLogs                        WaterLog[]
   nutritionistApplicationsReviewed NutritionistApplication[]         @relation("NutritionistApplicationReviewer")
   nutritionistApplicationInvite    NutritionistApplication?          @relation("NutritionistApplicationInvitee")
@@ -527,6 +608,10 @@ model User {
   compensationPeriodsClosed        CompensationPeriod[]              @relation("CompensationPeriodCloser")
   compensationStatementsPrepared   CompensationStatement[]           @relation("CompensationStatementPreparer")
   compensationAdjustmentsRejected  CompensationAdjustment[]          @relation("CompensationAdjustmentRejector")
+  referenceDataReleasesCreated     ReferenceDataRelease[]            @relation("ReferenceDataReleaseCreator")
+  referenceDataReleasesActivated   ReferenceDataRelease[]            @relation("ReferenceDataReleaseActivator")
+  referenceDataActivations         ReferenceDataReleaseActivation[]  @relation("ReferenceDataActivationActor")
+  foodAliasesVerified              FoodAlias[]                       @relation("FoodAliasAdminVerifier")
 }
 
 model Account {
@@ -651,6 +736,8 @@ model NutritionistProfile {
   firstApprovedPlans     MealPlan[]                @relation("FirstMealPlanApproval")
   workCredits            NutritionistWorkCredit[]
   compensationStatements CompensationStatement[]
+  outsideMealReviews     OutsideMealReview[]       @relation("OutsideMealReviewAssignee")
+  outsideMealRevisions   OutsideMealItemRevision[] @relation("OutsideMealRevisionReviewer")
 }
 
 model NutritionistApplication {
@@ -690,25 +777,26 @@ model NutritionistApplication {
 }
 
 model FoodItem {
-  id        String  @id @default(cuid())
-  name      String
-  category  String?
-  calories  Float
-  proteinG  Float
-  carbsG    Float
-  fatG      Float
-  fiber     Float?
-  sodium    Float?
-  potassium Float?
-  calcium   Float?
-  iron      Float?
-  vitaminA  Float?
-  vitaminC  Float?
-  vitaminB1 Float?
-  vitaminB2 Float?
-  niacin    Float?
-  water     Float?
-  source    String  @default("FNRI")
+  id               String               @id @default(cuid())
+  name             String
+  category         String?
+  calories         Float
+  proteinG         Float
+  carbsG           Float
+  fatG             Float
+  fiber            Float?
+  sodium           Float?
+  potassium        Float?
+  calcium          Float?
+  iron             Float?
+  vitaminA         Float?
+  vitaminC         Float?
+  vitaminB1        Float?
+  vitaminB2        Float?
+  niacin           Float?
+  water            Float?
+  outsideMealItems OutsideMealLogItem[]
+  source           String               @default("FNRI")
 
   // Relations
   aliases                FoodAlias[]
@@ -717,14 +805,111 @@ model FoodItem {
   priceMappings          IngredientPriceCommodityMapping[]
   conversionEvidenceFrom IngredientConversionEvidence[]    @relation("IngredientConversionFromFood")
   conversionEvidenceTo   IngredientConversionEvidence[]    @relation("IngredientConversionToFood")
+  consumptionStats       FoodConsumptionStat[]
 }
 
 model FoodAlias {
-  id         String   @id @default(cuid())
-  foodItemId String
-  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
-  alias      String
-  createdAt  DateTime @default(now())
+  id                String    @id @default(cuid())
+  foodItemId        String
+  foodItem          FoodItem  @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  alias             String
+  normalizedAlias   String?   @unique @db.VarChar(180)
+  verifiedByAdminId String?
+  verifiedByAdmin   User?     @relation("FoodAliasAdminVerifier", fields: [verifiedByAdminId], references: [id], onDelete: Restrict)
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([foodItemId, verifiedAt])
+}
+
+model ReferenceDataSource {
+  id              String                 @id @default(cuid())
+  code            String                 @unique @db.VarChar(80)
+  name            String                 @db.VarChar(180)
+  agencyName      String                 @db.VarChar(180)
+  domain          ReferenceDataDomain
+  homepageUrl     String                 @db.VarChar(500)
+  termsUrl        String?                @db.VarChar(500)
+  attributionText String                 @db.VarChar(300)
+  updateCadence   String?                @db.VarChar(120)
+  isEnabled       Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  releases        ReferenceDataRelease[]
+
+  @@index([domain, isEnabled])
+}
+
+model ReferenceDataRelease {
+  id                 String                           @id @default(cuid())
+  sourceId           String
+  source             ReferenceDataSource              @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  versionLabel       String                           @db.VarChar(120)
+  surveyYear         Int?
+  sourceUrl          String                           @db.VarChar(500)
+  sourcePublishedAt  DateTime?
+  retrievedAt        DateTime
+  contentSha256      String?                          @db.Char(64)
+  status             ReferenceDataReleaseStatus       @default(DRAFT)
+  notes              String?                          @db.VarChar(500)
+  createdByAdminId   String
+  createdByAdmin     User                             @relation("ReferenceDataReleaseCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  activatedByAdminId String?
+  activatedByAdmin   User?                            @relation("ReferenceDataReleaseActivator", fields: [activatedByAdminId], references: [id], onDelete: Restrict)
+  activatedAt        DateTime?
+  retiredAt          DateTime?
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
+  consumptionStats   FoodConsumptionStat[]
+  activations        ReferenceDataReleaseActivation[] @relation("ActivatedReferenceDataRelease")
+  replacements       ReferenceDataReleaseActivation[] @relation("ReplacedReferenceDataRelease")
+
+  @@unique([sourceId, versionLabel])
+  @@index([sourceId, status, createdAt])
+  @@index([status, activatedAt])
+}
+
+model ReferenceDataReleaseActivation {
+  id                String                        @id @default(cuid())
+  releaseId         String
+  release           ReferenceDataRelease          @relation("ActivatedReferenceDataRelease", fields: [releaseId], references: [id], onDelete: Restrict)
+  replacedReleaseId String?
+  replacedRelease   ReferenceDataRelease?         @relation("ReplacedReferenceDataRelease", fields: [replacedReleaseId], references: [id], onDelete: Restrict)
+  actorAdminId      String
+  actorAdmin        User                          @relation("ReferenceDataActivationActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
+  action            ReferenceDataActivationAction
+  createdAt         DateTime                      @default(now())
+
+  @@index([releaseId, createdAt])
+  @@index([actorAdminId, createdAt])
+}
+
+model FoodConsumptionStat {
+  id               String                    @id @default(cuid())
+  releaseId        String
+  release          ReferenceDataRelease      @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  sourceRowKey     String                    @db.VarChar(191)
+  populationGroup  String                    @db.VarChar(120)
+  geographyLevel   ConsumptionGeographyLevel
+  regionCode       String?                   @db.VarChar(40)
+  regionName       String?                   @db.VarChar(120)
+  provinceHucCode  String?                   @db.VarChar(40)
+  provinceHucName  String?                   @db.VarChar(160)
+  placeType        String?                   @db.VarChar(40)
+  foodNameRaw      String                    @db.VarChar(240)
+  foodItemId       String?
+  foodItem         FoodItem?                 @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  mappingStatus    ConsumptionMappingStatus
+  rank             Int?
+  percentConsuming Float?
+  meanIntakeG      Float?
+  sampleSize       Int?
+  createdAt        DateTime                  @default(now())
+
+  @@unique([releaseId, sourceRowKey])
+  @@index([releaseId, geographyLevel, populationGroup, rank], map: "FoodConsumptionStat_release_geo_population_rank_idx")
+  @@index([foodItemId, geographyLevel])
+  @@index([mappingStatus, releaseId])
 }
 
 model MealPlan {
@@ -808,6 +993,7 @@ model MealLibrary {
   ingredients        MealLibraryIngredient[]
   safetyDeclarations MealLibrarySafetyDeclaration[]
   safetyReviews      MealLibrarySafetyReview[]
+  outsideMealItems   OutsideMealLogItem[]
 
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
@@ -881,24 +1067,111 @@ model MealIngredient {
 }
 
 model MealLog {
-  id                  String            @id @default(cuid())
-  userId              String
-  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mealPlanId          String?           @unique
-  mealPlan            MealPlan?         @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
-  source              MealLogSource
-  mealName            String
-  calories            Float
-  proteinG            Float
-  carbsG              Float
-  fatG                Float
-  dataSource          MealLogDataSource
-  status              MealLogStatus     @default(PENDING)
-  warningType         String?
-  warningShown        Boolean           @default(false)
-  warningAcknowledged Boolean           @default(false)
-  loggedAt            DateTime          @default(now())
-  notes               String?           @db.Text
+  id                    String                  @id @default(cuid())
+  userId                String
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlanId            String?                 @unique
+  mealPlan              MealPlan?               @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  source                MealLogSource
+  mealName              String
+  calories              Float
+  proteinG              Float
+  carbsG                Float
+  fatG                  Float
+  dataSource            MealLogDataSource
+  status                MealLogStatus           @default(PENDING)
+  warningType           String?
+  warningShown          Boolean                 @default(false)
+  warningAcknowledged   Boolean                 @default(false)
+  loggedAt              DateTime                @default(now())
+  notes                 String?                 @db.Text
+  mealType              MealType?
+  nutritionCompleteness OutsideMealCompleteness @default(COMPLETE)
+  provisionalCalories   Float                   @default(0)
+  outsideItems          OutsideMealLogItem[]
+}
+
+model OutsideMealLogItem {
+  id                  String                         @id @default(cuid())
+  mealLogId           String
+  mealLog             MealLog                        @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  position            Int
+  name                String                         @db.VarChar(180)
+  portionGrams        Float?
+  source              OutsideMealItemSource
+  nutritionStatus     OutsideMealNutritionStatus
+  compatibilityStatus OutsideMealCompatibilityStatus
+  includedInTotals    Boolean                        @default(false)
+  calories            Float?
+  proteinG            Float?
+  carbsG              Float?
+  fatG                Float?
+  calorieLow          Float?
+  calorieHigh         Float?
+  foodItemId          String?
+  foodItem            FoodItem?                      @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  mealLibraryId       String?
+  mealLibrary         MealLibrary?                   @relation(fields: [mealLibraryId], references: [id], onDelete: Restrict)
+  ingredients         Json?
+  currentRevision     Int                            @default(0)
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+  revisions           OutsideMealItemRevision[]
+  review              OutsideMealReview?
+
+  @@unique([mealLogId, position])
+  @@index([nutritionStatus, compatibilityStatus, createdAt], map: "OutsideMealLogItem_status_compat_created_idx")
+  @@index([foodItemId])
+  @@index([mealLibraryId])
+}
+
+model OutsideMealItemRevision {
+  id                       String                     @id @default(cuid())
+  outsideMealLogItemId     String
+  outsideMealLogItem       OutsideMealLogItem         @relation(fields: [outsideMealLogItemId], references: [id], onDelete: Cascade)
+  revision                 Int
+  source                   OutsideMealItemSource
+  nutritionStatus          OutsideMealNutritionStatus
+  calories                 Float?
+  proteinG                 Float?
+  carbsG                   Float?
+  fatG                     Float?
+  calorieLow               Float?
+  calorieHigh              Float?
+  reason                   String?                    @db.VarChar(500)
+  reviewedByNutritionistId String?
+  reviewedByNutritionist   NutritionistProfile?       @relation("OutsideMealRevisionReviewer", fields: [reviewedByNutritionistId], references: [id], onDelete: Restrict)
+  createdAt                DateTime                   @default(now())
+
+  @@unique([outsideMealLogItemId, revision])
+  @@index([reviewedByNutritionistId, createdAt])
+}
+
+model OutsideMealReview {
+  id                      String                  @id @default(cuid())
+  outsideMealLogItemId    String                  @unique
+  outsideMealLogItem      OutsideMealLogItem      @relation(fields: [outsideMealLogItemId], references: [id], onDelete: Cascade)
+  status                  OutsideMealReviewStatus @default(PENDING)
+  priority                Int                     @default(10)
+  claimedByNutritionistId String?
+  claimedByNutritionist   NutritionistProfile?    @relation("OutsideMealReviewAssignee", fields: [claimedByNutritionistId], references: [id], onDelete: Restrict)
+  claimedAt               DateTime?
+  reviewedAt              DateTime?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([status, priority, createdAt])
+  @@index([claimedByNutritionistId, status])
+}
+
+model OutsideMealAiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemCount Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model WeightLog {
@@ -1331,12 +1604,15 @@ model OutsideMealPreview {
   id         String    @id @default(cuid())
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mealName   String    @db.VarChar(180)
+  mealName   String    @db.VarChar(1000)
   mealType   MealType
   estimate   Json
   warnings   Json
   reasons    Json
   notes      String?   @db.Text
+  items      Json?
+  requestKey String?   @unique @db.VarChar(128)
+  usedAi     Boolean   @default(false)
   expiresAt  DateTime
   consumedAt DateTime?
   createdAt  DateTime  @default(now())

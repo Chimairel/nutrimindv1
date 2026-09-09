@@ -106,7 +106,7 @@ export default function BillingPage() {
             More choice in your <span className="text-brand-green">weekly plan</span>
           </>
         }
-        description="Compare the exact meal-swap allowance available to your account. Nutrition safety, grocery tools, exports, and privacy controls stay available on Free."
+        description="Compare meal-swap and outside-food AI allowances. Nutrition safety, grocery tools, exports, and privacy controls stay available on Free, together with FNRI and manual nutrition-label logging."
         meta={<Badge variant={active ? 'verified' : 'user'}>{active ? 'Premium active' : 'Free plan'}</Badge>}
       />
 
@@ -125,7 +125,7 @@ export default function BillingPage() {
                 <p className="mt-2 max-w-xl text-sm text-brand-muted">
                   {active && data.current.access
                     ? `One-time Premium access. It ends ${formatDateTime(data.current.access.expiresAt)} and does not renew automatically.`
-                    : 'Free includes three meal swaps for each weekly plan.'}
+                    : 'Free includes three meal swaps plus FNRI, verified-library, and nutrition-label outside-food logging.'}
                 </p>
               </div>
               <div className="rounded-2xl border border-brand-border/70 bg-brand-surface/80 px-5 py-4 text-right shadow-sm">
@@ -199,7 +199,7 @@ export default function BillingPage() {
           <div>
             <p className="portal-kicker">Plan comparison</p>
             <h2 id="compare-title" className="mt-2 font-display text-2xl font-extrabold">
-              One clear difference
+              Clear, bounded differences
             </h2>
           </div>
           <span className="hidden font-mono text-[9px] uppercase tracking-[0.16em] text-brand-muted sm:block">
@@ -220,6 +220,10 @@ export default function BillingPage() {
               <Check className="h-5 w-5 text-brand-green" />
               <span className="font-semibold">3 meal swaps per weekly plan</span>
             </div>
+            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-brand-bgAlt p-4">
+              <Check className="h-5 w-5 text-brand-green" />
+              <span className="font-semibold">FNRI, verified-library, and manual-label outside-food logging</span>
+            </div>
           </Card>
           <Card className="relative border-brand-accent/50 p-7 shadow-neon">
             <div className="absolute right-5 top-5">
@@ -236,6 +240,10 @@ export default function BillingPage() {
             <div className="mt-7 flex items-center gap-3 rounded-2xl bg-brand-accent/15 p-4">
               <Sparkles className="h-5 w-5 text-brand-green" />
               <span className="font-semibold">6 meal swaps per weekly plan</span>
+            </div>
+            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-brand-accent/15 p-4">
+              <Sparkles className="h-5 w-5 text-brand-green" />
+              <span className="font-semibold">AI estimates for unresolved foods: 5/day, 30 per 30 days</span>
             </div>
             <Button
               className="mt-6 w-full"

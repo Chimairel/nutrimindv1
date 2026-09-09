@@ -3494,3 +3494,59 @@ This section is a continuity record for agreed future work. Every item below is 
 - TEST-166 covers shared API-error fallbacks, normalized restriction-context equality, and the common server-reported meal-generation progress lifecycle. TEST-167 covers the shared premium-entitlement evidence window and grant/subscription projection.
 - The complete root `npm run check` gate passed: source architecture, Prettier, backend and frontend lint with zero warnings, **478 registered backend tests / 477 pass / 0 fail / 1 unchanged clinical-policy TODO**, **19 frontend tests / 19 pass**, backend production compilation with 69 alias rewrites, and the Next.js production build with all 42 routes. The public/adversarial Chromium wave passed **2/2** after the NutriMind development server was restarted following the production build.
 - No schema or migration changed. No database query or mutation, Gemini request, PayMongo/provider operation, SMTP/OAuth call, environment change, deployment, or production action occurred. `main` and `development` were not checked out or modified.
+
+## 65. Item-level outside-meal intelligence and nutritionist correction (2026-09-09)
+
+**Architecture decision:** ADR-033
+
+**Change ID:** CHG-20260909-01
+
+**Verification IDs:** TEST-174 through TEST-183
+
+**Documentation ID:** DOC-057
+
+### Decision and implementation
+
+- Outside-food input now supports up to ten comma-delimited items while preserving spaces and the word `and`; an optional `(150g)` or `- 150g` suffix supplies the measured portion required to scale FNRI per-100 g composition.
+- Resolution is item-scoped and ordered: exact compatible/current certified Meal Library evidence, FNRI with measured portion, user-reported label/menu values, explicitly requested Premium Gemini estimation, then unresolved. Unresolved item nutrition is nullable and excluded from totals rather than being represented as a verified zero-calorie food.
+- Free retains library, FNRI, manual values, safety context, and notifications. Gemini estimation requires server-authoritative Premium entitlement and is bounded to five items per Manila day and thirty per rolling thirty days. Successful estimate calls are recorded as consumed provider capacity.
+- Gemini items count immediately in the daily tracker but are separately marked provisional. Every AI item creates a prioritized review row. An eligible nutritionist must acquire a thirty-minute claim before verifying, correcting, or requesting more information.
+- Initial and reviewed values are immutable revisions. Review completion updates the effective item and parent aggregate in one serializable transaction, then notifies the user. Nutrition status and compatibility status remain separate.
+- User and nutritionist interfaces expose sources, unresolved exclusions, uncertainty ranges, provisional totals, review controls, and honest Free/Premium differences. The full decision contract is in `docs/OUTSIDE_MEAL_INTELLIGENCE.md`.
+
+### Verification and scope
+
+- Prisma formatting/generation and validation passed with a synthetic local connection string; backend and frontend production builds passed, including all 43 frontend routes. Backend and frontend lint passed with zero warnings.
+- The deterministic suites passed: **487 registered backend tests / 486 pass / 0 fail / 1 unchanged clinical-policy TODO**, and **19 frontend tests / 19 pass**. New tests cover comma parsing, measured FNRI scaling, provisional/unresolved totals, Premium and server-configurable quota policy, additive persistence evidence, role/claim route boundaries, and strict mixed-source input validation.
+- Disposable migration rehearsal used a task-labelled PostgreSQL 16.4 container exposed only on `127.0.0.1:55461`. The first rehearsal exposed PostgreSQL truncation of an overlong generated index name; the schema and new migration were corrected to use the explicit stable name `OutsideMealLogItem_status_compat_created_idx`, then the disposable database was rebuilt from zero. All 24 canonical migrations applied, the second deploy was empty, migration status was current, and database-to-datamodel comparison reported `No difference detected`.
+- TEST-182 exercised the deterministic database journey: Free FNRI/manual/unresolved mixed input, unresolved nullable exclusion, Premium denial before provider access, request-key replay and collision protection, one-time preview consumption, an invalid included-with-null-nutrition constraint probe, provisional AI-shaped persistence, exclusive competing nutritionist claims, immutable correction revision, aggregate recalculation from 410 provisional kcal to 330 reviewed kcal, audit evidence, and one user notification. It made zero Gemini calls.
+- TEST-183 used the owner-authorized existing local Gemini credential without copying or displaying it. The initial live response exposed an under-specified outside-meal prompt: models returned alternate `low`/`high` fields and omitted required macros. The prompt now provides one exact complete JSON contract. A fresh logical estimate succeeded and passed Zod validation through the configured fallback, consumed one NutriMind AI usage unit, counted provisionally, created a review, and became non-provisional after the synthetic verified nutritionist accepted it. Only synthetic food text was sent.
+- The migration was not applied to a shared database. No authenticated browser journey, deployment, payment action, or real clinical review is established by this local acceptance evidence.
+- The exact labelled container, its tmpfs database, loopback port 55461, and the PostgreSQL image that was absent before the task were removed after evidence capture. Port 55461 is free, and no `.env` file was created in the isolated worktree.
+
+## 66. Administrator-governed nutrition reference data (2026-09-09)
+
+**Architecture decision:** ADR-034
+
+**Change ID:** CHG-20260909-02
+
+**Verification IDs:** TEST-184 through TEST-188
+
+**Documentation ID:** DOC-058
+
+### Decision and implementation
+
+- Dynamic nutrition evidence now has an explicit governance boundary. Administrators register provenance-bearing sources and immutable versioned releases; application code continues to own validation, calculations, authorization, and clinical safety policy. Nutritionist meal certification remains a separate role-only workflow.
+- The additive data model introduces source, release, release-activation, and aggregate food-consumption records. Releases move through `DRAFT`, `STAGED`, `ACTIVE`, and `RETIRED`; only one release per source can be active. Published aggregate rows cannot be updated or deleted, and publication or restoration retains the replaced release plus actor evidence.
+- The first bounded importer accepts strict aggregate CSV evidence at national, regional, or province/HUC level. It rejects unknown columns, invalid geographic shapes and measures, duplicate identities, overlarge input, and respondent-level assumptions. Exact FNRI names and verified aliases map automatically; ambiguity remains review-required and unknown labels remain explicitly unmapped.
+- Administrators can add audited FNRI aliases, but normalized collisions with another canonical food or alias fail closed. Canonical nutrient composition remains read-only in this workspace.
+- `/admin/data` provides data-estate counts, source and release creation, downloadable import format, draft import, release inspection, deliberate FNRI mapping, staged publication, historical restoration, FNRI search, and alias verification. The endpoints inherit the existing authenticated ADMIN router boundary and are documented in OpenAPI.
+- Active nationally aggregated rows with exact or manual FNRI mappings become a compact accessibility/familiarity reference for otherwise unmatched meal-generation slots. That evidence is read directly from the active release and is explicitly subordinate to calorie allocation, dietary preference, allergies, and clinical safeguards.
+- Operating procedures, source terms, restricted-file handling, publication, and rollback are documented in `docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`.
+
+### Verification and scope
+
+- The complete root `npm run check` gate passes: source architecture, Prettier, backend and frontend lint, **497 registered backend tests / 496 pass / 0 fail / 1 unchanged clinical-policy TODO**, **19 frontend tests / 19 pass**, backend production compilation with 74 alias rewrites, and the Next.js production build with all 44 routes including `/admin/data`. Prisma format, validation, and generation also pass.
+- A task-owned PostgreSQL 16.4 container on `127.0.0.1:55463` applied all 25 canonical migrations. The new migration SHA-256 was `b98093fd0e1afe28dd047cbde6c9c6f18eb3e30acbc269d87e47fe9d9407bd86`. A second deploy was empty, migration status was current, and database-to-Prisma comparison reported `No difference detected` after assigning an explicit stable index name.
+- The local acceptance journey created two synthetic releases, imported exact and unmapped aggregate rows, staged and published evidence, proved active evidence reaches the generation context, proved active row mutation is rejected by PostgreSQL, verified an audited alias, published a replacement, restored the prior release, and retained exactly one active release with three activation events and eleven audit events.
+- No shared database, restricted FNRI microdata, real user data, Gemini request, PayMongo/provider action, SMTP/OAuth call, deployment, or production environment was accessed. The new migration remains unapplied to shared development. The dirty Gemini UI branch and its main worktree were untouched. The task-owned container, tmpfs database, pulled PostgreSQL image, and loopback port were removed after evidence capture.
