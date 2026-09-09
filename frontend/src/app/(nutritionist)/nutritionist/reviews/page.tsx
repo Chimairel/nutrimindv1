@@ -109,7 +109,7 @@ export default function ReviewsPage() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <span className="text-xs font-bold text-brand-green">{meal.mealType}</span>
-                    <Badge variant={flagColor(meal.aiConfidenceFlag)} className="text-[9px]">
+                    <Badge variant={flagColor(meal.aiConfidenceFlag)} dot className="text-[9px]">
                       {meal.aiConfidenceFlag}
                     </Badge>
                   </div>

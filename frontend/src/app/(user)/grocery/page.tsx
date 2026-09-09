@@ -8,6 +8,7 @@ import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Progress from '@/components/ui/Progress';
+import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
@@ -337,7 +338,7 @@ export default function GroceryListPage() {
                     </p>
                   </div>
                   <span className="font-display text-3xl font-black text-brand-green sm:text-4xl">
-                    {progressPercent}%
+                    <AnimatedNumber value={progressPercent} format={(v) => `${Math.round(v)}%`} />
                   </span>
                 </div>
                 <Progress value={progressPercent} className="mt-4 h-2.5 bg-brand-bgAlt" />
@@ -357,7 +358,9 @@ export default function GroceryListPage() {
                       className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/55 px-3 py-3.5"
                     >
                       <MetricIcon className="h-4 w-4 text-brand-green" />
-                      <p className="mt-3 font-display text-xl font-black text-brand-text">{metric.value}</p>
+                      <p className="mt-3 font-display text-xl font-black text-brand-text">
+                        <AnimatedNumber value={metric.value} />
+                      </p>
                       <p className="mt-0.5 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
                     </div>
                   );
@@ -500,13 +503,15 @@ export default function GroceryListPage() {
                                 onClick={() => handleToggleItem(item.id)}
                                 aria-pressed={item.isChecked}
                                 aria-label={`${item.isChecked ? 'Unpack' : 'Pack'} ${item.ingredientName}`}
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90 motion-reduce:transform-none motion-reduce:transition-none ${
                                   item.isChecked
-                                    ? 'border-brand-green bg-brand-green text-white'
+                                    ? 'border-brand-green bg-brand-green text-white shadow-sm'
                                     : 'border-brand-border bg-brand-bgAlt group-hover:border-brand-green/50'
                                 }`}
                               >
-                                {item.isChecked && <Check className="h-3.5 w-3.5 stroke-[3px]" />}
+                                {item.isChecked && (
+                                  <Check className="h-3.5 w-3.5 stroke-[3px] transition-transform duration-150 motion-reduce:transform-none" />
+                                )}
                               </button>
                               <span className="min-w-0 flex-1">
                                 <span

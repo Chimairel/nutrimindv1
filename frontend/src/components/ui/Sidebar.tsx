@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
+import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 
 interface SidebarProps {
   className?: string;
@@ -232,20 +233,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               aria-describedby={collapsed && !active ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
               aria-current={active ? 'page' : undefined}
               className={`
-                group relative flex min-h-12 items-center rounded-2xl outline-none transition-all duration-200
+                group relative flex min-h-12 items-center rounded-2xl outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]
                 ${collapsed ? 'justify-center px-3' : 'gap-3 px-3.5'}
-                ${
-                  active
-                    ? 'bg-brand-accent text-[#07100d] shadow-neon'
-                    : 'text-white/55 hover:bg-white/[0.055] hover:text-white'
-                }
+                ${active ? 'text-[#07100d]' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'}
               `}
             >
-              <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
-              {!collapsed && (
-                <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
+              {active && (
+                <MotionActiveIndicator
+                  layoutId="sidebar-active-nav-indicator"
+                  className="rounded-2xl bg-brand-accent shadow-neon"
+                />
               )}
-              {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
+              <span className={`relative z-10 flex items-center ${collapsed ? 'justify-center' : 'w-full gap-3'}`}>
+                <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
+                {!collapsed && (
+                  <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
+                )}
+                {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
+              </span>
               {collapsed && (
                 <SidebarTooltip
                   id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`}

@@ -33,6 +33,7 @@ import { formatManilaDate, manilaDateFromKey } from '@/lib/manila-date';
 
 import { useMealsWorkspace } from '@/features/meals/useMealsWorkspace';
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
+import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 
 export default function WeeklyPlanPage() {
   const workspace = useMealsWorkspace();
@@ -197,14 +198,28 @@ export default function WeeklyPlanPage() {
               type="button"
               onClick={() => setActiveTab(value)}
               aria-current={activeTab === value ? 'page' : undefined}
-              className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-all sm:text-sm ${activeTab === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'}`}
+              className={`group relative flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface sm:text-sm ${
+                activeTab === value
+                  ? 'text-[#07100d]'
+                  : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
+              }`}
             >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-              <span
-                className={`hidden rounded-full px-1.5 py-0.5 font-mono text-[8px] sm:inline ${activeTab === value ? 'bg-[#07100d]/10' : 'bg-brand-bgAlt'}`}
-              >
-                {count}
+              {activeTab === value && (
+                <MotionActiveIndicator
+                  layoutId="meals-workspace-tab-indicator"
+                  className="rounded-2xl bg-brand-accent shadow-neon"
+                />
+              )}
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+                <span
+                  className={`hidden rounded-full px-1.5 py-0.5 font-mono text-[8px] sm:inline ${
+                    activeTab === value ? 'bg-[#07100d]/10' : 'bg-brand-bgAlt'
+                  }`}
+                >
+                  {count}
+                </span>
               </span>
             </button>
           ))}
@@ -267,18 +282,32 @@ export default function WeeklyPlanPage() {
                       type="button"
                       onClick={() => setSelectedPlanDateKey(day.dateKey)}
                       aria-current={isSelected ? 'date' : undefined}
-                      className={`flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border px-3 py-2.5 outline-none transition-all focus-visible:ring-2 focus-visible:ring-brand-green ${isSelected ? 'border-brand-accent bg-brand-accent text-[#07100d] shadow-neon' : 'border-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/70 hover:text-brand-text'}`}
+                      className={`group relative flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border px-3 py-2.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green ${
+                        isSelected
+                          ? 'border-brand-accent text-[#07100d]'
+                          : 'border-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/70 hover:text-brand-text'
+                      }`}
                     >
-                      <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">
-                        {formatManilaDate(parsedDate, { weekday: 'short' })}
-                      </span>
-                      <span className="mt-0.5 font-display text-lg font-black leading-none">
-                        {formatManilaDate(parsedDate, { day: 'numeric' })}
-                      </span>
-                      <span
-                        className={`mt-1 font-mono text-[8px] font-bold uppercase tracking-wider ${isSelected ? 'text-[#07100d]/60' : 'text-brand-muted/70'}`}
-                      >
-                        Day {index + 1}
+                      {isSelected && (
+                        <MotionActiveIndicator
+                          layoutId="meals-day-selector-indicator"
+                          className="rounded-2xl bg-brand-accent shadow-neon"
+                        />
+                      )}
+                      <span className="relative z-10 flex flex-col items-center justify-center w-full">
+                        <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">
+                          {formatManilaDate(parsedDate, { weekday: 'short' })}
+                        </span>
+                        <span className="mt-0.5 font-display text-lg font-black leading-none">
+                          {formatManilaDate(parsedDate, { day: 'numeric' })}
+                        </span>
+                        <span
+                          className={`mt-1 font-mono text-[8px] font-bold uppercase tracking-wider ${
+                            isSelected ? 'text-[#07100d]/60' : 'text-brand-muted/70'
+                          }`}
+                        >
+                          Day {index + 1}
+                        </span>
                       </span>
                     </button>
                   );

@@ -91,7 +91,7 @@ export default function CalorieRing({ consumed, target, className = '' }: Calori
         <span className="text-[10px] text-brand-muted font-bold mt-1">of {safeTarget.toLocaleString()} kcal</span>
 
         {isOverLimit && (
-          <span className="text-[9px] font-bold text-status-error-text bg-status-error-bg/10 border border-status-error-text/30 px-2 py-0.5 rounded-full mt-2 animate-pulse leading-none">
+          <span className="text-[9px] font-bold text-status-error-text bg-status-error-bg/10 border border-status-error-text/30 px-2 py-0.5 rounded-full mt-2 leading-none">
             LIMIT EXCEEDED
           </span>
         )}

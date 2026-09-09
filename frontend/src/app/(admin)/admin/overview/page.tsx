@@ -20,6 +20,7 @@ import {
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 import { useAdminAnalytics } from '@/features/admin-analytics/useAdminAnalytics';
 
 interface Metric {
@@ -137,7 +138,7 @@ export default function AdminOverviewPage() {
                   <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-brand-muted">Live</span>
                 </div>
                 <p className="mt-8 font-display text-3xl font-black tracking-[-0.04em] text-brand-text">
-                  {metric.value}
+                  {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
                 </p>
                 <p className="mt-1 text-xs font-semibold text-brand-muted">{metric.label}</p>
               </Card>
@@ -163,7 +164,9 @@ export default function AdminOverviewPage() {
                     <Icon className="h-[18px] w-[18px]" />
                   </span>
                   <div>
-                    <p className="font-display text-2xl font-black text-brand-text">{metric.value}</p>
+                    <p className="font-display text-2xl font-black text-brand-text">
+                      {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
+                    </p>
                     <p className="text-xs text-brand-muted">{metric.label}</p>
                   </div>
                 </div>
@@ -188,15 +191,21 @@ export default function AdminOverviewPage() {
           </div>
           <div className="mt-5 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-xl bg-brand-green/10 p-3">
-              <strong className="block text-xl text-brand-green">{data.completeLibraryEvidence}</strong>
+              <strong className="block text-xl text-brand-green">
+                <AnimatedNumber value={data.completeLibraryEvidence} />
+              </strong>
               <span className="text-[9px] uppercase text-brand-muted">Certified</span>
             </div>
             <div className="rounded-xl bg-brand-bgAlt/60 p-3">
-              <strong className="block text-xl text-brand-text">{data.incompleteLibraryEvidence}</strong>
+              <strong className="block text-xl text-brand-text">
+                <AnimatedNumber value={data.incompleteLibraryEvidence} />
+              </strong>
               <span className="text-[9px] uppercase text-brand-muted">Incomplete</span>
             </div>
             <div className="rounded-xl bg-amber-500/10 p-3">
-              <strong className="block text-xl text-amber-500">{data.staleLibraryEvidence}</strong>
+              <strong className="block text-xl text-amber-500">
+                <AnimatedNumber value={data.staleLibraryEvidence} />
+              </strong>
               <span className="text-[9px] uppercase text-brand-muted">Stale</span>
             </div>
           </div>
@@ -215,11 +224,15 @@ export default function AdminOverviewPage() {
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 text-center">
             <div className="rounded-xl bg-brand-green/10 p-3">
-              <strong className="block text-xl text-brand-green">{data.aiSuccess24h}</strong>
+              <strong className="block text-xl text-brand-green">
+                <AnimatedNumber value={data.aiSuccess24h} />
+              </strong>
               <span className="text-[9px] uppercase text-brand-muted">Succeeded</span>
             </div>
             <div className="rounded-xl bg-red-500/10 p-3">
-              <strong className="block text-xl text-red-400">{data.aiFailures24h}</strong>
+              <strong className="block text-xl text-red-400">
+                <AnimatedNumber value={data.aiFailures24h} />
+              </strong>
               <span className="text-[9px] uppercase text-brand-muted">Failed</span>
             </div>
           </div>

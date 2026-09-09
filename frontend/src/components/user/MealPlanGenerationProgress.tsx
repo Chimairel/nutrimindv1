@@ -3,6 +3,8 @@
 import React from 'react';
 import { CheckCircle2, Clock3, Sparkles } from 'lucide-react';
 import Progress from '@/components/ui/Progress';
+import TextShimmer from '@/components/ui/motion/TextShimmer';
+import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 
 interface MealPlanGenerationProgressProps {
   progress: number;
@@ -119,7 +121,9 @@ export default function MealPlanGenerationProgress({
                 <span>{getRemainingTimeLabel(normalizedProgress, elapsedSeconds)}</span>
               </div>
             </div>
-            <span className="font-mono text-2xl font-black tabular-nums text-brand-green">{normalizedProgress}%</span>
+            <span className="font-mono text-2xl font-black tabular-nums text-brand-green">
+              <AnimatedNumber value={normalizedProgress} format={(v) => `${Math.round(v)}%`} />
+            </span>
           </div>
 
           <Progress
@@ -142,7 +146,9 @@ export default function MealPlanGenerationProgress({
               ))}
             </div>
             <div>
-              <p className="font-display text-sm font-extrabold text-brand-text">{stageMessage || phase.title}</p>
+              <p className="font-display text-sm font-extrabold text-brand-text">
+                {!isComplete ? <TextShimmer>{stageMessage || phase.title}</TextShimmer> : stageMessage || phase.title}
+              </p>
               <p className="mt-1 text-xs leading-relaxed text-brand-muted">{phase.detail}</p>
             </div>
           </div>
