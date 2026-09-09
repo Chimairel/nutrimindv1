@@ -813,6 +813,7 @@ export default function WeeklyPlanPage() {
                       mealName={meal.mealName}
                       mealType={meal.mealType}
                       className="h-36 w-full"
+                      showAttributionLinks
                     />
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2 flex-wrap">

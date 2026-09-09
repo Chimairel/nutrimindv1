@@ -1,5 +1,7 @@
 {
   "canonicalMealCount": 51,
-  "candidateSearchSkipped": true,
-  "reason": "inventory-only run"
+  "candidateCount": 168,
+  "mealsWithCandidates": 51,
+  "failures": [],
+  "elapsedSeconds": 250.68
 }

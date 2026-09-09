@@ -17,6 +17,8 @@ Cloudinary or connected to production data.
   changed deliberately after inspection.
 - Generic fallbacks must be labelled `Representative image` in the UI.
 - No remote image is downloaded or uploaded by the research script.
+- The application import policy currently accepts only CC0, Public Domain,
+  CC BY 4.0, and CC BY-SA 4.0. Older Creative Commons versions remain rejected.
 
 ## Current scope
 
@@ -41,6 +43,22 @@ needed and no external search should run.
 Review `generated/wikimedia-candidate-review.html`, then record decisions in a
 separate approved-asset manifest. Do not treat the first search result as an
 approved image.
+
+The repository's deliberately conservative phase-one approvals can be rebuilt
+and dry-run against the configured database with:
+
+```powershell
+python tools/meal-images/build_approved_manifest.py `
+  --candidates docs/meal-images/generated/wikimedia-candidates.csv `
+  --output docs/meal-images/generated/approved-meal-images.csv
+cd backend
+npm run images:approved:dry-run
+```
+
+Only run `npm run images:approved:apply` after visual review. The importer is
+idempotent, requires a real administrator for its audit trail, validates source
+and license hosts, bounds downloads to 5 MB, and does not replace an existing
+assignment unless explicitly invoked with `--replace`.
 
 To build a broader 100-image research pool from the Philippine edition of Wiki
 Loves Food 2024:

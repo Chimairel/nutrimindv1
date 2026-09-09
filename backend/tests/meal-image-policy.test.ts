@@ -23,7 +23,13 @@ test('[TEST-204] public meal image uses a fixed optimized Cloudinary delivery tr
       url: 'https://res.cloudinary.com/demo-cloud/image/upload/f_auto,q_auto,c_fill,g_auto,w_960,h_640/v1720000000/nutrimind/meals/tinola%20sample.jpg',
       altText: base.imageAltText,
       kind: 'EXACT',
-      attribution: { creator: 'NutriMind', sourcePageUrl: null, licenseCode: 'OWNED', licenseUrl: null },
+      attribution: {
+        creator: 'NutriMind',
+        sourcePageUrl: null,
+        licenseCode: 'OWNED',
+        licenseUrl: null,
+        modifications: null,
+      },
     });
   } finally {
     if (previous === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
@@ -37,6 +43,24 @@ test('[TEST-204] incomplete image records fail closed instead of emitting broken
   try {
     assert.equal(toPublicMealImage({ ...base, imageAltText: null }), null);
     assert.equal(toPublicMealImage({ ...base, imagePublicId: null }), null);
+  } finally {
+    if (previous === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
+    else process.env.CLOUDINARY_CLOUD_NAME = previous;
+  }
+});
+
+test('[TEST-204] third-party delivery discloses display transformations', () => {
+  const previous = process.env.CLOUDINARY_CLOUD_NAME;
+  process.env.CLOUDINARY_CLOUD_NAME = 'demo-cloud';
+  try {
+    const image = toPublicMealImage({
+      ...base,
+      imageKind: 'REPRESENTATIVE',
+      imageLicenseCode: 'CC_BY_SA_4_0',
+      imageSourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Example.jpg',
+      imageLicenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    });
+    assert.equal(image?.attribution.modifications, 'Resized, format-optimized, and cropped for display.');
   } finally {
     if (previous === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
     else process.env.CLOUDINARY_CLOUD_NAME = previous;

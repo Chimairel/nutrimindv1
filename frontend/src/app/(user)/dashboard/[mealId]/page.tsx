@@ -169,6 +169,7 @@ export default function MealDetailPage() {
           mealType={meal.mealType}
           className="mb-6 h-64 w-full"
           priority
+          showAttributionLinks
         />
 
         {/* Header Block */}

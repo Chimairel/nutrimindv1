@@ -21,6 +21,7 @@ export type PublicMealImage = {
     sourcePageUrl: string | null;
     licenseCode: string | null;
     licenseUrl: string | null;
+    modifications: string | null;
   };
 };
 
@@ -61,6 +62,10 @@ export function toPublicMealImage(meal: MealImageRecord): PublicMealImage | null
       sourcePageUrl: meal.imageSourcePageUrl,
       licenseCode: meal.imageLicenseCode,
       licenseUrl: meal.imageLicenseUrl,
+      modifications:
+        meal.imageLicenseCode && !['OWNED', 'GENERATED'].includes(meal.imageLicenseCode)
+          ? 'Resized, format-optimized, and cropped for display.'
+          : null,
     },
   };
 }

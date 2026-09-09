@@ -25,12 +25,12 @@ from typing import Any
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "NutriMindMealImageResearch/0.1 (educational capstone project)"
-ALLOWED_LICENSE_PREFIXES = (
+ALLOWED_LICENSES = {
     "cc0",
     "public domain",
-    "cc by ",
-    "cc by-sa ",
-)
+    "cc by 4.0",
+    "cc by-sa 4.0",
+}
 
 QUERY_HINTS = (
     ("pandesal", "pandesal Filipino bread"),
@@ -108,7 +108,7 @@ def metadata_value(metadata: dict[str, Any], key: str) -> str:
 
 def allowed_license(name: str) -> bool:
     normalized = name.strip().lower()
-    return any(normalized.startswith(prefix) for prefix in ALLOWED_LICENSE_PREFIXES)
+    return normalized in ALLOWED_LICENSES
 
 
 def fetch_candidates(meal: Meal, limit: int) -> list[dict[str, str]]:

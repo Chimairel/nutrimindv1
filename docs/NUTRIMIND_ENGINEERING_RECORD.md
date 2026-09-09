@@ -3729,3 +3729,30 @@ This section is a continuity record for agreed future work. Every item below is 
 
 - This phase provides the secure storage, governance, delivery, fallback, and administration path; it does not create image ownership. The 117 researched Philippine-food candidates remain unapproved until visual identity, creator, source page, and license are individually accepted. The existing one asset in the Cloudinary account is not assumed to be a NutriMind meal image.
 - Nutrition calculations, FNRI records, consumption evidence, safety certification, and meal selection never derive from photographs. An image may improve recognition and UX but cannot validate a dish's ingredients, portion, calories, or medical suitability.
+
+## 73. Visually reviewed meal-image acquisition (2026-09-09)
+
+**Change ID:** CHG-20260909-09
+
+**Verification IDs:** TEST-217 through TEST-219
+
+**Documentation ID:** DOC-065
+
+### Acquisition and rights decisions
+
+- The canonical 51-meal Wikimedia search was rerun under the same application rights allowlist: CC0, Public Domain, CC BY 4.0, and CC BY-SA 4.0 only. It produced 168 candidates across all 51 meals with zero search failures. Older CC 2.0 and 3.0 results are now rejected by the research script rather than being presented as importable candidates.
+- Search coverage is not treated as visual accuracy. Seven photographs passed direct visual review and were approved: scrambled egg and rice, pandesal breakfast, oatmeal, beef rice bowl, pork rice bowl, tuna-cucumber rice bowl, and tofu-vegetable rice bowl. Each is classified as `REPRESENTATIVE`, with an accessibility description and an explicit review note identifying important differences. Misleading chicken, milkfish, tilapia, munggo, sardine, corn, and other reused generic results remain unassigned and continue to use honest fallbacks.
+- The approved manifest is deterministic and source-title keyed so a later Commons search-order change cannot silently substitute a different photograph. Every row retains its creator, Commons source page, normalized HTTPS license page, rights code, classification, alternative text, and review rationale.
+- A guarded importer validates the exact meal name, approval state, allowed rights code, Wikimedia delivery host, Commons source host, Creative Commons license host, image MIME type, 5 MB byte limit, and provider dimensions. It requires an active administrator for its audit trail, is dry-run by default, is idempotent, and refuses to replace existing assignments unless `--replace` is supplied.
+
+### Shared-development result and verification
+
+- The approved importer uploaded seven reviewed thumbnails to the configured Cloudinary account and assigned them to the matching shared-development `MealLibrary` rows. Seven `MEAL_IMAGE_CATALOGUE_IMPORTED` audit events retain the source title, source page, image kind, rights code, visual-review rationale, and recovery decision without exposing provider credentials. No nutrition, safety, FNRI, pricing, or meal-selection data was altered.
+- TEST-217 is the pre-write dry run: seven approved matches, zero existing assignments, and no write. TEST-218 is the apply plus idempotency check: seven imports followed by seven unchanged rows and zero replacements. TEST-219 performs an HTTP `HEAD` request against every resulting optimized Cloudinary delivery URL; all seven returned `200` and exposed their `REPRESENTATIVE` classification and expected rights code.
+- Public third-party image metadata now discloses that Cloudinary resized, format-optimized, and cropped the source for display. The reusable image component exposes visible source and license links in meal detail, Meal Library, and administrator contexts while compact dashboard cards retain bounded creator/license/adaptation attribution.
+- The deterministic suites pass **516 registered backend tests / 515 pass / 0 fail / 1 unchanged qualified-clinical-policy TODO** and **42 frontend tests / 42 pass**. Backend and frontend production builds pass and both linters report zero warnings.
+
+### Honest coverage boundary
+
+- Seven of the 51 current canonical meals now have reviewed remote photographs. This is intentionally partial coverage: the remaining 44 use clearly labelled category fallbacks until a semantically accurate licensed, owned, or generated asset is reviewed. The earlier request for at least 100 common-meal photographs remains a future content-acquisition goal; it is not misreported as complete merely because automated search returned candidates.
+- Photographs remain presentation data only. Representative imagery is not evidence that every pictured garnish belongs to the recipe and never changes calories, ingredients, FNRI linkage, geographic evidence, or clinical eligibility.

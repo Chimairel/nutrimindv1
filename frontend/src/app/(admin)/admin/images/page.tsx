@@ -168,6 +168,7 @@ export default function AdminMealImagesPage() {
               mealName={meal.mealName}
               mealType={meal.mealType}
               className="h-44 w-full rounded-none"
+              showAttributionLinks
             />
             <div className="space-y-3 p-4">
               <div>

@@ -188,6 +188,7 @@ export interface PublicMealImage {
     sourcePageUrl?: string | null;
     licenseCode?: string | null;
     licenseUrl?: string | null;
+    modifications?: string | null;
   };
 }
 

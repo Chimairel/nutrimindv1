@@ -16,7 +16,13 @@ const image = {
   url: 'https://res.cloudinary.com/demo/image/upload/example.jpg',
   altText: 'A plate of vegetable pancit',
   kind: 'REPRESENTATIVE' as const,
-  attribution: { creator: 'Example Creator', licenseCode: 'CC_BY_4_0', sourcePageUrl: null, licenseUrl: null },
+  attribution: {
+    creator: 'Example Creator',
+    licenseCode: 'CC_BY_4_0',
+    sourcePageUrl: 'https://example.com/source',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    modifications: 'Resized, format-optimized, and cropped for display.',
+  },
 };
 
 describe('MealImage', () => {
@@ -27,9 +33,11 @@ describe('MealImage', () => {
   });
 
   it('renders attribution and falls back when remote delivery fails', () => {
-    render(<MealImage mealName="Pancit" mealType="DINNER" image={image} />);
+    render(<MealImage mealName="Pancit" mealType="DINNER" image={image} showAttributionLinks />);
     const photo = screen.getByRole('img', { name: image.altText });
-    expect(screen.getByText('Example Creator · CC_BY_4_0')).toBeInTheDocument();
+    expect(screen.getByText('Example Creator · CC_BY_4_0 · adapted')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Image source' })).toHaveAttribute('href', image.attribution.sourcePageUrl);
+    expect(screen.getByRole('link', { name: 'Image license' })).toHaveAttribute('href', image.attribution.licenseUrl);
     fireEvent.error(photo);
     expect(screen.getByText('Pancit')).toBeInTheDocument();
   });

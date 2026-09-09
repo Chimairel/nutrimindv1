@@ -11,9 +11,17 @@ type Props = {
   mealType?: MealType | string;
   className?: string;
   priority?: boolean;
+  showAttributionLinks?: boolean;
 };
 
-export default function MealImage({ image, mealName, mealType, className = '', priority = false }: Props) {
+export default function MealImage({
+  image,
+  mealName,
+  mealType,
+  className = '',
+  priority = false,
+  showAttributionLinks = false,
+}: Props) {
   const [failed, setFailed] = useState(false);
   const Icon =
     mealType === 'BREAKFAST' ? Coffee : mealType === 'LUNCH' || mealType === 'DINNER' ? Soup : UtensilsCrossed;
@@ -46,9 +54,38 @@ export default function MealImage({ image, mealName, mealType, className = '', p
         </figcaption>
       )}
       {!showFallback && (image.attribution.creator || image.attribution.licenseCode) && (
-        <figcaption className="absolute bottom-2 right-2 max-w-[65%] truncate rounded-full bg-black/65 px-2 py-1 text-[9px] text-white">
-          {[image.attribution.creator, image.attribution.licenseCode].filter(Boolean).join(' · ')}
+        <figcaption
+          className="absolute bottom-2 right-2 max-w-[65%] truncate rounded-full bg-black/75 px-2 py-1 text-[9px] text-white"
+          title={image.attribution.modifications || undefined}
+        >
+          {[image.attribution.creator, image.attribution.licenseCode, image.attribution.modifications && 'adapted']
+            .filter(Boolean)
+            .join(' · ')}
         </figcaption>
+      )}
+      {!showFallback && showAttributionLinks && (image.attribution.sourcePageUrl || image.attribution.licenseUrl) && (
+        <div className="absolute right-2 top-2 flex gap-1 rounded-full bg-black/75 px-2 py-1 text-[9px] font-bold text-white">
+          {image.attribution.sourcePageUrl && (
+            <a
+              className="underline underline-offset-2"
+              href={image.attribution.sourcePageUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Image source
+            </a>
+          )}
+          {image.attribution.licenseUrl && (
+            <a
+              className="underline underline-offset-2"
+              href={image.attribution.licenseUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Image license
+            </a>
+          )}
+        </div>
       )}
     </figure>
   );

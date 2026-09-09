@@ -37,6 +37,8 @@
     "test:acceptance:compensation-local": "tsx scripts/compensation-local-acceptance.ts",
     "test:acceptance:outside-meal-local": "tsx scripts/outside-meal-local-acceptance.ts",
     "test:acceptance:admin-data-local": "tsx scripts/admin-reference-data-local-acceptance.ts",
+    "images:approved:dry-run": "tsx scripts/import-approved-meal-images.ts",
+    "images:approved:apply": "tsx scripts/import-approved-meal-images.ts --apply",
     "paymongo:test-webhook-admin": "tsx scripts/paymongo-test-webhook-admin.ts",
     "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts",
     "lint": "eslint src tests scripts",
