@@ -84,4 +84,17 @@ describe('MealImage', () => {
     const attributionElement = screen.getByText('Example Creator · CC_BY_4_0 · adapted');
     expect(attributionElement).toHaveAttribute('title', mockImage.attribution.modifications);
   });
+
+  it('renders thumbnail variant for dense cockpit rows with real image and category fallback', () => {
+    const { container: photoContainer } = render(
+      <MealImage mealName="Pancit" mealType="DINNER" image={mockImage} variant="thumbnail" />
+    );
+    expect(screen.getByRole('img', { name: mockImage.altText })).toBeInTheDocument();
+    expect(photoContainer.querySelectorAll('a')).toHaveLength(0);
+
+    render(
+      <MealImage mealName="Sinigang na Baboy" mealType="DINNER" variant="thumbnail" allowCanonicalFallback={false} />
+    );
+    expect(screen.getByLabelText('Sinigang na Baboy (Meat & Savory visual placeholder)')).toBeInTheDocument();
+  });
 });

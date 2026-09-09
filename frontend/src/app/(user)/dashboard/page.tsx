@@ -15,9 +15,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { Calendar, Plus, AlertTriangle, Utensils, Sparkles } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
-import { DashboardMealSchedule } from '@/features/dashboard/DashboardMealSchedule';
-import { DashboardNutritionBudgets, DashboardHealthSnapshot } from '@/features/dashboard/DashboardSummary';
-import { DashboardHero } from '@/features/dashboard/DashboardHero';
+import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
 import { NutritionistGuidanceCard } from '@/features/dashboard/NutritionistGuidanceCard';
 import { GroceryPreviewCard } from '@/features/dashboard/GroceryPreviewCard';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
@@ -444,16 +442,6 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <DashboardHero
-              userName={user?.name}
-              dailyCalorieTarget={userProfile?.dailyCalorieTarget}
-              goal={userProfile?.goal}
-              locality={userProfile?.mealLocalityPreference || userProfile?.planningRegionName}
-              planType={pendingReview?.planType}
-              isPendingReview={Boolean(pendingReview)}
-              onOpenWeeklyPlan={() => router.push('/meals')}
-            />
-
             {daySelectors.length > 0 && (
               <div
                 className="mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card scrollbar-none"
@@ -466,7 +454,13 @@ export default function DashboardPage() {
                       key={item.offset}
                       onClick={() => setSelectedDayOffset(item.offset)}
                       aria-pressed={isSelected}
-                      className={`flex min-w-[76px] flex-col items-center justify-center rounded-2xl border px-4 py-3 outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${isSelected ? 'border-brand-border bg-brand-accent text-black shadow-md shadow-brand-accent/10' : item.isPast ? 'border-transparent bg-brand-bgAlt/70 text-brand-muted/70 hover:border-brand-border hover:text-brand-text' : 'border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/60 hover:text-brand-text'}`}
+                      className={`flex min-w-[76px] flex-col items-center justify-center rounded-2xl border px-4 py-3 outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
+                        isSelected
+                          ? 'border-brand-border bg-brand-accent text-black shadow-md shadow-brand-accent/10'
+                          : item.isPast
+                            ? 'border-transparent bg-brand-bgAlt/70 text-brand-muted/70 hover:border-brand-border hover:text-brand-text'
+                            : 'border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/60 hover:text-brand-text'
+                      }`}
                     >
                       <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">{item.dayLabel}</span>
                       <span className="mt-1 font-display text-xl font-black leading-none">{item.dateLabel}</span>
@@ -476,39 +470,35 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Modular Eggify-Inspired Grid Layout */}
-            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-              {/* Primary Content Column: Meals and Nutrition Budgets */}
-              <div className="flex flex-col gap-6 lg:col-span-8">
-                <DashboardMealSchedule
-                  activeDate={activeDate}
-                  approvedMeals={metrics.mealsList}
-                  onStatusToggle={handleMealStatusToggle}
-                  pendingReview={pendingReview}
-                />
-                <DashboardNutritionBudgets metrics={metrics} />
-              </div>
+            <CockpitDashboard
+              activeDate={activeDate}
+              meals={metrics.mealsList}
+              pendingMeals={
+                pendingReview?.meals.filter(
+                  (meal) => activeDate && getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activeDate)
+                ) ?? []
+              }
+              metrics={metrics}
+              profile={userProfile}
+              waterIntake={waterIntake}
+              checkinStreak={checkinInfo?.streak ?? 0}
+              checkinDue={isCheckinDue}
+              onAddWater={handleAddWater}
+              onOpenCheckin={() => setIsCheckinDue(true)}
+              onMealClick={(mealId) => router.push(`/dashboard/${mealId}`)}
+              onStatusToggle={handleMealStatusToggle}
+              onOpenWeeklyPlan={() => router.push('/meals')}
+            />
 
-              {/* Contextual Right Rail: Nutritionist Guidance, Grocery Checklist, Health Snapshot */}
-              <div className="flex flex-col gap-6 lg:col-span-4">
-                <NutritionistGuidanceCard
-                  healthConditions={fullProfile?.healthConditions ?? []}
-                  allergies={fullProfile?.allergies ?? []}
-                  isPendingReview={Boolean(pendingReview)}
-                  verifierName={metrics.mealsList[0]?.verifier?.name}
-                  prcLicenseNumber={metrics.mealsList[0]?.verifier?.prcLicenseNumber}
-                />
-                <GroceryPreviewCard ownerId={ownerId} onNavigateToGrocery={() => router.push('/grocery')} />
-                <DashboardHealthSnapshot
-                  checkinDue={isCheckinDue}
-                  checkinStreak={checkinInfo?.streak ?? 0}
-                  onAddWater={handleAddWater}
-                  onOpenCheckin={() => setIsCheckinDue(true)}
-                  profile={userProfile}
-                  waterIntake={waterIntake}
-                  layout="stack"
-                />
-              </div>
+            <div className="mx-auto grid w-full max-w-[960px] grid-cols-1 gap-6 md:grid-cols-2">
+              <NutritionistGuidanceCard
+                healthConditions={fullProfile?.healthConditions ?? []}
+                allergies={fullProfile?.allergies ?? []}
+                isPendingReview={Boolean(pendingReview)}
+                verifierName={metrics.mealsList[0]?.verifier?.name}
+                prcLicenseNumber={metrics.mealsList[0]?.verifier?.prcLicenseNumber}
+              />
+              <GroceryPreviewCard ownerId={ownerId} onNavigateToGrocery={() => router.push('/grocery')} />
             </div>
           </>
         )}

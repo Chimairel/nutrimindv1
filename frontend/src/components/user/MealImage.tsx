@@ -177,6 +177,100 @@ export function resolveMealCategory(
   };
 }
 
+const CANONICAL_FALLBACK_IMAGES: Record<
+  string,
+  { url: string; altText: string; creator: string; licenseCode: string; licenseUrl: string }
+> = {
+  oatmeal: {
+    url: '/meals/oatmeal.jpg',
+    altText: 'A bowl of cooked oatmeal with milk',
+    creator: 'Renee Comet (Photographer), National Cancer Institute',
+    licenseCode: 'PUBLIC_DOMAIN',
+    licenseUrl: 'https://creativecommons.org/publicdomain/mark/1.0/',
+  },
+  pandesal: {
+    url: '/meals/pandesal.jpg',
+    altText: 'Fresh Filipino pandesal rolls served on a plate',
+    creator: 'Jessartcam',
+    licenseCode: 'CC_BY_SA_4_0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0',
+  },
+  egg: {
+    url: '/meals/scrambled-egg-rice.jpg',
+    altText: 'Fried egg served over a bowl of vegetable rice',
+    creator: 'PaulGorduiz106',
+    licenseCode: 'CC_BY_SA_4_0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0',
+  },
+  beef: {
+    url: '/meals/beef-bowl.jpg',
+    altText: 'A braised beef and vegetable rice bowl',
+    creator: 'Andy Li',
+    licenseCode: 'CC0',
+    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
+  },
+  pork: {
+    url: '/meals/pork-bowl.jpg',
+    altText: 'A braised pork rice bowl with vegetables',
+    creator: 'Andy Li',
+    licenseCode: 'CC0',
+    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
+  },
+  seafood: {
+    url: '/meals/tuna-bowl.jpg',
+    altText: 'A tuna, salmon, cucumber, and vegetable rice bowl',
+    creator: 'Andy Li',
+    licenseCode: 'CC0',
+    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
+  },
+  tofu: {
+    url: '/meals/tofu-bowl.jpg',
+    altText: 'A tofu and vegetable rice bowl',
+    creator: 'Andy Li',
+    licenseCode: 'CC0',
+    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
+  },
+};
+
+export function resolveCanonicalReviewedImage(
+  mealName: string,
+  mealType?: MealType | string,
+  ingredients?: { ingredientName: string; category?: string }[]
+): PublicMealImage | null {
+  const combined = `${mealName || ''} ${(ingredients || []).map((i) => i.ingredientName).join(' ')}`.toLowerCase();
+  let key: string | null = null;
+  if (/oatmeal|hot cereal|rolled oats|oats|porridge|champorado/.test(combined)) {
+    key = 'oatmeal';
+  } else if (/pandesal|pan de|bread|toast|bun|bakery/.test(combined)) {
+    key = 'pandesal';
+  } else if (/egg|eggs|itlog|omelet|scrambled|silog|bonete/.test(combined)) {
+    key = 'egg';
+  } else if (/tuna|salmon|bangus|tilapia|seafood|fish|hipon|shrimp|squid|pusit/.test(combined)) {
+    key = 'seafood';
+  } else if (/beef|baka|bistek|tapa|steak|chuck|caldereta|nilaga/.test(combined)) {
+    key = 'beef';
+  } else if (/pork|baboy|sinigang|adobo|liempo|pork chop|chop|menudo/.test(combined)) {
+    key = 'pork';
+  } else if (/tofu|tokwa|vegetable|gulay|salad|munggo|monggo|sprouts|curry|beans|chickpea|pinakbet/.test(combined)) {
+    key = 'tofu';
+  }
+
+  if (!key || !CANONICAL_FALLBACK_IMAGES[key]) return null;
+  const match = CANONICAL_FALLBACK_IMAGES[key];
+  return {
+    url: match.url,
+    altText: match.altText,
+    kind: 'REPRESENTATIVE',
+    attribution: {
+      creator: match.creator,
+      sourcePageUrl: null,
+      licenseCode: match.licenseCode,
+      licenseUrl: match.licenseUrl,
+      modifications: 'Resized, format-optimized, and cropped for display.',
+    },
+  };
+}
+
 export type MealImageProps = {
   image?: PublicMealImage | null;
   mealName: string;
@@ -184,8 +278,9 @@ export type MealImageProps = {
   className?: string;
   priority?: boolean;
   showAttributionLinks?: boolean;
-  variant?: 'card' | 'detail' | 'compact' | 'hero';
+  variant?: 'card' | 'detail' | 'compact' | 'hero' | 'thumbnail';
   ingredients?: { ingredientName: string; category?: string }[];
+  allowCanonicalFallback?: boolean;
 };
 
 export default function MealImage({
@@ -197,15 +292,30 @@ export default function MealImage({
   showAttributionLinks = false,
   variant = 'card',
   ingredients = [],
+  allowCanonicalFallback = true,
 }: MealImageProps) {
   const [failed, setFailed] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const showFallback = !image || failed;
+  const effectiveImage =
+    image ||
+    (!failed && allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName, mealType, ingredients) : null);
+  const showFallback = !effectiveImage || failed;
   const categoryInfo = resolveMealCategory(mealName, mealType, ingredients);
   const FallbackIcon = categoryInfo.icon;
 
   if (showFallback) {
+    if (variant === 'thumbnail') {
+      return (
+        <div
+          className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br select-none ${categoryInfo.tone.bg} ${categoryInfo.tone.border} ${className}`}
+          title={`${mealName} (${categoryInfo.label} visual placeholder)`}
+          aria-label={`${mealName} (${categoryInfo.label} visual placeholder)`}
+        >
+          <FallbackIcon className={`h-6 w-6 ${categoryInfo.tone.text}`} aria-hidden="true" />
+        </div>
+      );
+    }
     return (
       <figure
         className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-gradient-to-br p-4 select-none ${categoryInfo.tone.bg} ${categoryInfo.tone.border} ${className}`}
@@ -253,12 +363,41 @@ export default function MealImage({
     );
   }
 
+  if (variant === 'thumbnail') {
+    return (
+      <div
+        className={`relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-[#09110e] select-none ${className}`}
+        aria-label={`${mealName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
+      >
+        <Image
+          src={effectiveImage.url}
+          alt={effectiveImage.altText || `Photo representing ${mealName}`}
+          fill
+          sizes="64px"
+          className={`object-cover motion-reduce:transition-none transition-opacity duration-300 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          priority={priority}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setFailed(true)}
+        />
+        {effectiveImage.kind === 'REPRESENTATIVE' && (
+          <span
+            className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-black"
+            title="Representative image"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+    );
+  }
+
   const isCompact = variant === 'compact';
 
   return (
     <figure
       className={`relative overflow-hidden rounded-2xl border border-brand-border/60 bg-brand-surface/80 select-none ${className}`}
-      aria-label={`${mealName} (${image.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
+      aria-label={`${mealName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
     >
       {/* Subtle loading skeleton placeholder */}
       <div
@@ -269,8 +408,8 @@ export default function MealImage({
       />
 
       <Image
-        src={image.url}
-        alt={image.altText || `Photo representing ${mealName}`}
+        src={effectiveImage.url}
+        alt={effectiveImage.altText || `Photo representing ${mealName}`}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className={`object-cover motion-reduce:transition-none transition-opacity duration-300 ${
@@ -282,7 +421,7 @@ export default function MealImage({
       />
 
       {/* Visible Representative Photo Disclosure */}
-      {image.kind === 'REPRESENTATIVE' && (
+      {effectiveImage.kind === 'REPRESENTATIVE' && (
         <figcaption className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-white/10">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true" />
           <span>Representative image</span>
@@ -290,46 +429,52 @@ export default function MealImage({
       )}
 
       {/* Compact Non-Interactive Attribution Pill (Safe inside clickable cards) */}
-      {(image.attribution.creator || image.attribution.licenseCode) && (
+      {(effectiveImage.attribution.creator || effectiveImage.attribution.licenseCode) && (
         <figcaption
           className="absolute bottom-2.5 right-2.5 z-10 max-w-[62%] truncate rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-medium text-white/90 shadow-md backdrop-blur-md border border-white/10"
-          title={image.attribution.modifications || undefined}
+          title={effectiveImage.attribution.modifications || undefined}
         >
-          {[image.attribution.creator, image.attribution.licenseCode, image.attribution.modifications && 'adapted']
+          {[
+            effectiveImage.attribution.creator,
+            effectiveImage.attribution.licenseCode,
+            effectiveImage.attribution.modifications && 'adapted',
+          ]
             .filter(Boolean)
             .join(' · ')}
         </figcaption>
       )}
 
       {/* Accessible Interactive External Links (Only when showAttributionLinks is explicitly requested and NOT in compact mode) */}
-      {!isCompact && showAttributionLinks && (image.attribution.sourcePageUrl || image.attribution.licenseUrl) && (
-        <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 rounded-full bg-black/80 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-white/10">
-          {image.attribution.sourcePageUrl && (
-            <a
-              className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"
-              href={image.attribution.sourcePageUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label={`Source page for ${mealName} image (opens in new tab)`}
-            >
-              <span>Source</span>
-              <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
-            </a>
-          )}
-          {image.attribution.licenseUrl && (
-            <a
-              className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"
-              href={image.attribution.licenseUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label={`License for ${mealName} image (opens in new tab)`}
-            >
-              <span>{image.attribution.licenseCode || 'License'}</span>
-              <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
-            </a>
-          )}
-        </div>
-      )}
+      {!isCompact &&
+        showAttributionLinks &&
+        (effectiveImage.attribution.sourcePageUrl || effectiveImage.attribution.licenseUrl) && (
+          <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 rounded-full bg-black/80 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-white/10">
+            {effectiveImage.attribution.sourcePageUrl && (
+              <a
+                className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"
+                href={effectiveImage.attribution.sourcePageUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label={`Source page for ${mealName} image (opens in new tab)`}
+              >
+                <span>Source</span>
+                <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
+              </a>
+            )}
+            {effectiveImage.attribution.licenseUrl && (
+              <a
+                className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"
+                href={effectiveImage.attribution.licenseUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label={`License for ${mealName} image (opens in new tab)`}
+              >
+                <span>{effectiveImage.attribution.licenseCode || 'License'}</span>
+                <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        )}
     </figure>
   );
 }
