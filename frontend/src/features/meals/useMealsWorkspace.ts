@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import type { MealPlan, PublicVerifier } from '@/types';
+import type { MealPlan, PublicMealImage, PublicVerifier } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
@@ -20,6 +20,7 @@ export interface SwapOption {
   verifiedBy: string;
   prcLicenseNumber: string;
   verifier?: PublicVerifier | null;
+  image?: PublicMealImage | null;
 }
 
 export interface MealHistoryLog {

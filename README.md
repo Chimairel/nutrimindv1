@@ -188,6 +188,7 @@ Only names and purposes are documented. No real values are included.
 | `EMAIL_FROM` | Optional sender override | From address; falls back to `SMTP_USER`, then a placeholder |
 | `SMTP_VERIFY_ON_STARTUP` | Optional startup diagnostics | Set to `true` only when API startup should open an SMTP connection; defaults to disabled |
 | `NUTRIMIND_TEST_MAIL_CAPTURE_PATH` | Local automated tests only | Absolute JSONL path used only with `NODE_ENV=test` to capture synthetic OTP/reset/invitation evidence without SMTP |
+| `CLOUDINARY_URL` | Administrator meal-image uploads | Server-only Cloudinary credential URL; never expose it through a `NEXT_PUBLIC_*` variable |
 
 ### Frontend: `frontend/.env.local`
 

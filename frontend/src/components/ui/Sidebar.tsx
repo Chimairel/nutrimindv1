@@ -27,6 +27,7 @@ import {
   Crown,
   Receipt,
   DatabaseZap,
+  ImageIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
@@ -122,6 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       { label: 'Nutritionists', href: '/admin/nutritionists', icon: Stethoscope },
       { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
       { label: 'Data', href: '/admin/data', icon: DatabaseZap },
+      { label: 'Images', href: '/admin/images', icon: ImageIcon },
       { label: 'Operations', href: '/admin/operations', icon: ShieldCheck },
       { label: 'Compensation', href: '/admin/compensation', icon: Receipt },
     ],

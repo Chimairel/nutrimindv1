@@ -39,6 +39,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
       scheduledDate={meal.scheduledDate}
       verifier={meal.verifier}
       explanation={meal.explanation}
+      image={meal.image}
       onCardClick={() => router.push(`/dashboard/${meal.id}`)}
     />
   ));

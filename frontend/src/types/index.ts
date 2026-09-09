@@ -176,6 +176,19 @@ export interface MealPlan {
   mealLogs?: MealLog[];
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
+  image?: PublicMealImage | null;
+}
+
+export interface PublicMealImage {
+  url: string;
+  altText: string;
+  kind: 'EXACT' | 'REPRESENTATIVE';
+  attribution: {
+    creator?: string | null;
+    sourcePageUrl?: string | null;
+    licenseCode?: string | null;
+    licenseUrl?: string | null;
+  };
 }
 
 export interface MealExplanation {

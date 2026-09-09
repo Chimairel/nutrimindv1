@@ -24,6 +24,7 @@ import {
   reverseWorkCreditSchema,
 } from '@/validation/compensation.schemas';
 import adminDataRouter from '@/routes/admin-data.routes';
+import adminMealImagesRouter from '@/routes/admin-meal-images.routes';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
 router.use('/data', adminDataRouter);
+router.use('/meal-images', adminMealImagesRouter);
 
 /**
  * GET /api/admin/analytics

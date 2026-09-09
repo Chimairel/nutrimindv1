@@ -8,10 +8,11 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import MealImage from '@/components/user/MealImage';
 import { ArrowLeft, Coffee, Sun, Moon, Apple, Check, X, AlertCircle, ShieldCheck } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { MealType, MealPlanStatus, PublicVerifier, MealExplanation } from '@/types';
+import { MealType, MealPlanStatus, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
 
 interface Ingredient {
   id: string;
@@ -39,6 +40,7 @@ interface MealDetail {
   mealLogs: MealLog[];
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
+  image?: PublicMealImage | null;
 }
 
 export default function MealDetailPage() {
@@ -160,6 +162,14 @@ export default function MealDetailPage() {
       {/* Main Meal Details Card */}
       <Card className="relative overflow-hidden border-brand-border/70 bg-brand-surface/75 p-6 shadow-card-lg md:p-8">
         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 blur-3xl pointer-events-none rounded-full" />
+
+        <MealImage
+          image={meal.image}
+          mealName={meal.mealName}
+          mealType={meal.mealType}
+          className="mb-6 h-64 w-full"
+          priority
+        />
 
         {/* Header Block */}
         <div className="mb-6 flex items-start gap-3.5 rounded-[24px] bg-[#07100d] p-5 text-white shadow-card">

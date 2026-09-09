@@ -19,6 +19,7 @@ import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domai
 import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
+import { toPublicMealImage, type MealImageRecord } from '@/domain/meal-image.policy';
 
 function toPublicVerifier(
   nutritionist: {
@@ -48,16 +49,18 @@ function serializeActionableMeal<
     nutritionist: Parameters<typeof toPublicVerifier>[0];
     selectionEvidence: unknown;
     libraryMealId: string | null;
+    libraryMeal?: MealImageRecord | null;
     status: string;
     aiConfidenceFlag: string;
     calories: number;
     ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
   },
 >(meal: T) {
-  const { nutritionist, selectionEvidence, ...publicMeal } = meal;
+  const { nutritionist, selectionEvidence, libraryMeal, ...publicMeal } = meal;
   const verifier = toPublicVerifier(nutritionist);
   return {
     ...publicMeal,
+    image: libraryMeal ? toPublicMealImage(libraryMeal) : null,
     verifier,
     explanation: buildMealExplanation({
       libraryMealId: meal.libraryMealId,
@@ -236,6 +239,7 @@ export class MealsController {
           },
           include: {
             ingredients: true,
+            libraryMeal: true,
             mealLogs: {
               where: { userId },
             },
@@ -313,6 +317,7 @@ export class MealsController {
         where: getOwnedMealPlanWhere(userId, id),
         include: {
           ingredients: true,
+          libraryMeal: true,
           mealLogs: {
             where: { userId },
           },

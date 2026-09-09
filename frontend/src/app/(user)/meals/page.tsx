@@ -8,6 +8,7 @@ import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProg
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
+import MealImage from '@/components/user/MealImage';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import {
   Sprout,
@@ -562,6 +563,7 @@ export default function WeeklyPlanPage() {
                           scheduledDate={meal.scheduledDate}
                           verifier={meal.verifier}
                           explanation={meal.explanation}
+                          image={meal.image}
                         />
                       ))}
                     </div>
@@ -806,6 +808,12 @@ export default function WeeklyPlanPage() {
                     key={meal.id}
                     className="flex min-h-[220px] flex-col justify-between gap-4 rounded-[22px] border border-brand-border/70 bg-brand-surface p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand-green/25 hover:shadow-card animate-fadeIn"
                   >
+                    <MealImage
+                      image={meal.image}
+                      mealName={meal.mealName}
+                      mealType={meal.mealType}
+                      className="h-36 w-full"
+                    />
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="text-[9px] font-extrabold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded uppercase font-display tracking-wider">

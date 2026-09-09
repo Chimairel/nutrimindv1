@@ -995,6 +995,19 @@ model MealLibrary {
   safetyReviewedAt               DateTime?
   safetyInvalidatedAt            DateTime?
   safetyInvalidationReason       String?                           @db.VarChar(64)
+  imagePublicId                  String?                           @unique @db.VarChar(255)
+  imageVersion                   String?                           @db.VarChar(32)
+  imageFormat                    String?                           @db.VarChar(16)
+  imageWidth                     Int?
+  imageHeight                    Int?
+  imageBytes                     Int?
+  imageKind                      MealImageKind?
+  imageAltText                   String?                           @db.VarChar(240)
+  imageCreator                   String?                           @db.VarChar(180)
+  imageSourcePageUrl             String?                           @db.VarChar(2048)
+  imageLicenseCode               String?                           @db.VarChar(64)
+  imageLicenseUrl                String?                           @db.VarChar(2048)
+  imageAssignedAt                DateTime?
   addedAt                        DateTime                          @default(now())
   updatedAt                      DateTime                          @default(now()) @updatedAt
 
@@ -1439,6 +1452,11 @@ enum MealLibraryStatus {
   APPROVED
   FLAGGED
   ARCHIVED
+}
+
+enum MealImageKind {
+  EXACT
+  REPRESENTATIVE
 }
 
 enum MealLibrarySafetyEvidenceStatus {

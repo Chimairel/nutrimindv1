@@ -5,7 +5,8 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation } from '@/types';
+import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
+import MealImage from './MealImage';
 import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw, ShieldCheck, ListChecks } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -42,6 +43,7 @@ interface MealCardProps {
   onCardClick?: () => void;
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
+  image?: PublicMealImage | null;
 }
 
 export default function MealCard({
@@ -64,6 +66,7 @@ export default function MealCard({
   onCardClick,
   verifier,
   explanation,
+  image,
 }: MealCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
@@ -151,6 +154,7 @@ export default function MealCard({
           `}
           contentClassName="flex h-full flex-col justify-between p-5"
         >
+          <MealImage image={image} mealName={mealName} mealType={mealType} className="mb-4 h-32 w-full" />
           {/* Card Top Row */}
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">

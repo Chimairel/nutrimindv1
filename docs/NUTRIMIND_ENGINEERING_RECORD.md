@@ -3698,3 +3698,34 @@ This section is a continuity record for agreed future work. Every item below is 
 - The 51 certified library recipes have fixed portions averaging roughly 323 kcal for breakfast and 384 kcal for lunch/dinner. Under the current ±15% calorie-fit policy they cannot alone fill a realistic 1,900-kcal three-meal week. The safe runtime behavior is to use the library where it fits and route unmatched AI-generated slots through professional review; the old `combined-library-flow-acceptance` assumption of 21 distinct library meals and zero AI calls at 1,900 kcal is therefore obsolete and is not counted as a pass. Broader certified serving ranges or additional higher-calorie recipes require explicit product and clinical design rather than silent portion inflation.
 - Google email/password authentication works in local acceptance. Google Identity Services still reports that `http://localhost:3000` is absent from the Google Cloud OAuth client's authorized JavaScript origins; that provider-console configuration is a manual environment action, not a code correction.
 - No live PayMongo charge, production credential, deployment, real nutritionist decision, or claim of current regional consumption evidence was made. Until an administrator publishes a governed active consumption release, locality retrieval falls back transparently to the certified catalogue and FNRI grounding.
+
+## 72. Governed Cloudinary meal-image delivery (2026-09-09)
+
+**Change ID:** CHG-20260909-08
+
+**Verification IDs:** TEST-204 and TEST-205
+
+**Documentation ID:** DOC-064
+
+### Decision and implementation
+
+- Cloudinary is a server-side delivery dependency, not a nutrition evidence source. `CLOUDINARY_URL` remains only in the backend environment. The browser receives a fixed optimized delivery URL, accessible alternative text, exact-versus-representative classification, and bounded attribution; it never receives API credentials.
+- `MealLibrary` stores one governed image assignment with provider identity, dimensions, byte count, classification, accessibility text, creator/source/license metadata, and assignment time. Database checks require complete core metadata, at least 320×240 pixels, no more than 5 MB, and an allowlisted rights code.
+- The administrator-only `/api/admin/meal-images` boundary lists the catalogue, accepts one JPG/PNG/WebP/AVIF upload through bounded memory storage, validates rights metadata, writes an audit event, and cleans up a newly uploaded provider asset if persistence fails. Unassignment clears the database association but intentionally retains the provider asset for recovery; it is also audited.
+- Third-party CC and public-domain assignments require creator, original source page, and license page. Owned and generated assets do not invent public source links. The earlier Wikimedia candidate inventory remains research only; no candidate was silently approved, assigned, or uploaded.
+- A reusable `MealImage` component renders optimized Cloudinary media across dashboard cards, the Meals library, and meal details. Failed or absent delivery becomes a visibly labelled `Representative image` fallback instead of a broken image or an implied exact photograph. Representative remote photos also retain the label, and available creator/license attribution is visible.
+- Administrators receive a searchable, paginated Images workspace with assign, replace, and recoverable unassign actions. The upload form captures exact/representative status, accessibility description, rights basis, creator, source, and license information.
+
+### Schema and verification
+
+- Migration `20260909230000_add_meal_library_images` is additive and contains no existing-row rewrite. A disposable PostgreSQL 16 Alpine database on loopback port `54329` reconstructed all 29 migrations; a second deploy was empty and status was current. Prisma also reported the previously known location-index comparison difference, unrelated to this migration. The exact disposable container was removed.
+- The migration was then applied through `prisma migrate deploy` to the configured shared development database. A repeat status check reports all 29 migrations current. No `db push`, reset, seed, or manual shared-database DML was used.
+- TEST-204 proves the fixed `f_auto,q_auto,c_fill,g_auto,w_960,h_640` delivery transformation and fail-closed behavior for incomplete records. TEST-205 proves strict third-party attribution requirements and bounded owned/generated metadata. Frontend component tests prove explicit fallback labelling, attribution display, and recovery after a remote image error.
+- An authenticated Cloudinary acceptance probe uploaded one 68-byte synthetic PNG into the task-labelled `nutrimind/acceptance` folder and immediately deleted the exact asset; upload authentication and cleanup both succeeded. No meal image or third-party candidate was uploaded.
+- The deterministic suites now pass **515 registered backend tests / 514 pass / 0 fail / 1 unchanged qualified-clinical-policy TODO** and **42 frontend tests / 42 pass**. Backend and frontend production builds pass, both linters report zero warnings, Prisma format/validate/generate pass, the new route rejects an unauthenticated request with JSON `401`, and dependency installation reports zero known vulnerabilities.
+- Browser routing reached the local application and correctly redirected an unauthenticated `/admin/images` request to `/login`. Authenticated visual acceptance was not claimed because the controllable in-app browser had no signed-in session and the user's signed-in external browser was unavailable to automation. The remaining manual check is to open the Images administrator tab, confirm the card grid/fallbacks, and assign the first approved owned or generated image.
+
+### Honest content boundary
+
+- This phase provides the secure storage, governance, delivery, fallback, and administration path; it does not create image ownership. The 117 researched Philippine-food candidates remain unapproved until visual identity, creator, source page, and license are individually accepted. The existing one asset in the Cloudinary account is not assumed to be a NutriMind meal image.
+- Nutrition calculations, FNRI records, consumption evidence, safety certification, and meal selection never derive from photographs. An image may improve recognition and UX but cannot validate a dish's ingredients, portion, calories, or medical suitability.

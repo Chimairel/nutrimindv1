@@ -21,6 +21,7 @@ import {
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { toPublicMealImage } from '@/domain/meal-image.policy';
 
 export class SwapLimitReachedError extends Error {
   readonly code = 'WEEKLY_SWAP_LIMIT_REACHED';
@@ -87,6 +88,7 @@ export function toPublicSwapOption(meal: CertifiedLibraryMeal) {
     proteinG: meal.proteinG,
     carbsG: meal.carbsG,
     fatG: meal.fatG,
+    image: toPublicMealImage(meal),
     verifiedBy: meal.verifiedByNutritionist?.user.name || 'System',
     prcLicenseNumber: meal.verifiedByNutritionist?.prcLicenseNumber || 'N/A',
     verifier: meal.verifiedByNutritionist
