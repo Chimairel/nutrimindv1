@@ -4,31 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight, Check, ShoppingCart, Sparkles } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import api from '@/lib/axios';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-
-interface GroceryItem {
-  id: string;
-  ingredientName: string;
-  category: string;
-  isChecked: boolean;
-  quantity: number | null;
-  unit: string | null;
-  sourceMealCount: number;
-  isPantryStaple: boolean;
-}
-
-interface GroceryList {
-  id: string;
-  weekLabel: string;
-  generatedAt: string;
-  groceryItems: GroceryItem[];
-}
-
-interface GroceryPageSnapshot {
-  groceryList: GroceryList | null;
-  pendingMealCount: number;
-}
+import { fetchCurrentGrocery, type GroceryPageSnapshot } from '@/features/grocery/current-grocery';
 
 type GroceryPreviewCardProps = {
   ownerId?: string;
@@ -37,42 +14,37 @@ type GroceryPreviewCardProps = {
 
 export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPreviewCardProps) {
   const cachedPage = readSessionResource<GroceryPageSnapshot>(ownerId, 'user-grocery-page');
-  const [groceryList, setGroceryList] = useState<GroceryList | null>(cachedPage?.groceryList ?? null);
+  const [snapshot, setSnapshot] = useState<{ ownerId?: string; data: GroceryPageSnapshot | null }>({
+    ownerId,
+    data: cachedPage,
+  });
   const [isLoading, setIsLoading] = useState(!cachedPage && Boolean(ownerId));
+  const [error, setError] = useState(false);
+  const current = snapshot.ownerId === ownerId ? snapshot.data : cachedPage;
+  const groceryList = current?.groceryList ?? null;
+  const pendingMealCount = current?.pendingMealCount ?? 0;
 
   useEffect(() => {
     if (!ownerId) return;
-    if (cachedPage?.groceryList) {
-      setGroceryList(cachedPage.groceryList);
-      setIsLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-    api
-      .get('/user/grocery/current')
-      .then((res) => {
-        if (!isMounted) return;
-        if (res.data?.success && res.data.data) {
-          const list = res.data.data as GroceryList;
-          setGroceryList(list);
-          writeSessionResource(ownerId, 'user-grocery-page', {
-            groceryList: list,
-            pendingMealCount: 0,
-          });
-        }
+    let active = true;
+    setError(false);
+    setIsLoading(!readSessionResource(ownerId, 'user-grocery-page'));
+    fetchCurrentGrocery()
+      .then((data) => {
+        if (!active) return;
+        setSnapshot({ ownerId, data });
+        writeSessionResource(ownerId, 'user-grocery-page', data);
       })
       .catch(() => {
-        // Silently fallback to empty state
+        if (active) setError(true);
       })
       .finally(() => {
-        if (isMounted) setIsLoading(false);
+        if (active) setIsLoading(false);
       });
-
     return () => {
-      isMounted = false;
+      active = false;
     };
-  }, [ownerId, cachedPage?.groceryList]);
+  }, [ownerId]);
 
   const items = groceryList?.groceryItems ?? [];
   const totalCount = items.length;
@@ -106,14 +78,30 @@ export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPrev
 
       {/* Content */}
       <div className="mt-3">
-        {isLoading ? (
+        {pendingMealCount > 0 && (
+          <p
+            role="status"
+            className="mb-3 rounded-xl bg-status-pending-bg p-3 text-xs font-semibold text-status-pending-text"
+          >
+            {pendingMealCount} meal{pendingMealCount === 1 ? '' : 's'} awaiting review. Pending ingredients are
+            excluded.
+          </p>
+        )}
+        {error ? (
+          <div role="alert" className="py-3 text-xs text-status-error-text">
+            Could not confirm the current checklist. Open Grocery to retry before shopping.
+            <Button variant="secondary" size="sm" onClick={onNavigateToGrocery} className="mt-3 w-full">
+              Open Grocery
+            </Button>
+          </div>
+        ) : isLoading ? (
           <div className="space-y-2 py-2">
-            <div className="h-4 w-3/4 rounded bg-brand-bgAlt animate-pulse" />
-            <div className="h-4 w-1/2 rounded bg-brand-bgAlt animate-pulse" />
+            <div className="h-4 w-3/4 rounded bg-brand-bgAlt animate-pulse motion-reduce:animate-none" />
+            <div className="h-4 w-1/2 rounded bg-brand-bgAlt animate-pulse motion-reduce:animate-none" />
           </div>
         ) : totalCount === 0 ? (
           <div className="py-3 text-center">
-            <p className="text-xs font-semibold text-brand-muted">No items compiled yet for this cycle.</p>
+            <p className="text-xs font-semibold text-brand-muted">No approved ingredients available for this cycle.</p>
             <Button
               variant="secondary"
               size="sm"
@@ -121,7 +109,7 @@ export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPrev
               className="mt-3 w-full text-xs font-bold"
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5 text-brand-green" />
-              Generate Grocery List
+              Open Grocery
             </Button>
           </div>
         ) : (
@@ -157,9 +145,9 @@ export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPrev
               ))}
             </ul>
 
-            {totalCount > 4 && (
+            {(remainingItems.length > 0 ? remainingItems.length : totalCount) > 4 && (
               <p className="text-center text-[10px] font-medium text-brand-muted">
-                +{totalCount - 4} more ingredients in checklist
+                +{(remainingItems.length > 0 ? remainingItems.length : totalCount) - 4} more ingredients in checklist
               </p>
             )}
 

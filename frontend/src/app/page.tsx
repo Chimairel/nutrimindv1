@@ -162,13 +162,13 @@ export default function Home() {
                   <div className="mb-7 flex items-center justify-between">
                     <div>
                       <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/35">
-                        Wednesday · live plan
+                        Illustrative preview · sample meals
                       </p>
                       <h2 className="mt-1 font-display text-xl font-bold">Your nutrition cockpit</h2>
                     </div>
                     <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-accent shadow-[0_0_10px_rgba(184,244,95,0.85)]" />
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/55">Synced</span>
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/55">Demo</span>
                     </div>
                   </div>
 

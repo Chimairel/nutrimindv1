@@ -12,6 +12,12 @@ import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
+  fetchCurrentGrocery,
+  type GroceryItem,
+  type GroceryList,
+  type GroceryPageSnapshot,
+} from '@/features/grocery/current-grocery';
+import {
   AlertTriangle,
   Check,
   ChevronDown,
@@ -23,36 +29,6 @@ import {
   ShoppingBasket,
   ShoppingCart,
 } from 'lucide-react';
-
-interface GroceryItem {
-  id: string;
-  ingredientName: string;
-  category: string;
-  isChecked: boolean;
-  quantity: number | null;
-  unit: string | null;
-  sourceMealCount: number;
-  isPantryStaple: boolean;
-}
-
-interface GroceryList {
-  id: string;
-  weekLabel: string;
-  generatedAt: string;
-  groceryItems: GroceryItem[];
-}
-
-interface CurrentMealPlanResponse {
-  data?: unknown[];
-  meta?: {
-    pendingReview?: { mealCount?: number } | null;
-  };
-}
-
-interface GroceryPageSnapshot {
-  groceryList: GroceryList | null;
-  pendingMealCount: number;
-}
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
@@ -93,26 +69,14 @@ export default function GroceryListPage() {
   const fetchGroceryList = useCallback(async () => {
     setError(null);
     try {
-      const [groceryRes, mealsRes] = await Promise.all([
-        api.get('/user/grocery/current'),
-        api.get('/user/meals/current'),
-      ]);
-      const mealPlan = (mealsRes.data ?? {}) as { success?: boolean } & CurrentMealPlanResponse;
-      const approvedMeals = Array.isArray(mealPlan.data) ? mealPlan.data : [];
-      const nextPendingMealCount = mealPlan.meta?.pendingReview?.mealCount ?? 0;
-      setPendingMealCount(nextPendingMealCount);
-
-      if (groceryRes.data && groceryRes.data.success) {
-        // A grocery list is only actionable when at least one current meal has
-        // completed nutritionist approval. Suppress any stale projection left
-        // behind after a safety recheck moves the plan back into review.
-        const nextList = approvedMeals.length > 0 ? ((groceryRes.data.data ?? null) as GroceryList | null) : null;
-        setGroceryList(nextList);
-        cachePage(nextList, nextPendingMealCount);
-        setExpandedCategories(
-          nextList?.groceryItems?.length ? new Set([getInitialExpandedCategory(nextList.groceryItems)]) : new Set()
-        );
-      }
+      const snapshot = await fetchCurrentGrocery();
+      const nextList = snapshot.groceryList;
+      setPendingMealCount(snapshot.pendingMealCount);
+      setGroceryList(nextList);
+      cachePage(nextList, snapshot.pendingMealCount);
+      setExpandedCategories(
+        nextList?.groceryItems?.length ? new Set([getInitialExpandedCategory(nextList.groceryItems)]) : new Set()
+      );
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
     } finally {

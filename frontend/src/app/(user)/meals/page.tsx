@@ -198,7 +198,7 @@ export default function WeeklyPlanPage() {
               key={value}
               type="button"
               onClick={() => setActiveTab(value)}
-              aria-current={activeTab === value ? 'page' : undefined}
+              aria-pressed={activeTab === value}
               className={`group relative flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface sm:text-sm ${
                 activeTab === value
                   ? 'text-[#07100d]'

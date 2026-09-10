@@ -1,15 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Input from '@/components/ui/Input';
 import type { PlanningGeographyLevel } from '@/types';
-import api from '@/lib/axios';
-
-interface PlanningLocationOptions {
-  regions: string[];
-  provinceHucs: Array<{ name: string; regionName: string }>;
-  source?: { label: string; version: string; url: string };
-}
+import { usePlanningLocations, validPlanningLocation } from '@/hooks/usePlanningLocations';
 
 interface PlanningLocationFieldsProps {
   level: PlanningGeographyLevel;
@@ -33,22 +27,8 @@ export default function PlanningLocationFields({
   idPrefix = 'planning-location',
   required = false,
 }: PlanningLocationFieldsProps) {
-  const [options, setOptions] = useState<PlanningLocationOptions>({ regions: [], provinceHucs: [] });
-
-  useEffect(() => {
-    let active = true;
-    api
-      .get('/user/onboarding/planning-locations')
-      .then((response) => {
-        if (active && response.data?.success) setOptions(response.data.data as PlanningLocationOptions);
-      })
-      .catch(() => {
-        // Published locality evidence is optional. Free text still falls back safely to national evidence.
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { options, error } = usePlanningLocations();
+  const { regionValid } = validPlanningLocation(options, regionName, provinceHucName);
 
   const provinceHucOptions = useMemo(
     () =>
@@ -103,9 +83,15 @@ export default function PlanningLocationFields({
           placeholder={regionName ? 'Start typing, e.g. Cebu' : 'Choose a region first'}
           maxLength={160}
           required={required}
-          disabled={disabled || !regionName.trim()}
+          disabled={disabled || !regionValid}
         />
       </div>
+      {error && (
+        <p role="status" className="mt-3 text-xs text-status-error-text">
+          Location suggestions are unavailable. Reload this page to retry; regional and local preferences remain locked
+          until the location is validated.
+        </p>
+      )}
       <datalist id={`${idPrefix}-region-options`}>
         {options.regions.map((region) => (
           <option key={region} value={region} />

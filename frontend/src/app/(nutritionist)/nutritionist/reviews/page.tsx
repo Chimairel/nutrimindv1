@@ -67,6 +67,7 @@ export default function ReviewsPage() {
                 onClick={fetchQueue}
                 className="rounded-xl p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-brand-cyan"
                 title="Refresh queue"
+                aria-label="Refresh queue"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -84,7 +85,9 @@ export default function ReviewsPage() {
         ) : queue.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2 border border-dashed border-brand-border rounded-xl">
             <CheckCircle className="w-8 h-8 text-brand-green" />
-            <p className="text-xs text-brand-muted">No pending review cards!</p>
+            <p role={errorMsg ? 'alert' : 'status'} className="text-xs text-brand-muted">
+              {errorMsg || 'No meals awaiting review in this queue.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -448,7 +451,11 @@ export default function ReviewsPage() {
                             <span>{ing.name}</span>
                             <span
                               className="text-[9px]"
-                              title={ing.source === 'FNRI' ? 'FNRI Database verified' : 'AI Estimated'}
+                              title={
+                                ing.source === 'FNRI'
+                                  ? 'FNRI nutrition source; professional review is separate'
+                                  : 'AI Estimated'
+                              }
                             >
                               {ing.source === 'FNRI' ? '✅' : '⚠️'}
                             </span>

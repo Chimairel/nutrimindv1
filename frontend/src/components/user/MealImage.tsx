@@ -4,6 +4,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import { Apple, Coffee, Egg, ExternalLink, Fish, Flame, Salad, Soup, UtensilsCrossed } from 'lucide-react';
 import type { MealType, PublicMealImage } from '@/types';
+import { reviewedMealImages } from './reviewed-meal-images';
 
 export type MealCategory =
   'seafood' | 'plant-based' | 'poultry-egg' | 'meat' | 'soup-stew' | 'breakfast-grain' | 'snack' | 'general';
@@ -29,7 +30,22 @@ export function resolveMealCategory(
 ): MealCategoryInfo {
   const name = (mealName || '').toLowerCase();
   const ingText = (ingredients || []).map((i) => i.ingredientName.toLowerCase()).join(' ');
-  const combined = `${name} ${ingText}`;
+  // Use structured animal-protein categories before generic vegetable or egg words.
+  // Ingredient names distinguish poultry within FNRI's combined Meat & Poultry category.
+  const primary = (ingredients || []).filter((item) =>
+    /^(meat & poultry|fish & shellfish|seafood|meat|poultry)$/i.test(item.category?.trim() || '')
+  );
+  const combined = primary.length
+    ? primary
+        .map(
+          (item) =>
+            `${item.ingredientName} ${/fish|shellfish|seafood/i.test(item.category || '') ? 'seafood' : /chicken|manok|poultry/i.test(item.ingredientName) ? 'chicken' : 'meat'}`
+        )
+        .join(' ')
+        .toLowerCase()
+    : /\b(beef|pork|chicken|manok|baboy|baka|tapa|bistek)\b/.test(name)
+      ? name
+      : `${name} ${ingText}`;
 
   // 1. Seafood
   if (
@@ -52,29 +68,25 @@ export function resolveMealCategory(
     };
   }
 
-  // 2. Plant-based / Vegetables / Legumes
-  if (
-    /tofu|tokwa|munggo|monggo|vegetable|gulay|pinakbet|kangkong|cabbage|sayote|eggplant|talong|salad|sitaw|pechay|kalabasa|mushroom|beans|ampalaya|chopsuey/.test(
-      combined
-    )
-  ) {
+  // Primary meat takes precedence over egg and vegetable accompaniments.
+  if (/pork|baboy|beef|baka|liempo|bistek|tapa|meat|steak/.test(combined)) {
     return {
-      category: 'plant-based',
-      label: 'Plant-based',
-      icon: Salad,
+      category: 'meat',
+      label: 'Meat & Savory',
+      icon: Flame,
       tone: {
-        bg: 'from-emerald-950/40 via-brand-surface to-brand-green/15',
-        border: 'border-brand-green/25',
-        text: 'text-brand-green',
-        badgeBg: 'bg-brand-green/15',
-        badgeText: 'text-brand-green',
-        dot: 'bg-brand-green',
+        bg: 'from-rose-950/40 via-brand-surface to-rose-500/15',
+        border: 'border-rose-500/25',
+        text: 'text-rose-400',
+        badgeBg: 'bg-rose-500/15',
+        badgeText: 'text-rose-300',
+        dot: 'bg-rose-400',
       },
     };
   }
 
   // 3. Poultry & Egg
-  if (/egg|eggs|itlog|scrambled|omelet|omelette|chicken|manok|tinola|inasal|afritada/.test(combined)) {
+  if (/\b(eggs?|itlog|scrambled|omelet|omelette|chicken|manok|tinola|inasal)\b/.test(combined)) {
     return {
       category: 'poultry-egg',
       label: 'Poultry & Egg',
@@ -90,19 +102,23 @@ export function resolveMealCategory(
     };
   }
 
-  // 4. Meat & Savory
-  if (/pork|baboy|beef|baka|liempo|adobo|bistek|menudo|caldereta|giniling|tapa|meat|steak/.test(combined)) {
+  // Vegetable imagery is not a dietary or allergen-safety certification.
+  if (
+    /tofu|tokwa|munggo|monggo|vegetable|gulay|pinakbet|kangkong|cabbage|sayote|eggplant|talong|salad|sitaw|pechay|kalabasa|mushroom|beans|ampalaya|chopsuey/.test(
+      combined
+    )
+  ) {
     return {
-      category: 'meat',
-      label: 'Meat & Savory',
-      icon: Flame,
+      category: 'plant-based',
+      label: 'Vegetables & Legumes',
+      icon: Salad,
       tone: {
-        bg: 'from-rose-950/40 via-brand-surface to-rose-500/15',
-        border: 'border-rose-500/25',
-        text: 'text-rose-400',
-        badgeBg: 'bg-rose-500/15',
-        badgeText: 'text-rose-300',
-        dot: 'bg-rose-400',
+        bg: 'from-emerald-950/40 via-brand-surface to-brand-green/15',
+        border: 'border-brand-green/25',
+        text: 'text-brand-green',
+        badgeBg: 'bg-brand-green/15',
+        badgeText: 'text-brand-green',
+        dot: 'bg-brand-green',
       },
     };
   }
@@ -177,98 +193,8 @@ export function resolveMealCategory(
   };
 }
 
-const CANONICAL_FALLBACK_IMAGES: Record<
-  string,
-  { url: string; altText: string; creator: string; licenseCode: string; licenseUrl: string }
-> = {
-  oatmeal: {
-    url: '/meals/oatmeal.jpg',
-    altText: 'A bowl of cooked oatmeal with milk',
-    creator: 'Renee Comet (Photographer), National Cancer Institute',
-    licenseCode: 'PUBLIC_DOMAIN',
-    licenseUrl: 'https://creativecommons.org/publicdomain/mark/1.0/',
-  },
-  pandesal: {
-    url: '/meals/pandesal.jpg',
-    altText: 'Fresh Filipino pandesal rolls served on a plate',
-    creator: 'Jessartcam',
-    licenseCode: 'CC_BY_SA_4_0',
-    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0',
-  },
-  egg: {
-    url: '/meals/scrambled-egg-rice.jpg',
-    altText: 'Fried egg served over a bowl of vegetable rice',
-    creator: 'PaulGorduiz106',
-    licenseCode: 'CC_BY_SA_4_0',
-    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0',
-  },
-  beef: {
-    url: '/meals/beef-bowl.jpg',
-    altText: 'A braised beef and vegetable rice bowl',
-    creator: 'Andy Li',
-    licenseCode: 'CC0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
-  },
-  pork: {
-    url: '/meals/pork-bowl.jpg',
-    altText: 'A braised pork rice bowl with vegetables',
-    creator: 'Andy Li',
-    licenseCode: 'CC0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
-  },
-  seafood: {
-    url: '/meals/tuna-bowl.jpg',
-    altText: 'A tuna, salmon, cucumber, and vegetable rice bowl',
-    creator: 'Andy Li',
-    licenseCode: 'CC0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
-  },
-  tofu: {
-    url: '/meals/tofu-bowl.jpg',
-    altText: 'A tofu and vegetable rice bowl',
-    creator: 'Andy Li',
-    licenseCode: 'CC0',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/deed.en',
-  },
-};
-
-export function resolveCanonicalReviewedImage(
-  mealName: string,
-  mealType?: MealType | string,
-  ingredients?: { ingredientName: string; category?: string }[]
-): PublicMealImage | null {
-  const combined = `${mealName || ''} ${(ingredients || []).map((i) => i.ingredientName).join(' ')}`.toLowerCase();
-  let key: string | null = null;
-  if (/oatmeal|hot cereal|rolled oats|oats|porridge|champorado/.test(combined)) {
-    key = 'oatmeal';
-  } else if (/pandesal|pan de|bread|toast|bun|bakery/.test(combined)) {
-    key = 'pandesal';
-  } else if (/egg|eggs|itlog|omelet|scrambled|silog|bonete/.test(combined)) {
-    key = 'egg';
-  } else if (/tuna|salmon|bangus|tilapia|seafood|fish|hipon|shrimp|squid|pusit/.test(combined)) {
-    key = 'seafood';
-  } else if (/beef|baka|bistek|tapa|steak|chuck|caldereta|nilaga/.test(combined)) {
-    key = 'beef';
-  } else if (/pork|baboy|sinigang|adobo|liempo|pork chop|chop|menudo/.test(combined)) {
-    key = 'pork';
-  } else if (/tofu|tokwa|vegetable|gulay|salad|munggo|monggo|sprouts|curry|beans|chickpea|pinakbet/.test(combined)) {
-    key = 'tofu';
-  }
-
-  if (!key || !CANONICAL_FALLBACK_IMAGES[key]) return null;
-  const match = CANONICAL_FALLBACK_IMAGES[key];
-  return {
-    url: match.url,
-    altText: match.altText,
-    kind: 'REPRESENTATIVE',
-    attribution: {
-      creator: match.creator,
-      sourcePageUrl: null,
-      licenseCode: match.licenseCode,
-      licenseUrl: match.licenseUrl,
-      modifications: 'Resized, format-optimized, and cropped for display.',
-    },
-  };
+export function resolveCanonicalReviewedImage(mealName: string): PublicMealImage | null {
+  return reviewedMealImages[mealName.trim().toLowerCase()] ?? null;
 }
 
 export type MealImageProps = {
@@ -294,12 +220,12 @@ export default function MealImage({
   ingredients = [],
   allowCanonicalFallback = true,
 }: MealImageProps) {
-  const [failed, setFailed] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
 
-  const effectiveImage =
-    image ||
-    (!failed && allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName, mealType, ingredients) : null);
+  const effectiveImage = image || (allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName) : null);
+  const failed = Boolean(effectiveImage && failedUrl === effectiveImage.url);
+  const isLoaded = Boolean(effectiveImage && loadedUrl === effectiveImage.url);
   const showFallback = !effectiveImage || failed;
   const categoryInfo = resolveMealCategory(mealName, mealType, ingredients);
   const FallbackIcon = categoryInfo.icon;
@@ -335,7 +261,7 @@ export default function MealImage({
             <FallbackIcon className="h-3 w-3" aria-hidden="true" />
             <span>{categoryInfo.label}</span>
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-brand-muted backdrop-blur-md border border-white/5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white backdrop-blur-md border border-white/5">
             <span className={`h-1.5 w-1.5 rounded-full ${categoryInfo.tone.dot}`} aria-hidden="true" />
             Representative visual
           </span>
@@ -378,15 +304,16 @@ export default function MealImage({
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           priority={priority}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setFailed(true)}
+          onLoad={() => setLoadedUrl(effectiveImage.url)}
+          onError={() => setFailedUrl(effectiveImage.url)}
         />
         {effectiveImage.kind === 'REPRESENTATIVE' && (
           <span
-            className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-black"
+            className="absolute inset-x-0 bottom-0 bg-black/80 py-0.5 text-center text-[7px] font-semibold text-white"
             title="Representative image"
-            aria-hidden="true"
-          />
+          >
+            Representative
+          </span>
         )}
       </div>
     );
@@ -402,7 +329,7 @@ export default function MealImage({
       {/* Subtle loading skeleton placeholder */}
       <div
         className={`absolute inset-0 z-0 bg-brand-surface/90 motion-reduce:transition-none transition-opacity duration-300 ${
-          isLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'
+          isLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse motion-reduce:animate-none'
         }`}
         aria-hidden="true"
       />
@@ -416,8 +343,8 @@ export default function MealImage({
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         priority={priority}
-        onLoad={() => setIsLoaded(true)}
-        onError={() => setFailed(true)}
+        onLoad={() => setLoadedUrl(effectiveImage.url)}
+        onError={() => setFailedUrl(effectiveImage.url)}
       />
 
       {/* Visible Representative Photo Disclosure */}
@@ -431,7 +358,7 @@ export default function MealImage({
       {/* Compact Non-Interactive Attribution Pill (Safe inside clickable cards) */}
       {(effectiveImage.attribution.creator || effectiveImage.attribution.licenseCode) && (
         <figcaption
-          className="absolute bottom-2.5 right-2.5 z-10 max-w-[62%] truncate rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-medium text-white/90 shadow-md backdrop-blur-md border border-white/10"
+          className="absolute top-2.5 left-2.5 z-10 max-w-[55%] truncate rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-medium text-white/90 shadow-md backdrop-blur-md border border-white/10"
           title={effectiveImage.attribution.modifications || undefined}
         >
           {[

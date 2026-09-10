@@ -108,7 +108,6 @@ export default function DashboardPage() {
   const [checkinInfo, setCheckinInfo] = useState<CheckinSnapshot | null>(cachedCheckin);
 
   // User Profile details
-  const [fullProfile, setFullProfile] = useState<UserProfileData | null>(cachedProfile);
   const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(cachedProfile?.userProfile ?? null);
   const [outsideMealLogs, setOutsideMealLogs] = useState<OutsideMealLog[]>(cachedOutsideMeals ?? []);
 
@@ -129,7 +128,6 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/user/profile');
       if (res.data?.success) {
-        setFullProfile(res.data.data);
         setUserProfile(res.data.data.userProfile);
         writeSessionResource(ownerId, 'user-profile', res.data.data);
       }
@@ -502,13 +500,7 @@ export default function DashboardPage() {
             />
 
             <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
-              <NutritionistGuidanceCard
-                healthConditions={fullProfile?.healthConditions ?? []}
-                allergies={fullProfile?.allergies ?? []}
-                isPendingReview={Boolean(pendingReview)}
-                verifierName={metrics.mealsList[0]?.verifier?.name}
-                prcLicenseNumber={metrics.mealsList[0]?.verifier?.prcLicenseNumber}
-              />
+              <NutritionistGuidanceCard isPendingReview={Boolean(pendingReview)} />
               <GroceryPreviewCard ownerId={ownerId} onNavigateToGrocery={() => router.push('/grocery')} />
             </div>
           </>

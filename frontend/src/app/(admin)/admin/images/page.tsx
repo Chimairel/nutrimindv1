@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import EmptyState from '@/components/shared/EmptyState';
 import MealImage from '@/components/user/MealImage';
 import type { PublicMealImage } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -140,7 +141,7 @@ export default function AdminMealImagesPage() {
       )}
 
       <form
-        className="flex gap-3 rounded-3xl border border-brand-border/60 bg-brand-surface/70 p-4"
+        className="flex flex-col gap-3 rounded-3xl border border-brand-border/60 bg-brand-surface/70 p-4 sm:flex-row"
         onSubmit={(event) => {
           event.preventDefault();
           setQuery(search.trim());
@@ -157,6 +158,10 @@ export default function AdminMealImagesPage() {
         </Button>
       </form>
 
+      {data?.items.length === 0 && !loading && (
+        <EmptyState title="No matching meals" description="Try another meal name to find an image assignment." />
+      )}
+
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {data?.items.map((meal) => (
           <article
@@ -169,6 +174,7 @@ export default function AdminMealImagesPage() {
               mealType={meal.mealType}
               className="h-44 w-full rounded-none"
               showAttributionLinks
+              allowCanonicalFallback={false}
             />
             <div className="space-y-3 p-4">
               <div>

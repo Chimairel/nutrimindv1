@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import MealImage, { resolveMealCategory } from './MealImage';
+import MealImage, { resolveMealCategory, resolveCanonicalReviewedImage } from './MealImage';
 
 vi.mock('next/image', () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean }) => {
@@ -26,6 +26,39 @@ const mockImage = {
 };
 
 describe('MealImage', () => {
+  it.each(['Beef tapa with egg', 'Beef with cabbage', 'Pork with vegetables'])(
+    'keeps primary meat visible in %s',
+    (name) => {
+      expect(resolveMealCategory(name).category).toBe('meat');
+    }
+  );
+
+  it('uses structured primary ingredients and avoids eggplant/egg substring collisions', () => {
+    expect(
+      resolveMealCategory('Vegetable plate', 'LUNCH', [{ ingredientName: 'Beef', category: 'Meat & Poultry' }]).category
+    ).toBe('meat');
+    expect(resolveMealCategory('Eggplant adobo').category).toBe('plant-based');
+    expect(resolveMealCategory('Chicken with cabbage').category).toBe('poultry-egg');
+  });
+
+  it('only assigns approved exact recipe names and retains source attribution', () => {
+    expect(resolveCanonicalReviewedImage('Chicken adobo')).toBeNull();
+    expect(resolveCanonicalReviewedImage('Beef tapa with egg')).toBeNull();
+    expect(resolveCanonicalReviewedImage('Banana Peanut Butter Oatmeal')?.attribution.creator).toBe(
+      'Renee Comet (Photographer)'
+    );
+    expect(resolveCanonicalReviewedImage('Beef Rice Bowl with Cabbage')?.attribution.sourcePageUrl).toContain(
+      'Braised_Beef_Shin_Rice_Bowl'
+    );
+  });
+
+  it('recovers when a failed image is replaced and disables skeleton motion', () => {
+    const { rerender, container } = render(<MealImage mealName="Pancit" image={mockImage} />);
+    expect(container.querySelector('.animate-pulse')).toHaveClass('motion-reduce:animate-none');
+    fireEvent.error(screen.getByRole('img'));
+    rerender(<MealImage mealName="Pancit" image={{ ...mockImage, url: '/replacement.jpg' }} />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/replacement.jpg');
+  });
   it('renders representative fallback with category awareness for missing images', () => {
     render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" />);
     expect(screen.getByText('Chicken Tinola')).toBeInTheDocument();

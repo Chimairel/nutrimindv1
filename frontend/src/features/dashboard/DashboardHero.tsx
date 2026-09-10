@@ -52,7 +52,7 @@ export function DashboardHero({
           </h1>
 
           <p className="mt-2 text-xs leading-relaxed text-brand-muted md:text-sm">
-            Culturally tailored, FNRI-referenced meal plans aligned with your daily targets and clinical oversight.
+            Explore your meal plan, nutrition sources, and each meal’s review status alongside your daily targets.
           </p>
 
           {/* Quick info chip bar */}
@@ -91,7 +91,9 @@ export function DashboardHero({
                   ? 'RND Review Pending'
                   : planType === 'STARTER'
                     ? 'Starter Kickoff Active'
-                    : 'PRC RND Verified'}
+                    : planType === 'WEEKLY'
+                      ? 'Weekly plan'
+                      : 'No active plan'}
               </span>
             </span>
           </div>

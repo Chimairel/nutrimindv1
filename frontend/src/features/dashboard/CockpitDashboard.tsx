@@ -66,7 +66,7 @@ export function CockpitDashboard({
 
   // Determine which meals to show: approved meals or pending preview meals
   const hasApprovedMeals = meals.length > 0;
-  const hasPendingMeals = !hasApprovedMeals && pendingMeals.length > 0;
+  const hasPendingMeals = pendingMeals.length > 0;
 
   return (
     <section aria-label="Daily Nutrition Cockpit" className="relative w-full">
@@ -78,7 +78,7 @@ export function CockpitDashboard({
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-brand-border/70 pb-5 dark:border-white/10">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-brand-muted dark:text-white/35">
-              {selectedDayLabel} · {selectedDateFormatted} · live plan
+              {selectedDayLabel} · {selectedDateFormatted} · meal plan
             </p>
             <h2 className="mt-1 font-display text-xl font-bold tracking-tight text-brand-text dark:text-white sm:text-2xl">
               Your nutrition cockpit
@@ -110,7 +110,7 @@ export function CockpitDashboard({
             <div className="flex items-center gap-2 rounded-full border border-brand-border bg-brand-bgAlt/50 px-3 py-1.5 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-green shadow-[0_0_10px_rgba(8,112,91,0.5)] dark:bg-brand-accent dark:shadow-[0_0_10px_rgba(184,244,95,0.85)] animate-pulse" />
               <span className="font-mono text-[9px] uppercase tracking-wider text-brand-muted dark:text-white/60">
-                Synced
+                Plan overview
               </span>
             </div>
 
@@ -160,6 +160,12 @@ export function CockpitDashboard({
               )}
             </div>
 
+            {metrics.unresolvedMealCount > 0 && (
+              <p role="status" className="mt-3 text-xs text-status-pending-text">
+                {metrics.unresolvedMealCount} outside meal{metrics.unresolvedMealCount === 1 ? '' : 's'} with incomplete
+                nutrition. Unresolved items are excluded from totals.
+              </p>
+            )}
             {/* Macro Tiles */}
             <div className="mt-5 grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl border border-brand-border/70 bg-brand-surface/80 py-2.5 dark:border-white/5 dark:bg-white/[0.04]">
@@ -199,7 +205,7 @@ export function CockpitDashboard({
 
           {/* Right: Scheduled Meals with ACTUAL IMAGES */}
           <div className="md:col-span-7 flex flex-col justify-between space-y-3">
-            {hasApprovedMeals ? (
+            {hasApprovedMeals &&
               meals.map((meal) => {
                 const isCompleted = meal.mealLogs?.some((log) => log.status === 'DONE');
                 const isSkipped = meal.mealLogs?.some((log) => log.status === 'SKIPPED');
@@ -214,7 +220,7 @@ export function CockpitDashboard({
                   </span>
                 ) : meal.status === 'APPROVED' ? (
                   <span className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider text-brand-green dark:text-brand-accent">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-green dark:bg-brand-accent" /> Verified
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-green dark:bg-brand-accent" /> Approved
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -225,51 +231,48 @@ export function CockpitDashboard({
                 return (
                   <div
                     key={meal.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onMealClick(meal.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onMealClick(meal.id);
-                      }
-                    }}
-                    className={`group flex w-full cursor-pointer items-center gap-4 rounded-[20px] border border-brand-border/80 bg-brand-surface p-3.5 text-left transition hover:border-brand-green/40 hover:bg-brand-bgAlt/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green dark:border-white/[0.08] dark:bg-white/[0.035] dark:hover:border-white/20 dark:hover:bg-white/[0.07] ${
+                    className={`group flex w-full cursor-pointer items-center gap-2 sm:gap-4 rounded-[20px] border border-brand-border/80 bg-brand-surface p-3.5 text-left transition hover:border-brand-green/40 hover:bg-brand-bgAlt/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green dark:border-white/[0.08] dark:bg-white/[0.035] dark:hover:border-white/20 dark:hover:bg-white/[0.07] ${
                       isCompleted ? 'opacity-80' : isSkipped ? 'opacity-55' : ''
                     }`}
                   >
-                    {/* Actual Meal Image Thumbnail */}
-                    <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-2xl border border-brand-border bg-brand-bgAlt/60 dark:border-white/10 dark:bg-[#09110e]">
-                      <MealImage
-                        image={meal.image}
-                        mealName={meal.mealName}
-                        mealType={meal.mealType}
-                        ingredients={meal.ingredients}
-                        className="h-full w-full"
-                        variant="thumbnail"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onMealClick(meal.id)}
+                      aria-label={`Open ${meal.mealName} details`}
+                      className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left"
+                    >
+                      {/* Actual Meal Image Thumbnail */}
+                      <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-2xl border border-brand-border bg-brand-bgAlt/60 dark:border-white/10 dark:bg-[#09110e]">
+                        <MealImage
+                          image={meal.image}
+                          mealName={meal.mealName}
+                          mealType={meal.mealType}
+                          ingredients={meal.ingredients}
+                          className="h-full w-full"
+                          variant="thumbnail"
+                        />
+                      </div>
 
-                    {/* Meal Title & Metadata */}
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={`truncate font-display text-sm font-bold transition-colors group-hover:text-brand-green dark:group-hover:text-brand-accent ${
-                          isCompleted
-                            ? 'line-through text-brand-muted dark:text-white/70'
-                            : 'text-brand-text dark:text-white/95'
-                        }`}
-                      >
-                        {meal.mealName}
-                      </p>
-                      <p className="mt-1 text-xs text-brand-muted dark:text-white/40">
-                        {Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g P ·{' '}
-                        <span className="capitalize">{meal.mealType.toLowerCase()}</span>
-                      </p>
-                    </div>
-
+                      {/* Meal Title & Metadata */}
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`line-clamp-2 font-display text-sm font-bold transition-colors group-hover:text-brand-green dark:group-hover:text-brand-accent ${
+                            isCompleted
+                              ? 'line-through text-brand-muted dark:text-white/70'
+                              : 'text-brand-text dark:text-white/95'
+                          }`}
+                        >
+                          {meal.mealName}
+                        </p>
+                        <p className="mt-1 text-xs text-brand-muted dark:text-white/40">
+                          {Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g P ·{' '}
+                          <span className="capitalize">{meal.mealType.toLowerCase()}</span>
+                        </p>
+                      </div>
+                    </button>
                     {/* Status & Chevron */}
                     <div className="flex shrink-0 items-center gap-2">
-                      {onStatusToggle && (
+                      {onStatusToggle && meal.status === 'APPROVED' && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -296,8 +299,8 @@ export function CockpitDashboard({
                     </div>
                   </div>
                 );
-              })
-            ) : hasPendingMeals ? (
+              })}
+            {hasPendingMeals &&
               pendingMeals.map((meal, index) => (
                 <div
                   key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
@@ -330,11 +333,11 @@ export function CockpitDashboard({
                     </span>
                   </div>
                 </div>
-              ))
-            ) : (
+              ))}
+            {!hasApprovedMeals && !hasPendingMeals && (
               <div className="flex h-full min-h-[180px] flex-col items-center justify-center rounded-[20px] border border-dashed border-brand-border bg-brand-bg/30 p-6 text-center dark:border-white/10 dark:bg-white/[0.02]">
                 <p className="text-xs font-semibold text-brand-muted dark:text-white/50">
-                  No meals scheduled for this day offset.
+                  No meals scheduled for this day.
                 </p>
                 <button
                   type="button"
@@ -358,10 +361,11 @@ export function CockpitDashboard({
               </span>
               <Droplets className="h-3 w-3 text-brand-green dark:text-brand-cyan" />
             </div>
-            <p className="mt-1 text-xs font-bold text-brand-text dark:text-white/90">{waterIntake} / 2500 mL</p>
+            <p className="mt-1 text-xs font-bold text-brand-text dark:text-white/90">{waterIntake} mL logged</p>
             <div className="mt-2 flex gap-1.5">
               <button
                 type="button"
+                aria-label="Remove 250 mL of water"
                 onClick={() => onAddWater(-250)}
                 className="rounded border border-brand-border bg-brand-surface px-2 py-0.5 text-[9px] font-bold text-brand-text hover:bg-brand-bgAlt transition-colors dark:border-white/10 dark:bg-white/[0.04] dark:text-white/70 dark:hover:bg-white/10"
               >
@@ -369,6 +373,7 @@ export function CockpitDashboard({
               </button>
               <button
                 type="button"
+                aria-label="Add 250 mL of water"
                 onClick={() => onAddWater(250)}
                 className="rounded border border-brand-green/30 bg-brand-green/15 px-2 py-0.5 text-[9px] font-bold text-brand-green hover:bg-brand-green/25 transition-colors dark:border-brand-accent/30 dark:bg-brand-accent/15 dark:text-brand-accent dark:hover:bg-brand-accent/25"
               >
