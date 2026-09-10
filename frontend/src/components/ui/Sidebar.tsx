@@ -3,44 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Activity,
-  BarChart3,
-  BookOpen,
-  BrainCircuit,
-  CheckSquare2,
-  ClipboardList,
-  LayoutDashboard,
-  LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ShoppingBasket,
-  ShieldCheck,
-  Sparkles,
-  Stethoscope,
-  HeartPulse,
-  TrendingUp,
-  UserRound,
-  Users,
-  UtensilsCrossed,
-  Crown,
-  Receipt,
-  DatabaseZap,
-  ImageIcon,
-} from 'lucide-react';
+import { Activity, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
+import { workspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 
 interface SidebarProps {
   className?: string;
-}
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
 }
 
 interface SidebarTooltipProps {
@@ -100,36 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     localStorage.setItem('nutrimind-sidebar-collapsed', String(nextValue));
   };
 
-  const navItemsByRole: Record<'USER' | 'NUTRITIONIST' | 'ADMIN', NavItem[]> = {
-    USER: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Meal plan', href: '/meals', icon: UtensilsCrossed },
-      { label: 'Grocery', href: '/grocery', icon: ShoppingBasket },
-      { label: 'Progress', href: '/progress', icon: TrendingUp },
-      { label: 'Health profile', href: '/health-profile', icon: HeartPulse },
-      { label: 'Premium access', href: '/billing', icon: Crown },
-    ],
-    NUTRITIONIST: [
-      { label: 'Review queue', href: '/nutritionist/reviews', icon: ClipboardList },
-      { label: 'Outside meals', href: '/nutritionist/outside-meals', icon: UtensilsCrossed },
-      { label: 'Approved plans', href: '/nutritionist/approved', icon: CheckSquare2 },
-      { label: 'Meal library', href: '/nutritionist/library', icon: BookOpen },
-      { label: 'Compensation', href: '/nutritionist/compensation', icon: Receipt },
-      { label: 'My profile', href: '/nutritionist/profile', icon: UserRound },
-    ],
-    ADMIN: [
-      { label: 'Overview', href: '/admin/overview', icon: LayoutDashboard },
-      { label: 'Users', href: '/admin/users', icon: Users },
-      { label: 'Nutritionists', href: '/admin/nutritionists', icon: Stethoscope },
-      { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-      { label: 'Data', href: '/admin/data', icon: DatabaseZap },
-      { label: 'Images', href: '/admin/images', icon: ImageIcon },
-      { label: 'Operations', href: '/admin/operations', icon: ShieldCheck },
-      { label: 'Compensation', href: '/admin/compensation', icon: Receipt },
-    ],
-  };
-
-  const navItems = navItemsByRole[user.role] || [];
+  const navItems = workspaceTools[user.role].filter((item) => item.href !== '/profile');
   const collapsed = isMounted && isCollapsed;
   const homeHref =
     user.role === 'USER' ? '/dashboard' : user.role === 'NUTRITIONIST' ? '/nutritionist/reviews' : '/admin/overview';
@@ -145,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
         bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white shadow-[0_28px_80px_rgba(1,8,5,0.32)]
         transition-[width,padding] duration-300 ease-out md:flex
-        ${collapsed ? 'w-[84px] px-3 py-4' : 'w-[280px] p-4'}
+        ${collapsed ? 'w-[84px] px-3 py-4' : 'w-[248px] p-4'}
         ${className}
       `}
     >
@@ -218,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
       <nav
         id="nutrimind-sidebar-navigation"
-        className="relative flex flex-1 flex-col gap-1.5"
+        className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto"
         aria-label={`${user.role.toLowerCase()} navigation`}
       >
         {navItems.map((item) => {

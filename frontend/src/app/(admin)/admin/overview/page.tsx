@@ -22,6 +22,7 @@ import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 import { useAdminAnalytics } from '@/features/admin-analytics/useAdminAnalytics';
+import { WorkspaceLinkGrid } from '@/components/shared/WorkspaceLinkGrid';
 
 interface Metric {
   label: string;
@@ -42,7 +43,7 @@ export default function AdminOverviewPage() {
 
   const metrics: Metric[] = [
     {
-      label: 'Patient accounts',
+      label: 'User accounts',
       value: data.totalUsers,
       icon: Users,
       tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan',
@@ -114,15 +115,20 @@ export default function AdminOverviewPage() {
       <PortalPageHeader
         icon={BrainCircuit}
         eyebrow="Administration"
-        title="Platform command center"
-        description="A live operational view of NutriMind accounts, professional verification, meal workflows, and nutrition data."
+        title="Your administration workspace"
+        description="Manage people, maintain trusted content, and keep platform operations moving."
         meta={
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan shadow-[0_0_9px_rgba(34,211,238,0.8)]" />
-            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/50">Live system pulse</span>
+            <span className="text-xs font-medium text-white/75">Latest loaded overview</span>
           </div>
         }
       />
+
+      <section aria-label="Administration tools">
+        <h2 className="mb-3 font-display text-lg font-bold text-brand-text">What would you like to manage?</h2>
+        <WorkspaceLinkGrid role="ADMIN" exclude={['/admin/overview']} />
+      </section>
 
       <div>
         <p className="portal-section-label mb-4">Operational metrics</p>
@@ -130,14 +136,13 @@ export default function AdminOverviewPage() {
           {metrics.map((metric) => {
             const Icon = metric.icon;
             return (
-              <Card key={metric.label} interactive className="group p-5">
+              <Card key={metric.label} className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${metric.tone}`}>
                     <Icon className="h-[18px] w-[18px]" />
                   </span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-brand-muted">Live</span>
                 </div>
-                <p className="mt-8 font-display text-3xl font-black tracking-[-0.04em] text-brand-text">
+                <p className="mt-4 font-display text-3xl font-black tracking-[-0.04em] text-brand-text">
                   {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
                 </p>
                 <p className="mt-1 text-xs font-semibold text-brand-muted">{metric.label}</p>

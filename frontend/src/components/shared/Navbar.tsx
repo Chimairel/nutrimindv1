@@ -5,16 +5,28 @@ import { Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/lib/context/ThemeContext';
 import NotificationDropdown from '@/components/shared/NotificationDropdown';
+import { usePathname } from 'next/navigation';
+import { workspaceLabels, workspaceTools } from '@/lib/workspace-navigation';
+import { WorkspaceTools } from './WorkspaceTools';
 
 export const Navbar: React.FC = () => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
 
   if (!user) return null;
 
   return (
-    <header className="relative z-30 flex h-[72px] w-full shrink-0 items-center justify-end border-b border-brand-border/50 bg-brand-surface/40 px-3 backdrop-blur-xl md:px-5">
+    <header className="relative z-30 flex min-h-[72px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">
+      <div className="min-w-0">
+        <p className="hidden text-xs text-brand-muted sm:block">{workspaceLabels[user.role]}</p>
+        <p className="truncate text-sm font-bold text-brand-text">
+          {workspaceTools[user.role].find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'))
+            ?.label || 'NutriMind'}
+        </p>
+      </div>
       <div className="ml-auto flex items-center gap-2">
+        <WorkspaceTools role={user.role} />
         <button
           type="button"
           onClick={toggleTheme}

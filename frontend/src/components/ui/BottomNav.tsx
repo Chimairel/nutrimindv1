@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown, Home, Utensils, ShoppingCart, User } from 'lucide-react';
+import { Activity, Home, Utensils, ShoppingCart, User } from 'lucide-react';
 
 interface BottomNavProps {
   className?: string;
@@ -21,7 +21,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
     { label: 'Home', href: '/dashboard', icon: Home },
     { label: 'Meals', href: '/meals', icon: Utensils },
     { label: 'Grocery', href: '/grocery', icon: ShoppingCart },
-    { label: 'Premium', href: '/billing', icon: Crown },
+    { label: 'Progress', href: '/progress', icon: Activity },
     { label: 'Profile', href: '/profile', icon: User },
   ];
 

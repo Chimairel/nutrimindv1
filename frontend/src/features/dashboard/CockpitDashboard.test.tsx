@@ -87,4 +87,12 @@ describe('CockpitDashboard', () => {
     await user.click(screen.getByRole('button', { name: /Start check-in/ }));
     expect(callbacks.onOpenCheckin).toHaveBeenCalledOnce();
   });
+  it('offers expandable pending previews without a logging action and names every macro', () => {
+    const { container } = render(<CockpitDashboard {...props()} />);
+    expect(container.querySelector('details summary')).toHaveTextContent('Pending soup');
+    expect(screen.getByText('Protein')).toBeInTheDocument();
+    expect(screen.getByText('Carbs')).toBeInTheDocument();
+    expect(screen.getByText('Fat')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Weight & progress/ })).toHaveAttribute('href', '/progress');
+  });
 });

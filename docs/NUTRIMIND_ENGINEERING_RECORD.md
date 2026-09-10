@@ -3774,3 +3774,12 @@ This section is a continuity record for agreed future work. Every item below is 
 - Browser evidence covers desktop landing-to-login continuity and a 390×844 login viewport without horizontal overflow. Authenticated dashboard, locality-save, Grocery, nutritionist, and administrator browser journeys were not claimed: no configured synthetic authenticated backend was available in this worktree, and no credentials or authentication bypass were used. Task-owned preview servers/tabs were closed.
 - No secrets or real credentials were read, copied, logged, or committed. No real user data, database writes, external clinical decisions, or production actions were performed. Development and main remain unchanged; delivery is on `codex/frontend-polish`.
 - Exact files, defect-by-defect findings, components, commands, screenshots, and remaining manual checks are recorded in [the detailed handoff](FRONTEND_POLISH_HANDOFF_2026-09-10.md).
+
+## 75. Role workspace redesign (2026-09-10)
+
+**Change ID:** CHG-20260910-02
+
+- Replaced the cockpit presentation with a compact daily intake summary, readable meal rows, expandable pending previews, and labelled daily actions. Preserved approval gates, provisional nutrition disclosures, and existing callbacks.
+- Added a searchable role-specific All tools menu and shared navigation configuration across User, Nutritionist, and Admin. Admin gains management shortcuts; Nutritionist gains a clearer review starting panel. Shared headers and sidebar spacing are more compact while retaining theme tokens.
+- Verification: 73 frontend tests pass across 20 files; production build, frontend lint, Prettier, architecture limits, backend no-emit types, and diff checks pass. Authenticated browser acceptance remains outstanding; no synthetic authenticated backend is configured in this worktree.
+- Details and remaining acceptance checks: [role workspace redesign](ROLE_WORKSPACE_REDESIGN_2026-09-10.md). No backend business rules, authentication contracts, database records, or deployment settings changed.

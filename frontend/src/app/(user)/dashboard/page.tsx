@@ -12,7 +12,7 @@ import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Calendar, Plus, AlertTriangle, Utensils, Sparkles, Target } from 'lucide-react';
+import { Calendar, Plus, AlertTriangle, Utensils, Sparkles } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
@@ -373,7 +373,7 @@ export default function DashboardPage() {
   }
 
   if (isLoading) {
-    return <PortalLoadingState message="Synchronizing dynamic clinical context..." />;
+    return <PortalLoadingState message="Preparing your daily overview..." />;
   }
 
   const activeDate = uniqueDates[selectedDayOffset] ?? new Date();
@@ -413,27 +413,16 @@ export default function DashboardPage() {
         {/* Permanent Top Greeting Header */}
         <PortalPageHeader
           icon={Sparkles}
-          eyebrow="Daily nutrition cockpit"
+          eyebrow="Your daily workspace"
           title={<>Mabuhay, {user?.name ? user.name.split(' ')[0] : 'Friend'}.</>}
-          description="Your accessible, culturally aware meal plan, daily targets, and review-aware nutrition progress in one connected view."
+          description="Your meals, daily intake, and next steps — all in one place."
           actions={
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 rounded-2xl border border-brand-border bg-brand-surface px-3.5 py-2 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-                <Target className="h-4 w-4 text-brand-green dark:text-brand-accent shrink-0" />
-                <span className="font-display text-sm font-black text-brand-text dark:text-white">
-                  {Math.round(userProfile?.dailyCalorieTarget ?? 2000).toLocaleString()}
-                </span>
-                <span className="font-mono text-[10px] uppercase tracking-wider text-brand-muted dark:text-white/40">
-                  kcal / day
-                </span>
-              </div>
-              <Button
-                variant="primary"
-                onClick={() => router.push('/meals')}
-                className="flex items-center gap-2 text-xs font-bold"
-              >
-                <Calendar className="h-4 w-4" />
-                <span>Open weekly plan</span>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="primary" onClick={() => setIsLogModalOpen(true)}>
+                <Plus className="h-4 w-4" /> Log an outside meal
+              </Button>
+              <Button variant="secondary" onClick={() => router.push('/meals')}>
+                <Calendar className="h-4 w-4" /> Weekly plan
               </Button>
             </div>
           }
@@ -506,16 +495,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={() => setIsLogModalOpen(true)}
-        className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-brand-green/30 bg-brand-accent text-brand-black shadow-xl shadow-brand-accent/20 outline-none transition-all duration-200 hover:scale-105 hover:bg-brand-accent/90 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:scale-95 md:bottom-8 md:right-8 md:h-16 md:w-16"
-        aria-label="Log an outside meal"
-        title="Log an outside meal"
-      >
-        <Plus className="h-7 w-7 stroke-[3px] md:h-8 md:w-8" />
-      </button>
 
       <OutsideMealModal
         error={logError}

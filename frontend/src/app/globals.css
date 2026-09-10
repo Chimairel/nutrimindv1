@@ -264,7 +264,7 @@ th {
     radial-gradient(circle at 7% 120%, rgba(184, 244, 95, 0.13), transparent 14rem), #07100d;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 2rem;
-  box-shadow: 0 26px 70px rgba(1, 8, 5, 0.22);
+  box-shadow: 0 8px 24px rgba(1, 8, 5, 0.1);
   color: white;
   overflow: hidden;
   padding: 1.5rem;
@@ -317,14 +317,14 @@ th {
 .portal-title {
   color: #f4fbf7;
   font-family: var(--font-outfit), sans-serif;
-  font-size: clamp(1.9rem, 4vw, 3.35rem);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
   font-weight: 900;
   letter-spacing: -0.045em;
   line-height: 0.98;
 }
 
 .portal-subtitle {
-  color: rgba(255, 255, 255, 0.46);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.8125rem;
   line-height: 1.55;
   max-width: 42rem;
@@ -372,7 +372,7 @@ th {
   }
 
   .portal-page-header {
-    padding: 2rem 2.25rem;
+    padding: 1.5rem 1.75rem;
   }
 }
 

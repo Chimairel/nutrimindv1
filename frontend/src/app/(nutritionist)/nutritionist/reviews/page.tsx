@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
+import { WorkspaceLinkGrid } from '@/components/shared/WorkspaceLinkGrid';
 
 export default function ReviewsPage() {
   const {
@@ -58,14 +59,14 @@ export default function ReviewsPage() {
       <div
         className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
       >
-        <div className="rounded-[24px] bg-[#07100d] p-5 text-white shadow-card">
-          <p className="portal-kicker">Clinical workflow</p>
+        <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 text-brand-text">
+          <p className="text-xs font-semibold text-brand-green">Meal-plan review</p>
           <div className="mt-3 flex items-center justify-between">
             <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
               Review queue
               <button
                 onClick={fetchQueue}
-                className="rounded-xl p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-brand-cyan"
+                className="rounded-xl p-2 text-brand-green transition hover:bg-brand-green/10"
                 title="Refresh queue"
                 aria-label="Refresh queue"
               >
@@ -76,6 +77,10 @@ export default function ReviewsPage() {
               {queue.length} pending
             </Badge>
           </div>
+          <p className="mt-3 text-xs leading-relaxed text-brand-muted">
+            Choose an available meal to claim its review. Check the health profile, ingredient sources, and warnings
+            before deciding.
+          </p>
         </div>
 
         {isLoading ? (
@@ -154,17 +159,29 @@ export default function ReviewsPage() {
           </button>
         )}
         {selectedMealId === null ? (
-          <div className="flex-grow flex flex-col items-center justify-center text-center p-12 space-y-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] border border-brand-green/20 bg-brand-green/10">
-              <Eye className="w-12 h-12 text-brand-muted" />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-lg font-bold text-brand-text">No Card Selected</h2>
-              <p className="text-xs text-brand-muted max-w-sm">
-                Select a generated meal plan card from the sidebar queue to display the user clinical profile,
-                ingredient sources, and automatic warnings.
+          <div className="space-y-6 py-3">
+            <div className="rounded-2xl border border-brand-border bg-brand-surface p-6">
+              <h2 className="font-display text-2xl font-bold text-brand-text">A clear path to every review</h2>
+              <p className="mt-3 text-sm leading-relaxed text-brand-muted">
+                Select a meal from the queue to begin. Your review opens here, with the person’s health profile and the
+                meal’s evidence side by side.
               </p>
+              <ol className="mt-5 space-y-3 text-sm text-brand-text">
+                <li>
+                  <strong className="text-brand-green">01 · Claim</strong> an available review.
+                </li>
+                <li>
+                  <strong className="text-brand-green">02 · Inspect</strong> restrictions, ingredients, and estimates.
+                </li>
+                <li>
+                  <strong className="text-brand-green">03 · Decide</strong> and record your review notes.
+                </li>
+              </ol>
             </div>
+            <section aria-label="Professional tools">
+              <h3 className="mb-3 text-sm font-bold text-brand-text">Continue other work</h3>
+              <WorkspaceLinkGrid role="NUTRITIONIST" exclude={['/nutritionist/reviews']} />
+            </section>
           </div>
         ) : detailLoading ? (
           <div className="flex-grow flex items-center justify-center">

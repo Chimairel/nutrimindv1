@@ -30,8 +30,8 @@ export default function PortalPageHeader({
             </span>
             <p className="portal-kicker">{eyebrow}</p>
           </div>
-          <h1 className="portal-title mt-6">{title}</h1>
-          <p className="portal-subtitle mt-3">{description}</p>
+          <h1 className="portal-title mt-3">{title}</h1>
+          <p className="portal-subtitle mt-2">{description}</p>
         </div>
         {(actions || meta) && (
           <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
