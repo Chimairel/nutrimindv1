@@ -1,0 +1,35 @@
+{
+  "target": "disposable-loopback",
+  "observations": {
+    "nutritionistApplication": "PASS: staged approval, captured invitation, activation, replay rejection; no external email",
+    "onboarding": "PASS: registration, captured OTP, verified-email gate, all onboarding writes, report acknowledgement gate; AI report generation not exercised",
+    "roleIsolation": "PASS: real login; USER denied ADMIN and NUTRITIONIST routes",
+    "authenticatedReadRoutes": {
+      "/api/admin/analytics": 200,
+      "/api/admin/users": 200,
+      "/api/admin/nutritionists": 200,
+      "/api/admin/nutritionist-applications": 200,
+      "/api/admin/data": 200,
+      "/api/admin/billing-operations": 200,
+      "/api/admin/compensation": 200,
+      "/api/nutritionist/queue": 200,
+      "/api/nutritionist/library": 200,
+      "/api/nutritionist/approved": 200,
+      "/api/nutritionist/profile": 200,
+      "/api/nutritionist/compensation": 200,
+      "/api/nutritionist/outside-meal-reviews": 200,
+      "/api/user/profile": 200,
+      "/api/user/progress/history": 200,
+      "/api/user/water/today": 200,
+      "/api/user/account/export": 200
+    },
+    "groceryPdf": "PASS: authenticated endpoint returns a PDF document (visual layout not tested)",
+    "libraryCalorieFiltering": "GAP REPRODUCED: 3000 kcal breakfast returned for a 2000 kcal daily target (600 kcal breakfast allocation)",
+    "sameDaySwap": "GAP REPRODUCED: same-day swap accepted",
+    "swapWarning": "DEFECT REPRODUCED: warning-required preview can be committed without acknowledgement",
+    "swapGroceryFailure": "DEFECT REPRODUCED: swap reports success while old grocery contents remain after projection failure",
+    "dietUpdate": "DEFECT REPRODUCED: successful VEGAN profile update leaves egg meal approved and actionable",
+    "weightPaths": "DEFECT REPRODUCED: the two weight logging services produce different calorie targets for the same weight",
+    "reportFreshness": "DEFECT REPRODUCED: changed condition clears acknowledgement but old report text remains and can be acknowledged again"
+  }
+}

@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/current-journey-audit.ts",
     "scripts/billing-shared-acceptance-audit.ts",
     "scripts/billing-shared-worker-acceptance.ts",
     "scripts/measure-structured-library-coverage.ts",

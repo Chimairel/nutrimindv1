@@ -42,7 +42,9 @@ test('[TEST-116] success and cancel returns are explicitly non-authoritative and
 
 test('[TEST-117] navigation, route guard, and meal UI consume the dynamic server cap', () => {
   const sidebar = readFrontend('src/components/ui/Sidebar.tsx');
-  const bottom = readFrontend('src/components/ui/BottomNav.tsx');
+  const navigation = readFrontend('src/lib/workspace-navigation.ts');
+  const navbar = readFrontend('src/components/shared/Navbar.tsx');
+  const tools = readFrontend('src/components/shared/WorkspaceTools.tsx');
   const guard = readFrontend('src/components/shared/RouteGuard.tsx');
   const meals = [
     readFrontend('src/app/(user)/meals/page.tsx'),
@@ -50,8 +52,10 @@ test('[TEST-117] navigation, route guard, and meal UI consume the dynamic server
     readFrontend('src/features/meals/MealsWorkspaceModals.tsx'),
   ].join('\n');
   const card = readFrontend('src/components/user/MealCard.tsx');
-  assert.match(sidebar, /href: '\/billing'/);
-  assert.match(bottom, /href: '\/billing'/);
+  assert.match(sidebar, /workspaceTools\[user.role\]/);
+  assert.match(navigation, /href: '\/billing'/);
+  assert.match(navbar, /<WorkspaceTools role=\{user.role\}/);
+  assert.match(tools, /workspaceTools\[role\]/);
   assert.match(guard, /'\/billing'/);
   assert.match(meals, /setSwapCap/);
   assert.match(card, /swapCap/);
