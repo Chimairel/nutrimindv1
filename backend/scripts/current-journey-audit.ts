@@ -1,4 +1,4 @@
-/** Read/write audit probes for a disposable database only. Observations are not acceptance claims. */
+/** Repair acceptance probes for a disposable database only. No live-provider or clinical claims. */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
@@ -15,6 +15,8 @@ import { GroceryService } from '../src/services/grocery.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { NutritionReportService } from '../src/services/nutrition-report.service';
 import { WeightLogService } from '../src/services/weight-log.service';
+import { FoodCompositionService, compositionDraftSchema } from '../src/services/food-composition.service';
+import { getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
 import { ProgressService } from '../src/services/progress.service';
 import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../src/domain/onboarding.policy';
@@ -297,51 +299,192 @@ async function main() {
     );
     observations.groceryPdf = 'PASS: authenticated endpoint returns a PDF document (visual layout not tested)';
     const compatible = await MealSwapService.getCompatibleLibraryMeals(user.id);
-    assert.ok(compatible.some((meal) => meal.id === library.id));
-    observations.libraryCalorieFiltering =
-      'GAP REPRODUCED: 3000 kcal breakfast returned for a 2000 kcal daily target (600 kcal breakfast allocation)';
+    assert.ok(!compatible.some((meal) => meal.id === library.id));
+    observations.libraryCalorieFiltering = 'PASS: oversized certified serving excluded from compatible library';
+    await assert.rejects(() => MealSwapService.getSwapPreview(user.id, plan.id, library.id), /serving/);
+    await prisma.mealLibrary.update({ where: { id: library.id }, data: { calories: 600 } });
     const preview = await MealSwapService.getSwapPreview(user.id, plan.id, library.id);
     assert.equal(preview.warningRequired, true);
+    await assert.rejects(
+      () => MealSwapService.swapMeal(user.id, plan.id, library.id, false, false, preview.previewToken, randomUUID()),
+      /Acknowledge/
+    );
     const originalGenerate = GroceryService.generateGroceryList;
     GroceryService.generateGroceryList = async () => {
       throw new Error('Synthetic grocery projection outage');
     };
     try {
-      await MealSwapService.swapMeal(user.id, plan.id, library.id, false, false);
+      await assert.rejects(
+        () => MealSwapService.swapMeal(user.id, plan.id, library.id, true, true, preview.previewToken, randomUUID()),
+        /projection outage/
+      );
     } finally {
       GroceryService.generateGroceryList = originalGenerate;
     }
-    const swapped = await prisma.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });
-    assert.equal(swapped.libraryMealId, library.id);
+    const rolledBack = await prisma.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });
+    assert.equal(rolledBack.libraryMealId, null);
     const grocery = await GroceryService.getGroceryList(user.id);
     assert.ok(grocery?.groceryItems.some((item) => item.ingredientName === 'Original grocery item'));
-    observations.sameDaySwap = 'GAP REPRODUCED: same-day swap accepted';
-    observations.swapWarning = 'DEFECT REPRODUCED: warning-required preview can be committed without acknowledgement';
-    observations.swapGroceryFailure =
-      'DEFECT REPRODUCED: swap reports success while old grocery contents remain after projection failure';
+    const key = randomUUID();
+    const success = await MealSwapService.swapMeal(user.id, plan.id, library.id, true, true, preview.previewToken, key);
+    const replay = await MealSwapService.swapMeal(user.id, plan.id, library.id, true, true, preview.previewToken, key);
+    assert.equal(success.swapsUsed, replay.swapsUsed);
+    const boughtList = await GroceryService.getGroceryList(user.id);
+    const eggItem = boughtList!.groceryItems.find((item) => item.ingredientName === food.name)!;
+    const partial = await GroceryService.recordPurchase(user.id, eggItem.id, 50);
+    assert.equal(partial.purchasedQuantity, 50);
+    assert.equal(partial.isChecked, false);
+    const full = await GroceryService.toggleGroceryItem(user.id, eggItem.id);
+    assert.equal(full.purchasedQuantity, 100);
+    assert.equal(full.isChecked, true);
+    const rebuilt = await GroceryService.generateGroceryList(user.id);
+    assert.equal(rebuilt.groceryItems.find((item) => item.id === eggItem.id)?.purchasedQuantity, 100);
+    observations.sameDaySwap =
+      'PASS: acknowledged same-day swap, idempotent replay and purchased quantity preservation';
+    observations.swapWarning = 'PASS: server rejects missing calorie warning acknowledgement';
+    observations.swapGroceryFailure = 'PASS: projection outage rolls back meal and quota';
 
+    const currentProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
+    const upcoming = await prisma.mealPlan.create({
+      data: {
+        userId: user.id,
+        planGroupId: 'future-' + run,
+        mealType: 'BREAKFAST',
+        mealName: 'Next week eggs',
+        calories: 600,
+        proteinG: 20,
+        carbsG: 40,
+        fatG: 10,
+        status: 'APPROVED',
+        requiresSafetyRevalidation: false,
+        scheduledDate: getNextWeeklyCycleWindow(currentProfile).startDate,
+        ingredients: {
+          create: { ingredientName: food.name, foodItemId: food.id, dataSource: 'FNRI', quantity: 150, unit: 'g' },
+        },
+      },
+    });
+    const currentRead = await request('/api/user/meals/current', 'GET', undefined, token);
+    assert.equal(currentRead.status, 200);
+    assert.ok(
+      z
+        .object({ data: z.array(z.object({ id: z.string() })) })
+        .parse(currentRead.body)
+        .data.some((meal: { id: string }) => meal.id === plan.id)
+    );
+    assert.ok(
+      !z
+        .object({ data: z.array(z.object({ id: z.string() })) })
+        .parse(currentRead.body)
+        .data.some((meal: { id: string }) => meal.id === upcoming.id)
+    );
+    assert.equal((await request('/api/user/meals/current?view=next', 'GET', undefined, token)).status, 403);
+    await prisma.entitlementGrant.create({
+      data: {
+        userId: user.id,
+        billingSubjectKey: run,
+        entitlementKey: 'PREMIUM',
+        source: 'ADMIN_ADJUSTMENT',
+        sourceKey: 'audit-premium-' + run,
+        effectiveFrom: new Date(Date.now() - 60000),
+        effectiveUntil: new Date(Date.now() + 86400000),
+      },
+    });
+    const nextRead = await request('/api/user/meals/current?view=next', 'GET', undefined, token);
+    assert.equal(nextRead.status, 200);
+    assert.equal(
+      z.object({ data: z.array(z.object({ id: z.string() })) }).parse(nextRead.body).data[0].id,
+      upcoming.id
+    );
+    const legacyList = await prisma.groceryList.create({
+      data: {
+        userId: user.id,
+        weekLabel: 'Old unassigned cycle',
+        generatedAt: new Date('2020-01-01T00:00:00Z'),
+        groceryItems: {
+          create: {
+            ingredientName: food.name,
+            category: 'Other',
+            quantity: 999,
+            unit: 'g',
+            purchasedQuantity: 999,
+            isChecked: true,
+          },
+        },
+      },
+    });
+    const nextList = await GroceryService.getGroceryList(user.id, 'next');
+    assert.notEqual(nextList!.id, legacyList.id);
+    assert.equal((await prisma.groceryList.findUniqueOrThrow({ where: { id: legacyList.id } })).planGroupId, null);
+    assert.equal(nextList!.groceryItems[0].purchasedQuantity, 0);
+    observations.futurePlanning =
+      'PASS: Premium next-cycle access, Free rejection, independent grocery purchases and current-cycle selection';
     const profileUpdate = await request('/api/user/onboarding/profile', 'POST', { dietaryPreference: 'VEGAN' }, token);
     assert.equal(profileUpdate.status, 200);
     const afterDiet = await prisma.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });
-    assert.equal(afterDiet.status, 'APPROVED');
-    assert.equal(afterDiet.requiresSafetyRevalidation, false);
-    observations.dietUpdate =
-      'DEFECT REPRODUCED: successful VEGAN profile update leaves egg meal approved and actionable';
+    assert.equal(afterDiet.status, 'PENDING_REVIEW');
+    assert.equal(afterDiet.requiresSafetyRevalidation, true);
+    assert.equal(
+      (await prisma.mealPlan.findUniqueOrThrow({ where: { id: upcoming.id } })).requiresSafetyRevalidation,
+      true
+    );
+    observations.dietUpdate = 'PASS: VEGAN profile invalidates egg meal atomically';
     await WeightLogService.logWeight(user.id, 90);
     const firstWeightPath = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
     await ProgressService.logWeight(user.id, 90);
     const secondWeightPath = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
-    assert.notEqual(firstWeightPath.dailyCalorieTarget, secondWeightPath.dailyCalorieTarget);
-    observations.weightPaths =
-      'DEFECT REPRODUCED: the two weight logging services produce different calorie targets for the same weight';
+    assert.equal(firstWeightPath.dailyCalorieTarget, secondWeightPath.dailyCalorieTarget);
+    observations.weightPaths = 'PASS: weight entry paths agree on calorie target';
     const beforeReport = await NutritionReportService.getReport(user.id);
     await SafetyIntakeService.save(user.id, [{ domain: 'CONDITION', value: 'DIABETES', provenance: 'PREDEFINED' }]);
     const staleReport = await NutritionReportService.getReport(user.id);
     assert.equal(staleReport?.generalSummary, beforeReport?.generalSummary);
     assert.equal(staleReport?.acknowledgedAt, null);
-    await NutritionReportService.acknowledgeReport(user.id);
-    observations.reportFreshness =
-      'DEFECT REPRODUCED: changed condition clears acknowledgement but old report text remains and can be acknowledged again';
+    await assert.rejects(() => NutritionReportService.acknowledgeReport(user.id, staleReport!.version), /out of date/);
+    observations.reportFreshness = 'PASS: stale report cannot be acknowledged';
+    const composition = await FoodCompositionService.history(food.id);
+    const values = Object.fromEntries(
+      [
+        'calories',
+        'proteinG',
+        'carbsG',
+        'fatG',
+        'fiber',
+        'sodium',
+        'potassium',
+        'calcium',
+        'iron',
+        'vitaminA',
+        'vitaminC',
+        'vitaminB1',
+        'vitaminB2',
+        'niacin',
+        'water',
+      ].map((key) => [key, composition.food[key as keyof typeof composition.food]])
+    );
+    const draft = await FoodCompositionService.draft(
+      admin.id,
+      food.id,
+      compositionDraftSchema.parse({
+        expectedRevision: composition.food.compositionRevision,
+        values: { ...values, calories: 155 },
+        sourceUrl: 'https://example.invalid/synthetic-composition',
+        sourcePublishedAt: '2026-01-01T00:00:00.000Z',
+        reason: 'Synthetic correction for disposable acceptance only',
+      })
+    );
+    assert.equal(
+      (await prisma.foodItem.findUniqueOrThrow({ where: { id: food.id } })).calories,
+      composition.food.calories
+    );
+    await FoodCompositionService.publish(admin.id, draft.id);
+    assert.equal((await prisma.foodItem.findUniqueOrThrow({ where: { id: food.id } })).calories, 155);
+    assert.equal(
+      (await prisma.mealLibrary.findUniqueOrThrow({ where: { id: library.id } })).safetyEvidenceStatus,
+      'STALE'
+    );
+    assert.ok((await FoodCompositionService.history(food.id)).history[0].publishedAt);
+    observations.compositionCorrection =
+      'PASS: draft isolation, publication history, nutrient update and certificate invalidation';
     console.log(JSON.stringify({ target: 'disposable-loopback', observations }, null, 2));
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

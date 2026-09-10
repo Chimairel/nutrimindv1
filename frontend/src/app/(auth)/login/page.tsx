@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +19,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => setIsReady(true), []);
 
   const clearFieldError = (field: LoginField) => {
     setFieldErrors((current) => {
@@ -90,7 +92,7 @@ export default function LoginPage() {
             setEmail(event.target.value);
             clearFieldError('email');
           }}
-          disabled={isLoading}
+          disabled={!isReady || isLoading}
           autoComplete="email"
           maxLength={254}
           error={fieldErrors.email}
@@ -104,7 +106,7 @@ export default function LoginPage() {
             setPassword(event.target.value);
             clearFieldError('password');
           }}
-          disabled={isLoading}
+          disabled={!isReady || isLoading}
           autoComplete="current-password"
           maxLength={128}
           error={fieldErrors.password}
@@ -117,7 +119,14 @@ export default function LoginPage() {
             Forgot your password?
           </Link>
         </div>
-        <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="mt-1 w-full"
+          isLoading={isLoading}
+          disabled={!isReady}
+        >
           Sign in
         </Button>
       </form>

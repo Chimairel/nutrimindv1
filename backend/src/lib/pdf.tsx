@@ -153,7 +153,9 @@ export const GroceryListPDF = ({ groceryList }: { groceryList: any }) => {
                 <View style={styles.checkbox} />
                 <Text style={styles.text}>
                   {item.ingredientName}
-                  {item.quantity && item.unit ? ` — ${item.quantity} ${item.unit}` : ''}
+                  {item.quantity !== null && item.unit
+                    ? ` — ${Math.max(0, item.quantity - (item.purchasedQuantity ?? 0))} ${item.unit} to buy (${item.purchasedQuantity ?? 0} purchased / ${item.quantity} needed)`
+                    : ''}
                   {item.isPantryStaple ? ' (pantry)' : ''}
                 </Text>
               </View>

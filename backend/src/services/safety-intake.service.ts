@@ -8,6 +8,7 @@ import {
   SafetyEntrySupportState,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import {
   getPublicSafetyCatalogue,
   resolveSafetyEntries,
@@ -108,8 +109,11 @@ export class SafetyIntakeService {
     };
   }
 
-  static async getCurrentInputs(userId: string): Promise<SafetyEntryInput[]> {
-    const structured = await prisma.safetyProfileEntry.findMany({ where: { userId } });
+  static async getCurrentInputs(
+    userId: string,
+    client: Prisma.TransactionClient = prisma
+  ): Promise<SafetyEntryInput[]> {
+    const structured = await client.safetyProfileEntry.findMany({ where: { userId } });
     if (structured.length) {
       return structured.map((entry) => ({
         domain: entry.domain,
@@ -118,7 +122,7 @@ export class SafetyIntakeService {
       }));
     }
 
-    const legacy = await prisma.user.findUnique({
+    const legacy = await client.user.findUnique({
       where: { id: userId },
       select: {
         healthConditions: { select: { condition: true } },
@@ -156,16 +160,29 @@ export class SafetyIntakeService {
     domains: readonly SafetyEntryInput['domain'][],
     replacements: readonly SafetyEntryInput[]
   ) {
-    const retained = (await this.getCurrentInputs(userId)).filter((entry) => !domains.includes(entry.domain));
-    return this.save(userId, [...retained, ...replacements]);
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const retained = (await this.getCurrentInputs(userId, tx)).filter((entry) => !domains.includes(entry.domain));
+        return this.save(userId, [...retained, ...replacements], tx);
+      },
+      { timeout: 30_000 }
+    );
   }
 
-  static async save(userId: string, inputs: readonly SafetyEntryInput[]) {
+  static async save(
+    userId: string,
+    inputs: readonly SafetyEntryInput[],
+    transaction?: Prisma.TransactionClient
+  ): Promise<ReturnType<typeof SafetyIntakeService.preview> & { changed: boolean }> {
+    if (!transaction) return prisma.$transaction((tx) => this.save(userId, inputs, tx), { timeout: 30_000 });
+    const tx = transaction;
+    await lockUserProfile(tx, userId);
     const preview = this.preview(inputs);
     if (!preview.canSave) throw new Error(preview.errors.join(' '));
 
     const entries = preview.entries;
-    const current = await prisma.safetyProfileEntry.findMany({
+    const current = await tx.safetyProfileEntry.findMany({
       where: { userId },
       select: {
         domain: true,
@@ -184,52 +201,47 @@ export class SafetyIntakeService {
     }
 
     const legacy = buildLegacySafetyProjection(entries);
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.safetyProfileEntry.deleteMany({ where: { userId } });
-        if (entries.length) {
-          await tx.safetyProfileEntry.createMany({
-            data: entries.map((entry) => ({
-              userId,
-              domain: entry.domain as SafetyEntryDomain,
-              canonicalCode: entry.canonicalCode,
-              displayName: entry.displayName,
-              originalText: entry.originalText,
-              normalizedText: entry.normalizedText,
-              provenance: entry.provenance as SafetyEntryProvenance,
-              supportState: entry.supportState as SafetyEntrySupportState,
-              policyReference: entry.policyReference,
-            })),
-          });
-        }
+    await tx.safetyProfileEntry.deleteMany({ where: { userId } });
+    if (entries.length) {
+      await tx.safetyProfileEntry.createMany({
+        data: entries.map((entry) => ({
+          userId,
+          domain: entry.domain as SafetyEntryDomain,
+          canonicalCode: entry.canonicalCode,
+          displayName: entry.displayName,
+          originalText: entry.originalText,
+          normalizedText: entry.normalizedText,
+          provenance: entry.provenance as SafetyEntryProvenance,
+          supportState: entry.supportState as SafetyEntrySupportState,
+          policyReference: entry.policyReference,
+        })),
+      });
+    }
 
-        await tx.healthCondition.deleteMany({ where: { userId } });
-        await tx.healthCondition.createMany({
-          data: legacy.conditions.map((condition) => ({ userId, condition })),
-        });
-        await tx.allergy.deleteMany({ where: { userId } });
-        await tx.allergy.createMany({
-          data: legacy.allergies.map((allergen) => ({ userId, allergen })),
-        });
-        await tx.userProfile.upsert({
-          where: { userId },
-          update: { otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
-          create: { userId, otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
-        });
-        await tx.healthProfileRevision.create({
-          data: {
-            userId,
-            revisionType: HealthProfileRevisionType.STRUCTURED_SAFETY_UPDATED,
-            snapshot: {
-              entries: next,
-              legacyProjection: legacy,
-            } as Prisma.InputJsonObject,
-          },
-        });
-        await tx.nutritionReport.updateMany({ where: { userId }, data: { acknowledgedAt: null } });
+    await tx.healthCondition.deleteMany({ where: { userId } });
+    await tx.healthCondition.createMany({
+      data: legacy.conditions.map((condition) => ({ userId, condition })),
+    });
+    await tx.allergy.deleteMany({ where: { userId } });
+    await tx.allergy.createMany({
+      data: legacy.allergies.map((allergen) => ({ userId, allergen })),
+    });
+    await tx.userProfile.upsert({
+      where: { userId },
+      update: { otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
+      create: { userId, otherConditions: legacy.otherConditions, otherAllergies: legacy.otherAllergies },
+    });
+    await tx.healthProfileRevision.create({
+      data: {
+        userId,
+        revisionType: HealthProfileRevisionType.STRUCTURED_SAFETY_UPDATED,
+        snapshot: {
+          entries: next,
+          legacyProjection: legacy,
+        } as Prisma.InputJsonObject,
       },
-      { timeout: 30_000 }
-    );
+    });
+    await advanceProfileRevision(tx, userId);
 
     return { ...preview, entries, changed: true };
   }

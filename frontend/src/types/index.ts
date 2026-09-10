@@ -117,6 +117,9 @@ export interface Allergy {
 }
 
 export interface NutritionReport {
+  version: number;
+  isStale: boolean;
+  profileRevision: number;
   id: string;
   userId: string;
   generatedAt: string;

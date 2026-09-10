@@ -39,7 +39,7 @@ export class GroceryController {
         return res.status(401).json({ success: false, error: 'Unauthorized user.' });
       }
 
-      const groceryList = await GroceryService.getGroceryList(userId);
+      const groceryList = await GroceryService.getGroceryList(userId, req.query.view === 'next' ? 'next' : 'current');
       return res.status(200).json({
         success: true,
         data: groceryList,

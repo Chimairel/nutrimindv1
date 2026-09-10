@@ -25,6 +25,7 @@ export class UserPrivacyService {
         allergies: true,
         safetyProfileEntries: true,
         nutritionReport: true,
+        nutritionReportVersions: true,
         mealPlans: { include: { ingredients: true } },
         mealLogs: true,
         weightLogs: true,

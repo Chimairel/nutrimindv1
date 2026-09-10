@@ -76,6 +76,7 @@ export class UserController {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user?.onboardingDone) {
         await UserService.completeOnboarding(userId);
+        await UserService.runSafetyRecheck(userId);
       }
 
       const profileDetails = await UserService.getUserProfileDetails(userId);
@@ -321,6 +322,10 @@ export class UserController {
       }
 
       const React = await import('react');
+      if (report.isStale || report.profileRevision !== userDetails?.userProfile?.revision)
+        return res
+          .status(409)
+          .json({ success: false, error: 'Update your report before downloading current guidance.' });
       const { NutritionReportPDF, streamPdf } = await import('@/lib/pdf');
       const document = React.createElement(NutritionReportPDF, { user: userDetails, report });
       const stream = await streamPdf(document);
@@ -370,7 +375,7 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const report = await NutritionReportService.acknowledgeReport(userId);
+      const report = await NutritionReportService.acknowledgeReport(userId, req.body.version);
 
       return res.status(200).json({
         success: true,
@@ -380,7 +385,10 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] acknowledgeReport error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to acknowledge nutrition report.' });
+      return res.status(409).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'The report changed. Refresh before acknowledging it.'),
+      });
     }
   }
 

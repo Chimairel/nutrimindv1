@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
+import GroceryCostSummary from '@/features/grocery/GroceryCostSummary';
+import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -42,6 +44,7 @@ const getInitialExpandedCategory = (items: GroceryItem[]) => {
 export default function GroceryListPage() {
   const { user } = useAuth();
   const ownerId = user?.userId;
+  const [view, setView] = useState<'current' | 'next'>('current');
   const cachedPage = readSessionResource<GroceryPageSnapshot>(ownerId, 'user-grocery-page');
   const [groceryList, setGroceryList] = useState<GroceryList | null>(cachedPage?.groceryList ?? null);
   const [isLoading, setIsLoading] = useState(!cachedPage);
@@ -69,7 +72,7 @@ export default function GroceryListPage() {
   const fetchGroceryList = useCallback(async () => {
     setError(null);
     try {
-      const snapshot = await fetchCurrentGrocery();
+      const snapshot = await fetchCurrentGrocery(view);
       const nextList = snapshot.groceryList;
       setPendingMealCount(snapshot.pendingMealCount);
       setGroceryList(nextList);
@@ -82,7 +85,7 @@ export default function GroceryListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [cachePage]);
+  }, [cachePage, view]);
 
   useEffect(() => {
     if (user) {
@@ -90,27 +93,20 @@ export default function GroceryListPage() {
     }
   }, [user, fetchGroceryList]);
 
-  // Toggles grocery item checked status
   const handleToggleItem = async (itemId: string) => {
-    if (!groceryList) return;
-
-    // Optimistically update frontend UI
-    const updatedItems = groceryList.groceryItems.map((item) => {
-      if (item.id === itemId) {
-        return { ...item, isChecked: !item.isChecked };
-      }
-      return item;
-    });
-    const nextList = { ...groceryList, groceryItems: updatedItems };
-    setGroceryList(nextList);
-    cachePage(nextList, pendingMealCount);
-
     try {
-      await api.patch(`/user/grocery/items/${itemId}/toggle`);
+      const response = await api.patch('/user/grocery/items/' + itemId + '/toggle');
+      setGroceryList((current) => {
+        if (!current) return current;
+        const next = {
+          ...current,
+          groceryItems: current.groceryItems.map((item) => (item.id === itemId ? response.data.data : item)),
+        };
+        cachePage(next, pendingMealCount);
+        return next;
+      });
     } catch (err) {
-      console.error('[Grocery] Toggle failed, reverting state.', err);
-      // Revert frontend UI on error
-      fetchGroceryList();
+      setError(getApiErrorMessage(err, 'Could not save purchase. Refresh the list and try again.'));
     }
   };
 
@@ -137,6 +133,7 @@ export default function GroceryListPage() {
     try {
       const response = await api.get('/user/grocery/pdf', {
         responseType: 'blob',
+        params: { view },
       });
       const file = new Blob([response.data], { type: 'application/pdf' });
       const fileURL = URL.createObjectURL(file);
@@ -232,7 +229,7 @@ export default function GroceryListPage() {
         icon={ShoppingCart}
         eyebrow="Plan companion"
         title="Smart grocery list"
-        description="A categorized shopping checklist compiled from your active meal plan."
+        description="Shopping-cycle totals with purchased amounts and what remains to buy."
         className="mb-6"
         actions={
           groceryList ? (
@@ -250,6 +247,22 @@ export default function GroceryListPage() {
         }
       />
 
+      <div className="mb-4 flex gap-2">
+        {(['current', 'next'] as const).map((option) => (
+          <button
+            type="button"
+            key={option}
+            aria-pressed={view === option}
+            className="rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm aria-pressed:text-brand-green"
+            onClick={() => {
+              setGroceryList(null);
+              setView(option);
+            }}
+          >
+            {option === 'current' ? 'This week' : 'Next week · Premium'}
+          </button>
+        ))}
+      </div>
       {error && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
           <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
@@ -272,6 +285,7 @@ export default function GroceryListPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-5 text-left">
+          {view === 'current' && <GroceryCostSummary revision={JSON.stringify(groceryList.groceryItems)} />}
           {pendingMealCount > 0 && (
             <div className="flex items-start gap-3 rounded-2xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-xs text-status-pending-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -484,10 +498,13 @@ export default function GroceryListPage() {
                                   {item.ingredientName}
                                 </span>
                                 <span className="mt-0.5 block text-[9px] font-medium text-brand-muted">
-                                  {item.quantity && item.unit
-                                    ? `${item.quantity} ${item.unit}`
+                                  {item.quantity !== null && item.unit
+                                    ? `${Math.max(0, Math.round((item.quantity - (item.purchasedQuantity ?? 0)) * 1000) / 1000)} ${item.unit} to buy · ${item.purchasedQuantity ?? 0} purchased / ${item.quantity} needed`
                                     : `Used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}`}
                                 </span>
+                                {item.quantity !== null && (
+                                  <PurchaseAmountEditor item={item} onSaved={fetchGroceryList} />
+                                )}
                               </span>
                               <button
                                 type="button"

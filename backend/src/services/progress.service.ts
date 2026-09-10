@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { calculateDailyTarget } from '@/lib/calculations';
 import { HealthConditionType } from '@prisma/client';
+import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { isSupportedWeightKg, normalizeWeightNote } from '@/policies/weight-entry.policy';
 
 export class ProgressService {
@@ -15,6 +16,7 @@ export class ProgressService {
     const normalizedNote = normalizeWeightNote(note);
 
     return prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
       const profile = await tx.userProfile.findUnique({ where: { userId } });
       if (!profile) throw new Error('Profile not found.');
 
@@ -41,6 +43,8 @@ export class ProgressService {
         data: { weightKg, dailyCalorieTarget },
       });
 
+      if (profile.weightKg !== weightKg || profile.dailyCalorieTarget !== dailyCalorieTarget)
+        await advanceProfileRevision(tx, userId);
       return tx.weightLog.create({
         data: { userId, weightKg, note: normalizedNote },
       });

@@ -1,4 +1,5 @@
 import { Router, type Response } from 'express';
+import { FoodCompositionService, compositionDraftSchema } from '@/services/food-composition.service';
 import { AdminDataService } from '@/services/admin-data.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { validateZodBody, validateZodRequest } from '@/middleware/validateZod';
@@ -16,6 +17,42 @@ import {
 import { emptyBodySchema } from '@/validation/onboarding.schemas';
 
 const router = Router();
+router.get(
+  '/foods/:id/composition',
+  validateZodRequest({ params: identifierParamsSchema }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({ success: true, data: await FoodCompositionService.history(req.params.id) });
+    } catch (error) {
+      return failure(res, error, 'Could not load composition history.');
+    }
+  }
+);
+router.post(
+  '/foods/:id/composition',
+  validateZodRequest({ params: identifierParamsSchema, body: compositionDraftSchema }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({
+        success: true,
+        data: await FoodCompositionService.draft(req.user!.userId, req.params.id, req.body),
+      });
+    } catch (error) {
+      return failure(res, error, 'Could not save composition draft.');
+    }
+  }
+);
+router.post(
+  '/composition/:id/publish',
+  validateZodRequest({ params: identifierParamsSchema, body: emptyBodySchema }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      return res.json({ success: true, data: await FoodCompositionService.publish(req.user!.userId, req.params.id) });
+    } catch (error) {
+      return failure(res, error, 'Could not publish composition.', 409);
+    }
+  }
+);
 
 function failure(res: Response, error: unknown, fallback: string, status = 400) {
   return res.status(status).json({ success: false, error: sanitizeErrorMessage(error, fallback) });

@@ -27,6 +27,7 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const nextConfig = {
+  distDir: process.env.NUTRIMIND_REPAIR_E2E === 'true' ? '.next-repair' : '.next',
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
   },

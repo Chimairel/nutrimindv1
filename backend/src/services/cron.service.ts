@@ -1,4 +1,6 @@
 import prisma from '@/lib/prisma';
+import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
+import { UserSafetyRecheckService } from './user-safety-recheck.service';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 import {
   getManilaDateKey,
@@ -7,6 +9,26 @@ import {
 } from '@/domain/meal-plan-cycle.policy';
 
 export class CronService {
+  static async retrySafetyRevalidation() {
+    const pending = await prisma.mealPlan.findMany({
+      where: {
+        requiresSafetyRevalidation: true,
+        scheduledDate: { gte: getStartOfManilaBusinessDay() },
+        status: 'PENDING_REVIEW',
+      },
+      distinct: ['userId'],
+      select: { userId: true },
+      take: 50,
+    });
+    for (const { userId } of pending) {
+      try {
+        await UserSafetyRecheckService.runSafetyRecheck(userId);
+      } catch (error) {
+        console.error('[Revalidation] Pending meals remain blocked; retry on the next run.', error);
+      }
+    }
+  }
+
   /**
    * Aggregates completed calorie logs from yesterday for all onboarded users,
    * calculates clinical calorie adherence, and logs daily performance metrics.
@@ -15,12 +37,9 @@ export class CronService {
     console.log('[CronService] Initiating daily nutrition check-in aggregates...');
 
     // 1. Resolve 'yesterday' time bounds
-    const yesterdayStart = new Date();
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-    yesterdayStart.setHours(0, 0, 0, 0);
-
-    const yesterdayEnd = new Date(yesterdayStart);
-    yesterdayEnd.setHours(23, 59, 59, 999);
+    const yesterdayStart = new Date(getStartOfManilaBusinessDay().getTime() - 86_400_000);
+    const yesterdayEnd = new Date(yesterdayStart.getTime() + 86_400_000 - 1);
+    await this.retrySafetyRevalidation();
 
     console.log(`[CronService] Targeted time bounds: ${yesterdayStart.toISOString()} -> ${yesterdayEnd.toISOString()}`);
 

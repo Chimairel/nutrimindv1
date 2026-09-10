@@ -1,0 +1,37 @@
+{
+  "target": "disposable-loopback",
+  "observations": {
+    "nutritionistApplication": "PASS: staged approval, captured invitation, activation, replay rejection; no external email",
+    "onboarding": "PASS: registration, captured OTP, verified-email gate, all onboarding writes, report acknowledgement gate; AI report generation not exercised",
+    "roleIsolation": "PASS: real login; USER denied ADMIN and NUTRITIONIST routes",
+    "authenticatedReadRoutes": {
+      "/api/admin/analytics": 200,
+      "/api/admin/users": 200,
+      "/api/admin/nutritionists": 200,
+      "/api/admin/nutritionist-applications": 200,
+      "/api/admin/data": 200,
+      "/api/admin/billing-operations": 200,
+      "/api/admin/compensation": 200,
+      "/api/nutritionist/queue": 200,
+      "/api/nutritionist/library": 200,
+      "/api/nutritionist/approved": 200,
+      "/api/nutritionist/profile": 200,
+      "/api/nutritionist/compensation": 200,
+      "/api/nutritionist/outside-meal-reviews": 200,
+      "/api/user/profile": 200,
+      "/api/user/progress/history": 200,
+      "/api/user/water/today": 200,
+      "/api/user/account/export": 200
+    },
+    "groceryPdf": "PASS: authenticated endpoint returns a PDF document (visual layout not tested)",
+    "libraryCalorieFiltering": "PASS: oversized certified serving excluded from compatible library",
+    "sameDaySwap": "PASS: acknowledged same-day swap, idempotent replay and purchased quantity preservation",
+    "swapWarning": "PASS: server rejects missing calorie warning acknowledgement",
+    "swapGroceryFailure": "PASS: projection outage rolls back meal and quota",
+    "futurePlanning": "PASS: Premium next-cycle access, Free rejection, independent grocery purchases and current-cycle selection",
+    "dietUpdate": "PASS: VEGAN profile invalidates egg meal atomically",
+    "weightPaths": "PASS: weight entry paths agree on calorie target",
+    "reportFreshness": "PASS: stale report cannot be acknowledged",
+    "compositionCorrection": "PASS: draft isolation, publication history, nutrient update and certificate invalidation"
+  }
+}

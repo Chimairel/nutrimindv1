@@ -26,7 +26,8 @@ export const requireUserPrerequisites =
           tosAccepted: true,
           acceptedTermsVersion: true,
           acceptedPrivacyVersion: true,
-          nutritionReport: { select: { acknowledgedAt: true } },
+          nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
+          userProfile: { select: { revision: true } },
         },
       });
 
@@ -54,7 +55,12 @@ export const requireUserPrerequisites =
           errorCode: 'CURRENT_CONSENT_REQUIRED',
         });
       }
-      if (options.reportAcknowledged && !user.nutritionReport?.acknowledgedAt) {
+      if (
+        options.reportAcknowledged &&
+        (!user.nutritionReport?.acknowledgedAt ||
+          user.nutritionReport.isStale ||
+          user.nutritionReport.profileRevision !== user.userProfile?.revision)
+      ) {
         return res.status(409).json({
           success: false,
           error: 'Acknowledge your nutrition report before using this feature.',

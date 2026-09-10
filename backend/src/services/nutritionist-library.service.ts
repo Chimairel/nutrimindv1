@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import {
   MealLibraryStatus,
   MealLibrarySafetyEvidenceStatus,
@@ -190,7 +191,19 @@ export class NutritionistLibraryService {
         COVERAGE_MEAL_TYPES.map((mealType) => [mealType, matching.filter((meal) => meal.mealType === mealType).length])
       ) as Record<(typeof COVERAGE_MEAL_TYPES)[number], number>;
       const minimumPerSlot = Math.min(...Object.values(counts));
+      const servingCoverage = [1400, 1600, 1800, 1900, 2000, 2200, 2400, 2800].map((dailyCalorieTarget) => {
+        const counts = Object.fromEntries(
+          COVERAGE_MEAL_TYPES.map((mealType) => [
+            mealType,
+            matching.filter(
+              (meal) => meal.mealType === mealType && isMealWithinSlotCalorieRange({ ...meal, dailyCalorieTarget })
+            ).length,
+          ])
+        );
+        return { dailyCalorieTarget, counts, weekReady: Math.min(...Object.values(counts)) >= 7 };
+      });
       return {
+        servingCoverage,
         counts,
         total: matching.length,
         minimumPerSlot,
@@ -313,6 +326,7 @@ export class NutritionistLibraryService {
 
     return prisma.$transaction(
       async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
         const meal = await tx.mealLibrary.findUnique({
           where: { id: mealId },
           include: {
@@ -468,6 +482,7 @@ export class NutritionistLibraryService {
     const wasComplete = meal.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE;
     return prisma.$transaction(
       async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
         const updated = await tx.mealLibrary.update({
           where: { id: mealId },
           data: {
@@ -530,6 +545,7 @@ export class NutritionistLibraryService {
     const now = new Date();
     return prisma.$transaction(
       async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
         const archived = await tx.mealLibrary.update({
           where: { id: mealId },
           data: {
@@ -586,6 +602,7 @@ export class NutritionistLibraryService {
 
     const flag = await prisma.$transaction(
       async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
         const createdFlag = await tx.mealLibraryFlag.create({
           data: {
             mealLibraryId: mealId,
@@ -676,6 +693,7 @@ export class NutritionistLibraryService {
     if (resolution === 'delete') {
       await prisma.$transaction(
         async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
           await tx.mealLibraryFlag.updateMany({
             where: { id: { in: flagIds } },
             data: { status: FlagStatus.RESOLVED_REMOVED, resolvedAt: new Date() },

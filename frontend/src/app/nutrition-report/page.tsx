@@ -1,5 +1,6 @@
 'use client';
 
+import ReportHistory from '@/features/reports/ReportHistory';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +18,9 @@ import { hasSameRestrictionContext } from '@/lib/restriction-context';
 export default function NutritionReportPage() {
   const router = useRouter();
   const { user, refreshSession } = useAuth();
+  const [history, setHistory] = useState<
+    Array<{ id: string; version: number; generatedAt: string; content: NutritionReport }>
+  >([]);
   const [report, setReport] = useState<NutritionReport | null>(null);
   const [profileData, setProfileData] = useState<{
     name: string;
@@ -82,15 +86,18 @@ export default function NutritionReportPage() {
           });
         }
 
+        const historyRes = await api.get('/user/nutrition-report/history');
+        setHistory(historyRes.data.data || []);
         // Try getting existing report first
         const getRes = await api.get('/user/nutrition-report');
-        if (getRes.data && getRes.data.success && getRes.data.data) {
+        if (getRes.data && getRes.data.success && getRes.data.data && !getRes.data.data.isStale) {
           setReport(getRes.data.data);
         } else {
           // If none exists, trigger a generation
           const genRes = await api.post('/user/nutrition-report/generate');
           if (genRes.data && genRes.data.success) {
             setReport(genRes.data.data);
+            setHistory((await api.get('/user/nutrition-report/history')).data.data || []);
           } else {
             setError('Failed to load your nutrition report.');
           }
@@ -110,7 +117,7 @@ export default function NutritionReportPage() {
   const handleAcknowledge = async () => {
     setIsAcknowledging(true);
     try {
-      await api.post('/user/nutrition-report/acknowledge');
+      await api.post('/user/nutrition-report/acknowledge', { version: report?.version });
 
       // Sync state context parameters (so RouteGuard releases dashboard lock)
       await refreshSession();
@@ -133,6 +140,7 @@ export default function NutritionReportPage() {
         throw new Error('The updated report was not returned.');
       }
       setReport(response.data.data);
+      setHistory((await api.get('/user/nutrition-report/history')).data.data || []);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Unable to regenerate your report. Please try again.'));
     } finally {
@@ -156,7 +164,7 @@ export default function NutritionReportPage() {
       document.body.removeChild(link);
     } catch (err) {
       console.error('[Nutrition Report] Failed to fetch report PDF:', err);
-      alert('PDF generation is only unlocked when the backend template service is active in Phase 8.');
+      setError('Could not download the current report. Refresh it and try again.');
     }
   };
 
@@ -174,15 +182,17 @@ export default function NutritionReportPage() {
           <Button variant="primary" onClick={() => window.location.reload()}>
             Try Again
           </Button>
+          <ReportHistory history={history} />
         </Card>
       </div>
     );
   }
 
-  const reportMatchesCurrentProfile = profileData
-    ? hasSameRestrictionContext(report.basedOnConditions, profileData.conditions) &&
-      hasSameRestrictionContext(report.basedOnAllergies, profileData.allergies)
-    : false;
+  const reportMatchesCurrentProfile =
+    !report.isStale && profileData
+      ? hasSameRestrictionContext(report.basedOnConditions, profileData.conditions) &&
+        hasSameRestrictionContext(report.basedOnAllergies, profileData.allergies)
+      : false;
 
   if (!reportMatchesCurrentProfile) {
     return (
@@ -203,6 +213,7 @@ export default function NutritionReportPage() {
           <Button variant="primary" onClick={handleRegenerate} isLoading={isRegenerating} className="mt-6 w-full">
             Generate updated report
           </Button>
+          <ReportHistory history={history} />
         </Card>
       </div>
     );
@@ -427,6 +438,7 @@ export default function NutritionReportPage() {
         </div>
       </div>
 
+      <ReportHistory history={history} />
       {/* Sticky Acknowledge Banner at bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface/90 border-t border-brand-border py-4 px-6 backdrop-blur-md shadow-2xl flex items-center justify-center">
         <div className="max-w-6xl w-full flex flex-col md:flex-row md:items-center justify-between gap-4">

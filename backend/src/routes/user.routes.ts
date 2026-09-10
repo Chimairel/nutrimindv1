@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
+import { NutritionReportService } from '@/services/nutrition-report.service';
 import { UserController } from '@/controllers/user.controller';
 import { AuthenticatedRequest } from '@/types';
 import { NotificationService } from '@/services/notification.service';
@@ -126,6 +127,16 @@ const requireReportEligible = requireUserPrerequisites({
   currentConsent: true,
 });
 router.get('/nutrition-report', requireReportEligible, UserController.getNutritionReport);
+router.get('/nutrition-report/history', requireReportEligible, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await NutritionReportService.getHistory(req.user!.userId);
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Could not load report history.') });
+  }
+});
 router.get('/nutrition-report/pdf', requireReportEligible, UserController.downloadNutritionReportPdf);
 router.post(
   '/nutrition-report/generate',
@@ -137,7 +148,7 @@ router.post(
 router.post(
   '/nutrition-report/acknowledge',
   requireReportEligible,
-  validateZodBody(emptyBodySchema),
+  validateZodBody(z.object({ version: z.number().int().positive() }).strict()),
   UserController.acknowledgeReport
 );
 

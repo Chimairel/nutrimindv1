@@ -1,4 +1,8 @@
 import prisma from '@/lib/prisma';
+import { assertGenerationIntegrity } from './generation-integrity.service';
+import { updateGenerationProgress } from './generation-progress.service';
+import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
+import { lockUserProfile } from './profile-revision.service';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset, lookupIngredient } from '@/lib/fnri';
 import { getLocalizedFoodConsumptionContext } from '@/services/food-consumption-context.service';
@@ -323,7 +327,7 @@ export class MealGenerationService {
     startDate: Date = new Date(),
     generationJobId?: string
   ): Promise<string> {
-    await MealGenerationService.updateGenerationProgress(
+    await updateGenerationProgress(
       generationJobId,
       10,
       'PROFILE',
@@ -354,7 +358,7 @@ export class MealGenerationService {
 
     // --- STEP 1: Check MealLibrary for pre-verified clinical matches ---
     console.log(`[Meal Generation] Step 1: Checking MealLibrary for pre-verified clinical matches...`);
-    await MealGenerationService.updateGenerationProgress(
+    await updateGenerationProgress(
       generationJobId,
       25,
       'LIBRARY_MATCH',
@@ -479,7 +483,7 @@ export class MealGenerationService {
     const aiMeals = await runMealGenerationFallbackForUnmatchedSlots(
       unmatchedSlots,
       async (fallbackSlots): Promise<GeneratedMeal[]> => {
-        await MealGenerationService.updateGenerationProgress(
+        await updateGenerationProgress(
           generationJobId,
           45,
           'AI_GENERATION',
@@ -627,6 +631,7 @@ export class MealGenerationService {
       }[];
     }[] = [];
 
+    const compositionRevisions = new Map<string, number>();
     for (const rawMeal of aiMeals) {
       const slot = unmatchedSlots.find((s) => s.dayNumber === rawMeal.dayNumber && s.mealType === rawMeal.mealType);
       const scheduledDate = slot ? slot.scheduledDate : new Date(startDate);
@@ -683,7 +688,13 @@ export class MealGenerationService {
         }
       }
 
-      let flag: AIConfidenceFlag = AIConfidenceFlag.SAFE;
+      const composition = await prisma.foodItem.findMany({
+        where: { id: { in: ingredientsData.flatMap((item) => (item.foodItemId ? [item.foodItemId] : [])) } },
+      });
+      composition.forEach((food) => compositionRevisions.set(food.id, food.compositionRevision));
+      const reconciliation = reconcileFnriMealTotals(ingredientsData, composition);
+      if (!reconciliation.complete) hasEstimatedIngredient = true;
+      let flag: AIConfidenceFlag = reconciliation.complete ? AIConfidenceFlag.CAUTION : AIConfidenceFlag.NEEDS_REVIEW;
       if (userHasConditions) {
         if (hasEstimatedIngredient) {
           flag = AIConfidenceFlag.NEEDS_REVIEW; // Unverified items + clinical conditions = NEEDS_REVIEW!
@@ -700,13 +711,14 @@ export class MealGenerationService {
         proteinG: parseFloat((rawMeal.proteinG as any) || 0),
         carbsG: parseFloat((rawMeal.carbsG as any) || 0),
         fatG: parseFloat((rawMeal.fatG as any) || 0),
+        ...(reconciliation.complete ? reconciliation.totals : {}),
         scheduledDate,
         aiConfidenceFlag: flag,
         ingredientsData,
       });
     }
 
-    await MealGenerationService.updateGenerationProgress(
+    await updateGenerationProgress(
       generationJobId,
       72,
       'INGREDIENT_VALIDATION',
@@ -716,6 +728,12 @@ export class MealGenerationService {
     // Save plans atomically in a Prisma Transaction (with a 30-second timeout to support sequential batch inserts)
     await prisma.$transaction(
       async (tx) => {
+        await lockUserProfile(tx, userId);
+        const currentProfileRevision = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+        if (currentProfileRevision.revision !== profile.revision)
+          throw new Error('Profile changed during generation. Please retry.');
+        await assertGenerationIntegrity(tx, userId, startDate, targetPlanEndDate, compositionRevisions);
+        await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
         // 1. Replace only plans that overlap this exact target window. A future
         // pending plan must never cancel the user's currently active approved week.
         await tx.mealPlan.updateMany({
@@ -739,6 +757,13 @@ export class MealGenerationService {
         // 2. Create matched library meals from the exact certified library snapshot.
         if (matchedSlots.length > 0) {
           for (const slot of matchedSlots) {
+            const latest = await tx.mealLibrary.findUniqueOrThrow({ where: { id: slot.libraryMeal.id } });
+            if (
+              latest.safetyEvidenceRevision !== slot.libraryMeal.safetyEvidenceRevision ||
+              latest.safetyEvidenceStatus !== 'COMPLETE' ||
+              latest.status !== 'APPROVED'
+            )
+              throw new Error('Recipe evidence changed during generation. Please retry.');
             const ingredientsData = slot.libraryMeal.ingredients.map((ing) => ({
               ingredientName: ing.ingredientName,
               category: ing.category,
@@ -826,7 +851,7 @@ export class MealGenerationService {
       { timeout: 30000 }
     );
 
-    await MealGenerationService.updateGenerationProgress(
+    await updateGenerationProgress(
       generationJobId,
       92,
       'SAVING',
@@ -848,19 +873,6 @@ export class MealGenerationService {
     }
 
     return newPlanGroupId;
-  }
-
-  private static async updateGenerationProgress(
-    jobId: string | undefined,
-    progressPct: number,
-    stageCode: string,
-    stageMessage: string
-  ) {
-    if (!jobId) return;
-    await prisma.mealPlanGenerationJob.updateMany({
-      where: { id: jobId, status: MealPlanGenerationJobStatus.GENERATING },
-      data: { progressPct, stageCode, stageMessage },
-    });
   }
 
   static async getLatestGenerationStatus(userId: string) {

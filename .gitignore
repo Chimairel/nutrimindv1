@@ -31,3 +31,5 @@ Thumbs.db
 # Local files that do not belong in the application repository
 codex/Install VALORANT.exe
 codex/toothless.jpg
+# Isolated disposable browser acceptance output
+/frontend/.next-repair/

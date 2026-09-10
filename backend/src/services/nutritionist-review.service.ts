@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { lockUserProfile } from './profile-revision.service';
 import {
   MealPlanStatus,
   AIConfidenceFlag,
@@ -415,6 +416,10 @@ export class NutritionistReviewService {
     if (plan.highRiskReviewRequired && plan.reviewApprovalCount === 0) {
       await prisma.$transaction(
         async (tx) => {
+          await lockUserProfile(tx, plan.userId);
+          const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
+          if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
+            throw new Error('User information changed. Reopen this review.');
           const firstDecision = await tx.mealPlan.updateMany({
             where: {
               id: mealPlanId,
@@ -489,6 +494,11 @@ export class NutritionistReviewService {
 
     await prisma.$transaction(
       async (tx) => {
+        await lockUserProfile(tx, plan.userId);
+        const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
+        if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
+          throw new Error('User information changed. Reopen this review.');
+        await tx.groceryList.updateMany({ where: { userId: plan.userId }, data: { isStale: true } });
         // Compare-and-set the decision while this reviewer still owns a live
         // claim. A competing or expired decision changes zero rows and rolls the
         // entire transaction back before a library record can be published.
@@ -683,6 +693,10 @@ export class NutritionistReviewService {
 
     await prisma.$transaction(
       async (tx) => {
+        await lockUserProfile(tx, plan.userId);
+        const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
+        if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
+          throw new Error('User information changed. Reopen this review.');
         const decision = await tx.mealPlan.updateMany({
           where: {
             id: mealPlanId,

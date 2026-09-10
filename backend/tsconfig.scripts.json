@@ -10,6 +10,8 @@
   },
   "include": [
     "scripts/current-journey-audit.ts",
+    "scripts/repair-browser-fixture.ts",
+    "scripts/repair-browser-server.ts",
     "scripts/billing-shared-acceptance-audit.ts",
     "scripts/billing-shared-worker-acceptance.ts",
     "scripts/measure-structured-library-coverage.ts",

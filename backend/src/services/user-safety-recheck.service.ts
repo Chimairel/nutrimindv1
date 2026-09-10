@@ -1,4 +1,8 @@
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { lockUserProfile } from './profile-revision.service';
+import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
+import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import {
   HealthConditionType,
   AllergenType,
@@ -172,28 +176,11 @@ export class UserSafetyRecheckService {
     const userConditions = safetyRestrictions.conditions;
     const userAllergens = safetyRestrictions.allergies;
 
-    // 2. Find the latest active planGroupId
-    const latestMeal = await prisma.mealPlan.findFirst({
-      where: {
-        userId,
-        status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
-      },
-      orderBy: { scheduledDate: 'desc' },
-      select: { planGroupId: true },
-    });
-
-    if (!latestMeal || !latestMeal.planGroupId) {
-      console.log(`[Safety Recheck] No active/pending meal plans found for user: ${userId}`);
-      return;
-    }
-
-    const planGroupId = latestMeal.planGroupId;
-
-    // 3. Fetch remaining (uneaten/unskipped) meals in this planGroupId
+    // Revalidate every unconsumed current/future cycle, not only the latest group.
     const remainingMeals = await prisma.mealPlan.findMany({
       where: {
-        planGroupId,
         userId,
+        scheduledDate: { gte: getStartOfManilaBusinessDay() },
         status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
         mealLogs: {
           none: {
@@ -214,11 +201,17 @@ export class UserSafetyRecheckService {
       },
       include: certifiedLibraryMealInclude,
     });
-    const eligibleLibraryMeals = libraryMeals.filter((candidate) =>
-      isCertifiedLibraryMealCompatible(candidate, userConditions, userAllergens, {
-        ...userProfile,
-        safetyEntries: user.safetyProfileEntries,
-      })
+    const eligibleLibraryMeals = libraryMeals.filter(
+      (candidate) =>
+        isMealWithinSlotCalorieRange({
+          calories: candidate.calories,
+          mealType: candidate.mealType,
+          dailyCalorieTarget: userProfile.dailyCalorieTarget ?? 2000,
+        }) &&
+        isCertifiedLibraryMealCompatible(candidate, userConditions, userAllergens, {
+          ...userProfile,
+          safetyEntries: user.safetyProfileEntries,
+        })
     );
     const highRiskReviewRequired = requiresEscalatedMealReview(
       userConditions,
@@ -236,25 +229,55 @@ export class UserSafetyRecheckService {
         ? eligibleLibraryMeals.find((candidate) => candidate.id === meal.libraryMealId)
         : null;
 
-      if (currentCertifiedMeal) {
-        await prisma.mealPlan.update({
-          where: { id: meal.id },
-          data: {
-            status: MealPlanStatus.APPROVED,
-            requiresSafetyRevalidation: false,
-            safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-            highRiskReviewRequired: false,
-            reviewApprovalCount: 1,
-            nutritionistId: currentCertifiedMeal.verifiedByNutritionistId,
-            reviewedAt: new Date(),
-          },
+      if (
+        currentCertifiedMeal &&
+        currentCertifiedMeal.calories === meal.calories &&
+        currentCertifiedMeal.proteinG === meal.proteinG &&
+        currentCertifiedMeal.carbsG === meal.carbsG &&
+        currentCertifiedMeal.fatG === meal.fatG &&
+        currentCertifiedMeal.ingredients.every(
+          (ing, i) =>
+            ing.foodItemId === meal.ingredients[i]?.foodItemId &&
+            ing.quantity === meal.ingredients[i]?.quantity &&
+            ing.unit === meal.ingredients[i]?.unit
+        ) &&
+        currentCertifiedMeal.ingredients.length === meal.ingredients.length
+      ) {
+        await prisma.$transaction(async (tx) => {
+          await lockUserProfile(tx, userId);
+          const currentEvidence = await tx.mealLibrary.findUniqueOrThrow({ where: { id: currentCertifiedMeal.id } });
+          if (
+            currentEvidence.safetyEvidenceRevision !== currentCertifiedMeal.safetyEvidenceRevision ||
+            currentEvidence.safetyEvidenceStatus !== 'COMPLETE'
+          )
+            throw new Error('Recipe evidence changed; revalidation remains pending.');
+          await tx.mealPlan.update({
+            where: {
+              id: meal.id,
+              user: { userProfile: { revision: userProfile.revision } },
+              mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } },
+            },
+            data: {
+              status: MealPlanStatus.APPROVED,
+              requiresSafetyRevalidation: false,
+              safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              highRiskReviewRequired: false,
+              reviewApprovalCount: 1,
+              nutritionistId: currentCertifiedMeal.safetyReviewedByNutritionistId,
+              reviewedAt: new Date(),
+            },
+          });
         });
         continue;
       }
 
       // Make the old row non-actionable before any remote generation attempt.
       await prisma.mealPlan.update({
-        where: { id: meal.id },
+        where: {
+          id: meal.id,
+          user: { userProfile: { revision: userProfile.revision } },
+          mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } },
+        },
         data: {
           status: MealPlanStatus.PENDING_REVIEW,
           requiresSafetyRevalidation: true,
@@ -269,7 +292,7 @@ export class UserSafetyRecheckService {
       });
 
       const eligibleMatches = eligibleLibraryMeals.filter((candidate) => {
-        if (candidate.mealType !== meal.mealType || candidate.id === meal.libraryMealId) return false;
+        if (candidate.mealType !== meal.mealType) return false;
         return !assignedLibraryMeals.some(
           (assignment) =>
             assignment.mealPlanId !== meal.id &&
@@ -301,8 +324,19 @@ export class UserSafetyRecheckService {
         };
 
         await prisma.$transaction(async (tx) => {
+          await lockUserProfile(tx, userId);
+          const evidence = await tx.mealLibrary.findUniqueOrThrow({ where: { id: selectedLibraryMeal.id } });
+          if (
+            evidence.safetyEvidenceRevision !== selectedLibraryMeal.safetyEvidenceRevision ||
+            evidence.safetyEvidenceStatus !== 'COMPLETE'
+          )
+            throw new Error('Recipe evidence changed. Retry revalidation.');
           await tx.mealPlan.update({
-            where: { id: meal.id },
+            where: {
+              id: meal.id,
+              user: { userProfile: { revision: userProfile.revision } },
+              mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } },
+            },
             data: {
               mealName: selectedLibraryMeal.mealName,
               description: selectedLibraryMeal.description,
@@ -317,7 +351,7 @@ export class UserSafetyRecheckService {
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired: false,
               reviewApprovalCount: 1,
-              nutritionistId: selectedLibraryMeal.verifiedByNutritionistId,
+              nutritionistId: selectedLibraryMeal.safetyReviewedByNutritionistId,
               reviewedAt: new Date(),
               // The previous meal's selection rationale must not survive a
               // safety replacement whose evidence was not captured here.
@@ -370,29 +404,53 @@ export class UserSafetyRecheckService {
           `{ "mealName": string, "description": string, "calories": number, "proteinG": number, "carbsG": number, "fatG": number, "ingredients": [{"name": string, "category": string, "quantity": number, "unit": string}] }`;
 
         try {
-          const replacement = await generateGenerativeJSON<any>(prompt, systemInstruction);
+          const schema = z.object({
+            mealName: z.string().trim().min(1).max(200),
+            description: z.string().max(3000),
+            calories: z.number().positive().max(5000),
+            proteinG: z.number().min(0).max(500),
+            carbsG: z.number().min(0).max(1000),
+            fatG: z.number().min(0).max(500),
+            ingredients: z
+              .array(
+                z.object({
+                  name: z.string().min(1).max(200),
+                  category: z.string().max(100),
+                  quantity: z.number().positive().max(100000),
+                  unit: z.string().min(1).max(32),
+                })
+              )
+              .min(1)
+              .max(50),
+          });
+          const replacement = await generateGenerativeJSON<z.infer<typeof schema>>(prompt, systemInstruction, schema);
           const replacementLogData = {
             source: MealLogSource.SAFETY_REPLACED,
             mealName: replacement.mealName,
-            calories: parseFloat(replacement.calories || 0),
-            proteinG: parseFloat(replacement.proteinG || 0),
-            carbsG: parseFloat(replacement.carbsG || 0),
-            fatG: parseFloat(replacement.fatG || 0),
+            calories: Number(replacement.calories || 0),
+            proteinG: Number(replacement.proteinG || 0),
+            carbsG: Number(replacement.carbsG || 0),
+            fatG: Number(replacement.fatG || 0),
             dataSource: MealLogDataSource.GEMINI_ESTIMATED,
             status: MealLogStatus.PENDING,
           };
 
           await prisma.$transaction(async (tx) => {
+            await lockUserProfile(tx, userId);
             // Update MealPlan slot
             await tx.mealPlan.update({
-              where: { id: meal.id },
+              where: {
+                id: meal.id,
+                user: { userProfile: { revision: userProfile.revision } },
+                mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } },
+              },
               data: {
                 mealName: replacement.mealName,
                 description: replacement.description,
-                calories: parseFloat(replacement.calories || 0),
-                proteinG: parseFloat(replacement.proteinG || 0),
-                carbsG: parseFloat(replacement.carbsG || 0),
-                fatG: parseFloat(replacement.fatG || 0),
+                calories: Number(replacement.calories || 0),
+                proteinG: Number(replacement.proteinG || 0),
+                carbsG: Number(replacement.carbsG || 0),
+                fatG: Number(replacement.fatG || 0),
                 libraryMealId: null,
                 aiConfidenceFlag: AIConfidenceFlag.CAUTION,
                 status: MealPlanStatus.PENDING_REVIEW,
@@ -449,7 +507,7 @@ export class UserSafetyRecheckService {
 
       // A previously generated checklist no longer represents the safe plan.
       // Remove it before attempting to project the newly approved subset.
-      await prisma.groceryList.deleteMany({ where: { userId } });
+      await prisma.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
 
       // 1. Regenerate Grocery List
       try {

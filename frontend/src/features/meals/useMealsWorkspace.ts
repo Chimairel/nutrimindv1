@@ -50,7 +50,7 @@ interface CurrentPlanSnapshot {
   swapCap: number;
 }
 
-const currentPlanResource = 'user-meals-current';
+const planResource = 'user-meals-current';
 const historyResource = (search: string, source: string, status: string) =>
   `user-meals-history:${search}:${source}:${status}`;
 const libraryResource = (search: string, mealType: string) => `user-meals-library:${search}:${mealType}`;
@@ -58,6 +58,8 @@ const libraryResource = (search: string, mealType: string) => `user-meals-librar
 export function useMealsWorkspace() {
   const { user } = useAuth();
   const ownerId = user?.userId;
+  const [planView, setPlanView] = useState<'current' | 'next'>('current');
+  const currentPlanResource = planResource + ':' + planView;
   const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
   const cachedHistory = readSessionResource<MealHistoryLog[]>(ownerId, historyResource('', 'All', 'All'));
   const cachedLibrary = readSessionResource<SwapOption[]>(ownerId, libraryResource('', 'All'));
@@ -72,7 +74,7 @@ export function useMealsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
-  const currentPlanRequestInFlight = useRef(false);
+  const currentPlanRequestInFlight = useRef(0);
   const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
 
   // Meal swap states
@@ -95,6 +97,14 @@ export function useMealsWorkspace() {
     projectedDayTotal: number;
     dailyTarget: number;
     warningRequired: boolean;
+    previewToken: string;
+    requestKey: string;
+    shoppingNeeds: Array<{
+      ingredientName: string;
+      unit: string | null;
+      additionalQuantity: number | null;
+      remainingQuantity: number | null;
+    }>;
   } | null>(null);
   const [isCheckingPreview, setIsCheckingPreview] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -125,15 +135,15 @@ export function useMealsWorkspace() {
       setSwapCap(snapshot.swapCap);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
-    [ownerId]
+    [ownerId, currentPlanResource]
   );
 
   const fetchMeals = useCallback(async () => {
-    if (currentPlanRequestInFlight.current) return;
-    currentPlanRequestInFlight.current = true;
+    const request = ++currentPlanRequestInFlight.current;
     setError(null);
     try {
-      const res = await api.get('/user/meals/current');
+      const res = await api.get('/user/meals/current', { params: { view: planView } });
+      if (request !== currentPlanRequestInFlight.current) return;
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -145,10 +155,9 @@ export function useMealsWorkspace() {
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
     } finally {
-      currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan]);
+  }, [applyCurrentPlan, planView]);
 
   const fetchHistory = useCallback(async () => {
     const resource = historyResource(historySearch, historySource, historyStatus);
@@ -177,14 +186,16 @@ export function useMealsWorkspace() {
     }
   }, [user?.userId, historySearch, historySource, historyStatus]);
 
+  const libraryDate = selectedPlanDateKey ?? getManilaDateKey(meals[0]?.scheduledDate ?? new Date());
   const fetchLibrary = useCallback(async () => {
-    const resource = libraryResource(librarySearch, libraryMealType);
+    const resource = libraryResource(librarySearch, libraryMealType) + ':' + libraryDate;
     const cached = readSessionResource<SwapOption[]>(user?.userId, resource);
     if (cached) setLibraryMeals(cached);
     setIsLibraryLoading(!cached);
     setLibraryError(null);
     try {
       const params: Record<string, string> = {};
+      params.date = libraryDate;
       if (libraryMealType !== 'All') params.mealType = libraryMealType;
       if (librarySearch) params.search = librarySearch;
 
@@ -201,7 +212,7 @@ export function useMealsWorkspace() {
     } finally {
       setIsLibraryLoading(false);
     }
-  }, [user?.userId, libraryMealType, librarySearch]);
+  }, [user?.userId, libraryMealType, librarySearch, libraryDate]);
 
   useEffect(() => {
     if (user) {
@@ -274,7 +285,7 @@ export function useMealsWorkspace() {
   }, [meals, pendingReview]);
 
   // Open Swap options modal and fetch eligible replacement meals
-  const handleSwapClick = async (mealId: string) => {
+  const handleSwapClick = async (mealId: string, preferred?: SwapOption) => {
     const meal = meals.find((m) => m.id === mealId);
     if (!meal) return;
 
@@ -290,6 +301,15 @@ export function useMealsWorkspace() {
         setSwapOptions(res.data.data.swapOptions);
         setSwapsUsed(res.data.data.swapsUsed);
         setSwapCap(res.data.data.swapCap ?? 3);
+        if (preferred) {
+          if (!res.data.data.swapOptions.some((option: SwapOption) => option.id === preferred.id))
+            throw new Error('This recipe is not eligible for that slot.');
+          const preview = await api.get('/user/meals/' + mealId + '/swap-preview', {
+            params: { libraryMealId: preferred.id },
+          });
+          setConfirmSwapMeal(preferred);
+          setSwapPreview({ ...preview.data.data, requestKey: crypto.randomUUID() });
+        }
       }
     } catch (err: unknown) {
       setSwapOptionsError(getApiErrorMessage(err, 'Failed to load eligible swap options.'));
@@ -313,26 +333,7 @@ export function useMealsWorkspace() {
       });
       if (res.data?.success) {
         const preview = res.data.data;
-        setSwapPreview(preview);
-
-        if (!preview.warningRequired) {
-          // Proceed with swap directly!
-          setIsSwapping(true);
-          const swapRes = await api.post(`/user/meals/${activeSwapMeal.id}/swap`, {
-            newLibraryMealId: option.id,
-            warningShown: false,
-            warningAcknowledged: false,
-          });
-          if (swapRes.data?.success) {
-            setSwapsUsed(swapRes.data.data.swapsUsed);
-            setSwapCap(swapRes.data.data.swapCap ?? swapCap);
-            setActiveSwapMeal(null);
-            setSwapOptions([]);
-            setConfirmSwapMeal(null);
-            setSwapPreview(null);
-            await fetchMeals();
-          }
-        }
+        setSwapPreview({ ...preview, requestKey: crypto.randomUUID() });
       }
     } catch (err: unknown) {
       setPreviewError(getApiErrorMessage(err, 'Failed to check swap preview.'));
@@ -344,7 +345,7 @@ export function useMealsWorkspace() {
 
   // Submits the swap with warning acknowledged
   const handleConfirmSwapAnyway = async () => {
-    if (!activeSwapMeal || !confirmSwapMeal) return;
+    if (!activeSwapMeal || !confirmSwapMeal || !swapPreview) return;
 
     setIsSwapping(true);
     setSwapOptionsError(null);
@@ -352,7 +353,9 @@ export function useMealsWorkspace() {
     try {
       const res = await api.post(`/user/meals/${activeSwapMeal.id}/swap`, {
         newLibraryMealId: confirmSwapMeal.id,
-        warningShown: true,
+        previewToken: swapPreview.previewToken,
+        requestKey: swapPreview.requestKey,
+        warningShown: swapPreview.warningRequired,
         warningAcknowledged: true,
       });
 
@@ -396,7 +399,7 @@ export function useMealsWorkspace() {
   const handleRegeneratePlan = async () => {
     if (pendingReview) return;
 
-    if (meals.length > 0) {
+    if (planView === 'current' && meals.length > 0) {
       if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
         return;
     }
@@ -405,6 +408,12 @@ export function useMealsWorkspace() {
     regenerationProgress.begin('Preparing a replacement weekly plan.');
     setError(null);
     try {
+      if (planView === 'next') {
+        await api.post('/user/meals/next/generate', {});
+        await fetchMeals();
+        regenerationProgress.complete('Next week is ready for review.');
+        return;
+      }
       const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
       if (res.data && res.data.success) {
         regenerationProgress.complete('Your replacement plan is ready for review.');
@@ -566,6 +575,14 @@ export function useMealsWorkspace() {
   const remainingSwapCount = Math.max(0, swapCap - swapsUsed);
 
   return {
+    planView,
+    setPlanView: (view: 'current' | 'next') => {
+      setMeals([]);
+      setPendingReview(null);
+      setIsLoading(true);
+      setSelectedPlanDateKey(null);
+      setPlanView(view);
+    },
     user,
     activeTab,
     setActiveTab,

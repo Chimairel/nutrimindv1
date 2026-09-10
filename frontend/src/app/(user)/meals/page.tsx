@@ -8,7 +8,7 @@ import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProg
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
-import MealImage from '@/components/user/MealImage';
+import LibraryMealCard from '@/features/meals/LibraryMealCard';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import {
   Sprout,
@@ -226,6 +226,27 @@ export default function WeeklyPlanPage() {
           ))}
         </nav>
 
+        {activeTab !== 'history' && (
+          <div className="mb-4 flex items-center gap-3">
+            {(['current', 'next'] as const).map((view) => (
+              <button
+                key={view}
+                type="button"
+                disabled={isRegenerating || isLoading}
+                aria-pressed={workspace.planView === view}
+                onClick={() => workspace.setPlanView(view)}
+                className="rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold aria-pressed:bg-brand-green aria-pressed:text-white"
+              >
+                {view === 'current' ? 'This week' : 'Next week · Premium'}
+              </button>
+            ))}
+            {workspace.planView === 'next' && (
+              <span className="text-xs text-brand-muted">
+                Prepare one upcoming cycle. Meals still need review before use.
+              </span>
+            )}
+          </div>
+        )}
         {activeTab === 'plan' && displayedMealCount > 0 && (
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
@@ -767,7 +788,7 @@ export default function WeeklyPlanPage() {
                 </Button>
               </form>
               <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-brand-bgAlt/60 p-1 select-none md:w-auto">
-                {['All', 'BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((type) => (
+                {['All', 'BREAKFAST', 'LUNCH', 'DINNER'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setLibraryMealType(type)}
@@ -804,71 +825,14 @@ export default function WeeklyPlanPage() {
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {libraryMeals.map((meal) => (
-                  <div
+                  <LibraryMealCard
                     key={meal.id}
-                    className="flex min-h-[220px] flex-col justify-between gap-4 rounded-[22px] border border-brand-border/70 bg-brand-surface p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand-green/25 hover:shadow-card animate-fadeIn"
-                  >
-                    <MealImage
-                      image={meal.image}
-                      mealName={meal.mealName}
-                      mealType={meal.mealType}
-                      className="h-36 w-full"
-                      showAttributionLinks
-                    />
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="text-[9px] font-extrabold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded uppercase font-display tracking-wider">
-                          {meal.mealType}
-                        </span>
-                        <span className="text-[10px] font-extrabold text-brand-green">{meal.calories} kcal</span>
-                      </div>
-                      <h4 className="text-sm font-bold text-brand-text leading-snug">{meal.mealName}</h4>
-                      {meal.description && (
-                        <p className="text-xs text-brand-muted leading-relaxed line-clamp-3">{meal.description}</p>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-brand-border/40 space-y-2">
-                      {/* Macros */}
-                      <div className="flex justify-between text-[10px] font-bold text-brand-muted">
-                        <span>
-                          P:{' '}
-                          <span style={{ color: 'var(--macro-protein)' }} className="font-extrabold">
-                            {meal.proteinG}g
-                          </span>
-                        </span>
-                        <span>
-                          C:{' '}
-                          <span style={{ color: 'var(--macro-carbs)' }} className="font-extrabold">
-                            {meal.carbsG}g
-                          </span>
-                        </span>
-                        <span>
-                          F:{' '}
-                          <span style={{ color: 'var(--macro-fat)' }} className="font-extrabold">
-                            {meal.fatG}g
-                          </span>
-                        </span>
-                      </div>
-                      {/* Verifier PRC Badge */}
-                      <button
-                        type="button"
-                        onClick={() => meal.verifier && setSelectedVerifier(meal.verifier)}
-                        disabled={!meal.verifier}
-                        className="w-full text-[9px] text-brand-muted flex items-center justify-between gap-1 bg-brand-surface/80 p-1.5 rounded border border-brand-border/40 transition hover:border-brand-green/35 hover:bg-brand-green/[0.05] disabled:cursor-default disabled:hover:border-brand-border/40"
-                        aria-label={`View verifier details for ${meal.verifiedBy}`}
-                      >
-                        <span>
-                          Verified by:{' '}
-                          <span className="font-semibold text-brand-text underline decoration-brand-green/40 underline-offset-2">
-                            {meal.verifiedBy}
-                          </span>
-                        </span>
-                        <span className="text-brand-green font-extrabold bg-brand-green/15 px-1 rounded uppercase tracking-tighter scale-95 origin-right">
-                          PRC: {meal.prcLicenseNumber}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
+                    meal={meal}
+                    meals={meals}
+                    planView={workspace.planView}
+                    onSwap={handleSwapClick}
+                    onVerifier={setSelectedVerifier}
+                  />
                 ))}
               </div>
             )}

@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
   Goal,
@@ -74,14 +75,9 @@ export class UserProfileService {
       }
     }
     return prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
       const existing = await tx.userProfile.findUnique({
         where: { userId },
-        select: {
-          planningGeographyLevel: true,
-          planningRegionName: true,
-          planningProvinceHucName: true,
-          mealLocalityPreference: true,
-        },
       });
       const effectiveLevel =
         safeData.planningGeographyLevel ?? existing?.planningGeographyLevel ?? ConsumptionGeographyLevel.NATIONAL;
@@ -121,7 +117,9 @@ export class UserProfileService {
           snapshot: safeData as Prisma.InputJsonObject,
         },
       });
-      return profile;
+      const changed =
+        !existing || Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
+      return changed ? advanceProfileRevision(tx, userId) : profile;
     });
   }
 
@@ -215,20 +213,13 @@ export class UserProfileService {
     });
 
     // 3. Persist targets and flag onboarding as complete
-    await prisma.$transaction([
-      prisma.userProfile.update({
-        where: { userId },
-        data: {
-          dailyCalorieTarget: calculations.dailyCalorieTarget,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          onboardingDone: true,
-        },
-      }),
-    ]);
+    await prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
+      const current = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+      if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
+      if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) await advanceProfileRevision(tx, userId);
+      await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
+    });
 
     return {
       dailyCalorieTarget: calculations.dailyCalorieTarget,
@@ -287,6 +278,8 @@ export class UserProfileService {
             id: true,
             generatedAt: true,
             acknowledgedAt: true,
+            isStale: true,
+            version: true,
           },
         },
       },

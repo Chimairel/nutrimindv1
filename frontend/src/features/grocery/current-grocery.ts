@@ -6,6 +6,7 @@ export interface GroceryItem {
   category: string;
   isChecked: boolean;
   quantity: number | null;
+  purchasedQuantity?: number;
   unit: string | null;
   sourceMealCount: number;
   isPantryStaple: boolean;
@@ -24,11 +25,12 @@ export interface GroceryPageSnapshot {
 }
 
 /** Both grocery surfaces must validate current approval before displaying a stored projection. */
-export async function fetchCurrentGrocery(): Promise<GroceryPageSnapshot> {
+export async function fetchCurrentGrocery(view: 'current' | 'next' = 'current'): Promise<GroceryPageSnapshot> {
   const [grocery, meals] = await Promise.all([
-    api.get<{ success: boolean; data: GroceryList | null }>('/user/grocery/current'),
+    api.get<{ success: boolean; data: GroceryList | null }>('/user/grocery/current', { params: { view } }),
     api.get<{ success: boolean; data: unknown[]; meta?: { pendingReview?: { mealCount: number } | null } }>(
-      '/user/meals/current'
+      '/user/meals/current',
+      { params: { view } }
     ),
   ]);
   if (!grocery.data?.success || !meals.data?.success || !Array.isArray(meals.data.data)) {

@@ -574,6 +574,7 @@ model User {
   healthConditions                 HealthCondition[]
   allergies                        Allergy[]
   nutritionReport                  NutritionReport?
+  nutritionReportVersions          NutritionReportVersion[]
   nutritionistProfile              NutritionistProfile?              @relation("UserToNutritionistProfile")
   nutritionistVerifications        NutritionistProfile[]             @relation("AdminVerifier")
   mealPlans                        MealPlan[]                        @relation("UserMealPlans")
@@ -640,7 +641,23 @@ model Session {
   expires      DateTime
 }
 
+model NutritionReportVersion {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version         Int
+  profileRevision Int
+  generatedAt     DateTime  @default(now())
+  acknowledgedAt  DateTime?
+  content         Json
+  profileSnapshot Json
+  policyVersion   String    @default("NUTRIMIND_REPORT_V2")
+
+  @@unique([userId, version])
+}
+
 model UserProfile {
+  revision                Int                       @default(0)
   id                      String                    @id @default(cuid())
   userId                  String                    @unique
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -705,6 +722,9 @@ model SafetyProfileEntry {
 }
 
 model NutritionReport {
+  profileRevision   Int       @default(0)
+  isStale           Boolean   @default(false)
+  version           Int       @default(1)
   id                String    @id @default(cuid())
   userId            String    @unique
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -786,27 +806,47 @@ model NutritionistApplication {
   @@index([scheduledCallAt])
 }
 
+model FoodCompositionRevision {
+  id                 String    @id @default(cuid())
+  foodItemId         String
+  foodItem           FoodItem  @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  baseRevision       Int
+  previousValues     Json
+  proposedValues     Json
+  sourceUrl          String    @db.VarChar(500)
+  sourcePublishedAt  DateTime
+  reason             String    @db.VarChar(1000)
+  createdByAdminId   String
+  publishedByAdminId String?
+  createdAt          DateTime  @default(now())
+  publishedAt        DateTime?
+
+  @@index([foodItemId, createdAt])
+}
+
 model FoodItem {
-  id               String               @id @default(cuid())
-  name             String
-  category         String?
-  calories         Float
-  proteinG         Float
-  carbsG           Float
-  fatG             Float
-  fiber            Float?
-  sodium           Float?
-  potassium        Float?
-  calcium          Float?
-  iron             Float?
-  vitaminA         Float?
-  vitaminC         Float?
-  vitaminB1        Float?
-  vitaminB2        Float?
-  niacin           Float?
-  water            Float?
-  outsideMealItems OutsideMealLogItem[]
-  source           String               @default("FNRI")
+  compositionRevision Int                       @default(0)
+  compositionHistory  FoodCompositionRevision[]
+  id                  String                    @id @default(cuid())
+  name                String
+  category            String?
+  calories            Float
+  proteinG            Float
+  carbsG              Float
+  fatG                Float
+  fiber               Float?
+  sodium              Float?
+  potassium           Float?
+  calcium             Float?
+  iron                Float?
+  vitaminA            Float?
+  vitaminC            Float?
+  vitaminB1           Float?
+  vitaminB2           Float?
+  niacin              Float?
+  water               Float?
+  outsideMealItems    OutsideMealLogItem[]
+  source              String                    @default("FNRI")
 
   // Relations
   aliases                FoodAlias[]
@@ -1223,6 +1263,8 @@ model DailyNutritionLog {
 }
 
 model GroceryList {
+  planGroupId String?
+  isStale     Boolean  @default(false)
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1234,16 +1276,17 @@ model GroceryList {
 }
 
 model GroceryItem {
-  id              String      @id @default(cuid())
-  groceryListId   String
-  groceryList     GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
-  ingredientName  String
-  category        String?
-  isChecked       Boolean     @default(false)
-  quantity        Float?
-  unit            String?     @db.VarChar(32)
-  sourceMealCount Int         @default(1)
-  isPantryStaple  Boolean     @default(false)
+  purchasedQuantity Float       @default(0)
+  id                String      @id @default(cuid())
+  groceryListId     String
+  groceryList       GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
+  ingredientName    String
+  category          String?
+  isChecked         Boolean     @default(false)
+  quantity          Float?
+  unit              String?     @db.VarChar(32)
+  sourceMealCount   Int         @default(1)
+  isPantryStaple    Boolean     @default(false)
 }
 
 model IngredientPriceSource {
@@ -1660,6 +1703,8 @@ model WaterLog {
 }
 
 model SwapLog {
+  newLibraryMealId    String?
+  requestKey          String?         @unique
   id                  String          @id @default(cuid())
   planSwapTrackerId   String
   planSwapTracker     PlanSwapTracker @relation(fields: [planSwapTrackerId], references: [id], onDelete: Cascade)

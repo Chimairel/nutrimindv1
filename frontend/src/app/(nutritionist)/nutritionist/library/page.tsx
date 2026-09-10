@@ -83,7 +83,7 @@ export default function MealLibraryPage() {
                     <p className="mt-1 text-[10px] text-brand-muted">Lowest slot: {profile.minimumPerSlot}</p>
                   </div>
                   <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
-                    {profile.weekReady ? 'Week ready' : 'Coverage gap'}
+                    {profile.weekReady ? 'Recipe variety' : 'Coverage gap'}
                   </Badge>
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-1 text-center">
@@ -94,6 +94,18 @@ export default function MealLibraryPage() {
                     </div>
                   ))}
                 </dl>
+                <details className="mt-3 text-xs">
+                  <summary>Serving coverage by daily target</summary>
+                  <p className="my-2 text-brand-muted">
+                    Certify separate serving variants to fill gaps; recipe totals alone do not establish target fit.
+                  </p>
+                  {profile.servingCoverage?.map((row) => (
+                    <p key={row.dailyCalorieTarget} className="mt-1">
+                      {row.dailyCalorieTarget} kcal: B {row.counts.BREAKFAST} · L {row.counts.LUNCH} · D{' '}
+                      {row.counts.DINNER} — {row.weekReady ? 'Covered' : 'Needs servings'}
+                    </p>
+                  ))}
+                </details>
               </Card>
             ))}
           </div>
@@ -142,7 +154,7 @@ export default function MealLibraryPage() {
                             <span
                               tabIndex={0}
                               title={detail}
-                              aria-label={`${row.label} and ${cell.label}: ${cell.minimumPerSlot} lowest-slot meals. ${detail}. ${cell.weekReady ? 'Week ready' : 'Coverage gap'}.`}
+                              aria-label={`${row.label} and ${cell.label}: ${cell.minimumPerSlot} lowest-slot meals. ${detail}. ${cell.weekReady ? 'Recipe variety' : 'Coverage gap'}.`}
                               className={`inline-flex min-w-16 items-center justify-center gap-1 rounded-xl border px-2 py-2 font-mono text-[10px] font-black outline-none transition focus:ring-2 focus:ring-brand-cyan/40 ${cell.weekReady ? 'border-brand-green/35 bg-brand-green/10 text-brand-green' : 'border-status-warning-text/35 bg-status-warning-bg/15 text-status-warning-text'}`}
                             >
                               {cell.minimumPerSlot}
@@ -168,7 +180,7 @@ export default function MealLibraryPage() {
                     <p className="mt-1 text-sm font-extrabold text-brand-text">{profile.label}</p>
                   </div>
                   <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
-                    {profile.weekReady ? 'Week ready' : 'Coverage gap'}
+                    {profile.weekReady ? 'Recipe variety' : 'Coverage gap'}
                   </Badge>
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-1 text-center">

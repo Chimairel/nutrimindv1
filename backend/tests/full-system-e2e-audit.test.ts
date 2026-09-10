@@ -39,11 +39,15 @@ test('[TEST-144][DEF-034] weight notes are trimmed, bounded, and services transa
   assert.throws(() => normalizeWeightNote(42), /must be text/);
   assert.throws(() => normalizeWeightNote('x'.repeat(MAX_WEIGHT_NOTE_LENGTH + 1)), /characters or fewer/);
 
-  for (const service of ['src/services/progress.service.ts', 'src/services/weight-log.service.ts']) {
+  for (const service of ['src/services/progress.service.ts']) {
     const source = require('node:fs').readFileSync(service, 'utf8');
     assert.match(source, /prisma\.\$transaction/);
     assert.match(source, /isSupportedWeightKg/);
   }
+  assert.match(
+    require('node:fs').readFileSync('src/services/weight-log.service.ts', 'utf8'),
+    /return ProgressService.logWeight\(userId, weightKg, note\)/
+  );
 });
 
 test('[TEST-145][DEF-033] expected review contention and replay failures map to conflict semantics', () => {

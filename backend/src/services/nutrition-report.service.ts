@@ -1,4 +1,6 @@
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { lockUserProfile } from './profile-revision.service';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
 import { formatMealLocalityPreference } from '@/domain/planning-location.policy';
@@ -42,13 +44,25 @@ export class NutritionReportService {
   /**
    * Acknowledges the user's current report by setting acknowledgedAt to now.
    */
-  static async acknowledgeReport(userId: string) {
-    return prisma.nutritionReport.update({
-      where: { userId },
-      data: {
-        acknowledgedAt: new Date(),
-      },
+  static async acknowledgeReport(userId: string, expectedVersion?: number) {
+    return prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
+      const report = await tx.nutritionReport.findUniqueOrThrow({ where: { userId } });
+      const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+      if (report.isStale || report.profileRevision !== profile.revision || expectedVersion !== report.version) {
+        throw new Error('This report changed or is out of date. Refresh and review the current version.');
+      }
+      const acknowledgedAt = new Date();
+      await tx.nutritionReportVersion.updateMany({
+        where: { userId, version: report.version },
+        data: { acknowledgedAt },
+      });
+      return tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
     });
+  }
+
+  static async getHistory(userId: string) {
+    return prisma.nutritionReportVersion.findMany({ where: { userId }, orderBy: { version: 'desc' }, take: 100 });
   }
 
   /**
@@ -190,16 +204,35 @@ export class NutritionReportService {
 
     // 5. Persist the real report to database and reset acknowledgedAt (so guard lock activates)
     console.log(`[Nutrition Report] Persisting completed report to PostgreSQL...`);
-    return prisma.nutritionReport.upsert({
-      where: { userId },
-      update: {
+    return prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
+      const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+      if (currentProfile.revision !== profile.revision)
+        throw new Error('Your profile changed while the report was generating. Please generate it again.');
+      const current = await tx.nutritionReport.findUnique({ where: { userId } });
+      const version = (current?.version ?? 0) + 1;
+      const generatedAt = new Date();
+      const data = {
         ...savedReport,
-        generatedAt: new Date(),
+        generatedAt,
+        version,
+        profileRevision: profile.revision,
+        isStale: false,
         acknowledgedAt: null,
-      },
-      create: {
-        ...savedReport,
-      },
+      };
+      await tx.nutritionReportVersion.create({
+        data: {
+          userId,
+          version,
+          profileRevision: profile.revision,
+          generatedAt,
+          content: savedReport as Prisma.InputJsonObject,
+          profileSnapshot: JSON.parse(
+            JSON.stringify({ profile, conditions, allergens, otherConditions, otherAllergies })
+          ),
+        },
+      });
+      return tx.nutritionReport.upsert({ where: { userId }, update: data, create: data });
     });
   }
 }

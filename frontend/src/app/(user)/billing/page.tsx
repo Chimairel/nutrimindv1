@@ -245,6 +245,7 @@ export default function BillingPage() {
               <Sparkles className="h-5 w-5 text-brand-green" />
               <span className="font-semibold">AI estimates for unresolved foods: 5/day, 30 per 30 days</span>
             </div>
+            <p className="mt-3 text-sm font-semibold">Plan and shop for next week in advance.</p>
             <Button
               className="mt-6 w-full"
               size="lg"

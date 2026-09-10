@@ -5,6 +5,7 @@ import { Search, Tags } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import CompositionEditor from './CompositionEditor';
 import Input from '@/components/ui/Input';
 import type { ApiEnvelope, FoodItem, FoodPage } from './types';
 import { getApiError } from './types';
@@ -20,6 +21,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
   const [result, setResult] = useState(initialFoods);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<FoodItem | null>(null);
+  const [compositionFood, setCompositionFood] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => setResult(initialFoods), [initialFoods]);
@@ -56,6 +58,17 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
 
   return (
     <section>
+      {compositionFood && (
+        <CompositionEditor
+          key={compositionFood}
+          foodId={compositionFood}
+          onClose={() => setCompositionFood(null)}
+          onChanged={async () => {
+            await findFoods(undefined, result.page);
+            await onChanged('Composition correction published; affected meals require review.');
+          }}
+        />
+      )}
       <Card
         header={
           <div className="flex items-center gap-3">
@@ -94,6 +107,9 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
                     {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g per 100 g
                   </p>
                 </div>
+                <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
+                  Composition
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => setSelected(food)}>
                   Add alias
                 </Button>

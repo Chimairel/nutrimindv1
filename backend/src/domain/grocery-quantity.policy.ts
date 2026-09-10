@@ -55,7 +55,9 @@ export function normalizeGroceryUnit(unit?: string | null): string | null {
 }
 
 export function groceryItemKey(name: string, unit?: string | null): string {
-  return `${name.trim().toLowerCase().replace(/\s+/g, ' ')}|${normalizeGroceryUnit(unit) || 'unspecified'}`;
+  const normalized = normalizeGroceryUnit(unit);
+  const base = normalized === 'kg' ? 'g' : normalized === 'L' ? 'mL' : normalized;
+  return `${name.trim().toLowerCase().replace(/\s+/g, ' ')}|${base || 'unspecified'}`;
 }
 
 export function aggregateGroceryIngredients(
@@ -66,11 +68,13 @@ export function aggregateGroceryIngredients(
   for (const ingredient of ingredients) {
     const cleanName = ingredient.ingredientName.trim().replace(/\s+/g, ' ');
     if (!cleanName) continue;
-    const unit = normalizeGroceryUnit(ingredient.unit);
+    const originalUnit = normalizeGroceryUnit(ingredient.unit);
+    const factor = originalUnit === 'kg' || originalUnit === 'L' ? 1000 : 1;
+    const unit = originalUnit === 'kg' ? 'g' : originalUnit === 'L' ? 'mL' : originalUnit;
     const key = groceryItemKey(cleanName, unit);
     const validQuantity =
       typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
-        ? ingredient.quantity
+        ? ingredient.quantity * factor
         : null;
     const current = aggregated.get(key);
     if (!current) {

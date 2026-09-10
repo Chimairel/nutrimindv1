@@ -155,7 +155,7 @@ export function buildUserBillingAccessView(input: {
         tier: 'PREMIUM',
         name: 'Premium',
         weeklySwapCap: 6,
-        benefit: '6 meal swaps per weekly plan',
+        benefit: '6 meal swaps per weekly plan, quota-limited outside-meal AI estimates, and next-week planning',
         price: price ? { ...price, environment: 'TEST', label: 'SANDBOX_DEMO_PRICE' } : null,
         accessDays: PREMIUM_ACCESS_DURATION_DAYS,
         renewsAutomatically: false,

@@ -75,6 +75,7 @@ export interface LibraryCoverage {
     label: string;
     counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
     total: number;
+    servingCoverage?: Array<{ dailyCalorieTarget: number; counts: Record<string, number>; weekReady: boolean }>;
     minimumPerSlot: number;
     weekReady: boolean;
   }>;

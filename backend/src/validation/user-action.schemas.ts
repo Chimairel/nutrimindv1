@@ -83,6 +83,8 @@ export const outsideMealReviewBodySchema = z
 export const swapMealBodySchema = z
   .object({
     newLibraryMealId: boundedId,
+    previewToken: z.string().regex(/^[a-f0-9]{64}$/),
+    requestKey: z.string().uuid(),
     warningShown: z.boolean().optional(),
     warningAcknowledged: z.boolean().optional(),
   })
@@ -92,6 +94,7 @@ export const swapPreviewQuerySchema = z.object({ libraryMealId: boundedId }).str
 
 export const compatibleLibraryQuerySchema = z
   .object({
+    date: z.iso.date().optional(),
     mealType: z.enum(MealType).optional(),
     search: z.string().trim().max(100).optional(),
   })

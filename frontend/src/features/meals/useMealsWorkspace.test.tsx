@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getManilaDateKey } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 
@@ -36,7 +37,9 @@ describe('useMealsWorkspace', () => {
     await waitFor(() => expect(result.current.historyTotalCount).toBe(3));
     expect(result.current.libraryTotalCount).toBe(5);
     expect(getMock).toHaveBeenCalledWith('/user/meals/history', { params: {} });
-    expect(getMock).toHaveBeenCalledWith('/user/meals/compatible-library', { params: {} });
+    expect(getMock).toHaveBeenCalledWith('/user/meals/compatible-library', {
+      params: { date: getManilaDateKey(new Date()) },
+    });
   });
 
   it('keeps the existing workspace visible during a focus refresh', async () => {

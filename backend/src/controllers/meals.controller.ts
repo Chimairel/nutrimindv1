@@ -1,4 +1,7 @@
 import { Response } from 'express';
+import { lockUserProfile } from '@/services/profile-revision.service';
+import { getNextWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
+import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
@@ -10,7 +13,6 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
   assertUserActionableMealPlan,
   filterUserActionableMealPlans,
-  getCurrentMealPlanScheduleWhere,
   getOwnedMealPlanWhere,
   getUserActionableMealPlanWhere,
   isMealPlanNotActionableError,
@@ -159,14 +161,25 @@ export class MealsController {
       const now = new Date();
       const entitlement = await resolveUserBillingEntitlement(prisma, userId, now);
       const swapCap = weeklySwapCapForTier(entitlement.tier);
+      const viewNext = req.query.view === 'next';
+      if (viewNext && entitlement.tier !== 'PREMIUM')
+        return res.status(403).json({ success: false, error: 'Next-week planning requires Premium.' });
+      const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
+      const nextWindow = getNextWeeklyCycleWindow(profile, now);
+      const schedule = {
+        scheduledDate: viewNext
+          ? { gte: nextWindow.startDate, lte: nextWindow.endDate }
+          : { gte: getStartOfManilaBusinessDay(now), lt: nextWindow.startDate },
+      };
 
       // Find the latest plan group containing a currently actionable row.
       const latestPlan = await prisma.mealPlan.findFirst({
         where: {
           userId,
           ...getUserActionableMealPlanWhere(now),
+          ...schedule,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { scheduledDate: 'asc' },
         select: { planGroupId: true },
       });
 
@@ -175,9 +188,9 @@ export class MealsController {
           where: {
             userId,
             status: MealPlanStatus.PENDING_REVIEW,
-            ...getCurrentMealPlanScheduleWhere(now),
+            ...schedule,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { scheduledDate: 'asc' },
           select: { planGroupId: true },
         });
         const [pendingPlanRows, pendingSwapTracker] = latestPendingPlan
@@ -187,7 +200,7 @@ export class MealsController {
                   userId,
                   planGroupId: latestPendingPlan.planGroupId,
                   status: MealPlanStatus.PENDING_REVIEW,
-                  ...getCurrentMealPlanScheduleWhere(now),
+                  ...schedule,
                 },
                 select: {
                   planType: true,
@@ -235,7 +248,7 @@ export class MealsController {
           where: {
             userId,
             planGroupId: latestPlan.planGroupId,
-            ...getCurrentMealPlanScheduleWhere(now),
+            ...schedule,
           },
           include: {
             ingredients: true,
@@ -501,39 +514,41 @@ export class MealsController {
         return res.status(400).json({ success: false, error: 'Invalid or missing status parameter.' });
       }
 
-      // Find the MealPlan item to fetch macros
-      const mealPlan = await prisma.mealPlan.findFirst({
-        where: getOwnedMealPlanWhere(userId, mealPlanId),
-      });
+      const updatedLog = await prisma.$transaction(async (tx) => {
+        await lockUserProfile(tx, userId);
+        // Find the MealPlan item to fetch macros
+        const mealPlan = await tx.mealPlan.findFirst({
+          where: getOwnedMealPlanWhere(userId, mealPlanId),
+        });
 
-      if (!mealPlan) {
-        return res.status(404).json({ success: false, error: 'Meal plan item not found.' });
-      }
+        if (!mealPlan) {
+          throw new Error('Meal plan item not found.');
+        }
 
-      assertUserActionableMealPlan(mealPlan);
+        assertUserActionableMealPlan(mealPlan);
 
-      const updatedLog = await prisma.mealLog.upsert({
-        where: { mealPlanId },
-        update: {
-          status: status as MealLogStatus,
-          source: MealLogSource.SYSTEM_GENERATED,
-          loggedAt: new Date(),
-        },
-        create: {
-          userId,
-          mealPlanId,
-          source: MealLogSource.SYSTEM_GENERATED,
-          mealName: mealPlan.mealName,
-          calories: mealPlan.calories,
-          proteinG: mealPlan.proteinG,
-          carbsG: mealPlan.carbsG,
-          fatG: mealPlan.fatG,
-          dataSource: MealLogDataSource.FNRI, // Plan meals are FNRI validated
-          status: status as MealLogStatus,
-          warningType: null,
-          warningShown: false,
-          warningAcknowledged: false,
-        },
+        return tx.mealLog.upsert({
+          where: { mealPlanId },
+          update: {
+            status: status as MealLogStatus,
+            loggedAt: new Date(),
+          },
+          create: {
+            userId,
+            mealPlanId,
+            source: MealLogSource.SYSTEM_GENERATED,
+            mealName: mealPlan.mealName,
+            calories: mealPlan.calories,
+            proteinG: mealPlan.proteinG,
+            carbsG: mealPlan.carbsG,
+            fatG: mealPlan.fatG,
+            dataSource: MealLogDataSource.FNRI, // Plan meals are FNRI validated
+            status: status as MealLogStatus,
+            warningType: null,
+            warningShown: false,
+            warningAcknowledged: false,
+          },
+        });
       });
 
       return res.status(200).json({
@@ -597,7 +612,7 @@ export class MealsController {
       }
 
       const mealPlanId = req.params.id;
-      const { newLibraryMealId, warningShown, warningAcknowledged } = req.body;
+      const { newLibraryMealId, warningShown, warningAcknowledged, previewToken, requestKey } = req.body;
 
       if (!newLibraryMealId) {
         return res.status(400).json({ success: false, error: 'Missing newLibraryMealId parameter.' });
@@ -608,7 +623,9 @@ export class MealsController {
         mealPlanId,
         newLibraryMealId,
         warningShown,
-        warningAcknowledged
+        warningAcknowledged,
+        previewToken,
+        requestKey
       );
 
       return res.status(200).json({
@@ -673,7 +690,12 @@ export class MealsController {
 
       const mealType = req.query.mealType as MealType | undefined;
       const search = req.query.search as string | undefined;
-      const meals = await MealSwapService.getCompatibleLibraryMeals(userId, mealType, search);
+      const meals = await MealSwapService.getCompatibleLibraryMeals(
+        userId,
+        mealType,
+        search,
+        req.query.date as string | undefined
+      );
 
       return res.status(200).json({
         success: true,

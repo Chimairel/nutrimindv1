@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import { getCurrentWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
 import { evaluateWeeklyAdaptation } from '@/domain/weekly-adaptation.policy';
@@ -142,6 +143,10 @@ export class CheckinService {
     try {
       const checkin = await prisma.$transaction(
         async (tx) => {
+          await lockUserProfile(tx, userId);
+          const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+          if (currentProfile.revision !== profile.revision)
+            throw new Error('Your profile changed. Refresh before submitting your check-in.');
           const created = await tx.weeklyCheckin.create({
             data: {
               userId,
@@ -176,6 +181,13 @@ export class CheckinService {
             },
           });
 
+          if (
+            data.changed &&
+            (effectiveWeightKg !== profile.weightKg ||
+              effectiveGoal !== profile.goal ||
+              effectiveActivityLevel !== profile.activityLevel)
+          )
+            await advanceProfileRevision(tx, userId);
           if (submittedWeightKg !== undefined) {
             await tx.weightLog.create({ data: { userId, weightKg: submittedWeightKg, note: 'Weekly check-in' } });
           }
