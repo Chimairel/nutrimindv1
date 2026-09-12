@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import {
   BookOpenText,
@@ -22,7 +23,6 @@ import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 import { useAdminAnalytics } from '@/features/admin-analytics/useAdminAnalytics';
-import { WorkspaceLinkGrid } from '@/components/shared/WorkspaceLinkGrid';
 
 interface Metric {
   label: string;
@@ -115,43 +115,45 @@ export default function AdminOverviewPage() {
       <PortalPageHeader
         icon={BrainCircuit}
         eyebrow="Administration"
-        title="Your administration workspace"
+        title="Overview"
         description="Manage people, maintain trusted content, and keep platform operations moving."
         meta={
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan shadow-[0_0_9px_rgba(34,211,238,0.8)]" />
-            <span className="text-xs font-medium text-white/75">Latest loaded overview</span>
+            <span className="text-xs font-medium text-brand-muted">Latest loaded overview</span>
           </div>
         }
       />
 
-      <section aria-label="Administration tools">
-        <h2 className="mb-3 font-display text-lg font-bold text-brand-text">What would you like to manage?</h2>
-        <WorkspaceLinkGrid role="ADMIN" exclude={['/admin/overview']} />
-      </section>
-
-      <div>
-        <p className="portal-section-label mb-4">Operational metrics</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((metric) => {
-            const Icon = metric.icon;
-            return (
-              <Card key={metric.label} className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${metric.tone}`}>
-                    <Icon className="h-[18px] w-[18px]" />
-                  </span>
-                </div>
-                <p className="mt-4 font-display text-3xl font-black tracking-[-0.04em] text-brand-text">
-                  {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
-                </p>
-                <p className="mt-1 text-xs font-semibold text-brand-muted">{metric.label}</p>
-              </Card>
-            );
-          })}
+      <section className="rounded-2xl border border-brand-border bg-brand-surface p-5">
+        <h2 className="font-display text-xl font-bold">Needs attention</h2>
+        <p className="mt-1 text-sm text-brand-muted">
+          Current signals across credential checks, generation and meal review.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            { label: 'Credential checks', value: data.expiredVerifiedNutritionists, href: '/admin/nutritionists' },
+            {
+              label: 'Generation failures in 24 hours',
+              value: data.failedGenerationJobs24h,
+              href: '/admin/operations',
+            },
+            { label: 'Stale recipe certifications', value: data.staleLibraryEvidence, href: '/admin/data' },
+            { label: 'Pending meal reviews', value: data.pendingReviews, href: '/admin/operations' },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between gap-3 rounded-xl border border-brand-border p-4 hover:bg-brand-bgAlt"
+            >
+              <span className="text-sm font-semibold">{item.label}</span>
+              <strong className="text-xl text-brand-green">{item.value}</strong>
+            </div>
+          ))}
         </div>
-      </div>
-
+        <Link href="/admin/nutritionists" className="mt-4 inline-block text-sm font-semibold text-brand-green">
+          Review nutritionist applications →
+        </Link>
+      </section>
       <div>
         <div className="mb-4 flex items-center justify-between gap-4">
           <p className="portal-section-label">Operations and safety queues</p>
@@ -175,6 +177,28 @@ export default function AdminOverviewPage() {
                     <p className="text-xs text-brand-muted">{metric.label}</p>
                   </div>
                 </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <p className="portal-section-label mb-4">Operational metrics</p>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {metrics.map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <Card key={metric.label} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${metric.tone}`}>
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                </div>
+                <p className="mt-4 font-display text-3xl font-black tracking-[-0.04em] text-brand-text">
+                  {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">{metric.label}</p>
               </Card>
             );
           })}

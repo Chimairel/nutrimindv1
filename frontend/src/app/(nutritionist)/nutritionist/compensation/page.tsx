@@ -64,7 +64,7 @@ export default function NutritionistCompensationPage() {
         title="My compensation"
         description="Review your credited work, period statements, signed adjustments, and manual payout evidence."
         meta={
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
             Only your records
           </span>
         }

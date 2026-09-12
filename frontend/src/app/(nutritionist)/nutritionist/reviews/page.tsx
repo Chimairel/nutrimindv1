@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
-import { WorkspaceLinkGrid } from '@/components/shared/WorkspaceLinkGrid';
 
 export default function ReviewsPage() {
   const {
@@ -50,11 +49,10 @@ export default function ReviewsPage() {
     addIngredientField,
     removeIngredientField,
     updateIngredientField,
-    flagColor,
   } = useNutritionistReviews();
 
   return (
-    <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface/65 text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
+    <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
       {/* Master Queue List Panel */}
       <div
         className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
@@ -112,13 +110,13 @@ export default function ReviewsPage() {
                   } ${
                     isSelected
                       ? 'border-brand-green/40 bg-brand-green/[0.08] shadow-md'
-                      : 'border-brand-border/70 bg-brand-surface/55 hover:-translate-y-0.5 hover:border-brand-green/25'
+                      : 'border-brand-border/70 bg-brand-surface hover:-translate-y-0.5 hover:border-brand-green/25'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <span className="text-xs font-bold text-brand-green">{meal.mealType}</span>
-                    <Badge variant={flagColor(meal.aiConfidenceFlag)} dot className="text-[9px]">
-                      {meal.aiConfidenceFlag}
+                    <Badge variant="pending" className="text-xs">
+                      {meal.requiresSafetyRevalidation ? 'Recheck needed' : 'Awaiting review'}
                     </Badge>
                   </div>
                   <h3 className="text-sm font-bold text-brand-text truncate mb-1">{meal.mealName}</h3>
@@ -178,10 +176,6 @@ export default function ReviewsPage() {
                 </li>
               </ol>
             </div>
-            <section aria-label="Professional tools">
-              <h3 className="mb-3 text-sm font-bold text-brand-text">Continue other work</h3>
-              <WorkspaceLinkGrid role="NUTRITIONIST" exclude={['/nutritionist/reviews']} />
-            </section>
           </div>
         ) : detailLoading ? (
           <div className="flex-grow flex items-center justify-center">
@@ -207,6 +201,15 @@ export default function ReviewsPage() {
                 <span>
                   This review is locked to you for 30 minutes. Reopen the card if the claim expires before submission.
                 </span>
+              </div>
+            )}
+            {detailData.mealPlan.requiresSafetyRevalidation && (
+              <div
+                role="status"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-brand-text"
+              >
+                <strong>Profile or evidence changed.</strong> Check the current diet, allergies, conditions and portion
+                target below. Previous automated triage is not current.
               </div>
             )}
             {detailData.highRiskReviewRequired && (
@@ -465,7 +468,12 @@ export default function ReviewsPage() {
                             key={idx}
                             className="flex items-center gap-1 px-2.5 py-1 bg-brand-surface border border-brand-border text-xs rounded-lg text-brand-muted"
                           >
-                            <span>{ing.name}</span>
+                            <span>
+                              {ing.name}
+                              {ing.quantity != null
+                                ? ` · ${ing.quantity} ${ing.unit || ''}`
+                                : ' · Quantity unavailable'}
+                            </span>
                             <span
                               className="text-[9px]"
                               title={

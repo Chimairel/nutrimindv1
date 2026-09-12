@@ -195,9 +195,68 @@ th {
   background: var(--brand-green);
 }
 
+/* Dashboard surfaces use explicit colors: full-value CSS variables do not
+   support Tailwind's slash-opacity utilities in this configuration. */
+.dashboard-surface {
+  background: var(--brand-surface);
+  border: 1px solid var(--brand-border);
+  box-shadow:
+    0 2px 4px rgb(5 18 14 / 3%),
+    0 12px 28px rgb(5 18 14 / 6%);
+}
+
+.daily-intake-card {
+  --brand-surface: #163c30;
+  --brand-text: #f4fff8;
+  --brand-muted: #b7cec2;
+  --brand-green: #b8f45f;
+  --brand-border: #345548;
+  --macro-protein: #b8f45f;
+  --macro-carbs: #61e6ff;
+  --macro-fat: #c3afea;
+  background: radial-gradient(ellipse at top right, #24543e, transparent 70%), #102d24;
+  border-color: #345548;
+  box-shadow:
+    0 4px 8px rgb(5 18 14 / 8%),
+    0 18px 36px rgb(5 18 14 / 16%);
+}
+
+.dashboard-meal {
+  border: 1px solid var(--brand-border);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--brand-surface) 75%, var(--brand-bg-alt));
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.dashboard-meal:focus-within,
+.dashboard-meal:hover {
+  border-color: var(--brand-green);
+  box-shadow: 0 3px 12px rgb(5 18 14 / 5%);
+}
+
+.dashboard-action {
+  background: var(--brand-green-light);
+  color: var(--brand-green);
+  border: 1px solid color-mix(in srgb, var(--brand-green) 24%, var(--brand-border));
+}
+
+.dashboard-action:hover:not(:disabled) {
+  background: var(--brand-green);
+  color: var(--brand-surface);
+}
+
+.dashboard-stat > div:first-child > svg:first-child {
+  box-sizing: content-box;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--brand-green-light);
+}
+
 /* Clean card surfaces */
 .glass-panel {
-  background: color-mix(in srgb, var(--brand-surface) 86%, transparent);
+  background: var(--brand-surface);
   border: 1px solid color-mix(in srgb, var(--brand-border) 76%, transparent);
   border-radius: 1.5rem;
   box-shadow: 0 18px 60px rgba(5, 18, 14, 0.08);
@@ -250,11 +309,11 @@ th {
   content: '';
   height: 20rem;
   left: 12%;
-  opacity: 0.7;
+  opacity: 0.25;
   pointer-events: none;
   position: absolute;
   top: 3rem;
-  width: 20rem;
+  width: min(20rem, 88%);
   z-index: -1;
 }
 
@@ -351,7 +410,7 @@ th {
 }
 
 .portal-filter-panel {
-  background: color-mix(in srgb, var(--brand-surface) 80%, transparent);
+  background: var(--brand-surface);
   border: 1px solid color-mix(in srgb, var(--brand-border) 72%, transparent);
   border-radius: 1.5rem;
   box-shadow: 0 16px 48px rgba(5, 18, 14, 0.07);
@@ -359,7 +418,7 @@ th {
 }
 
 .portal-table-shell {
-  background: color-mix(in srgb, var(--brand-surface) 86%, transparent);
+  background: var(--brand-surface);
   border: 1px solid color-mix(in srgb, var(--brand-border) 72%, transparent);
   border-radius: 1.75rem;
   box-shadow: 0 18px 56px rgba(5, 18, 14, 0.08);
@@ -477,5 +536,30 @@ th {
   .animate-float-slow,
   .hover-pulse:hover {
     animation: none !important;
+  }
+}
+
+/* Workspace content is calm and opaque; brand emphasis belongs to navigation and actions. */
+.workspace-header {
+  padding: 0.25rem 0 1rem;
+  border-bottom: 1px solid var(--brand-border);
+}
+.portal-filter-panel,
+.portal-table-shell,
+.surface-panel {
+  box-shadow: 0 2px 8px rgba(5, 18, 14, 0.035);
+  border-radius: 1rem;
+}
+.portal-section-label {
+  font-family: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 767px) {
+  .portal-page {
+    padding: 1rem;
+  }
+  .workspace-header {
+    padding-bottom: 0.75rem;
   }
 }

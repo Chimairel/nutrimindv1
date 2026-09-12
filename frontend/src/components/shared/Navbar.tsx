@@ -17,12 +17,13 @@ export const Navbar: React.FC = () => {
   if (!user) return null;
 
   return (
-    <header className="relative z-30 flex min-h-[72px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">
+    <header className="relative z-30 flex min-h-[60px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">
       <div className="min-w-0">
         <p className="hidden text-xs text-brand-muted sm:block">{workspaceLabels[user.role]}</p>
         <p className="truncate text-sm font-bold text-brand-text">
-          {workspaceTools[user.role].find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'))
-            ?.label || 'NutriMind'}
+          {[...workspaceTools[user.role]]
+            .sort((a, b) => b.href.length - a.href.length)
+            .find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'))?.label || 'NutriMind'}
         </p>
       </div>
       <div className="ml-auto flex items-center gap-2">

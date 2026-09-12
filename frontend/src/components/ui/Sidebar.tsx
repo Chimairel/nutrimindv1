@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Activity, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
-import { workspaceTools } from '@/lib/workspace-navigation';
+import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     localStorage.setItem('nutrimind-sidebar-collapsed', String(nextValue));
   };
 
-  const navItems = workspaceTools[user.role].filter((item) => item.href !== '/profile');
+  const navItems = primaryWorkspaceTools[user.role].filter((item) => item.href !== '/profile');
   const collapsed = isMounted && isCollapsed;
   const homeHref =
     user.role === 'USER' ? '/dashboard' : user.role === 'NUTRITIONIST' ? '/nutritionist/reviews' : '/admin/overview';
@@ -162,49 +162,57 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto"
         aria-label={`${user.role.toLowerCase()} navigation`}
       >
-        {navItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {navItems.map((item, index) => {
+          const active =
+            pathname === item.href ||
+            pathname.startsWith(`${item.href}/`) ||
+            (item.href === '/nutritionist/reviews' &&
+              ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
           const Icon = item.icon;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSuppressedTooltip(item.href)}
-              onBlur={() => setSuppressedTooltip((current) => (current === item.href ? null : current))}
-              onMouseLeave={(event) => {
-                if (suppressedTooltip === item.href) event.currentTarget.blur();
-                setSuppressedTooltip((current) => (current === item.href ? null : current));
-              }}
-              aria-label={collapsed ? item.label : undefined}
-              aria-describedby={collapsed && !active ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
-              aria-current={active ? 'page' : undefined}
-              className={`
+            <React.Fragment key={item.href}>
+              {!collapsed && user.role === 'ADMIN' && (index === 0 || navItems[index - 1].group !== item.group) && (
+                <p className="px-3 pt-3 pb-1 text-xs font-semibold text-white/60">{item.group}</p>
+              )}
+              <Link
+                href={item.href}
+                onClick={() => setSuppressedTooltip(item.href)}
+                onBlur={() => setSuppressedTooltip((current) => (current === item.href ? null : current))}
+                onMouseLeave={(event) => {
+                  if (suppressedTooltip === item.href) event.currentTarget.blur();
+                  setSuppressedTooltip((current) => (current === item.href ? null : current));
+                }}
+                aria-label={collapsed ? item.label : undefined}
+                aria-describedby={collapsed && !active ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
+                aria-current={active ? 'page' : undefined}
+                className={`
                 group relative flex min-h-12 items-center rounded-2xl outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]
                 ${collapsed ? 'justify-center px-3' : 'gap-3 px-3.5'}
                 ${active ? 'text-[#07100d]' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'}
               `}
-            >
-              {active && (
-                <MotionActiveIndicator
-                  layoutId="sidebar-active-nav-indicator"
-                  className="rounded-2xl bg-brand-accent shadow-neon"
-                />
-              )}
-              <span className={`relative z-10 flex items-center ${collapsed ? 'justify-center' : 'w-full gap-3'}`}>
-                <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
-                {!collapsed && (
-                  <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
+              >
+                {active && (
+                  <MotionActiveIndicator
+                    layoutId="sidebar-active-nav-indicator"
+                    className="rounded-2xl bg-brand-accent shadow-neon"
+                  />
                 )}
-                {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
-              </span>
-              {collapsed && (
-                <SidebarTooltip
-                  id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`}
-                  label={item.label}
-                  suppressed={active || suppressedTooltip === item.href}
-                />
-              )}
-            </Link>
+                <span className={`relative z-10 flex items-center ${collapsed ? 'justify-center' : 'w-full gap-3'}`}>
+                  <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
+                  {!collapsed && (
+                    <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
+                  )}
+                  {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
+                </span>
+                {collapsed && (
+                  <SidebarTooltip
+                    id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`}
+                    label={item.label}
+                    suppressed={active || suppressedTooltip === item.href}
+                  />
+                )}
+              </Link>
+            </React.Fragment>
           );
         })}
       </nav>

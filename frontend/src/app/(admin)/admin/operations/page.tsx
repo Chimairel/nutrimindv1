@@ -83,30 +83,6 @@ export default function AdminOperationsPage() {
         </div>
       )}
 
-      {structuredSafety && (
-        <section aria-labelledby="structured-safety-heading">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <p id="structured-safety-heading" className="portal-section-label">
-              Structured restriction review gates
-            </p>
-            <p className="text-xs font-bold text-brand-muted">
-              {structuredSafety.usersRequiringReview} users require review
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {structuredSafety.entries.map((entry) => (
-              <Card key={`${entry.domain}-${entry.supportState}`} className="p-4">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
-                  {entry.domain.replaceAll('_', ' ')}
-                </p>
-                <p className="mt-2 text-2xl font-black text-brand-text">{entry.count}</p>
-                <p className="mt-1 text-xs font-semibold text-brand-muted">{entry.supportState.replaceAll('_', ' ')}</p>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
       <section>
         <p className="portal-section-label mb-4">Pending safety incidents</p>
         <div className="space-y-3">
@@ -132,6 +108,30 @@ export default function AdminOperationsPage() {
           ))}
         </div>
       </section>
+
+      {structuredSafety && (
+        <section aria-labelledby="structured-safety-heading">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <p id="structured-safety-heading" className="portal-section-label">
+              Structured restriction review gates
+            </p>
+            <p className="text-xs font-bold text-brand-muted">
+              {structuredSafety.usersRequiringReview} users require review
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {structuredSafety.entries.map((entry) => (
+              <Card key={`${entry.domain}-${entry.supportState}`} className="p-4">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
+                  {entry.domain.replaceAll('_', ' ')}
+                </p>
+                <p className="mt-2 text-2xl font-black text-brand-text">{entry.count}</p>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">{entry.supportState.replaceAll('_', ' ')}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <p className="portal-section-label mb-4">Recent audit events</p>

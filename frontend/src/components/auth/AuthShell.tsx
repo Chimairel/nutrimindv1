@@ -108,9 +108,9 @@ export default function AuthShell({
           </div>
         </section>
 
-        <section className="relative flex items-center justify-center px-5 py-10 sm:px-10 lg:px-12 xl:px-16">
+        <section className="relative flex items-center justify-center px-5 py-6 sm:px-10 lg:px-12 xl:px-16">
           <div className={`w-full ${wide ? 'max-w-[540px]' : 'max-w-[470px]'}`}>
-            <div className="mb-8 flex min-w-0 items-center justify-between gap-3 lg:hidden">
+            <div className="mb-5 flex min-w-0 items-center justify-between gap-3 lg:hidden">
               <Link
                 href="/"
                 className="flex min-w-0 items-center gap-2 font-display text-xs font-black tracking-[0.15em]"
@@ -128,10 +128,10 @@ export default function AuthShell({
               </Link>
             </div>
 
-            <div className="surface-panel rounded-[30px] p-6 sm:p-8">
-              <div className="mb-7">
+            <div className="surface-panel rounded-[24px] p-5 sm:p-8">
+              <div className="mb-5">
                 <p className="portal-kicker !text-brand-green">{eyebrow}</p>
-                <h2 className="mt-3 font-display text-3xl font-black tracking-[-0.04em] text-brand-text sm:text-4xl">
+                <h2 className="mt-2 font-display text-2xl font-black tracking-[-0.04em] text-brand-text sm:text-4xl">
                   {title}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-brand-muted">{description}</p>

@@ -1,0 +1,1022 @@
+{
+  "date": "2026-09-13",
+  "environment": "Synthetic local database; worktree preview at 127.0.0.1:3002",
+  "checks": [
+    {
+      "path": "/profile/planning",
+      "title": "Food & planning",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/profile/planning",
+      "title": "Food & planning",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/profile/planning",
+      "title": "Food & planning",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/profile/planning",
+      "title": "Food & planning",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/profile/personal",
+      "title": "Personal details",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/profile/personal",
+      "title": "Personal details",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/profile/personal",
+      "title": "Personal details",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/profile/personal",
+      "title": "Personal details",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/profile/security",
+      "title": "Security & privacy",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/profile/security",
+      "title": "Security & privacy",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/profile/security",
+      "title": "Security & privacy",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/profile/security",
+      "title": "Security & privacy",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/profile/membership",
+      "title": "More choice in your weekly plan",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/profile/membership",
+      "title": "More choice in your weekly plan",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/profile/membership",
+      "title": "More choice in your weekly plan",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/profile/membership",
+      "title": "More choice in your weekly plan",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/progress/reports",
+      "title": "Reports & history",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/progress/reports",
+      "title": "Reports & history",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/progress/reports",
+      "title": "Reports & history",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/progress/reports",
+      "title": "Reports & history",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/dashboard",
+      "title": "Mabuhay, Repair.",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/dashboard",
+      "title": "Mabuhay, Repair.",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/dashboard",
+      "title": "Mabuhay, Repair.",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/dashboard",
+      "title": "Mabuhay, Repair.",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/meals",
+      "title": "Weekly meal plan",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/meals",
+      "title": "Weekly meal plan",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/meals",
+      "title": "Weekly meal plan",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/meals",
+      "title": "Weekly meal plan",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/grocery",
+      "title": "Groceries",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/grocery",
+      "title": "Groceries",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/grocery",
+      "title": "Groceries",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/grocery",
+      "title": "Groceries",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/progress",
+      "title": "Progress",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/progress",
+      "title": "Progress",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/progress",
+      "title": "Progress",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/progress",
+      "title": "Progress",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/profile",
+      "title": "Profile",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/profile",
+      "title": "Profile",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/profile",
+      "title": "Profile",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/profile",
+      "title": "Profile",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/profile/health",
+      "title": "Health & goals",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/profile/health",
+      "title": "Health & goals",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/profile/health",
+      "title": "Health & goals",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/profile/health",
+      "title": "Health & goals",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutrition-report",
+      "title": "Nutrition guidance",
+      "scrollWidth": 312,
+      "width": 320
+    },
+    {
+      "path": "/nutrition-report",
+      "title": "Nutrition guidance",
+      "scrollWidth": 382,
+      "width": 390
+    },
+    {
+      "path": "/nutrition-report",
+      "title": "Nutrition guidance",
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutrition-report",
+      "title": "Nutrition guidance",
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist/reviews",
+      "title": "Review queue",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist/reviews",
+      "title": "Review queue",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist/reviews",
+      "title": "Review queue",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist/reviews",
+      "title": "Review queue",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist/library",
+      "title": "Meal library",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist/library",
+      "title": "Meal library",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist/library",
+      "title": "Meal library",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist/library",
+      "title": "Meal library",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist/outside-meals",
+      "title": "Outside meal estimates",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist/outside-meals",
+      "title": "Outside meal estimates",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist/outside-meals",
+      "title": "Outside meal estimates",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist/outside-meals",
+      "title": "Outside meal estimates",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist/approved",
+      "title": "Approved reviews",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist/approved",
+      "title": "Approved reviews",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist/approved",
+      "title": "Approved reviews",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist/approved",
+      "title": "Approved reviews",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist/compensation",
+      "title": "My compensation",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist/compensation",
+      "title": "My compensation",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist/compensation",
+      "title": "My compensation",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist/compensation",
+      "title": "My compensation",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist/profile",
+      "title": "Nutritionist profile",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist/profile",
+      "title": "Nutritionist profile",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist/profile",
+      "title": "Nutritionist profile",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist/profile",
+      "title": "Nutritionist profile",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/overview",
+      "title": "Overview",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/overview",
+      "title": "Overview",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/overview",
+      "title": "Overview",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/overview",
+      "title": "Overview",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/nutritionists",
+      "title": "Nutritionist onboarding",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/nutritionists",
+      "title": "Nutritionist onboarding",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/nutritionists",
+      "title": "Nutritionist onboarding",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/nutritionists",
+      "title": "Nutritionist onboarding",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/users",
+      "title": "User management",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/users",
+      "title": "User management",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/users",
+      "title": "User management",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/users",
+      "title": "User management",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/data",
+      "title": "Nutrition data center",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/data",
+      "title": "Nutrition data center",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/data",
+      "title": "Nutrition data center",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/data",
+      "title": "Nutrition data center",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/images",
+      "title": "Meal image catalogue",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/images",
+      "title": "Meal image catalogue",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/images",
+      "title": "Meal image catalogue",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/images",
+      "title": "Meal image catalogue",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/analytics",
+      "title": "Analytics observatory",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/analytics",
+      "title": "Analytics observatory",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/analytics",
+      "title": "Analytics observatory",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/analytics",
+      "title": "Analytics observatory",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/operations",
+      "title": "Safety and audit operations",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/operations",
+      "title": "Safety and audit operations",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/operations",
+      "title": "Safety and audit operations",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/operations",
+      "title": "Safety and audit operations",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/compensation",
+      "title": "Nutritionist compensation ledger",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/compensation",
+      "title": "Nutritionist compensation ledger",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/compensation",
+      "title": "Nutritionist compensation ledger",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/compensation",
+      "title": "Nutritionist compensation ledger",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/admin/more",
+      "title": "Administrator tools",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/admin/more",
+      "title": "Administrator tools",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/admin/more",
+      "title": "Administrator tools",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/admin/more",
+      "title": "Administrator tools",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "path": "/",
+      "title": "Eat with\nintention.",
+      "mainScroll": 348,
+      "mainWidth": 312,
+      "scrollWidth": 312,
+      "width": 320
+    },
+    {
+      "path": "/",
+      "title": "Eat with\nintention.",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 382,
+      "width": 390
+    },
+    {
+      "path": "/",
+      "title": "Eat with\nintention.",
+      "mainScroll": 760,
+      "mainWidth": 760,
+      "scrollWidth": 760,
+      "width": 768
+    },
+    {
+      "path": "/",
+      "title": "Eat with\nintention.",
+      "mainScroll": 1432,
+      "mainWidth": 1432,
+      "scrollWidth": 1432,
+      "width": 1440
+    },
+    {
+      "path": "/login",
+      "title": "Your nutrition.\nOne connected view.",
+      "mainScroll": 454,
+      "mainWidth": 320,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/login",
+      "title": "Your nutrition.\nOne connected view.",
+      "mainScroll": 491,
+      "mainWidth": 390,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/login",
+      "title": "Your nutrition.\nOne connected view.",
+      "mainScroll": 760,
+      "mainWidth": 760,
+      "scrollWidth": 760,
+      "width": 768
+    },
+    {
+      "path": "/login",
+      "title": "Your nutrition.\nOne connected view.",
+      "mainScroll": 1432,
+      "mainWidth": 1432,
+      "scrollWidth": 1432,
+      "width": 1440
+    },
+    {
+      "path": "/register",
+      "title": "Nutrition built for\nreal Filipino life.",
+      "mainScroll": 450,
+      "mainWidth": 312,
+      "scrollWidth": 312,
+      "width": 320
+    },
+    {
+      "path": "/register",
+      "title": "Nutrition built for\nreal Filipino life.",
+      "mainScroll": 487,
+      "mainWidth": 382,
+      "scrollWidth": 382,
+      "width": 390
+    },
+    {
+      "path": "/register",
+      "title": "Nutrition built for\nreal Filipino life.",
+      "mainScroll": 760,
+      "mainWidth": 760,
+      "scrollWidth": 760,
+      "width": 768
+    },
+    {
+      "path": "/register",
+      "title": "Nutrition built for\nreal Filipino life.",
+      "mainScroll": 1432,
+      "mainWidth": 1432,
+      "scrollWidth": 1432,
+      "width": 1440
+    },
+    {
+      "path": "/nutritionist-apply",
+      "title": "Bring professional judgment into the loop.",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 319,
+      "width": 320
+    },
+    {
+      "path": "/nutritionist-apply",
+      "title": "Bring professional judgment into the loop.",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 382,
+      "width": 390
+    },
+    {
+      "path": "/nutritionist-apply",
+      "title": "Bring professional judgment into the loop.",
+      "mainScroll": 760,
+      "mainWidth": 760,
+      "scrollWidth": 760,
+      "width": 768
+    },
+    {
+      "path": "/nutritionist-apply",
+      "title": "Bring professional judgment into the loop.",
+      "mainScroll": 1240,
+      "mainWidth": 1240,
+      "scrollWidth": 1432,
+      "width": 1440
+    },
+    {
+      "path": "/export",
+      "title": "Nutrition summary preview",
+      "mainScroll": 312,
+      "mainWidth": 312,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "path": "/export",
+      "title": "Nutrition summary preview",
+      "mainScroll": 382,
+      "mainWidth": 382,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/export",
+      "title": "Nutrition summary preview",
+      "mainScroll": 464,
+      "mainWidth": 464,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "path": "/export",
+      "title": "Nutrition summary preview",
+      "mainScroll": 1136,
+      "mainWidth": 1136,
+      "scrollWidth": 1440,
+      "width": 1440
+    }
+  ]
+}

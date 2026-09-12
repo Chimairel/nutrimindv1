@@ -159,29 +159,34 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   </div>
                 ) : swapPreview ? (
                   <div className="space-y-4">
+                    <div className="rounded-xl border border-brand-border bg-brand-surface p-4 text-sm">
+                      <p className="text-brand-muted">Replace {swapPreview.originalMealName}</p>
+                      <p className="mt-1 font-semibold text-brand-text">With {swapPreview.newMealName}</p>
+                    </div>
                     {swapPreview.warningRequired && (
                       <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
                           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                           <h4 className="text-sm font-bold text-amber-500 font-display uppercase tracking-tight">
-                            Calorie Limit Warning
+                            Check your daily total
                           </h4>
                         </div>
                         <p className="text-xs text-brand-text leading-relaxed font-sans">
                           This swap puts you at{' '}
                           <span className="font-extrabold text-amber-500">{swapPreview.projectedDayTotal} kcal</span>{' '}
-                          for this day (
+                          planned for this day (
                           <span className="font-bold">
                             {swapPreview.calorieDelta >= 0
                               ? `+${Math.round(swapPreview.calorieDelta)}`
                               : Math.round(swapPreview.calorieDelta)}{' '}
                             kcal
                           </span>{' '}
-                          from your <span className="font-semibold">{swapPreview.dailyTarget} kcal</span> target).
+                          change from the current plan). Your daily target is{' '}
+                          <span className="font-semibold">{swapPreview.dailyTarget} kcal</span>.
                         </p>
                         <p className="text-[11px] text-brand-muted mt-2 font-sans">
-                          This exceeds the recommended ±15% daily calorie target safety window. Do you want to proceed
-                          with the swap anyway?
+                          The planned total is outside ±15% of your daily target. Review the rest of your day before
+                          proceeding.
                         </p>
                       </div>
                     )}
@@ -218,11 +223,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       >
                         Cancel
                       </Button>
-                      <Button
-                        onClick={handleConfirmSwapAnyway}
-                        disabled={isSwapping}
-                        className="text-xs font-bold bg-amber-500 hover:bg-amber-600 border-amber-500/20 text-white"
-                      >
+                      <Button onClick={handleConfirmSwapAnyway} disabled={isSwapping} className="text-xs font-bold">
                         {isSwapping ? 'Swapping...' : 'Confirm swap'}
                       </Button>
                     </div>

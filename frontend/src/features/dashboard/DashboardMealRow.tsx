@@ -47,7 +47,7 @@ export function DashboardMealRow(props: Props) {
   );
   if (props.pending)
     return (
-      <details className="group py-4">
+      <details className="dashboard-meal group p-4">
         <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl [&::-webkit-details-marker]:hidden">
           {content}
           <ChevronDown className="h-4 w-4 shrink-0 text-brand-muted group-open:rotate-180" />
@@ -63,7 +63,7 @@ export function DashboardMealRow(props: Props) {
       </details>
     );
   return (
-    <article className="py-4">
+    <article className="dashboard-meal p-4">
       <button
         type="button"
         onClick={props.onOpen}
@@ -74,7 +74,7 @@ export function DashboardMealRow(props: Props) {
       </button>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-0 sm:pl-[92px]">
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${props.meal.status === 'APPROVED' ? 'bg-brand-green/10 text-brand-green' : 'bg-status-pending-bg text-status-pending-text'}`}
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${props.meal.status === 'APPROVED' ? 'bg-brand-greenLight text-brand-green' : 'bg-status-pending-bg text-status-pending-text'}`}
         >
           {completed
             ? 'Eaten'
@@ -97,7 +97,7 @@ export function DashboardMealRow(props: Props) {
                 setSaving(false);
               }
             }}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-brand-border px-3 text-xs font-bold text-brand-green disabled:opacity-50"
+            className="dashboard-action inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-xs font-bold disabled:opacity-50"
           >
             <Check className="h-4 w-4" />
             {saving ? 'Saving…' : completed ? 'Undo eaten' : 'Mark as eaten'}

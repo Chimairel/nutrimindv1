@@ -20,7 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   const items = [
     { label: 'Home', href: '/dashboard', icon: Home },
     { label: 'Meals', href: '/meals', icon: Utensils },
-    { label: 'Grocery', href: '/grocery', icon: ShoppingCart },
+    { label: 'Groceries', href: '/grocery', icon: ShoppingCart },
     { label: 'Progress', href: '/progress', icon: Activity },
     { label: 'Profile', href: '/profile', icon: User },
   ];

@@ -52,8 +52,8 @@ test('[TEST-117] navigation, route guard, and meal UI consume the dynamic server
     readFrontend('src/features/meals/MealsWorkspaceModals.tsx'),
   ].join('\n');
   const card = readFrontend('src/components/user/MealCard.tsx');
-  assert.match(sidebar, /workspaceTools\[user.role\]/);
-  assert.match(navigation, /href: '\/billing'/);
+  assert.match(sidebar, /primaryWorkspaceTools\[user.role\]/);
+  assert.match(navigation, /href: '\/profile\/membership'/);
   assert.match(navbar, /<WorkspaceTools role=\{user.role\}/);
   assert.match(tools, /workspaceTools\[role\]/);
   assert.match(guard, /'\/billing'/);

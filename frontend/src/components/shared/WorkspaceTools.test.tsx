@@ -27,7 +27,7 @@ describe('WorkspaceTools', () => {
     await user.click(screen.getByRole('button', { name: 'All tools' }));
     await user.type(screen.getByRole('searchbox'), 'allergies');
     expect(screen.getAllByRole('link')).toHaveLength(1);
-    const link = screen.getByRole('link', { name: /Health profile/ });
+    const link = screen.getByRole('link', { name: /Health & goals/ });
     link.addEventListener('click', (event) => event.preventDefault());
     await user.click(link);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

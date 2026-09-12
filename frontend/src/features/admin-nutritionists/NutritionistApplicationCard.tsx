@@ -188,7 +188,7 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
         </span>
       </div>
       <div className="mt-5 grid gap-2 text-xs sm:grid-cols-2">
-        <p className="flex items-center gap-2 rounded-xl bg-brand-bgAlt/60 p-3 text-brand-muted">
+        <p className="flex items-center gap-2 rounded-xl bg-brand-bgAlt/60 p-3 text-brand-muted break-all">
           <Mail className="h-3.5 w-3.5" />
           {application.email}
         </p>
@@ -240,7 +240,7 @@ function CallScheduler({
               onClick={() => onScheduleChange(application.id, { ...draft, scheduledCallAt: toLocalInput(slot) })}
               className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-[10px] font-semibold text-brand-muted hover:border-brand-green/40"
             >
-              {new Date(slot).toLocaleString()}
+              {toLocalInput(slot) ? new Date(slot).toLocaleString() : slot}
             </button>
           ))}
         </div>

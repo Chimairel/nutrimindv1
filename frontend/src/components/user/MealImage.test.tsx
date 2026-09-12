@@ -61,10 +61,10 @@ describe('MealImage', () => {
   });
   it('renders representative fallback with category awareness for missing images', () => {
     render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" />);
-    expect(screen.getByText('Chicken Tinola')).toBeInTheDocument();
-    expect(screen.getByText('Representative visual')).toBeInTheDocument();
+    expect(screen.getByRole('figure', { name: /Chicken Tinola/ })).toBeInTheDocument();
+    expect(screen.getByText('Illustration')).toBeInTheDocument();
     expect(screen.getByText('Poultry & Egg')).toBeInTheDocument();
-    expect(screen.getByText(/Visual placeholder · Structured recipe in plan/i)).toBeInTheDocument();
+    expect(screen.getByText(/Recipe photo coming soon/i)).toBeInTheDocument();
   });
 
   it('detects seafood, plant-based, meat, and breakfast categories correctly in fallbacks', () => {
@@ -107,8 +107,8 @@ describe('MealImage', () => {
     const photo = screen.getByRole('img', { name: mockImage.altText });
     fireEvent.error(photo);
 
-    expect(screen.getByText('Tuna Rice Bowl')).toBeInTheDocument();
-    expect(screen.getByText('Representative visual')).toBeInTheDocument();
+    expect(screen.getByRole('figure', { name: /Tuna Rice Bowl/ })).toBeInTheDocument();
+    expect(screen.getByText('Illustration')).toBeInTheDocument();
     expect(screen.getByText('Seafood')).toBeInTheDocument();
   });
 

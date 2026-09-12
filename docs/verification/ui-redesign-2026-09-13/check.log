@@ -1,0 +1,692 @@
+
+> nutrimind@1.0.0 check
+> npm run architecture:check && npm run format:check && npm run lint && npm run test && npm run build
+
+
+> nutrimind@1.0.0 architecture:check
+> node scripts/check-source-architecture.mjs
+
+Source architecture check passed: every handwritten source module is <= 900 lines.
+
+> nutrimind@1.0.0 format:check
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> nutrimind@1.0.0 lint
+> npm run lint:backend && npm run lint:frontend
+
+
+> nutrimind@1.0.0 lint:backend
+> npm --prefix backend run lint
+
+
+> nutrimind-backend@1.0.0 lint
+> eslint src tests scripts
+
+
+> nutrimind@1.0.0 lint:frontend
+> npm --prefix frontend run lint
+
+
+> nutrimind-frontend@0.1.0 lint
+> eslint src e2e playwright.config.ts vitest.config.ts next.config.mjs
+
+
+> nutrimind@1.0.0 test
+> npm run test:backend && npm run test:frontend
+
+
+> nutrimind@1.0.0 test:backend
+> npm --prefix backend test
+
+
+> nutrimind-backend@1.0.0 test
+> tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts
+
+✔ [TEST-185] reference data foundation is additive, versioned, and geographically explicit (2.2099ms)
+✔ [TEST-185] staged consumption evidence is immutable and release activation is auditable (0.5879ms)
+✔ [TEST-186] all data mutations live behind the existing ADMIN router boundary (0.5391ms)
+✔ [TEST-186] runtime FNRI aliases distinguish administrator verification from legacy aliases (0.3546ms)
+✔ [TEST-187] only mapped active aggregate evidence can influence unmatched-slot generation (0.2958ms)
+✔ [TEST-188] admin UI exposes governed imports without adding a nutritionist approval shortcut (8.5817ms)
+✔ [TEST-087] disabled checkout fails before repository or gateway access (2.2735ms)
+✔ [TEST-087] checkout is owner-scoped, idempotent, and never grants entitlement (2.4205ms)
+✔ [TEST-087] an exact local replay returns the stored session without a provider call (0.8453ms)
+✔ [TEST-087] an idempotency-key payload collision fails closed (8.226ms)
+✔ [TEST-087] unavailable prices and malformed identifiers fail without a provider call (1.3837ms)
+✔ [TEST-087] provider or repository failures are sanitized and release the claimed intent (1.9457ms)
+✔ [TEST-087] a gateway cannot smuggle a live or entitlement-granting response through checkout (6.6654ms)
+✔ [TEST-100] provider rejection retains only its bounded code and becomes terminal (1.4379ms)
+✔ [TEST-167] premium entitlement readers share the same bounded evidence window (2.3623ms)
+✔ [TEST-167] entitlement evidence mapping keeps grant and subscription projections aligned (0.722ms)
+✔ [TEST-080] Free is the default and keeps the existing three-swap cap (2.3995ms)
+✔ [TEST-080] a verified paid period grants Premium and six safety-bounded swaps (0.4209ms)
+✔ [TEST-080] provider subscription status or a browser return cannot replace paid grant evidence (0.2876ms)
+✔ [TEST-080] cancellation does not remove access during an already-paid period (0.2335ms)
+✔ [TEST-080] the paid period expires at an exclusive end instant (0.3301ms)
+✔ [TEST-080] a refund or administrative reversal revokes a grant from its effective instant (1.5964ms)
+✔ [TEST-080] past-due grace is linked to the last paid period and bounded to 72 hours (0.4767ms)
+✔ [TEST-080] unpaid state and unverified invoice evidence never receive grace or Premium (0.4249ms)
+✔ [TEST-080] grace configuration cannot exceed the approved maximum (1.1302ms)
+✔ [TEST-081] provider event identity distinguishes insert, duplicate replay, and hash conflict (2.6205ms)
+✔ [TEST-081] provider event and outbound operation keys are deterministic and environment-scoped (1.2036ms)
+✔ [TEST-081] malformed event hashes, identifiers, and operation versions fail closed (1.4276ms)
+✔ [TEST-081] money accepts integer minor units and rejects floating, zero, negative, and oversized amounts (2.8737ms)
+✔ [TEST-081] currency mismatches and malformed ISO codes fail closed (0.4341ms)
+✔ [TEST-081] cumulative refunds cannot exceed the verified paid amount (0.4914ms)
+✔ [TEST-081] ledger sign and aggregate overflow invariants are explicit (0.4942ms)
+✔ [TEST-124] admin billing status is aggregate, bounded, and privacy allowlisted (4.2716ms)
+✔ [TEST-124] future-skewed or absent pending timestamps never produce unsafe ages (0.5426ms)
+✔ [TEST-125] billing operations route remains behind global authentication and ADMIN role checks (1.8917ms)
+✔ [TEST-118] worker defaults disabled and ignores inactive tuning values (3.1982ms)
+✔ [TEST-118] enabled worker requires TEST webhook and reconciliation and rejects production (1.6127ms)
+✔ [TEST-118] worker tuning is bounded and internally consistent (0.7325ms)
+✔ [TEST-119] disabled startup creates no timer and performs no work (0.58ms)
+{"type":"billing_worker_run","outcome":"COMPLETED","attempted":3,"succeeded":0,"replayed":0,"retryScheduled":0,"quarantined":0,"providerCallBudgetUpperBound":3}
+✔ [TEST-119] one process cannot overlap ticks (14.3109ms)
+{"type":"billing_worker_run","outcome":"COMPLETED","attempted":4,"succeeded":4,"replayed":0,"retryScheduled":0,"quarantined":0,"providerCallBudgetUpperBound":4}
+✔ [TEST-120] batch and provider-call budget bound concurrent processing (2.6478ms)
+{"type":"billing_worker_run","outcome":"COMPLETED","attempted":4,"succeeded":3,"replayed":0,"retryScheduled":0,"quarantined":0,"providerCallBudgetUpperBound":4}
+{"type":"billing_worker_run","outcome":"COMPLETED","attempted":4,"succeeded":3,"replayed":0,"retryScheduled":0,"quarantined":0,"providerCallBudgetUpperBound":4}
+{"type":"billing_worker_run","outcome":"COMPLETED","attempted":4,"succeeded":1,"replayed":1,"retryScheduled":1,"quarantined":1,"providerCallBudgetUpperBound":4}
+{"type":"billing_worker_run","outcome":"ABORTED","attempted":3,"succeeded":0,"replayed":0,"retryScheduled":0,"quarantined":0,"providerCallBudgetUpperBound":3}
+✔ [TEST-120] independent workers consume a shared durable-style queue once (1.5297ms)
+✔ [TEST-121] outcomes distinguish retry, terminal quarantine, and replay (0.5824ms)
+✔ [TEST-122] shutdown aborts an active run and leaves no scheduled timer (2.4073ms)
+✔ [TEST-123] worker logs contain fixed summaries and discard thrown private details (1.0009ms)
+✔ [TEST-123] scheduler adds deterministic jitter and backs off after infrastructure failure (2.4438ms)
+✔ [TEST-079] billing foundation schema contains every bounded persistence aggregate (3.1961ms)
+✔ [TEST-079] billing migration is additive and carries idempotency and integrity constraints (0.7961ms)
+✔ [TEST-079] finance evidence is preserved through restrictive or nullable ownership relations (0.4577ms)
+✔ [TEST-080] subscription state transitions allow activation, retry recovery, and cancellation (1.4455ms)
+✔ [TEST-080] duplicate transitions are idempotent and older provider evidence is stale (0.3416ms)
+✔ [TEST-080] terminal and out-of-order subscription regressions are invalid (0.3017ms)
+✔ [TEST-080] invoice and payment attempt transitions deny terminal regression (0.6201ms)
+✔ [TEST-080] refund transitions require review and permit retry only after failure (0.4357ms)
+✔ [TEST-010] calculates the documented male Mifflin-St Jeor baseline (2.6721ms)
+✔ [TEST-010] calculates the documented female Mifflin-St Jeor baseline (0.3491ms)
+✔ [TEST-011] applies the documented SEDENTARY activity multiplier (0.3198ms)
+✔ [TEST-011] applies the documented LIGHTLY_ACTIVE activity multiplier (0.2156ms)
+✔ [TEST-011] applies the documented ACTIVE activity multiplier (0.2373ms)
+✔ [TEST-011] applies the documented VERY_ACTIVE activity multiplier (0.1952ms)
+✔ [TEST-012] applies the documented LOSE_WEIGHT goal adjustment (0.2597ms)
+✔ [TEST-012] applies the documented GAIN_WEIGHT goal adjustment (0.2417ms)
+✔ [TEST-012] applies the documented MAINTAIN goal adjustment (0.2756ms)
+✔ [TEST-012] applies the documented BUILD_MUSCLE goal adjustment (0.3503ms)
+✔ [TEST-077] catalogue signatures are stable and definition-sensitive (1.9178ms)
+✔ [TEST-077] a repeat population skips only complete current signed definitions (0.8511ms)
+✔ common library catalogue has enough complete, unique meals per main slot (2.5823ms)
+✔ [TEST-076] two exact FNRI-backed additions close the diabetes vegetarian egg-free slot gaps (3.7387ms)
+✔ catalogue allergen declarations match its known allergenic ingredients (0.6391ms)
+✔ every catalogue meal can match every supported healthy-profile goal (0.487ms)
+✔ vegetarian, pescatarian, and each supported single-allergy profile have seven options per slot (1.3353ms)
+✔ condition suitability applies only the bounded diabetes and hypertension catalogue rules (0.6237ms)
+✔ [TEST-137] compensation mutation bodies are strict, bounded, and PHP-scoped (22.7381ms)
+✔ [TEST-138] compensation routes are role-scoped and payout amount is server-authoritative (5.2911ms)
+✔ [TEST-139] completed review decisions create keyed credit in the same transaction and claims do not (4.1106ms)
+✔ [TEST-140] migration adds actor evidence and immutable compensation records without altering accepted migrations (4.5139ms)
+✔ [TEST-141] role UIs disclose separation, own-only scope, outcome neutrality, and manual evidence (2.5368ms)
+✔ [TEST-015] every repository condition enum is canonical and conservatively reviewed (5.7789ms)
+✔ [TEST-015] every repository allergy enum is canonical (1.5099ms)
+✔ [TEST-015] only the three approved aliases map and retain provenance (0.8736ms)
+✔ [TEST-015] explicitly rejected semantic mappings remain unmapped custom restrictions (0.6116ms)
+✔ [TEST-015] unknown future enum values default to review (0.3909ms)
+✔ [TEST-015] NONE alone is allowed only with complete evidence (0.3024ms)
+✔ [TEST-015] NONE with another enum is a stable contradiction requiring review (0.3322ms)
+✔ [TEST-015] NONE with a custom restriction is contradictory and the custom value is retained (0.2928ms)
+✔ [TEST-015] comparison normalization is mechanical across case, separators, and whitespace (0.3411ms)
+✔ [TEST-015] NFKC normalization supports mechanically equivalent enum and alias forms (1.9563ms)
+✔ [TEST-015] deduplication uses identical normalized keys and preserves the first sanitized display value (0.3915ms)
+✔ [TEST-015] partial words, similar spellings, and dish names do not silently map (0.3492ms)
+✔ [TEST-015] sanitization removes controls, bounds display text, and redacts credential-shaped values (0.4818ms)
+✔ [TEST-016] no restrictions plus complete authoritative evidence is narrowly ALLOW/SAFE (0.2346ms)
+✔ [TEST-016] explicit incomplete evidence never returns ALLOW (0.2391ms)
+✔ [TEST-016] exact canonical allergy conflict is blocking (0.2825ms)
+✔ [TEST-016] exact approved-alias conflict is blocking with both sides provenance (0.2402ms)
+✔ [TEST-016] known allergy with complete non-conflicting evidence is ALLOW/CAUTION (0.2259ms)
+✔ [TEST-016] health conditions and matching unreviewed condition-rule evidence require review (0.4979ms)
+✔ [TEST-016] an unmapped custom restriction always requires review (0.3367ms)
+✔ [TEST-016] missing and null safety metadata are incomplete and require review (0.3553ms)
+✔ [TEST-016] legacy empty metadata without an explicit completeness marker requires review (0.2447ms)
+✔ [TEST-016] malformed restriction and safety metadata require review (0.2593ms)
+✔ [TEST-016] Gemini-estimated ingredients force review and uncertainty (0.3654ms)
+✔ [TEST-016] unresolved or unlinked ingredients force review (0.3174ms)
+✔ [TEST-016] unknown metadata keys, allergen keys, and evidence sources are incomplete (0.2313ms)
+✔ [TEST-016] contradictory metadata requires review unless an exact conflict requires block (0.2683ms)
+✔ [TEST-016] multiple restrictions obey BLOCK greater than REVIEW greater than ALLOW (0.2514ms)
+✔ [TEST-016] reason-code order is stable and follows the documented constant (0.2786ms)
+✔ [TEST-016] identical input produces deeply identical output without mutation (0.4489ms)
+✔ [TEST-016] templated explanations never echo raw personal or credential-shaped input (0.3072ms)
+✔ [TEST-027] approved candidate with no restrictions and complete evidence is eligible (0.8109ms)
+✔ [TEST-027] known allergy with complete non-conflicting evidence is eligible as ALLOW/CAUTION (0.7287ms)
+✔ [TEST-027] exact canonical allergy conflict is ineligible (0.3958ms)
+✔ [TEST-027] exact approved-alias conflict is ineligible with provenance (0.3351ms)
+✔ [TEST-027] resolved approved alias with complete non-conflicting evidence is eligible (0.3025ms)
+✔ [TEST-027] a complete certified diabetes or hypertension match is eligible (0.2554ms)
+✔ [TEST-027] high-risk condition matches remain review-required (0.2387ms)
+✔ [TEST-027] comma-stored unmapped custom restriction preserves provenance and is ineligible (0.3533ms)
+✔ [TEST-027] null compatibility metadata is incomplete and ineligible (7.7502ms)
+✔ [TEST-027] missing compatibility metadata is incomplete and ineligible (0.6593ms)
+✔ [TEST-027] malformed compatibility metadata is incomplete and ineligible (0.3164ms)
+✔ [TEST-027] legacy arrays without explicit completeness evidence are ineligible (0.2849ms)
+✔ [TEST-027] unknown compatibility or safety metadata keys are ineligible (0.5127ms)
+✔ [TEST-027] Gemini-estimated ingredient provenance is ineligible (0.3439ms)
+✔ [TEST-027] unresolved or unlinked ingredient provenance is ineligible (0.8969ms)
+✔ [TEST-027] NONE combined with another restriction is ineligible (1.2322ms)
+✔ [TEST-027] FLAGGED and unknown future library statuses deny eligibility (0.5408ms)
+✔ [TEST-027] identical inputs produce identical output without mutation (0.415ms)
+✔ [TEST-027] reasons and explanations do not expose personal or credential-shaped custom text (0.4979ms)
+✔ [TEST-028] eligible approved candidates remain available to generation selection (0.6109ms)
+✔ [TEST-028] REVIEW and BLOCK candidates are removed from generation selection (0.3266ms)
+✔ [TEST-028] rejected-original-shaped and flagged library records are not selected (0.237ms)
+✔ [TEST-028] no eligible candidate triggers one isolated fallback for the affected slot (0.291ms)
+✔ [TEST-028] fallback is not called when an eligible candidate fills the slot (0.2165ms)
+✔ [TEST-028] multiple unmatched slots are supplied to one fallback batch (0.2326ms)
+✔ [TEST-028] candidate exclusion cannot produce a missing false-success slot (0.2332ms)
+✔ [TEST-028] filtering and fallback seams do not alter existing plan-status data (0.2409ms)
+✔ [TEST-028] fallback tests use only injected synthetic callbacks and no Gemini client (0.1714ms)
+✔ [TEST-035] generated pending meals produce a non-actionable review summary (0.2365ms)
+✔ [TEST-035] no pending rows produce no pending-review summary (0.1295ms)
+✔ [TEST-035] a zero-meal generation result cannot report false success (0.8421ms)
+✔ [TEST-035] pending preview exposes every pending meal without internal identifiers (0.4863ms)
+✔ [TEST-017] Thursday generation creates the exact weekend starter bridge (46.1781ms)
+✔ [TEST-017] Sunday generation creates a full Sunday-to-Saturday week (1.8592ms)
+✔ [TEST-017] all seven scheduled dates retain Manila midnight (0.4016ms)
+✔ [TEST-017] Saturday-night cron targets the upcoming Sunday cycle (0.6053ms)
+✔ [TEST-017] Sunday-night cron targets the upcoming Monday cycle (0.6043ms)
+✔ [TEST-017] the same instant produces the same cycle regardless of server timezone (1.3094ms)
+✔ [TEST-051] exact Wednesday shopping anchors a Thursday-to-Wednesday cycle (0.6571ms)
+✔ [TEST-051] a mid-cycle signup receives only the bridge through shopping day (0.5759ms)
+✔ [TEST-051] preparation opens three days before the exact grocery day (16.3062ms)
+✔ [TEST-042] meal generation treats food culture as an influence rather than a cuisine boundary (3.5459ms)
+✔ [TEST-043] meal generation explicitly allows accessible general and convenience foods (0.8413ms)
+✔ [TEST-044] cuisine variety remains subordinate to recorded clinical constraints (0.4832ms)
+✔ [TEST-195] localized grounding is explicit and requires exact retrieved FNRI identities (0.5771ms)
+✔ [TEST-046][DEF-013] review severity keeps NEEDS_REVIEW ahead of CAUTION and SAFE (0.2739ms)
+✔ [TEST-047][DEF-013] active claims are exclusive to their owner (0.6799ms)
+✔ [TEST-048][DEF-013] expired and unclaimed reviews can be acquired (3.6835ms)
+✔ [TEST-049][DEF-010] reviewer eligibility requires verification and a non-expired Manila license date (4.6999ms)
+✔ [TEST-050] exact current certification maps to complete adapter evidence (0.8864ms)
+✔ [TEST-050] incomplete, stale, revision-mismatched, or unsupported evidence fails closed (0.3844ms)
+✔ [TEST-050] first-class ingredients must all be linked FNRI evidence (0.2041ms)
+✔ [TEST-050] exact declarations map without inferring custom or contradictory evidence (0.3517ms)
+✔ [TEST-050] missing cross-contact assessment and declaration state mismatches fail closed (0.2033ms)
+✔ [TEST-052] one weigh-in never triggers an automatic nutrition adjustment (0.5417ms)
+✔ [TEST-052] low adherence prevents target-change conclusions (0.309ms)
+✔ [TEST-052] sustained stagnation with adequate adherence recommends professional review (0.3238ms)
+✔ [TEST-052] goal-consistent movement is on track without automatic escalation (0.267ms)
+✔ [TEST-059] grocery units normalize deterministically (0.5453ms)
+✔ [TEST-060] grocery aggregation sums compatible quantities and records meal coverage (0.6336ms)
+✔ [TEST-061] missing quantities remain honestly unspecified (1.3308ms)
+✔ [TEST-062] development configuration is not subjected to production-only gates (0.5659ms)
+✔ [TEST-063] production fails closed on absent, short, placeholder, or wildcard security configuration (1.6175ms)
+✔ [TEST-064] production accepts exact origins, strong secrets, and the signed policy version (2.0624ms)
+✔ [TEST-065] kidney and pregnancy contexts require two independent reviewers (0.6419ms)
+✔ [TEST-066] ordinary profile contexts do not invent high-risk escalation (0.2127ms)
+✔ [TEST-067] nutritionist application accepts a complete professional application and normalizes email (6.6497ms)
+✔ [TEST-068] nutritionist application rejects expired licenses, insufficient call options, and unknown fields (13.8463ms)
+✔ [TEST-069] admin application transition inputs are default-deny and meeting links require HTTP(S) (2.0789ms)
+✔ [TEST-070] rejections require a reason and invitation passwords use the account password policy (3.3861ms)
+✔ [TEST-021][REQ-006][DEF-019][RISK-014][UNC-009] Daily calorie targets enforce bounds approved by a qualified clinical reviewer rather than treating the current 500 kcal floor as permanently correct (0.1572ms) # TODO
+✔ [FIXTURE-INTEGRITY] synthetic identities use reserved domains and fixture identifiers (1.9479ms)
+✔ [FIXTURE-INTEGRITY] synthetic fixtures cover all application roles and restriction variants (1.2747ms)
+✔ [FIXTURE-INTEGRITY] synthetic meal fixtures cover approved, pending, rejected, cancelled, and expired states (2.1791ms)
+✔ [TEST-056] FNRI meat, fish, egg, dairy, fat, and sweet prefixes are not shifted (1.2348ms)
+✔ [TEST-057] FNRI beverage and miscellaneous prefixes use supported application categories (0.3534ms)
+✔ [TEST-053] punctuation-only differences retain a strong FNRI match (1.4842ms)
+✔ [TEST-054] generic ingredients reject processed and specialty substring collisions (0.3494ms)
+✔ [TEST-055] the strongest safe candidate wins deterministically (0.5576ms)
+✔ [TEST-184] aggregate consumption CSV preserves national, regional, and province/HUC evidence (5.9374ms)
+✔ [TEST-184] published template is accepted and source row keys are deterministic (0.7949ms)
+✔ [TEST-184] import rejects misleading geography, invalid measures, and duplicate identities (1.329ms)
+✔ [TEST-184] import accepts quoted food names but rejects unknown columns and row-shape drift (0.6881ms)
+✔ [TEST-143][DEF-034] every weight-entry path shares finite 30-300 kg bounds (4.648ms)
+✔ [TEST-144][DEF-034] weight notes are trimmed, bounded, and services transact profile and history writes (4.343ms)
+✔ [TEST-145][DEF-033] expected review contention and replay failures map to conflict semantics (0.4311ms)
+✔ [TEST-146] local mail capture is test-only, absolute-path-only, and avoids SMTP (193.2908ms)
+✔ [TEST-147][DEF-032/035] library reuse follows the catalogue and public copy does not claim budget support (7.9414ms)
+✔ [TEST-148][DEF-036] list inputs have stable positive pagination and bounded search (0.6008ms)
+✔ [TEST-150] Gemini fallback policy uses explicit current GA model IDs (2.3735ms)
+✔ [TEST-150] Gemini 3 generation config excludes deprecated sampling parameters (0.4367ms)
+✔ [TEST-059] grocery units normalize deterministically (1.5698ms)
+✔ [TEST-060] grocery aggregation sums compatible quantities and records meal coverage (1.522ms)
+✔ [TEST-061] missing quantities remain honestly unspecified (0.6297ms)
+✔ [TEST-130] reviewed exact evidence composes rational AP-to-raw and raw-to-cooked factors (5.6735ms)
+✔ [TEST-130] clinical exclusion happens before malformed conversion evidence is inspected (0.4161ms)
+✔ [TEST-130] zero, negative, inverted, and implausible factors fail closed (0.8907ms)
+✔ [TEST-131] basis, identity, preparation, and units must match exactly (0.8905ms)
+✔ [TEST-131] reverse traversal is unavailable unless the reviewed source explicitly authorizes it (0.5029ms)
+✔ [TEST-131] draft, rejected, future, stale, and superseded evidence cannot be used (0.6418ms)
+✔ [TEST-131] conflicting duplicates, multiple chains, cycles, and double application are detected (2.0402ms)
+✔ [TEST-132] factor ranges propagate and conservative centavo rounding goes outward (1.1596ms)
+✔ [TEST-132] an exact household measure-to-mass row is food and preparation specific (0.5835ms)
+✔ [TEST-132] unsafe money or quantity arithmetic never produces a price (0.5934ms)
+✔ [TEST-133] authoritative source review validates and intentionally contains no pilot factor rows (23.0301ms)
+✔ [TEST-134] all 51 meals expose every missing price or conversion layer (73.9543ms)
+✔ [TEST-135] conversion evidence schema is normalized, additive, and has no shortcut food price fields (2.9094ms)
+✔ [TEST-135] SQL constraints enforce factors, basis, identity, review, dates, and supersession (0.4319ms)
+✔ [TEST-135] both provenance tables reject update and delete mutations (0.2915ms)
+✔ [TEST-090] canonical mass and volume units convert deterministically (2.9038ms)
+✔ [TEST-090] count is isolated and package labels never imply weight or volume (0.37ms)
+✔ [TEST-090] zero, negative, non-finite, and unknown quantities fail closed (0.3211ms)
+✔ [TEST-091] PHP money accepts only safe integer centavos (0.3101ms)
+✔ [TEST-091] only an exact mapping with a food and evidence is eligible (0.5218ms)
+✔ [TEST-091] freshness respects observation age, validity, future dates, and invalid thresholds (0.5202ms)
+✔ [TEST-092] locality and freshness precede an explicit source order without fabricating a merged point price (0.9017ms)
+✔ [TEST-092] stale observations remain labeled low-confidence evidence (0.3935ms)
+✔ [TEST-092] unknown and mismatched locality cannot produce an estimate (0.7602ms)
+✔ [TEST-092] conflicting duplicate observations are quarantined (0.9507ms)
+✔ [TEST-092] a superseding observation excludes the older row (0.9298ms)
+✔ [TEST-093] ingredient estimates preserve source ranges and round outward in centavos (0.6406ms)
+✔ [TEST-093] missing mapping, quantity, unit normalization, and package basis remain unavailable (0.8404ms)
+✔ [TEST-094] meal, plan, and grocery totals expose partial coverage and missing-price lists (0.7068ms)
+✔ [TEST-094] empty or wholly unknown collections never look like zero-cost meals (0.1945ms)
+✔ [TEST-094] blocked or review-required meals cannot win a budget ranking (1.9576ms)
+✔ [TEST-095] price foundation is additive and has no timeless FoodItem price (2.6693ms)
+✔ [TEST-095] observations preserve source, geography, dates, units, mappings, and PHP ranges (0.7535ms)
+✔ [TEST-095] price evidence is append-only and deletes remain restrictive (0.4408ms)
+✔ [TEST-096] normalization hardening closes SQL NULL half-states additively (0.3331ms)
+✔ purchased quantities survive changed requirements and partial purchases never alter recipe amounts (2.6303ms)
+✔ shopping preview includes only extra needs and subtracts purchases, with mass normalization (1.1941ms)
+✔ all-types library prioritizes one best per type, then remaining groups and excludes oversized portions (1.4417ms)
+✔ FNRI totals use measured portions; unknown cups do not silently become grams (0.6436ms)
+✔ [TEST-013] only the actual APPROVED meal-plan status is user-actionable (1.7222ms)
+✔ [TEST-013] unknown, null, and unsupported statuses default to non-actionable (0.3128ms)
+✔ [TEST-013] APPROVED meals remain actionable on current and future Manila business dates (35.0495ms)
+✔ [TEST-014] expired schedules are non-actionable at the Asia/Manila boundary (1.7362ms)
+✔ [TEST-014] current-plan filtering excludes pending, rejected, cancelled, and expired rows (4.793ms)
+✔ [TEST-014] a rejected original cannot reappear beside its approved replacement (2.888ms)
+✔ [TEST-013] planned logging accepts an approved current plan and rejects other states (2.4706ms)
+✔ [TEST-058] legacy approved plans fail closed until current-policy safety revalidation (0.3959ms)
+✔ [TEST-013] done and skipped mutations share the same actionability guard (0.6057ms)
+✔ [TEST-013] swap originals share the same actionability guard (10.2129ms)
+✔ [TEST-014] current-plan and grocery database filters require approval and a current schedule (5.7496ms)
+✔ [TEST-013] owner-scoped lookup preserves cross-user not-found behavior (0.913ms)
+✔ [TEST-014] nutrition totals include outside logs and approved-plan logs only (0.4229ms)
+✔ [TEST-013] only APPROVED library meals are replacement candidates (12.9495ms)
+✔ [TEST-014] nutritionist review policy still includes pending-review meals (0.4914ms)
+✔ [TEST-014] known meal-plan states remain history-visible without becoming actionable (0.4563ms)
+✔ [TEST-162] primary meal allocation covers the full daily calorie target (1.3281ms)
+✔ [TEST-162] severely under-target library portions are not generation matches (3.1703ms)
+✔ [TEST-162] meals inside the documented fifteen-percent slot band remain eligible (2.8484ms)
+✔ [TEST-162] invalid calories and unsupported snack allocation fail closed (0.3845ms)
+✔ [TEST-163] library candidates are filtered and ranked by calorie fit without mutating input (0.7229ms)
+✔ [TEST-203] meal explanation reports persisted calorie, locality, provenance, and review facts (1.8739ms)
+✔ [TEST-204] legacy meal explanation refuses to invent missing selection evidence (0.527ms)
+✔ [TEST-205] verified-library meals expose certification and all-FNRI evidence (0.3707ms)
+✔ [TEST-206] catalogue fallback copy does not duplicate the preference label (2.4222ms)
+✔ [TEST-042] meal generation treats food culture as an influence rather than a cuisine boundary (4.2471ms)
+✔ [TEST-043] meal generation explicitly allows accessible general and convenience foods (0.6332ms)
+✔ [TEST-044] cuisine variety remains subordinate to recorded clinical constraints (1.7325ms)
+✔ [TEST-195] localized grounding is explicit and requires exact retrieved FNRI identities (1.8613ms)
+✔ [TEST-027] approved candidate with no restrictions and complete evidence is eligible (4.1889ms)
+✔ [TEST-027] known allergy with complete non-conflicting evidence is eligible as ALLOW/CAUTION (1.6388ms)
+✔ [TEST-027] exact canonical allergy conflict is ineligible (0.6029ms)
+✔ [TEST-027] exact approved-alias conflict is ineligible with provenance (0.4707ms)
+✔ [TEST-027] resolved approved alias with complete non-conflicting evidence is eligible (0.4226ms)
+✔ [TEST-027] a complete certified diabetes or hypertension match is eligible (0.4572ms)
+✔ [TEST-027] high-risk condition matches remain review-required (0.4221ms)
+✔ [TEST-027] comma-stored unmapped custom restriction preserves provenance and is ineligible (1.5234ms)
+✔ [TEST-027] null compatibility metadata is incomplete and ineligible (0.3969ms)
+✔ [TEST-027] missing compatibility metadata is incomplete and ineligible (0.4834ms)
+✔ [TEST-027] malformed compatibility metadata is incomplete and ineligible (0.3539ms)
+✔ [TEST-027] legacy arrays without explicit completeness evidence are ineligible (0.3072ms)
+✔ [TEST-027] unknown compatibility or safety metadata keys are ineligible (0.3408ms)
+✔ [TEST-027] Gemini-estimated ingredient provenance is ineligible (0.2273ms)
+✔ [TEST-027] unresolved or unlinked ingredient provenance is ineligible (0.1979ms)
+✔ [TEST-027] NONE combined with another restriction is ineligible (0.3211ms)
+✔ [TEST-027] FLAGGED and unknown future library statuses deny eligibility (0.2978ms)
+✔ [TEST-027] identical inputs produce identical output without mutation (0.7562ms)
+✔ [TEST-027] reasons and explanations do not expose personal or credential-shaped custom text (1.254ms)
+✔ [TEST-028] eligible approved candidates remain available to generation selection (0.3856ms)
+✔ [TEST-028] REVIEW and BLOCK candidates are removed from generation selection (0.3832ms)
+✔ [TEST-028] rejected-original-shaped and flagged library records are not selected (0.5767ms)
+✔ [TEST-028] no eligible candidate triggers one isolated fallback for the affected slot (0.8709ms)
+✔ [TEST-028] fallback is not called when an eligible candidate fills the slot (0.619ms)
+✔ [TEST-028] multiple unmatched slots are supplied to one fallback batch (0.3456ms)
+✔ [TEST-028] candidate exclusion cannot produce a missing false-success slot (1.0616ms)
+✔ [TEST-028] filtering and fallback seams do not alter existing plan-status data (0.3613ms)
+✔ [TEST-028] fallback tests use only injected synthetic callbacks and no Gemini client (0.2563ms)
+✔ [TEST-035] generated pending meals produce a non-actionable review summary (2.1255ms)
+✔ [TEST-035] no pending rows produce no pending-review summary (0.3202ms)
+✔ [TEST-035] a zero-meal generation result cannot report false success (0.6087ms)
+✔ [TEST-035] pending preview exposes every pending meal without internal identifiers (1.6043ms)
+✔ [TEST-204] public meal image uses a fixed optimized Cloudinary delivery transform (3.2653ms)
+✔ [TEST-204] incomplete image records fail closed instead of emitting broken URLs (0.7213ms)
+✔ [TEST-204] third-party delivery discloses display transformations (0.4618ms)
+✔ [TEST-205] third-party licenses require complete creator, source, and license attribution (4.6202ms)
+✔ [TEST-205] owned and generated images allow internal provenance without invented public links (0.8961ms)
+✔ [TEST-050] exact current certification maps to complete adapter evidence (2.4261ms)
+✔ [TEST-050] incomplete, stale, revision-mismatched, or unsupported evidence fails closed (0.5103ms)
+✔ [TEST-050] first-class ingredients must all be linked FNRI evidence (0.4781ms)
+✔ [TEST-050] exact declarations map without inferring custom or contradictory evidence (1.0588ms)
+✔ [TEST-050] missing cross-contact assessment and declaration state mismatches fail closed (0.4ms)
+✔ [TEST-017] Thursday generation creates the exact weekend starter bridge (42.4148ms)
+✔ [TEST-017] Sunday generation creates a full Sunday-to-Saturday week (1.8064ms)
+✔ [TEST-017] all seven scheduled dates retain Manila midnight (2.0109ms)
+✔ [TEST-017] Saturday-night cron targets the upcoming Sunday cycle (2.1855ms)
+✔ [TEST-017] Sunday-night cron targets the upcoming Monday cycle (1.5118ms)
+✔ [TEST-017] the same instant produces the same cycle regardless of server timezone (2.0921ms)
+✔ [TEST-051] exact Wednesday shopping anchors a Thursday-to-Wednesday cycle (0.9742ms)
+✔ [TEST-051] a mid-cycle signup receives only the bridge through shopping day (0.9688ms)
+✔ [TEST-051] preparation opens three days before the exact grocery day (3.8043ms)
+✔ [TEST-098] MealPlan index declarations retain exact historical database names and column order (1.3675ms)
+✔ [TEST-098] current query evidence distinguishes direct revalidation use from in-memory review priority (0.4116ms)
+✔ [TEST-065] kidney and pregnancy contexts require two independent reviewers (21.0966ms)
+✔ [TEST-066] ordinary profile contexts do not invent high-risk escalation (0.4046ms)
+✔ [TEST-112] atomic reservation enforces the Free cap under concurrent attempts (99.6356ms)
+✔ [TEST-113] atomic reservation permits Premium through six and is owner-scoped (1.13ms)
+✔ [TEST-067] nutritionist application accepts a complete professional application and normalizes email (7.7275ms)
+✔ [TEST-068] nutritionist application rejects expired licenses, insufficient call options, and unknown fields (3.4157ms)
+✔ [TEST-069] admin application transition inputs are default-deny and meeting links require HTTP(S) (8.9076ms)
+✔ [TEST-070] rejections require a reason and invitation passwords use the account password policy (4.291ms)
+✔ [TEST-082] ordinary review credit is independent of approval outcome (3.1903ms)
+✔ [TEST-082] work kinds have fixed relative units and duplicate actions receive no second award (1.107ms)
+✔ [TEST-082] reversals are signed append-only entries and are deduplicated (0.4114ms)
+✔ [TEST-082] compensation uses capped workload bands instead of unbounded per-item pay (1.1077ms)
+✔ [TEST-082] added volume above the cap cannot increase the allowance (0.5397ms)
+✔ [TEST-082] invalid bands and adjustments fail closed (0.6453ms)
+✔ [TEST-082] maker-checker actors must remain distinct (0.586ms)
+✔ [TEST-082] payout records cannot exceed the approved statement or cross currencies (0.699ms)
+✔ [TEST-046][DEF-013] review severity keeps NEEDS_REVIEW ahead of CAUTION and SAFE (2.3213ms)
+✔ [TEST-047][DEF-013] active claims are exclusive to their owner (0.5356ms)
+✔ [TEST-048][DEF-013] expired and unclaimed reviews can be acquired (0.42ms)
+✔ [TEST-049][DEF-010] reviewer eligibility requires verification and a non-expired Manila license date (49.7345ms)
+✔ onboarding status routes an incomplete profile to the first missing step (5.103ms)
+✔ onboarding status advances in canonical step order (0.3369ms)
+✔ complete current-version data is ready to finalize before report access (1.5695ms)
+✔ legacy consent is grandfathered only for already-onboarded accounts (0.2776ms)
+✔ profile schema rejects minors, unknown fields, and contradictory targets (4.9943ms)
+✔ condition and allergy schemas reject NONE contradictions (3.37ms)
+✔ combined safety schema validates one coherent conditions-and-allergies update (1.2734ms)
+✔ [TEST-051] shopping day requires one exact Sunday-through-Saturday index (0.9928ms)
+✔ consent schema requires the current versions and all explicit acknowledgements (1.2838ms)
+✔ email verification policy enforces resend cooldown and persistent lock threshold (0.6046ms)
+✔ [TEST-148] OpenAPI document covers every primary role and operational boundary (1.75ms)
+✔ [TEST-149] protected OpenAPI operations require bearer authentication (1.3397ms)
+✔ [TEST-174] comma-delimited outside foods preserve spaces and the word and (4.5355ms)
+✔ [TEST-175] FNRI per-100g values require and scale a measured portion (0.7146ms)
+✔ [TEST-176] provisional AI values count now while unresolved values never become zero-food (0.8548ms)
+✔ [TEST-177] AI estimation is Premium-only and subject to both quotas (0.5809ms)
+✔ [TEST-177] AI limits have bounded server configuration (1.3523ms)
+✔ [TEST-178] outside meals preserve item provenance, revisions, review state, and AI usage (2.1127ms)
+✔ [TEST-179] nutritionist outside-meal decisions remain authenticated, role-scoped, claimed, and validated (0.3161ms)
+✔ [TEST-181] user UI explains comma input, sources, provisional totals, and unresolved exclusions (0.6059ms)
+✔ [TEST-085] PayMongo capabilities default independently to disabled without secrets (4.6887ms)
+✔ [TEST-085] enabled checkout fixes origins, methods, mode, timeout, and response limit (0.7907ms)
+✔ [TEST-085] webhook capability can be enabled without checkout credentials (0.4308ms)
+✔ [TEST-104] reconciliation can be enabled independently with only the TEST secret (0.4027ms)
+✔ [TEST-085] malformed switches, live mode, and production enablement fail closed (3.9393ms)
+✔ [TEST-085] weak keys, unsupported methods, and unsafe URLs are rejected by key name only (0.6465ms)
+✔ [TEST-085] disabled capabilities ignore stale provider settings and remain inert (0.2995ms)
+✔ [TEST-086] adapter emits only fixed HTTPS v2 checkout requests with bounded transport controls (4.824ms)
+✔ [TEST-086] adapter rejects an overridden API origin before invoking transport (1.5873ms)
+✔ [TEST-086] adapter rejects checkout URL origin surprises and live responses (1.5776ms)
+✔ [TEST-086] adapter maps provider errors without retaining raw error detail (0.7061ms)
+✔ [TEST-100] adapter preserves only a bounded provider error code classification (0.627ms)
+✔ [TEST-086] adapter maps transport failures and retryable statuses to one sanitized category (0.8016ms)
+✔ [TEST-086] adapter rejects oversized and malformed successful responses (0.9089ms)
+✔ [TEST-103] one migration models Checkout as non-renewing access without fake provider objects (1.3671ms)
+✔ [TEST-103] worker claims use expiring opaque hashes and terminal failures remain reconcilable (0.5188ms)
+✔ [TEST-103] each payment batch has one debit and one credit posting identity (0.3113ms)
+✔ [TEST-102] exact TEST paid evidence produces one fixed 30-day half-open period (4.6889ms)
+✔ [TEST-102] local ownership, immutable request, and TEST price binding fail closed before retrieval (1.0189ms)
+✔ [TEST-102] provider session, reference, amount, currency, mode, and paid state must match exactly (0.6001ms)
+✔ [TEST-102] impossible and stale provider timestamps are quarantined (0.3822ms)
+✔ [TEST-102] worker projects success and deterministic replay through the repository (0.7212ms)
+✔ [TEST-102] unknown checkout avoids provider retrieval and is durably quarantined (0.4303ms)
+✔ [TEST-102] provider retrieval failures schedule retry without projection (0.4444ms)
+✔ [TEST-126] lifecycle cancellation reaches retrieval and releases the durable claim for retry (10.0741ms)
+✔ [TEST-104] reconciliation uses one fixed GET v1 request with secret Basic auth and bounded transport (9.3465ms)
+✔ [TEST-104] parser requires exact session, TEST mode, one paid payment, and succeeded matching intent (4.1244ms)
+✔ [TEST-104] parser rejects malformed, hostile, contradictory, and oversized success responses (1.1254ms)
+✔ [TEST-104] authentication, unknown session, rejection, and transient failures have stable sanitized classes (2.3872ms)
+✔ [TEST-104] unsafe origin, malformed ID, and non-JSON content fail before usable evidence (4.6861ms)
+✔ [TEST-104] runtime composition stays behind independent reconciliation and worker switches (144.3665ms)
+✔ [TEST-126] reconciliation cancellation reaches the bounded transport request (0.6695ms)
+✔ [TEST-089] checkout route returns a stable disabled response without secret or provider detail (217.194ms)
+✔ [TEST-089] successful checkout route responses explicitly deny redirect-based entitlement (0.4916ms)
+✔ [TEST-100] provider capability rejection returns a sanitized 422 contract (0.4052ms)
+✔ [TEST-089] checkout route requires an authenticated owner and request idempotency key (0.4614ms)
+✔ [TEST-089] billing router orders authentication, USER authorization, and readiness before checkout (0.4767ms)
+✔ [TEST-105] billing access route is owner-scoped and sanitizes service failures (0.6171ms)
+✔ [TEST-105] billing access handler rejects absent authentication before service work (0.4525ms)
+✔ [TEST-089] webhook route rejects non-JSON and absent raw-body authentication before service work (0.4076ms)
+✔ [TEST-089] webhook route maps accepted, duplicate, quarantined, and conflict outcomes safely (0.5521ms)
+✔ [TEST-089] raw parser is route-scoped before the webhook handler and before global JSON parsing (1.0426ms)
+✔ [TEST-089] oversized raw-body parser failures use a sanitized 413 contract (0.2028ms)
+✔ [TEST-100] checkout persistence is additive, TEST-only, owner-scoped, and auditable (2.0734ms)
+✔ [TEST-100] native transport rejects non-HTTPS targets before network access (1.1055ms)
+✔ [TEST-100] runtime wires real checkout adapters only behind the checkout switch (5.17ms)
+✔ [TEST-088] test signatures verify over the exact raw bytes and produce a minimal sanitized inbox record (9.3529ms)
+✔ [TEST-088] raw-body tampering fails signature verification before repository access (2.9868ms)
+✔ [TEST-088] missing-mode, malformed, duplicate-part, and incorrect signatures fail closed (4.3344ms)
+✔ [TEST-088] stale and excessively future timestamps are rejected with bounded tolerance (0.9885ms)
+✔ [TEST-088] signature selection distinguishes official test and live header slots (1.3559ms)
+✔ [TEST-088] validly signed live events cannot enter the forced TEST inbox (0.7016ms)
+✔ [TEST-088] malformed signed envelopes fail closed after signature verification (0.5205ms)
+✔ [TEST-088] explicit event allow-list excludes unrelated valid provider events (0.2375ms)
+✔ [TEST-088] unknown valid event types are acknowledged only as ignored quarantine records (0.5745ms)
+✔ [TEST-088] exact duplicate and out-of-order decisions have no entitlement effect (5.7364ms)
+✔ [TEST-088] reused event IDs with a different payload hash fail as conflicts (0.6593ms)
+✔ [TEST-088] disabled and unavailable inboxes return stable errors without raw payload detail (2.217ms)
+✔ [TEST-088] empty and oversized bodies fail before signature or repository work (0.6054ms)
+✔ [TEST-201] bundled PSGC planning snapshot is attributed and structurally complete (1.3722ms)
+✔ [TEST-201] representative province/HUC mappings follow the current coarse hierarchy (0.4344ms)
+✔ [TEST-196] planning location falls back from province/HUC to region and national evidence (2.9364ms)
+✔ [TEST-200] meal-locality preference is independent from saved location (1.6036ms)
+✔ [TEST-196] profile validation accepts only coherent coarse location shapes (4.8548ms)
+✔ [TEST-196] retrieval stops at the first populated fallback scope (0.8944ms)
+✔ [TEST-196] retrieval returns empty evidence after exhausting every scope (0.4352ms)
+✔ [TEST-196] local evidence ranks only already-eligible certified meals and preserves equal-score order (0.4629ms)
+✔ [TEST-114] Premium UI states the sole benefit, TEST price, fixed term, and nonrenewal honestly (16.22ms)
+✔ [TEST-115] checkout UI uses stable attempt idempotency and blocks duplicate submission (22.1745ms)
+✔ [TEST-116] success and cancel returns are explicitly non-authoritative and polling is bounded (21.1634ms)
+✔ [TEST-117] navigation, route guard, and meal UI consume the dynamic server cap (26.5989ms)
+✔ [TEST-101] webhook inbox atomically creates one immutable event and pending processing row (12.965ms)
+✔ [TEST-101] an exact provider event replay is acknowledged without a second insert (1.1915ms)
+✔ [TEST-101] a reused provider event ID with different bytes is a conflict (0.3562ms)
+✔ [TEST-101] ignored signed events are durable but have no pending business work (1.3462ms)
+✔ [TEST-062] development configuration is not subjected to production-only gates (2.3359ms)
+✔ [TEST-063] production fails closed on absent, short, placeholder, or wildcard security configuration (0.6645ms)
+✔ [TEST-064] production accepts exact origins, strong secrets, and the signed policy version (0.3134ms)
+✔ [TEST-099] committed PSA snapshot has verified checksums, attribution, and exact Cebu City scope (1.5467ms)
+✔ [TEST-099] parser preserves official values as integer PHP centavos and missing markers (1.3209ms)
+✔ [TEST-099] decimal parser avoids binary-money rounding and rejects unsafe values (0.7608ms)
+✔ [TEST-099] parser refuses geography substitution, unreviewed commodities, and malformed missing cells (0.5594ms)
+✔ [TEST-099] parser rejects file-shape drift and duplicate commodity rows (0.4903ms)
+✔ [TEST-099] request validation binds exact geography and reviewed commodity codes (5.9219ms)
+✔ [TEST-099] coverage keeps selection, exact identity, and actually available price cells separate (2.806ms)
+✔ [TEST-099] munggo remains ambiguous while reviewed exact mappings carry evidence (0.4822ms)
+✔ [TEST-099] evidence IDs are deterministic and domain-separated (2.902ms)
+✔ [TEST-099] snapshot CSV bytes remain the exact committed source response (2.9061ms)
+✔ [TEST-151][DEF-037] public nutritionist application routes cannot trigger stale-session refresh redirects (14.1626ms)
+✔ [TEST-151][DEF-037] public nutritionist routes are exempt from protected nutritionist role enforcement (0.8338ms)
+✔ [TEST-015] every repository condition enum is canonical and conservatively reviewed (4.9971ms)
+✔ [TEST-015] every repository allergy enum is canonical (0.949ms)
+✔ [TEST-015] only the three approved aliases map and retain provenance (0.6412ms)
+✔ [TEST-015] explicitly rejected semantic mappings remain unmapped custom restrictions (0.6499ms)
+✔ [TEST-015] unknown future enum values default to review (0.4362ms)
+✔ [TEST-015] NONE alone is allowed only with complete evidence (0.3304ms)
+✔ [TEST-015] NONE with another enum is a stable contradiction requiring review (0.3571ms)
+✔ [TEST-015] NONE with a custom restriction is contradictory and the custom value is retained (0.3899ms)
+✔ [TEST-015] comparison normalization is mechanical across case, separators, and whitespace (0.3042ms)
+✔ [TEST-015] NFKC normalization supports mechanically equivalent enum and alias forms (2.6138ms)
+✔ [TEST-015] deduplication uses identical normalized keys and preserves the first sanitized display value (2.908ms)
+✔ [TEST-015] partial words, similar spellings, and dish names do not silently map (1.8437ms)
+✔ [TEST-015] sanitization removes controls, bounds display text, and redacts credential-shaped values (0.7996ms)
+✔ [TEST-016] no restrictions plus complete authoritative evidence is narrowly ALLOW/SAFE (0.3441ms)
+✔ [TEST-016] explicit incomplete evidence never returns ALLOW (0.3813ms)
+✔ [TEST-016] exact canonical allergy conflict is blocking (2.1868ms)
+✔ [TEST-016] exact approved-alias conflict is blocking with both sides provenance (0.3851ms)
+✔ [TEST-016] known allergy with complete non-conflicting evidence is ALLOW/CAUTION (0.2976ms)
+✔ [TEST-016] health conditions and matching unreviewed condition-rule evidence require review (0.3295ms)
+✔ [TEST-016] an unmapped custom restriction always requires review (0.203ms)
+✔ [TEST-016] missing and null safety metadata are incomplete and require review (0.2017ms)
+✔ [TEST-016] legacy empty metadata without an explicit completeness marker requires review (0.1691ms)
+✔ [TEST-016] malformed restriction and safety metadata require review (0.1554ms)
+✔ [TEST-016] Gemini-estimated ingredients force review and uncertainty (0.4182ms)
+✔ [TEST-016] unresolved or unlinked ingredients force review (0.2747ms)
+✔ [TEST-016] unknown metadata keys, allergen keys, and evidence sources are incomplete (0.4091ms)
+✔ [TEST-016] contradictory metadata requires review unless an exact conflict requires block (0.3879ms)
+✔ [TEST-016] multiple restrictions obey BLOCK greater than REVIEW greater than ALLOW (0.4501ms)
+✔ [TEST-016] reason-code order is stable and follows the documented constant (0.3229ms)
+✔ [TEST-016] identical input produces deeply identical output without mutation (0.4147ms)
+✔ [TEST-016] templated explanations never echo raw personal or credential-shaped input (0.3029ms)
+✔ [TEST-143] runtime configuration applies typed, safe development defaults (8.4806ms)
+✔ [TEST-144] runtime configuration rejects malformed typed values (3.2366ms)
+✔ [TEST-145] runtime configuration normalizes explicit CORS origins (0.4114ms)
+✔ [TEST-146] structured logger redacts nested credentials (2.2321ms)
+✔ [TEST-147] shared API errors expose a request id and stable error code (0.6484ms)
+✔ structured intake splits documented separators but preserves ordinary spaces (3.6868ms)
+✔ mixed predefined and custom values normalize approved aliases and retain provenance (15.9445ms)
+✔ approved misspelling aliases are controlled and near matches remain unmapped (0.4242ms)
+✔ duplicates merge case-insensitively after approved alias normalization (0.3129ms)
+✔ condition and food catalogues cannot cross semantic domains (0.4578ms)
+✔ invalid and vague entries cannot be saved while unsupported and unknown terms fail closed (0.6809ms)
+✔ oversized, whitespace-only, and separator-only values cannot become persisted entries (2.8412ms)
+✔ NONE contradictions are rejected per domain but separate domains remain independent (0.3062ms)
+✔ strict API schemas reject forged codes, status, classifications, and unconfirmed saves (0.8549ms)
+✔ catalogue exposes stable evidence-bearing entries without merging condition and food catalogues (0.4195ms)
+✔ legacy projection keeps every restriction in the authoritative intersection (0.4543ms)
+✔ resolution is deterministic and leaves its inputs unchanged (0.2761ms)
+✔ [TEST-074] structured entries are authoritative and aliases dedupe across entry paths (2.599ms)
+✔ [TEST-074] legacy fallback remains deterministic when structured rows do not exist (23.8681ms)
+✔ [TEST-074] known high-risk structured conditions retain their canonical escalation signal and review gate (0.3739ms)
+✔ [TEST-075] required realistic structured combinations use conservative intersection semantics (6.2318ms)
+✔ [TEST-075] production compatibility intersects each exact structured profile with dietary tags (23.2383ms)
+✔ [TEST-075] precedence is BLOCK over REVIEW over ALLOW (0.3282ms)
+✔ [TEST-150] user action schemas reject unknown, empty, and oversized input (6.6778ms)
+✔ [TEST-151] user action schemas normalize valid boundary input (2.0429ms)
+✔ [TEST-180] outside meal item nutrition is strict, bounded, and supports mixed inputs (2.6556ms)
+✔ [TEST-106] billing access defaults to Free with three swaps and exposes only the TEST catalogue (6.1786ms)
+✔ [TEST-107] a paid, current, unrevoked grant yields six swaps and exact nonrenewing access dates (0.8276ms)
+✔ [TEST-108] expired, revoked, missing, and unpaid grants fail closed to Free (0.6065ms)
+✔ [TEST-109] checkout availability and verification status come only from server evidence (0.5801ms)
+✔ [TEST-110] access service reads one authenticated owner at one server instant and rejects ineligible users (1.2672ms)
+✔ [TEST-111] public billing serialization omits ledger, provider, and secret fields (0.3489ms)
+✔ [TEST-052] one weigh-in never triggers an automatic nutrition adjustment (1.5509ms)
+✔ [TEST-052] low adherence prevents target-change conclusions (0.4546ms)
+✔ [TEST-052] sustained stagnation with adequate adherence recommends professional review (0.2941ms)
+✔ [TEST-052] goal-consistent movement is on track without automatic escalation (0.2729ms)
+ℹ tests 520
+ℹ suites 0
+ℹ pass 519
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 1
+ℹ duration_ms 3440.2528
+
+> nutrimind@1.0.0 test:frontend
+> npm --prefix frontend test
+
+
+> nutrimind-frontend@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.11 C:/Users/chima/.codex/worktrees/35eb/Nutrimind/frontend
+
+
+ Test Files  21 passed (21)
+      Tests  78 passed (78)
+   Start at  00:29:05
+   Duration  9.17s (transform 6.02s, setup 17.50s, import 14.28s, tests 16.89s, environment 41.74s)
+
+
+> nutrimind@1.0.0 build
+> npm run build:backend && npm run build:frontend
+
+
+> nutrimind@1.0.0 build:backend
+> npm --prefix backend run build
+
+
+> nutrimind-backend@1.0.0 build
+> tsc && node scripts/rewrite-path-aliases.cjs
+
+[Build] Rewrote path aliases in 81 compiled files.
+
+> nutrimind@1.0.0 build:frontend
+> npm --prefix frontend run build
+
+
+> nutrimind-frontend@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.25
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 9.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/52) ...
+   Generating static pages (13/52)
+   Generating static pages (26/52)
+   Generating static pages (39/52)
+ ✓ Generating static pages (52/52)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    9.29 kB         137 kB
+├ ○ /_not-found                            137 B         102 kB
+├ ○ /admin/analytics                     3.98 kB         128 kB
+├ ○ /admin/compensation                  5.24 kB         130 kB
+├ ○ /admin/data                          15.3 kB         154 kB
+├ ○ /admin/images                        7.49 kB         139 kB
+├ ○ /admin/more                            823 B         107 kB
+├ ○ /admin/nutritionists                 8.76 kB         130 kB
+├ ○ /admin/operations                    4.53 kB         126 kB
+├ ○ /admin/overview                       8.7 kB         133 kB
+├ ○ /admin/users                         7.47 kB         141 kB
+├ ○ /billing                               171 B         131 kB
+├ ○ /billing/cancel                      2.25 kB         108 kB
+├ ○ /billing/success                     1.71 kB         131 kB
+├ ○ /dashboard                           13.7 kB         207 kB
+├ ƒ /dashboard/[mealId]                  8.38 kB         152 kB
+├ ○ /docs                                1.79 kB         130 kB
+├ ○ /export                               8.4 kB         133 kB
+├ ○ /forgot-password                     4.12 kB         132 kB
+├ ○ /grocery                             10.3 kB         131 kB
+├ ○ /health-profile                        137 B         102 kB
+├ ○ /login                               1.44 kB         155 kB
+├ ○ /meals                               18.7 kB         208 kB
+├ ○ /nutrition-report                    6.69 kB         139 kB
+├ ○ /nutritionist-apply                  8.31 kB         156 kB
+├ ○ /nutritionist-invitation             4.44 kB         152 kB
+├ ○ /nutritionist/approved               6.29 kB         127 kB
+├ ○ /nutritionist/compensation           2.05 kB         127 kB
+├ ○ /nutritionist/library                15.8 kB         149 kB
+├ ○ /nutritionist/outside-meals          6.01 kB         127 kB
+├ ○ /nutritionist/profile                 6.3 kB         127 kB
+├ ○ /nutritionist/reviews                10.3 kB         131 kB
+├ ○ /onboarding/allergies                  136 B         132 kB
+├ ○ /onboarding/conditions                 136 B         132 kB
+├ ○ /onboarding/preferences              8.25 kB         133 kB
+├ ○ /onboarding/shopping-day             6.04 kB         131 kB
+├ ○ /onboarding/stats                    7.76 kB         132 kB
+├ ○ /onboarding/tos                      9.29 kB         137 kB
+├ ○ /profile                             8.09 kB         132 kB
+├ ○ /profile/health                        181 B         154 kB
+├ ○ /profile/membership                    187 B         135 kB
+├ ○ /profile/personal                      136 B         138 kB
+├ ○ /profile/planning                      181 B         154 kB
+├ ○ /profile/security                      136 B         138 kB
+├ ○ /progress                              275 B         155 kB
+├ ○ /progress/reports                    3.89 kB         128 kB
+├ ○ /register                            1.84 kB         155 kB
+├ ○ /reset-password                      5.27 kB         133 kB
+├ ○ /unauthorized                        4.77 kB         129 kB
+└ ○ /verify-email                        4.97 kB         133 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/1255-623a1bc706ecd6cc.js      46.1 kB
+  ├ chunks/4bd1b696-100b9d70ed4e49c1.js  54.2 kB
+  └ other shared chunks (total)          2.01 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

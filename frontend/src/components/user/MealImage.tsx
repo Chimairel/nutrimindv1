@@ -58,11 +58,11 @@ export function resolveMealCategory(
       label: 'Seafood',
       icon: Fish,
       tone: {
-        bg: 'from-cyan-950/40 via-brand-surface to-brand-cyan/15',
+        bg: 'from-cyan-100 dark:from-cyan-950/40 via-brand-surface to-brand-cyan/15',
         border: 'border-cyan-500/25',
-        text: 'text-cyan-400',
+        text: 'text-cyan-700 dark:text-cyan-400',
         badgeBg: 'bg-cyan-500/15',
-        badgeText: 'text-cyan-300',
+        badgeText: 'text-cyan-800 dark:text-cyan-300',
         dot: 'bg-cyan-400',
       },
     };
@@ -75,11 +75,11 @@ export function resolveMealCategory(
       label: 'Meat & Savory',
       icon: Flame,
       tone: {
-        bg: 'from-rose-950/40 via-brand-surface to-rose-500/15',
+        bg: 'from-rose-100 dark:from-rose-950/40 via-brand-surface to-rose-500/15',
         border: 'border-rose-500/25',
-        text: 'text-rose-400',
+        text: 'text-rose-700 dark:text-rose-400',
         badgeBg: 'bg-rose-500/15',
-        badgeText: 'text-rose-300',
+        badgeText: 'text-rose-800 dark:text-rose-300',
         dot: 'bg-rose-400',
       },
     };
@@ -92,11 +92,11 @@ export function resolveMealCategory(
       label: 'Poultry & Egg',
       icon: Egg,
       tone: {
-        bg: 'from-amber-950/40 via-brand-surface to-amber-500/15',
+        bg: 'from-amber-100 dark:from-amber-950/40 via-brand-surface to-amber-500/15',
         border: 'border-amber-500/25',
-        text: 'text-amber-400',
+        text: 'text-amber-700 dark:text-amber-400',
         badgeBg: 'bg-amber-500/15',
-        badgeText: 'text-amber-300',
+        badgeText: 'text-amber-800 dark:text-amber-300',
         dot: 'bg-amber-400',
       },
     };
@@ -113,7 +113,7 @@ export function resolveMealCategory(
       label: 'Vegetables & Legumes',
       icon: Salad,
       tone: {
-        bg: 'from-emerald-950/40 via-brand-surface to-brand-green/15',
+        bg: 'from-emerald-100 dark:from-emerald-950/40 via-brand-surface to-brand-green/15',
         border: 'border-brand-green/25',
         text: 'text-brand-green',
         badgeBg: 'bg-brand-green/15',
@@ -130,11 +130,11 @@ export function resolveMealCategory(
       label: 'Soup & Stew',
       icon: Soup,
       tone: {
-        bg: 'from-emerald-950/30 via-brand-surface to-emerald-500/15',
+        bg: 'from-emerald-100 dark:from-emerald-950/30 via-brand-surface to-emerald-500/15',
         border: 'border-emerald-500/25',
-        text: 'text-emerald-400',
+        text: 'text-emerald-700 dark:text-emerald-400',
         badgeBg: 'bg-emerald-500/15',
-        badgeText: 'text-emerald-300',
+        badgeText: 'text-emerald-800 dark:text-emerald-300',
         dot: 'bg-emerald-400',
       },
     };
@@ -150,11 +150,11 @@ export function resolveMealCategory(
       label: 'Breakfast & Grain',
       icon: Coffee,
       tone: {
-        bg: 'from-amber-950/30 via-brand-surface to-brand-accent/15',
+        bg: 'from-amber-100 dark:from-amber-950/30 via-brand-surface to-brand-accent/15',
         border: 'border-brand-accent/25',
-        text: 'text-brand-accent',
+        text: 'text-brand-green',
         badgeBg: 'bg-brand-accent/15',
-        badgeText: 'text-brand-accent',
+        badgeText: 'text-brand-green',
         dot: 'bg-brand-accent',
       },
     };
@@ -167,11 +167,11 @@ export function resolveMealCategory(
       label: 'Snack & Fruit',
       icon: Apple,
       tone: {
-        bg: 'from-purple-950/40 via-brand-surface to-purple-500/15',
+        bg: 'from-purple-100 dark:from-purple-950/40 via-brand-surface to-purple-500/15',
         border: 'border-purple-500/25',
-        text: 'text-purple-400',
+        text: 'text-purple-700 dark:text-purple-400',
         badgeBg: 'bg-purple-500/15',
-        badgeText: 'text-purple-300',
+        badgeText: 'text-purple-800 dark:text-purple-300',
         dot: 'bg-purple-400',
       },
     };
@@ -263,27 +263,22 @@ export default function MealImage({
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white backdrop-blur-md border border-white/5">
             <span className={`h-1.5 w-1.5 rounded-full ${categoryInfo.tone.dot}`} aria-hidden="true" />
-            Representative visual
+            Illustration
           </span>
         </div>
 
         {/* Center: Category Icon & Title */}
         <div className="relative z-10 my-auto flex flex-col items-center justify-center py-2 text-center">
           <div
-            className={`mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border bg-brand-surface/75 shadow-sm backdrop-blur-md ${categoryInfo.tone.border} ${categoryInfo.tone.text}`}
+            className={`mb-2 flex h-16 w-16 items-center justify-center rounded-full border bg-brand-surface/75 shadow-sm backdrop-blur-md ${categoryInfo.tone.border} ${categoryInfo.tone.text}`}
           >
             <FallbackIcon className="h-6 w-6" aria-hidden="true" />
           </div>
-          <span className="line-clamp-1 max-w-[90%] font-display text-xs font-black tracking-tight text-brand-text">
-            {mealName}
-          </span>
         </div>
 
         {/* Bottom honest disclosure footer */}
         <div className="relative z-10 text-center">
-          <span className="text-[9px] font-medium text-brand-muted/75">
-            Visual placeholder · Structured recipe in plan
-          </span>
+          <span className="text-[9px] font-medium text-brand-muted/75">Recipe photo coming soon</span>
         </div>
       </figure>
     );

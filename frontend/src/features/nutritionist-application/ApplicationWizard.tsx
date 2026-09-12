@@ -45,7 +45,7 @@ export function ApplicationWizard(props: Props) {
 
   return (
     <div className="surface-panel rounded-[30px] p-6 sm:p-8">
-      <div className="mb-8 grid grid-cols-5 gap-2">
+      <div className="mb-5 grid grid-cols-5 gap-2">
         {steps.map((item, index) => {
           const Icon = item.icon;
           const active = index <= step;
@@ -53,7 +53,7 @@ export function ApplicationWizard(props: Props) {
             <div key={item.label}>
               <div className={`h-1.5 rounded-full ${active ? 'bg-brand-accent' : 'bg-brand-border'}`} />
               <div
-                className={`mt-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider ${active ? 'text-brand-green' : 'text-brand-muted'}`}
+                className={`mt-2 hidden sm:flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider ${active ? 'text-brand-green' : 'text-brand-muted'}`}
               >
                 <Icon className="hidden h-3 w-3 sm:block" />
                 {item.label}

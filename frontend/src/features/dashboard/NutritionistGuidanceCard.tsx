@@ -5,10 +5,7 @@ import { ClipboardList } from 'lucide-react';
 
 export function NutritionistGuidanceCard({ isPendingReview = false }: { isPendingReview?: boolean }) {
   return (
-    <section
-      className="rounded-[24px] border border-brand-border/70 bg-brand-surface/80 p-5 text-left shadow-card"
-      aria-label="Meal review and health profile"
-    >
+    <section className="dashboard-surface rounded-[24px] p-5 text-left" aria-label="Meal review and health profile">
       <h3 className="flex items-center gap-2 text-sm font-bold text-brand-text">
         <ClipboardList className="h-4 w-4 text-brand-green" aria-hidden="true" />
         Meal review & your profile
@@ -29,7 +26,7 @@ export function NutritionistGuidanceCard({ isPendingReview = false }: { isPendin
         Keep your conditions, allergies, and meal-planning location up to date in Health profile.
       </p>
       <div className="mt-4 flex flex-wrap gap-4 text-xs font-bold text-brand-green">
-        <Link href="/health-profile" className="rounded underline underline-offset-4">
+        <Link href="/profile/health" className="rounded underline underline-offset-4">
           Health profile
         </Link>
         <Link href="/progress" className="rounded underline underline-offset-4">

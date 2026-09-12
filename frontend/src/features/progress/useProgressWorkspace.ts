@@ -9,7 +9,7 @@ import type { UserProfileData } from '@/hooks/useProfile';
 import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
-export type ProgressWorkspaceMode = 'progress' | 'health';
+export type ProgressWorkspaceMode = 'progress' | 'health' | 'planning';
 
 export interface WeightLog {
   id: string;
@@ -47,7 +47,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const ownerId = user?.userId;
   const cachedPage = readSessionResource<ProgressPageSnapshot>(ownerId, 'user-progress-page');
   const cachedProfile = cachedPage?.profileData?.userProfile;
-  const [activeSection, setActiveSection] = useState<ProgressSection>(mode === 'health' ? 'profile' : 'overview');
+  const [activeSection, setActiveSection] = useState<ProgressSection>(mode !== 'progress' ? 'profile' : 'overview');
   const [history, setHistory] = useState<ProgressHistory | null>(cachedPage?.history ?? null);
   const [profileData, setProfileData] = useState<ProfileDetails | null>(cachedPage?.profileData ?? null);
   const [isLoading, setIsLoading] = useState(!cachedPage);

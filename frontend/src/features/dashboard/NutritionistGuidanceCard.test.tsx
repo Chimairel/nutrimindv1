@@ -7,7 +7,7 @@ describe('NutritionistGuidanceCard', () => {
     render(<NutritionistGuidanceCard />);
     expect(screen.getByText(/FNRI linkage describes nutrition provenance/)).toBeInTheDocument();
     expect(screen.queryByText(/Clinical Guidance|Audited by|Allergen Safe|2,500/)).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Health profile' })).toHaveAttribute('href', '/health-profile');
+    expect(screen.getByRole('link', { name: 'Health profile' })).toHaveAttribute('href', '/profile/health');
     expect(screen.getByRole('link', { name: 'View progress' })).toHaveAttribute('href', '/progress');
   });
   it('keeps pending review visible', () => {

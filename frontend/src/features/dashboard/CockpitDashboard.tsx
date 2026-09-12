@@ -67,10 +67,7 @@ export function CockpitDashboard({
   return (
     <section aria-label="Daily nutrition" className="space-y-5">
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
-        <section
-          aria-label="Nutrition summary"
-          className="rounded-3xl border border-brand-green/20 bg-gradient-to-br from-brand-green/10 via-brand-surface to-brand-surface p-5 sm:p-6"
-        >
+        <section aria-label="Nutrition summary" className="daily-intake-card rounded-3xl border p-5 sm:p-6">
           <p className="text-sm font-semibold text-brand-muted">Your daily intake</p>
           <div className="my-6 flex items-center gap-5">
             <div
@@ -91,7 +88,7 @@ export function CockpitDashboard({
               <p className="mt-2 text-xs font-medium text-brand-green">Logged for this day</p>
             </div>
           </div>
-          <div className="space-y-4 border-t border-brand-border/60 pt-5">
+          <div className="space-y-4 border-t border-brand-border pt-5">
             {macros.map((macro) => (
               <div key={macro.label}>
                 <div className="mb-2 flex justify-between gap-3 text-sm">
@@ -101,7 +98,7 @@ export function CockpitDashboard({
                     {Math.round(macro.target)}g
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-brand-border/60" aria-hidden="true">
+                <div className="h-2 overflow-hidden rounded-full bg-brand-border" aria-hidden="true">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -125,10 +122,7 @@ export function CockpitDashboard({
             </p>
           )}
         </section>
-        <section
-          aria-label="Scheduled meals"
-          className="min-w-0 rounded-3xl border border-brand-border/70 bg-brand-surface p-5 sm:p-6"
-        >
+        <section aria-label="Scheduled meals" className="dashboard-surface min-w-0 rounded-3xl p-5 sm:p-6">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-brand-green">
@@ -150,7 +144,7 @@ export function CockpitDashboard({
               available after approval.
             </p>
           )}
-          <div className="divide-y divide-brand-border/60">
+          <div className="space-y-3">
             {meals.map((meal) => (
               <DashboardMealRow
                 key={meal.id}
@@ -171,7 +165,7 @@ export function CockpitDashboard({
         </section>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <section className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5" aria-label="Water log">
+        <section className="dashboard-surface dashboard-stat rounded-2xl p-5" aria-label="Water log">
           <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
             <Droplets className="h-4 w-4 text-brand-green" /> Water log
           </div>
@@ -192,7 +186,7 @@ export function CockpitDashboard({
               type="button"
               aria-label="Add 250 mL of water"
               onClick={() => onAddWater(250)}
-              className="min-h-11 flex-1 rounded-xl bg-brand-green/10 text-sm font-semibold text-brand-green"
+              className="dashboard-action min-h-11 flex-1 rounded-xl text-sm font-semibold"
             >
               +250 mL
             </button>
@@ -200,7 +194,7 @@ export function CockpitDashboard({
         </section>
         <Link
           href="/progress"
-          className="group rounded-2xl border border-brand-border/70 bg-brand-surface p-5 transition-colors hover:border-brand-green/40"
+          className="dashboard-surface dashboard-stat group rounded-2xl p-5 transition-colors hover:border-brand-green"
         >
           <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
             <Scale className="h-4 w-4 text-brand-green" /> Weight & progress{' '}
@@ -214,7 +208,7 @@ export function CockpitDashboard({
           </p>
           <p className="mt-4 text-sm font-semibold text-brand-green">Record your progress →</p>
         </Link>
-        <section className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5">
+        <section className="dashboard-surface dashboard-stat rounded-2xl p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
             <ClipboardCheck className="h-4 w-4 text-brand-green" /> Weekly check-in
           </div>
@@ -233,7 +227,7 @@ export function CockpitDashboard({
               Start check-in →
             </button>
           ) : (
-            <Link href="/health-profile" className="mt-4 inline-block text-sm font-semibold text-brand-green">
+            <Link href="/profile/health" className="mt-4 inline-block text-sm font-semibold text-brand-green">
               Update health profile →
             </Link>
           )}

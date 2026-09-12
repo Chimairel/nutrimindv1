@@ -133,20 +133,27 @@ export default function AdminCompensationPage() {
       {data && (
         <>
           <ReconciliationCards reconciliation={data.reconciliation} />
-          <CompensationForms
-            activePolicies={data.policies.filter((policy) => policy.status === 'ACTIVE')}
-            busy={busy}
-            onPeriodChange={setPeriodForm}
-            onPeriodSubmit={createPeriod}
-            onPolicyChange={setPolicyForm}
-            onPolicySubmit={createPolicy}
-            periodForm={periodForm}
-            policyForm={policyForm}
-          />
-          <PolicyList policies={data.policies} busy={busy} act={act} />
           <PeriodList periods={data.periods} act={act} />
           <StatementList statements={data.statements} act={act} />
           <CompensationDecisionSections data={data} act={act} />
+          <details className="rounded-2xl border border-brand-border bg-brand-surface p-5">
+            <summary className="cursor-pointer font-semibold text-brand-text">
+              Manage periods and compensation policies
+            </summary>
+            <div className="mt-5 space-y-5">
+              <CompensationForms
+                activePolicies={data.policies.filter((policy) => policy.status === 'ACTIVE')}
+                busy={busy}
+                onPeriodChange={setPeriodForm}
+                onPeriodSubmit={createPeriod}
+                onPolicyChange={setPolicyForm}
+                onPolicySubmit={createPolicy}
+                periodForm={periodForm}
+                policyForm={policyForm}
+              />
+              <PolicyList policies={data.policies} busy={busy} act={act} />
+            </div>
+          </details>
         </>
       )}
     </div>

@@ -250,20 +250,23 @@ export default function NutritionReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 md:p-12 flex flex-col gap-8 pb-32 relative select-none">
-      <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[400px] w-[600px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
+    <div className="min-h-screen overflow-x-clip bg-brand-bg text-brand-text p-4 md:p-8 flex flex-col gap-5 pb-48 relative">
+      <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[400px] w-full max-w-[600px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
 
+      <a href="/progress/reports" className="mx-auto w-full max-w-6xl text-sm font-semibold text-brand-green underline">
+        ← Reports & history
+      </a>
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border pb-6 max-w-6xl mx-auto w-full text-left">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <ClipboardList className="w-6 h-6 text-brand-green shrink-0" />
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-brand-green">
-              PERSONAL NUTRITION REPORT
+              Nutrition guidance
             </h1>
           </div>
           <p className="text-xs text-brand-muted">
-            Clinical guidelines compiled by NutriMind AI and cross-referenced with FNRI index standards.
+            AI-generated guidance · Not independently reviewed by a nutritionist.
           </p>
         </div>
         <Button
@@ -276,6 +279,10 @@ export default function NutritionReportPage() {
         </Button>
       </div>
 
+      <p className="mx-auto w-full max-w-6xl text-sm text-brand-muted">
+        Version {report.version} · Generated {new Date(report.generatedAt).toLocaleDateString()}
+        {report.acknowledgedAt ? ' · Acknowledged' : ''}
+      </p>
       {/* Main layout container */}
       <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
         {error && (
@@ -341,7 +348,7 @@ export default function NutritionReportPage() {
         {/* Narrative General Summary */}
         <Card className="p-6 border-brand-border/60 bg-brand-surface/40">
           <h3 className="text-sm font-bold tracking-wide uppercase text-brand-green mb-2 font-display">
-            General Dietary Assessment
+            Your nutrition summary
           </h3>
           <p className="text-xs md:text-sm text-brand-muted leading-relaxed">{report.generalSummary}</p>
         </Card>
@@ -357,7 +364,7 @@ export default function NutritionReportPage() {
                 Limit
               </TabsTrigger>
               <TabsTrigger value="good" className="flex-1">
-                Good
+                Suggested
               </TabsTrigger>
               <TabsTrigger value="drinks" className="flex-1">
                 Drinks
@@ -367,7 +374,7 @@ export default function NutritionReportPage() {
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
                 <h4 className="text-xs font-bold text-status-error-text tracking-wide uppercase mb-4 flex items-center gap-1.5 font-display">
                   <XCircle className="w-4 h-4 text-status-error-text shrink-0" />
-                  <span>Foods to Avoid completely</span>
+                  <span>Foods to avoid</span>
                 </h4>
                 {renderList(report.foodsToAvoid)}
               </Card>
@@ -394,7 +401,7 @@ export default function NutritionReportPage() {
               <Card className="p-5 mt-2 bg-brand-surface/20 border-brand-border/50">
                 <h4 className="text-xs font-bold text-blue-400 tracking-wide uppercase mb-4 flex items-center gap-1.5 font-display">
                   <Droplet className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Drinking and Hydration targets</span>
+                  <span>Drinks guidance</span>
                 </h4>
                 {renderList(report.drinksGuidance)}
               </Card>
@@ -431,7 +438,7 @@ export default function NutritionReportPage() {
           <Card className="p-5 bg-brand-surface/20 border-brand-border/50">
             <h4 className="text-xs font-bold text-blue-400 tracking-wider uppercase mb-4 flex items-center gap-1.5 font-display">
               <Droplet className="w-4 h-4 text-blue-400 shrink-0" />
-              <span>Hydration Goals</span>
+              <span>Drinks guidance</span>
             </h4>
             {renderList(report.drinksGuidance)}
           </Card>
@@ -439,23 +446,25 @@ export default function NutritionReportPage() {
       </div>
 
       <ReportHistory history={history} />
-      {/* Sticky Acknowledge Banner at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface/90 border-t border-brand-border py-4 px-6 backdrop-blur-md shadow-2xl flex items-center justify-center">
-        <div className="max-w-6xl w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <p className="text-[11px] md:text-xs text-brand-muted leading-relaxed max-w-2xl text-center md:text-left">
-            By clicking acknowledge, you confirm that you have read our medical limitations disclaimers and understand
-            that NutriMind recommendations are AI-generated estimations.
-          </p>
-          <Button
-            variant="primary"
-            onClick={handleAcknowledge}
-            className="px-8 py-3 text-sm font-bold tracking-wide shadow-xl min-w-[200px]"
-            isLoading={isAcknowledging}
-          >
-            I Acknowledge Report
-          </Button>
+      {/* Show acknowledgement only when this version needs it. */}
+      {!report.acknowledgedAt && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface/90 border-t border-brand-border py-4 px-6 backdrop-blur-md shadow-2xl flex items-center justify-center">
+          <div className="max-w-6xl w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <p className="text-[11px] md:text-xs text-brand-muted leading-relaxed max-w-2xl text-center md:text-left">
+              By clicking acknowledge, you confirm that you have read our medical limitations disclaimers and understand
+              that NutriMind recommendations are AI-generated estimations.
+            </p>
+            <Button
+              variant="primary"
+              onClick={handleAcknowledge}
+              className="px-8 py-3 text-sm font-bold tracking-wide shadow-xl min-w-[200px]"
+              isLoading={isAcknowledging}
+            >
+              I Acknowledge Report
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

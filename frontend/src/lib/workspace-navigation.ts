@@ -28,21 +28,21 @@ export const workspaceLabels: Record<WorkspaceRole, string> = {
 export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
   USER: [
     {
-      label: 'Dashboard',
+      label: 'Home',
       href: '/dashboard',
       description: 'Daily meals, nutrition totals, water, and check-ins.',
       group: 'Every day',
       icon: Home,
     },
     {
-      label: 'Meal plan',
+      label: 'Meals',
       href: '/meals',
       description: 'Your weekly plan, meal history, swaps, and library.',
       group: 'Every day',
       icon: Utensils,
     },
     {
-      label: 'Grocery',
+      label: 'Groceries',
       href: '/grocery',
       description: 'Approved ingredients, pantry items, and shopping PDF.',
       group: 'Every day',
@@ -56,21 +56,21 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: Activity,
     },
     {
-      label: 'Health profile',
-      href: '/health-profile',
+      label: 'Health & goals',
+      href: '/profile/health',
       description: 'Goals, conditions, allergies, location, and food preferences.',
       group: 'Your health',
       icon: HeartPulse,
     },
     {
       label: 'Premium access',
-      href: '/billing',
+      href: '/profile/membership',
       description: 'View your plan, entitlements, and payment status.',
       group: 'Your account',
       icon: Crown,
     },
     {
-      label: 'Account profile',
+      label: 'Profile',
       href: '/profile',
       description: 'Personal details, avatar, and account security.',
       group: 'Your account',
@@ -86,7 +86,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
   ],
   NUTRITIONIST: [
     {
-      label: 'Review queue',
+      label: 'Reviews',
       href: '/nutritionist/reviews',
       description: 'Claim, inspect, correct, and review meal-plan rows.',
       group: 'Review work',
@@ -100,7 +100,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: Utensils,
     },
     {
-      label: 'Approved plans',
+      label: 'Approved reviews',
       href: '/nutritionist/approved',
       description: 'Revisit your completed meal-plan reviews.',
       group: 'Review work',
@@ -186,4 +186,36 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ImageIcon,
     },
   ],
+};
+
+export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
+  USER: workspaceTools.USER.filter((tool) =>
+    ['/dashboard', '/meals', '/grocery', '/progress', '/profile'].includes(tool.href)
+  ),
+  NUTRITIONIST: workspaceTools.NUTRITIONIST.filter(
+    (tool) => !['/nutritionist/outside-meals', '/nutritionist/approved'].includes(tool.href)
+  ),
+  ADMIN: [
+    '/admin/overview',
+    '/admin/users',
+    '/admin/nutritionists',
+    '/admin/data',
+    '/admin/images',
+    '/admin/operations',
+    '/admin/compensation',
+    '/admin/analytics',
+  ].map((href) => {
+    const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;
+    return {
+      ...tool,
+      group:
+        href === '/admin/overview'
+          ? 'Overview'
+          : ['/admin/users', '/admin/nutritionists'].includes(href)
+            ? 'People'
+            : ['/admin/data', '/admin/images'].includes(href)
+              ? 'Content & data'
+              : 'Operations',
+    };
+  }),
 };

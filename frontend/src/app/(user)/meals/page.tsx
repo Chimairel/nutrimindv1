@@ -157,7 +157,7 @@ export default function WeeklyPlanPage() {
           className="mb-1"
           meta={
             activeTab === 'plan' && meals.length > 0 ? (
-              <span className="font-mono text-[9px] uppercase tracking-wider text-white/45">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-brand-muted">
                 {swapsUsed} of {swapCap} swaps used
               </span>
             ) : undefined
@@ -169,14 +169,25 @@ export default function WeeklyPlanPage() {
                   Pending verification
                 </Badge>
               ) : (
-                <Button
-                  variant="primary"
-                  onClick={handleRegeneratePlan}
-                  className="flex items-center gap-1.5 bg-red-500 text-xs font-bold text-white hover:bg-red-600"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Regenerate plan</span>
-                </Button>
+                <details className="relative">
+                  <summary className="cursor-pointer rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold">
+                    Plan options
+                  </summary>
+                  <div className="mt-2 max-w-xs rounded-xl border border-brand-border bg-brand-surface p-3">
+                    <p className="mb-3 text-xs text-brand-muted">
+                      Whole-plan replacement is available before shopping or logging. After that, choose individual meal
+                      swaps.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      onClick={handleRegeneratePlan}
+                      className="flex items-center gap-1.5 text-xs font-bold"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Replace entire plan</span>
+                    </Button>
+                  </div>
+                </details>
               )
             ) : undefined
           }
@@ -248,7 +259,7 @@ export default function WeeklyPlanPage() {
           </div>
         )}
         {activeTab === 'plan' && displayedMealCount > 0 && (
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
             {[
               { label: 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
               { label: 'Plan days', value: displayedPlanDays.length, icon: Calendar },
@@ -261,13 +272,10 @@ export default function WeeklyPlanPage() {
             ].map((metric) => {
               const MetricIcon = metric.icon;
               return (
-                <div
-                  key={metric.label}
-                  className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm"
-                >
+                <div key={metric.label} className="flex items-center gap-2 text-sm">
                   <MetricIcon className="h-4 w-4 text-brand-green" />
-                  <p className="mt-4 font-display text-2xl font-black text-brand-text">{metric.value}</p>
-                  <p className="mt-1 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
+                  <p className="font-bold text-brand-text">{metric.value}</p>
+                  <p className="text-xs text-brand-muted">{metric.label}</p>
                 </div>
               );
             })}
@@ -525,7 +533,7 @@ export default function WeeklyPlanPage() {
                       {/* Macros summing indicators */}
                       <div className="flex gap-3 flex-wrap text-[10px] font-bold text-brand-text">
                         <span className="rounded-full border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-brand-green">
-                          {pendingReview ? 'Approved subtotal' : 'Target'}: {Math.round(day.dayCalories)} kcal
+                          {pendingReview ? 'Approved subtotal' : 'Planned'}: {Math.round(day.dayCalories)} kcal
                         </span>
                         <span
                           className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]"

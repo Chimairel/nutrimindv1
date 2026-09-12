@@ -65,7 +65,8 @@ export class NutritionistReviewService {
         proteinG: meal.proteinG,
         carbsG: meal.carbsG,
         fatG: meal.fatG,
-        aiConfidenceFlag: meal.aiConfidenceFlag,
+        aiConfidenceFlag: meal.requiresSafetyRevalidation ? AIConfidenceFlag.NEEDS_REVIEW : meal.aiConfidenceFlag,
+        requiresSafetyRevalidation: meal.requiresSafetyRevalidation,
         planType: meal.planType,
         nutritionistNote: meal.nutritionistNote,
         scheduledDate: meal.scheduledDate,
@@ -294,6 +295,12 @@ export class NutritionistReviewService {
       });
     }
 
+    if (updatedMealPlan.requiresSafetyRevalidation)
+      warnings.push({
+        severity: 'IMPORTANT',
+        message:
+          'Profile or supporting evidence changed. Recheck this meal against the current diet, restrictions and target before deciding. Previous automated triage is no longer current.',
+      });
     const severityOrder = { CRITICAL: 0, IMPORTANT: 1, NOTICE: 2 };
     warnings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
@@ -312,7 +319,10 @@ export class NutritionistReviewService {
         proteinG: updatedMealPlan.proteinG,
         carbsG: updatedMealPlan.carbsG,
         fatG: updatedMealPlan.fatG,
-        aiConfidenceFlag: updatedMealPlan.aiConfidenceFlag,
+        aiConfidenceFlag: updatedMealPlan.requiresSafetyRevalidation
+          ? AIConfidenceFlag.NEEDS_REVIEW
+          : updatedMealPlan.aiConfidenceFlag,
+        requiresSafetyRevalidation: updatedMealPlan.requiresSafetyRevalidation,
         planType: updatedMealPlan.planType,
         scheduledDate: updatedMealPlan.scheduledDate,
         createdAt: updatedMealPlan.createdAt,
@@ -332,6 +342,8 @@ export class NutritionistReviewService {
       ingredients: updatedMealPlan.ingredients.map((ing) => ({
         name: ing.ingredientName,
         source: ing.dataSource,
+        quantity: ing.quantity,
+        unit: ing.unit,
       })),
       warnings: warnings,
       highRiskReviewRequired: updatedMealPlan.highRiskReviewRequired,

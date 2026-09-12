@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Check, Clock, Star, UserRound } from 'lucide-react';
+import { Check, Clock, UserRound } from 'lucide-react';
 
 interface NProfile {
   id: string;
@@ -19,11 +19,10 @@ interface NProfile {
   bio?: string;
   isVerified: boolean;
   totalVerified: number;
-  rating: number;
 }
 
 export default function NutritionistProfilePage() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [profile, setProfile] = useState<NProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [bio, setBio] = useState('');
@@ -58,6 +57,7 @@ export default function NutritionistProfilePage() {
     setSuccess(null);
     try {
       await api.patch('/nutritionist/profile', { bio, specialization });
+      setProfile((current) => (current ? { ...current, bio, specialization } : current));
       setSuccess('Professional profile updated.');
     } catch (err) {
       console.error('Save failed:', err);
@@ -77,7 +77,7 @@ export default function NutritionistProfilePage() {
         icon={UserRound}
         eyebrow="Professional identity"
         title="Nutritionist profile"
-        description="Maintain the professional details shown alongside your clinical review activity."
+        description="Manage the credentials and introduction users see alongside your reviews."
       />
 
       <Card className="grid gap-4 p-6 text-sm sm:grid-cols-2">
@@ -112,13 +112,6 @@ export default function NutritionistProfilePage() {
         <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
           <span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span>
           <span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span>
-        </div>
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4 sm:col-span-2">
-          <span className="text-[10px] uppercase tracking-wider text-brand-muted">Rating</span>
-          <span className="mt-2 inline-flex items-center gap-1 font-bold text-brand-text">
-            <Star className="w-3.5 h-3.5 fill-brand-green stroke-brand-green" />
-            <span>{profile?.rating?.toFixed(1)}</span>
-          </span>
         </div>
       </Card>
 
@@ -172,6 +165,23 @@ export default function NutritionistProfilePage() {
         </Button>
       </Card>
 
+      <details className="rounded-2xl border border-brand-border bg-brand-surface p-5">
+        <summary className="cursor-pointer font-semibold">Public profile preview</summary>
+        <div className="mt-4 space-y-2 text-sm">
+          <p className="font-display text-lg font-bold">{user?.name}</p>
+          <p>PRC license: {profile?.prcLicenseNumber || 'Not available'}</p>
+          <p>
+            Valid until:{' '}
+            {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
+          </p>
+          <p>{profile?.specialization || 'No specialization provided'}</p>
+          <p className="text-brand-muted">{profile?.bio || 'No introduction provided'}</p>
+          <p className="text-xs text-brand-muted">
+            Users can view these professional details through your meal-review attribution. Your email and contact
+            details are excluded here.
+          </p>
+        </div>
+      </details>
       <Button variant="secondary" onClick={logout} className="w-full py-3 text-sm">
         Sign Out
       </Button>

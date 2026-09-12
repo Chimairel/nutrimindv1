@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
         title="User management"
         description="Inspect account roles, verification state, onboarding progress, and membership across the platform."
         meta={
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white/50">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-brand-muted">
             {total} accounts
           </span>
         }
@@ -150,10 +150,31 @@ export default function AdminUsersPage() {
         </div>
       ) : (
         <div className="portal-table-shell">
-          <p className="border-b border-brand-border/50 px-5 py-3 text-[10px] font-semibold text-brand-muted md:hidden">
-            Swipe horizontally to inspect verification, onboarding, and access controls.
-          </p>
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-brand-border md:hidden">
+            {users.map((user) => (
+              <article key={user.id} className="space-y-3 p-4">
+                <div>
+                  <h2 className="font-semibold text-brand-text">{user.name}</h2>
+                  <p className="break-all text-sm text-brand-muted">{user.email}</p>
+                </div>
+                <p className="text-sm text-brand-muted">
+                  {user.role} · {user.isSuspended ? 'Suspended' : 'Active'}
+                </p>
+                <p className="text-sm text-brand-muted">
+                  {user.emailVerified ? 'Email verified' : 'Email unverified'} ·{' '}
+                  {user.onboardingDone ? 'Onboarding complete' : 'Onboarding incomplete'}
+                </p>
+                <Button
+                  variant="secondary"
+                  disabled={user.id === currentUser?.userId}
+                  onClick={() => openAccessDialog(user)}
+                >
+                  {user.isSuspended ? 'Reinstate' : 'Suspend'} account
+                </Button>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="bg-[#07100d] text-white">
                 <tr className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/45">

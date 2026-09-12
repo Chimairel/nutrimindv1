@@ -179,7 +179,7 @@ export default function NutritionExportPage() {
         <div>
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1 text-xs font-semibold text-white/45 transition-colors hover:text-brand-cyan"
+            className="flex items-center gap-1 text-xs font-semibold text-brand-muted transition-colors hover:text-brand-cyan"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>

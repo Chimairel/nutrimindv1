@@ -9,8 +9,6 @@ import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import Progress from '@/components/ui/Progress';
-import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
@@ -25,8 +23,6 @@ import {
   ChevronDown,
   CircleCheckBig,
   Download,
-  ListFilter,
-  PackageCheck,
   Search,
   ShoppingBasket,
   ShoppingCart,
@@ -174,7 +170,6 @@ export default function GroceryListPage() {
   const pantryItems = totalItems - shoppingItems.length;
   const checkedItems = shoppingItems.filter((item) => item.isChecked).length;
   const remainingItems = shoppingItems.length - checkedItems;
-  const progressPercent = shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 100;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleGroups = Object.entries(groupedItems)
     .sort(([categoryA], [categoryB]) => categoryA.localeCompare(categoryB))
@@ -228,7 +223,7 @@ export default function GroceryListPage() {
       <PortalPageHeader
         icon={ShoppingCart}
         eyebrow="Plan companion"
-        title="Smart grocery list"
+        title="Groceries"
         description="Shopping-cycle totals with purchased amounts and what remains to buy."
         className="mb-6"
         actions={
@@ -285,7 +280,6 @@ export default function GroceryListPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-5 text-left">
-          {view === 'current' && <GroceryCostSummary revision={JSON.stringify(groceryList.groceryItems)} />}
           {pendingMealCount > 0 && (
             <div className="flex items-start gap-3 rounded-2xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-xs text-status-pending-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -295,58 +289,14 @@ export default function GroceryListPage() {
               </p>
             </div>
           )}
-          <section className="overflow-hidden rounded-[28px] border border-brand-border/70 bg-brand-surface shadow-card">
-            <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-brand-green/10 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-brand-green">
-                    {groceryList.weekLabel || 'Current week'}
-                  </span>
-                  <span className="text-[11px] text-brand-muted">
-                    {totalItems} ingredients across {Object.keys(groupedItems).length} categories
-                  </span>
-                </div>
-                <div className="mt-4 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="font-display text-2xl font-black tracking-tight text-brand-text sm:text-3xl">
-                      {remainingItems === 0 ? 'Shopping complete' : `${remainingItems} left to pack`}
-                    </p>
-                    <p className="mt-1 text-xs text-brand-muted">
-                      {checkedItems} of {totalItems} items packed
-                    </p>
-                  </div>
-                  <span className="font-display text-3xl font-black text-brand-green sm:text-4xl">
-                    <AnimatedNumber value={progressPercent} format={(v) => `${Math.round(v)}%`} />
-                  </span>
-                </div>
-                <Progress value={progressPercent} className="mt-4 h-2.5 bg-brand-bgAlt" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 lg:min-w-[380px] lg:grid-cols-4">
-                {[
-                  { label: 'To buy', value: remainingItems, icon: ShoppingBasket },
-                  { label: 'Packed', value: checkedItems, icon: PackageCheck },
-                  { label: 'Pantry', value: pantryItems, icon: ShoppingCart },
-                  { label: 'Categories', value: Object.keys(groupedItems).length, icon: ListFilter },
-                ].map((metric) => {
-                  const MetricIcon = metric.icon;
-                  return (
-                    <div
-                      key={metric.label}
-                      className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/55 px-3 py-3.5"
-                    >
-                      <MetricIcon className="h-4 w-4 text-brand-green" />
-                      <p className="mt-3 font-display text-xl font-black text-brand-text">
-                        <AnimatedNumber value={metric.value} />
-                      </p>
-                      <p className="mt-0.5 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <p className="font-semibold">
+              {remainingItems === 0 ? 'Shopping complete' : `${remainingItems} ingredients to buy`}
+            </p>
+            <p className="text-brand-muted">
+              {checkedItems} of {totalItems} bought
+            </p>
+          </div>
           <section className="rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm backdrop-blur-xl">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <label className="relative min-w-0 flex-1">
@@ -369,7 +319,7 @@ export default function GroceryListPage() {
                   [
                     ['all', 'All', totalItems],
                     ['remaining', 'To buy', remainingItems],
-                    ['packed', 'Packed', checkedItems],
+                    ['packed', 'Bought', checkedItems],
                     ['pantry', 'Pantry', pantryItems],
                   ] as const
                 ).map(([value, label, count]) => (
@@ -378,7 +328,7 @@ export default function GroceryListPage() {
                     type="button"
                     onClick={() => setFilter(value)}
                     aria-pressed={filter === value}
-                    className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-bold transition lg:flex-none ${
+                    className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-xl px-1.5 text-[11px] whitespace-nowrap font-bold transition lg:flex-none ${
                       filter === value
                         ? 'bg-brand-surface text-brand-text shadow-sm'
                         : 'text-brand-muted hover:text-brand-green'
@@ -449,7 +399,7 @@ export default function GroceryListPage() {
                         <span className="flex items-center justify-between gap-3">
                           <span className="truncate font-display text-sm font-bold text-brand-text">{category}</span>
                           <span className="shrink-0 text-[10px] font-bold text-brand-muted">
-                            {completedCount}/{items.length} packed
+                            {completedCount}/{items.length} bought
                           </span>
                         </span>
                         <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-brand-bgAlt">
@@ -480,7 +430,7 @@ export default function GroceryListPage() {
                                 type="button"
                                 onClick={() => handleToggleItem(item.id)}
                                 aria-pressed={item.isChecked}
-                                aria-label={`${item.isChecked ? 'Unpack' : 'Pack'} ${item.ingredientName}`}
+                                aria-label={`${item.isChecked ? 'Reset purchased amount for' : 'Mark fully purchased:'} ${item.ingredientName}`}
                                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90 motion-reduce:transform-none motion-reduce:transition-none ${
                                   item.isChecked
                                     ? 'border-brand-green bg-brand-green text-white shadow-sm'
@@ -525,6 +475,7 @@ export default function GroceryListPage() {
               })}
             </div>
           )}
+          {view === 'current' && <GroceryCostSummary revision={JSON.stringify(groceryList.groceryItems)} />}
         </div>
       )}
     </div>

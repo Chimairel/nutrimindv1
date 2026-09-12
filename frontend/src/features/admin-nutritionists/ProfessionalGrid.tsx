@@ -18,7 +18,7 @@ export function ProfessionalGrid({ nutritionists }: { nutritionists: Nutritionis
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-bold text-brand-text">{nutritionist.user.name}</h3>
               <p className="truncate text-xs text-brand-muted">{nutritionist.user.email}</p>
-              <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
+              <p className="mt-2 break-all font-mono text-[9px] uppercase tracking-wider text-brand-muted">
                 PRC {nutritionist.prcLicenseNumber}
               </p>
             </div>

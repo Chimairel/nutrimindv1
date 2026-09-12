@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Card from '@/components/ui/Card';
@@ -270,15 +271,24 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
   return (
     <div className="portal-page max-w-5xl text-brand-text">
+      {mode !== 'progress' && (
+        <Link href="/profile" className="mb-4 inline-block text-sm font-semibold text-brand-green">
+          ← Profile
+        </Link>
+      )}
       {/* HEADER SECTION */}
       <PortalPageHeader
         icon={mode === 'health' ? Heart : TrendingUp}
-        eyebrow={mode === 'health' ? 'Personal health context' : 'Health trajectory'}
-        title={mode === 'health' ? 'Health profile' : 'Progress and adherence'}
+        eyebrow={
+          mode === 'planning' ? 'Your preferences' : mode === 'health' ? 'Personal health context' : 'Health trajectory'
+        }
+        title={mode === 'planning' ? 'Food & planning' : mode === 'health' ? 'Health & goals' : 'Progress'}
         description={
           mode === 'health'
-            ? 'Keep the body, diet, medical-condition, allergy, and grocery-schedule information used for future plans current.'
-            : 'Track weight changes, nutrition adherence, and progress toward your goal over time.'
+            ? 'Update your body measurements, goals, conditions and allergies whenever they change.'
+            : mode === 'planning'
+              ? 'Choose your food preferences, location and shopping schedule.'
+              : 'Your weight, daily intake and progress over time.'
         }
         className="mb-6"
         actions={
@@ -300,32 +310,40 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         }
       />
 
-      <nav
-        className="mb-6 grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm"
-        aria-label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}
-      >
-        {(mode === 'health'
-          ? ([
-              ['profile', 'Body & diet', Settings],
-              ['safety', 'Safety', Heart],
-            ] as const)
-          : ([
-              ['overview', 'Overview', TrendingUp],
-              ['history', 'Adherence', ClipboardList],
-            ] as const)
-        ).map(([value, label, Icon]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setActiveSection(value)}
-            aria-current={activeSection === value ? 'page' : undefined}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${activeSection === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'}`}
-          >
-            <Icon className="h-4 w-4" />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
+      {mode !== 'planning' && (
+        <nav
+          className="mb-6 grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm"
+          aria-label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}
+        >
+          {(mode === 'health'
+            ? ([
+                ['profile', 'Body & goals', Settings],
+                ['safety', 'Conditions & allergies', Heart],
+              ] as const)
+            : ([
+                ['overview', 'Overview', TrendingUp],
+                ['history', 'Adherence', ClipboardList],
+              ] as const)
+          ).map(([value, label, Icon]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setActiveSection(value)}
+              aria-current={activeSection === value ? 'page' : undefined}
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${activeSection === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'}`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      {mode === 'progress' && (
+        <div className="mb-5 flex flex-wrap gap-4 text-sm font-semibold text-brand-green">
+          <Link href="/progress/reports">Reports & history →</Link>
+          <Link href="/profile/health">Update health information →</Link>
+        </div>
+      )}
 
       {weightSuccess && (
         <div className="p-4 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
@@ -401,7 +419,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                 icon: Activity,
               },
               {
-                label: 'Daily budget',
+                label: 'Daily calorie target',
                 value: dailyCalorieTarget ? `${dailyCalorieTarget} kcal` : '--',
                 icon: Lightbulb,
               },
@@ -509,7 +527,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
           <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
             <Settings className="w-4 h-4 text-brand-green" />
-            <span>Biometrics & Dietary Preferences</span>
+            <span>{mode === 'planning' ? 'Food preferences & shopping' : 'Body measurements & goals'}</span>
           </h3>
 
           {biometricsSuccess && (
@@ -527,193 +545,199 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           )}
 
           <form onSubmit={handleBiometricsSubmit} className="flex flex-col gap-5">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input
-                id="profile-age"
-                label="Age (Years)"
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                required
-              />
-              <Input
-                id="profile-height"
-                label="Height (cm)"
-                type="number"
-                step="0.1"
-                value={heightCm}
-                onChange={(e) => setHeightCm(e.target.value)}
-                required
-              />
-              <Input
-                id="profile-weight"
-                label="Weight (kg)"
-                type="number"
-                step="0.1"
-                value={weightKg}
-                onChange={(e) => setWeightKg(e.target.value)}
-                required
-              />
-              <Input
-                id="profile-target-weight"
-                label="Target Weight (kg)"
-                type="number"
-                step="0.1"
-                value={targetWeightKg}
-                onChange={(e) => setTargetWeightKg(e.target.value)}
-                required
-              />
-            </div>
+            {mode === 'health' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Input
+                    id="profile-age"
+                    label="Age (Years)"
+                    type="number"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    required
+                  />
+                  <Input
+                    id="profile-height"
+                    label="Height (cm)"
+                    type="number"
+                    step="0.1"
+                    value={heightCm}
+                    onChange={(e) => setHeightCm(e.target.value)}
+                    required
+                  />
+                  <Input
+                    id="profile-weight"
+                    label="Weight (kg)"
+                    type="number"
+                    step="0.1"
+                    value={weightKg}
+                    onChange={(e) => setWeightKg(e.target.value)}
+                    required
+                  />
+                  <Input
+                    id="profile-target-weight"
+                    label="Target Weight (kg)"
+                    type="number"
+                    step="0.1"
+                    value={targetWeightKg}
+                    onChange={(e) => setTargetWeightKg(e.target.value)}
+                    required
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="profile-biological-sex"
-                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                >
-                  Biological Sex
-                </label>
-                <select
-                  id="profile-biological-sex"
-                  value={biologicalSex}
-                  onChange={(e) => setBiologicalSex(e.target.value)}
-                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-goal"
-                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                >
-                  Primary Goal
-                </label>
-                <select
-                  id="profile-goal"
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                >
-                  <option value="LOSE_WEIGHT">Lose Weight</option>
-                  <option value="GAIN_WEIGHT">Gain Weight</option>
-                  <option value="MAINTAIN">Maintain Weight</option>
-                  <option value="BUILD_MUSCLE">Build Muscle</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-activity"
-                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                >
-                  Activity Level
-                </label>
-                <select
-                  id="profile-activity"
-                  value={activityLevel}
-                  onChange={(e) => setActivityLevel(e.target.value)}
-                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                >
-                  <option value="SEDENTARY">Sedentary (Little/no exercise)</option>
-                  <option value="LIGHTLY_ACTIVE">Lightly Active (1-3 days/week)</option>
-                  <option value="ACTIVE">Active (3-5 days/week)</option>
-                  <option value="VERY_ACTIVE">Very Active (6-7 days/week)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label
-                  htmlFor="profile-diet"
-                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                >
-                  Dietary Preference
-                </label>
-                <select
-                  id="profile-diet"
-                  value={dietaryPreference}
-                  onChange={(e) => setDietaryPreference(e.target.value)}
-                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                >
-                  <option value="OMNIVORE">Omnivore</option>
-                  <option value="VEGETARIAN">Vegetarian</option>
-                  <option value="VEGAN">Vegan</option>
-                  <option value="PESCATARIAN">Pescatarian</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-carb"
-                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                >
-                  Carb Preference
-                </label>
-                <select
-                  id="profile-carb"
-                  value={carbPreference}
-                  onChange={(e) => setCarbPreference(e.target.value)}
-                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                >
-                  <option value="LOW">Low Carb</option>
-                  <option value="MODERATE">Moderate Carb</option>
-                  <option value="HIGH">High Carb</option>
-                </select>
-              </div>
-              <Input
-                id="profile-food-culture"
-                label="Cooking/Food Culture"
-                type="text"
-                value={foodCulture}
-                onChange={(e) => setFoodCulture(e.target.value)}
-                placeholder="e.g. Filipino, Asian"
-              />
-              <div className="md:col-span-2">
-                <PlanningLocationFields
-                  level={planningGeographyLevel}
-                  regionName={planningRegionName}
-                  provinceHucName={planningProvinceHucName}
-                  onLevelChange={setPlanningGeographyLevel}
-                  onRegionNameChange={setPlanningRegionName}
-                  onProvinceHucNameChange={setPlanningProvinceHucName}
-                  disabled={isSavingBiometrics}
-                  idPrefix="profile-planning-location"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <MealLocalityPreferenceControl
-                  value={mealLocalityPreference}
-                  regionName={planningRegionName}
-                  provinceHucName={planningProvinceHucName}
-                  onChange={setMealLocalityPreference}
-                  disabled={isSavingBiometrics}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-shopping-day"
-                  className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                >
-                  Grocery Shopping Day
-                </label>
-                <select
-                  id="profile-shopping-day"
-                  value={shoppingDayOfWeek}
-                  onChange={(e) => setShoppingDayOfWeek(Number(e.target.value))}
-                  className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                >
-                  <option value={0}>Sunday (Monday - Sunday plan)</option>
-                  <option value={1}>Monday (Tuesday - Monday plan)</option>
-                  <option value={2}>Tuesday (Wednesday - Tuesday plan)</option>
-                  <option value={3}>Wednesday (Thursday - Wednesday plan)</option>
-                  <option value={4}>Thursday (Friday - Thursday plan)</option>
-                  <option value={5}>Friday (Saturday - Friday plan)</option>
-                  <option value={6}>Saturday (Sunday - Saturday plan)</option>
-                </select>
-              </div>
-            </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label
+                      htmlFor="profile-biological-sex"
+                      className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                    >
+                      Biological Sex
+                    </label>
+                    <select
+                      id="profile-biological-sex"
+                      value={biologicalSex}
+                      onChange={(e) => setBiologicalSex(e.target.value)}
+                      className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                    >
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="profile-goal"
+                      className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                    >
+                      Primary Goal
+                    </label>
+                    <select
+                      id="profile-goal"
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                      className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                    >
+                      <option value="LOSE_WEIGHT">Lose Weight</option>
+                      <option value="GAIN_WEIGHT">Gain Weight</option>
+                      <option value="MAINTAIN">Maintain Weight</option>
+                      <option value="BUILD_MUSCLE">Build Muscle</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="profile-activity"
+                      className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                    >
+                      Activity Level
+                    </label>
+                    <select
+                      id="profile-activity"
+                      value={activityLevel}
+                      onChange={(e) => setActivityLevel(e.target.value)}
+                      className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                    >
+                      <option value="SEDENTARY">Sedentary (Little/no exercise)</option>
+                      <option value="LIGHTLY_ACTIVE">Lightly Active (1-3 days/week)</option>
+                      <option value="ACTIVE">Active (3-5 days/week)</option>
+                      <option value="VERY_ACTIVE">Very Active (6-7 days/week)</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+            {mode === 'planning' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label
+                      htmlFor="profile-diet"
+                      className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                    >
+                      Dietary Preference
+                    </label>
+                    <select
+                      id="profile-diet"
+                      value={dietaryPreference}
+                      onChange={(e) => setDietaryPreference(e.target.value)}
+                      className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                    >
+                      <option value="OMNIVORE">Omnivore</option>
+                      <option value="VEGETARIAN">Vegetarian</option>
+                      <option value="VEGAN">Vegan</option>
+                      <option value="PESCATARIAN">Pescatarian</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="profile-carb"
+                      className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                    >
+                      Carb Preference
+                    </label>
+                    <select
+                      id="profile-carb"
+                      value={carbPreference}
+                      onChange={(e) => setCarbPreference(e.target.value)}
+                      className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                    >
+                      <option value="LOW">Low Carb</option>
+                      <option value="MODERATE">Moderate Carb</option>
+                      <option value="HIGH">High Carb</option>
+                    </select>
+                  </div>
+                  <Input
+                    id="profile-food-culture"
+                    label="Cooking/Food Culture"
+                    type="text"
+                    value={foodCulture}
+                    onChange={(e) => setFoodCulture(e.target.value)}
+                    placeholder="e.g. Filipino, Asian"
+                  />
+                  <div className="md:col-span-2">
+                    <PlanningLocationFields
+                      level={planningGeographyLevel}
+                      regionName={planningRegionName}
+                      provinceHucName={planningProvinceHucName}
+                      onLevelChange={setPlanningGeographyLevel}
+                      onRegionNameChange={setPlanningRegionName}
+                      onProvinceHucNameChange={setPlanningProvinceHucName}
+                      disabled={isSavingBiometrics}
+                      idPrefix="profile-planning-location"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <MealLocalityPreferenceControl
+                      value={mealLocalityPreference}
+                      regionName={planningRegionName}
+                      provinceHucName={planningProvinceHucName}
+                      onChange={setMealLocalityPreference}
+                      disabled={isSavingBiometrics}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="profile-shopping-day"
+                      className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                    >
+                      Grocery Shopping Day
+                    </label>
+                    <select
+                      id="profile-shopping-day"
+                      value={shoppingDayOfWeek}
+                      onChange={(e) => setShoppingDayOfWeek(Number(e.target.value))}
+                      className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
+                    >
+                      <option value={0}>Sunday (Monday - Sunday plan)</option>
+                      <option value={1}>Monday (Tuesday - Monday plan)</option>
+                      <option value={2}>Tuesday (Wednesday - Tuesday plan)</option>
+                      <option value={3}>Wednesday (Thursday - Wednesday plan)</option>
+                      <option value={4}>Thursday (Friday - Thursday plan)</option>
+                      <option value={5}>Friday (Saturday - Friday plan)</option>
+                      <option value={6}>Saturday (Sunday - Saturday plan)</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex justify-end mt-2">
               <Button
                 variant="primary"
@@ -733,11 +757,11 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
           <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-2 font-display flex items-center gap-1.5">
             <Heart className="w-4 h-4 text-brand-green" />
-            <span>Clinical Safety Safeguards</span>
+            <span>Conditions, allergies & foods to avoid</span>
           </h3>
           <p className="text-xs text-brand-muted mb-6 leading-relaxed">
-            Conditions, allergies, intolerances, and avoided foods are saved together. A real change invalidates stale
-            guidance and runs one backend safety scan.
+            Save these together so your meals can be checked against your latest information. You can update them at any
+            time.
           </p>
 
           {healthSuccess && (
@@ -754,7 +778,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             onSaved={async (_entries, changed) => {
               setHealthSuccess(
                 changed
-                  ? 'Safety settings saved. Your current plan was scanned and your nutrition report must be refreshed.'
+                  ? 'Safety settings saved. Affected meals are being checked again and your nutrition report must be refreshed.'
                   : 'Your safety settings are already up to date.'
               );
               if (changed) {

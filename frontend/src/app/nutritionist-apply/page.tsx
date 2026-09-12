@@ -117,8 +117,8 @@ export default function NutritionistApplyPage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <PublicHeader />
-      <main className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
-        <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
+      <main className="mx-auto max-w-[1240px] px-5 py-6 sm:px-8 lg:px-12 lg:py-16">
+        <div className="grid gap-5 lg:gap-10 lg:grid-cols-[0.7fr_1.3fr]">
           <ApplicationSidebar />
           <section>
             <ModeSelector mode={mode} onChange={switchMode} />

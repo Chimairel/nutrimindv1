@@ -30,6 +30,7 @@ interface ApprovedMeal {
 export default function NutritionistApprovedPage() {
   const [meals, setMeals] = useState<ApprovedMeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchApproved = async () => {
@@ -40,6 +41,7 @@ export default function NutritionistApprovedPage() {
         }
       } catch (err) {
         console.error('Failed to fetch approved meals:', err);
+        setError(true);
       } finally {
         setIsLoading(false);
       }
@@ -48,7 +50,7 @@ export default function NutritionistApprovedPage() {
   }, []);
 
   if (isLoading) {
-    return <PortalLoadingState message="Loading approved plans..." />;
+    return <PortalLoadingState message="Loading approved reviews..." />;
   }
 
   const mealTypeLabels: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -64,19 +66,21 @@ export default function NutritionistApprovedPage() {
       <PortalPageHeader
         icon={CheckCircle}
         eyebrow="Clinical archive"
-        title="Approved plans"
+        title="Approved reviews"
         description="A traceable view of meals you reviewed and approved for user plans."
         meta={
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
             {meals.length} approved
           </span>
         }
       />
 
-      {meals.length === 0 ? (
+      {error ? (
+        <p role="alert">Approved reviews could not be loaded. Refresh to try again.</p>
+      ) : meals.length === 0 ? (
         <EmptyState
           icon={<CheckCircle className="h-8 w-8 text-brand-green" />}
-          title="No Approved Plans Yet"
+          title="No approved reviews yet"
           description="Meals you approve from the review queue will appear here."
         />
       ) : (

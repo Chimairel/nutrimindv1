@@ -11,6 +11,7 @@ export interface QueueItem {
   carbsG: number;
   fatG: number;
   aiConfidenceFlag: string;
+  requiresSafetyRevalidation?: boolean;
   description?: string;
   scheduledDate: string;
   user: { id: string; name: string };
@@ -39,6 +40,7 @@ export interface DetailData {
     carbsG: number;
     fatG: number;
     aiConfidenceFlag: string;
+    requiresSafetyRevalidation?: boolean;
     planType: string;
     scheduledDate: string;
     createdAt: string;
@@ -62,6 +64,8 @@ export interface DetailData {
   ingredients: {
     name: string;
     source: 'FNRI' | 'GEMINI_ESTIMATED';
+    quantity?: number | null;
+    unit?: string | null;
   }[];
   warnings: {
     severity: 'CRITICAL' | 'IMPORTANT' | 'NOTICE';

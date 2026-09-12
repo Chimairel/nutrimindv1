@@ -101,7 +101,7 @@ export default function AdminNutritionistsPage() {
         title="Nutritionist onboarding"
         description="Review applications, conduct required verification calls, and control professional access."
         meta={
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-white/50">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
             {activeApplications.length} active · {verified.length} professionals
           </span>
         }
@@ -116,11 +116,16 @@ export default function AdminNutritionistsPage() {
             cards={applicationCards(activeApplications)}
           />
           {completedApplications.length > 0 && (
-            <ApplicationSection
-              label="Completed applications"
-              items={completedApplications}
-              cards={applicationCards(completedApplications)}
-            />
+            <details className="rounded-2xl border border-brand-border bg-brand-surface p-4">
+              <summary className="cursor-pointer font-semibold">
+                Completed applications ({completedApplications.length})
+              </summary>
+              <ApplicationSection
+                label="Completed applications"
+                items={completedApplications}
+                cards={applicationCards(completedApplications)}
+              />
+            </details>
           )}
         </>
       ) : (

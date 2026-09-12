@@ -53,10 +53,7 @@ export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPrev
   const previewItems = (remainingItems.length > 0 ? remainingItems : items).slice(0, 4);
 
   return (
-    <Card
-      className="relative overflow-hidden border border-brand-border/70 bg-brand-surface/80 p-5 text-left shadow-card"
-      contentClassName="p-0"
-    >
+    <Card className="dashboard-surface relative overflow-hidden p-5 text-left" contentClassName="p-0">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-brand-border/50">
         <div className="flex items-center gap-2.5">
@@ -71,7 +68,7 @@ export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPrev
 
         {totalCount > 0 && (
           <span className="rounded-full border border-brand-green/20 bg-brand-green/10 px-2 py-0.5 text-[9px] font-extrabold text-brand-green">
-            {checkedCount}/{totalCount} packed
+            {checkedCount}/{totalCount} bought
           </span>
         )}
       </div>
