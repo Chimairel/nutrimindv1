@@ -14,23 +14,23 @@ interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimit
 export interface FilipinoAvatarPreset {
   name: string;
   gender: 'male' | 'female';
-  hair: string;
-  clothing?: string;
-  clothingColor?: string;
-  skinColor?: string;
+  head: string;
+  face: string;
+  skinColor: string;
+  clothingColor: string;
   description: string;
 }
 
 export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
-  { name: 'Juan', gender: 'male', hair: 'short01', clothing: 'variant01', skinColor: 'e0b687', description: 'Classic Filipino' },
-  { name: 'Bayani', gender: 'male', hair: 'short04', clothing: 'variant02', skinColor: 'cb9e6e', description: 'Heroic & bold' },
-  { name: 'Datu', gender: 'male', hair: 'short16', clothing: 'variant08', skinColor: 'a26d3d', description: 'Distinguished chief' },
-  { name: 'Malakas', gender: 'male', hair: 'short08', clothing: 'variant03', skinColor: 'b68655', description: 'Strong mythic hero' },
-  { name: 'Maria', gender: 'female', hair: 'long01', clothing: 'variant14', skinColor: 'eac393', description: 'Traditional Filipina' },
-  { name: 'Tala', gender: 'female', hair: 'long08', clothing: 'variant18', skinColor: 'f5cfa0', description: 'Goddess of stars' },
-  { name: 'Luningning', gender: 'female', hair: 'long14', clothing: 'variant13', skinColor: 'ffdbac', description: 'Radiant & bright' },
-  { name: 'Mayari', gender: 'female', hair: 'long03', clothing: 'variant19', skinColor: 'e0b687', description: 'Moon goddess' },
-  { name: 'Maganda', gender: 'female', hair: 'long10', clothing: 'variant20', skinColor: 'cb9e6e', description: 'Graceful mythic heroine' },
+  { name: 'Juan', gender: 'male', head: 'short1', face: 'smile', skinColor: 'd08b5b', clothingColor: '00b159', description: 'Classic Filipino' },
+  { name: 'Bayani', gender: 'male', head: 'short2', face: 'driven', skinColor: '694d3d', clothingColor: '03396c', description: 'Heroic & bold' },
+  { name: 'Datu', gender: 'male', head: 'curly', face: 'calm', skinColor: '694d3d', clothingColor: 'ffd969', description: 'Distinguished chief' },
+  { name: 'Malakas', gender: 'male', head: 'short3', face: 'smileBig', skinColor: 'd08b5b', clothingColor: 'ae0001', description: 'Strong mythic hero' },
+  { name: 'Maria', gender: 'female', head: 'long1', face: 'cute', skinColor: 'edb98a', clothingColor: '428bca', description: 'Traditional Filipina' },
+  { name: 'Tala', gender: 'female', head: 'long2', face: 'smile', skinColor: 'f8d25c', clothingColor: 'ffd969', description: 'Goddess of stars' },
+  { name: 'Luningning', gender: 'female', head: 'bun', face: 'smileBig', skinColor: 'ffdbac', clothingColor: '00b159', description: 'Radiant & bright' },
+  { name: 'Mayari', gender: 'female', head: 'medium1', face: 'calm', skinColor: 'edb98a', clothingColor: '03396c', description: 'Moon goddess' },
+  { name: 'Maganda', gender: 'female', head: 'long1', face: 'smile', skinColor: 'd08b5b', clothingColor: 'ae0001', description: 'Graceful mythic heroine' },
 ];
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
@@ -63,12 +63,9 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
           (p) => p.name.toLowerCase() === src.toLowerCase()
         );
         if (matched) {
-          const skin = matched.skinColor ? `&skinColor=${matched.skinColor}` : '';
-          const cloth = matched.clothing ? `&clothing=${matched.clothing}` : '';
-          const clothColor = matched.clothingColor ? `&clothingColor=${matched.clothingColor}` : '';
-          return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(matched.name)}&hair=${matched.hair}&beardProbability=0&hatProbability=0${cloth}${clothColor}${skin}`;
+          return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(matched.name)}&head=${matched.head}&face=${matched.face}&skinColor=${matched.skinColor}&clothingColor=${matched.clothingColor}&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
         }
-        return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(src)}&hatProbability=0`;
+        return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(src)}&facialHairProbability=0&maskProbability=0`;
       }
       return undefined;
     };

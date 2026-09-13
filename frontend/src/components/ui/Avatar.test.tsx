@@ -37,11 +37,11 @@ describe('Avatar', () => {
     expect(screen.getByText('PC')).toBeInTheDocument();
   });
 
-  it('renders DiceBear pixel-art URL when given a Filipino name preset seed', async () => {
+  it('renders DiceBear open-peeps URL when given a Filipino name preset seed', async () => {
     const { container } = render(<Avatar src="Juan" fallbackText="Juan Dela Cruz" />);
 
     await waitFor(() => {
-      const img = container.querySelector('img[src*="dicebear.com/7.x/pixel-art/svg?seed=Juan"]');
+      const img = container.querySelector('img[src*="dicebear.com/10.x/open-peeps/svg?seed=Juan"]');
       expect(img).toBeInTheDocument();
     });
   });

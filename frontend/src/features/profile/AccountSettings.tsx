@@ -29,19 +29,22 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
+const OPEN_PEEPS_MALE_HEADS = ['short1', 'short2', 'short3', 'curly', 'afro', 'dreads', 'flatTop', 'side'];
+const OPEN_PEEPS_FEMALE_HEADS = ['long1', 'long2', 'bun', 'medium1', 'bangs', 'curly', 'afro'];
+const OPEN_PEEPS_FACES = ['smile', 'cute', 'smileBig', 'driven', 'calm', 'serious', 'eatingHappy'];
+
 const SKIN_TONES = [
   { name: 'Fair Mestizo', hex: 'ffdbac' },
-  { name: 'Light Tan', hex: 'f5cfa0' },
-  { name: 'Warm Sand', hex: 'eac393' },
-  { name: 'Kayumanggi', hex: 'e0b687' },
-  { name: 'Deep Tan', hex: 'cb9e6e' },
-  { name: 'Warm Bronze', hex: 'b68655' },
-  { name: 'Morena', hex: 'a26d3d' },
+  { name: 'Warm Sunlit', hex: 'f8d25c' },
+  { name: 'Light Warm', hex: 'edb98a' },
+  { name: 'Kayumanggi', hex: 'd08b5b' },
+  { name: 'Tan Morena', hex: 'e0ac69' },
+  { name: 'Deep Kayumanggi', hex: '694d3d' },
 ];
 
 const CLOTHING_COLORS = [
-  { name: 'Navy Blue', hex: '03396c' },
   { name: 'Emerald', hex: '00b159' },
+  { name: 'Navy Blue', hex: '03396c' },
   { name: 'Sky Blue', hex: '428bca' },
   { name: 'Crimson', hex: 'ae0001' },
   { name: 'Gold / Yellow', hex: 'ffd969' },
@@ -90,42 +93,36 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   // Avatar Studio / Outfit Browser state
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [studioGender, setStudioGender] = useState<'male' | 'female'>('male');
-  const [studioHairIndex, setStudioHairIndex] = useState(1);
-  const [studioOutfitIndex, setStudioOutfitIndex] = useState(1);
-  const [studioSkin, setStudioSkin] = useState('e0b687');
-  const [studioClothingColor, setStudioClothingColor] = useState('03396c');
-
-  const maxHair = studioGender === 'male' ? 24 : 21;
+  const [studioHeadIndex, setStudioHeadIndex] = useState(0);
+  const [studioFaceIndex, setStudioFaceIndex] = useState(0);
+  const [studioSkin, setStudioSkin] = useState('d08b5b');
+  const [studioClothingColor, setStudioClothingColor] = useState('00b159');
 
   const applyStudioAvatar = (
     gender: 'male' | 'female' = studioGender,
-    hair: number = studioHairIndex,
-    outfit: number = studioOutfitIndex,
+    headIdx: number = studioHeadIndex,
+    faceIdx: number = studioFaceIndex,
     color: string = studioClothingColor,
     skin: string = studioSkin
   ) => {
-    const hairStr = gender === 'male'
-      ? `short${String(hair).padStart(2, '0')}`
-      : `long${String(hair).padStart(2, '0')}`;
-    const outfitStr = `variant${String(outfit).padStart(2, '0')}`;
-    const url = `https://api.dicebear.com/7.x/pixel-art/svg?seed=Custom&hair=${hairStr}&clothing=${outfitStr}&clothingColor=${color}&skinColor=${skin}&beardProbability=0&hatProbability=0`;
+    const list = gender === 'male' ? OPEN_PEEPS_MALE_HEADS : OPEN_PEEPS_FEMALE_HEADS;
+    const head = list[headIdx % list.length];
+    const face = OPEN_PEEPS_FACES[faceIdx % OPEN_PEEPS_FACES.length];
+    const url = `https://api.dicebear.com/10.x/open-peeps/svg?seed=Custom&head=${head}&face=${face}&skinColor=${skin}&clothingColor=${color}&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
     setAvatarSeed(url);
   };
 
   const randomizeStudio = () => {
-    const randomHair = Math.floor(Math.random() * maxHair) + 1;
-    // For males, avoid variant15 (the bikini top)
-    let randomOutfit = Math.floor(Math.random() * 23) + 1;
-    if (studioGender === 'male' && randomOutfit === 15) {
-      randomOutfit = 1;
-    }
+    const list = studioGender === 'male' ? OPEN_PEEPS_MALE_HEADS : OPEN_PEEPS_FEMALE_HEADS;
+    const randomHead = Math.floor(Math.random() * list.length);
+    const randomFace = Math.floor(Math.random() * OPEN_PEEPS_FACES.length);
     const randomColor = CLOTHING_COLORS[Math.floor(Math.random() * CLOTHING_COLORS.length)].hex;
     const randomSkin = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)].hex;
-    setStudioHairIndex(randomHair);
-    setStudioOutfitIndex(randomOutfit);
+    setStudioHeadIndex(randomHead);
+    setStudioFaceIndex(randomFace);
     setStudioClothingColor(randomColor);
     setStudioSkin(randomSkin);
-    applyStudioAvatar(studioGender, randomHair, randomOutfit, randomColor, randomSkin);
+    applyStudioAvatar(studioGender, randomHead, randomFace, randomColor, randomSkin);
   };
 
   // Account settings form state
@@ -490,7 +487,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               <div className="mb-5">
                 <h2 className="font-display text-base font-black text-brand-text">Profile avatar</h2>
                 <p className="mt-1 text-xs text-brand-muted">
-                  Choose your Google account photo, or select an authentic Filipino pixel-art character.
+                  Choose your Google account photo, or select an authentic Filipino hand-drawn character.
                 </p>
               </div>
               {avatarMsg && (
@@ -637,7 +634,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       type="button"
                       onClick={() => {
                         if (!isStudioOpen) {
-                          applyStudioAvatar(studioGender, studioHairIndex, studioOutfitIndex, studioClothingColor, studioSkin);
+                          applyStudioAvatar(studioGender, studioHeadIndex, studioFaceIndex, studioClothingColor, studioSkin);
                         }
                         setIsStudioOpen(!isStudioOpen);
                       }}
@@ -657,8 +654,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                           type="button"
                           onClick={() => {
                             setStudioGender('male');
-                            setStudioHairIndex(1);
-                            applyStudioAvatar('male', 1, studioOutfitIndex, studioClothingColor, studioSkin);
+                            setStudioHeadIndex(0);
+                            applyStudioAvatar('male', 0, studioFaceIndex, studioClothingColor, studioSkin);
                           }}
                           className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
                             studioGender === 'male'
@@ -672,8 +669,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                           type="button"
                           onClick={() => {
                             setStudioGender('female');
-                            setStudioHairIndex(1);
-                            applyStudioAvatar('female', 1, studioOutfitIndex, studioClothingColor, studioSkin);
+                            setStudioHeadIndex(0);
+                            applyStudioAvatar('female', 0, studioFaceIndex, studioClothingColor, studioSkin);
                           }}
                           className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
                             studioGender === 'female'
@@ -695,37 +692,39 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       </button>
                     </div>
 
-                    {/* Hair Style Browser */}
+                    {/* Head / Hairstyle Browser */}
                     <div className="rounded-xl border border-brand-border bg-brand-surface p-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold text-brand-text">
                           Hairstyle ({studioGender === 'male' ? 'Masculine Cuts' : 'Feminine Cuts'})
                         </span>
                         <span className="font-mono text-[10px] font-bold text-brand-muted">
-                          Style {studioHairIndex} of {maxHair}
+                          {OPEN_PEEPS_MALE_HEADS[studioHeadIndex % (studioGender === 'male' ? OPEN_PEEPS_MALE_HEADS.length : OPEN_PEEPS_FEMALE_HEADS.length)] || 'Style'}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => {
-                            const prev = studioHairIndex <= 1 ? maxHair : studioHairIndex - 1;
-                            setStudioHairIndex(prev);
-                            applyStudioAvatar(studioGender, prev, studioOutfitIndex, studioClothingColor, studioSkin);
+                            const list = studioGender === 'male' ? OPEN_PEEPS_MALE_HEADS : OPEN_PEEPS_FEMALE_HEADS;
+                            const prev = studioHeadIndex <= 0 ? list.length - 1 : studioHeadIndex - 1;
+                            setStudioHeadIndex(prev);
+                            applyStudioAvatar(studioGender, prev, studioFaceIndex, studioClothingColor, studioSkin);
                           }}
                           className="flex h-8 items-center gap-1 rounded-lg border border-brand-border bg-brand-bgAlt px-2.5 text-xs font-bold text-brand-muted hover:text-brand-text"
                         >
                           <ChevronLeft className="h-3.5 w-3.5" /> Prev
                         </button>
                         <div className="flex-1 text-center font-mono text-xs font-bold text-brand-green">
-                          {studioGender === 'male' ? `short${String(studioHairIndex).padStart(2, '0')}` : `long${String(studioHairIndex).padStart(2, '0')}`}
+                          head: {(studioGender === 'male' ? OPEN_PEEPS_MALE_HEADS : OPEN_PEEPS_FEMALE_HEADS)[studioHeadIndex % (studioGender === 'male' ? OPEN_PEEPS_MALE_HEADS.length : OPEN_PEEPS_FEMALE_HEADS.length)]}
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            const next = studioHairIndex >= maxHair ? 1 : studioHairIndex + 1;
-                            setStudioHairIndex(next);
-                            applyStudioAvatar(studioGender, next, studioOutfitIndex, studioClothingColor, studioSkin);
+                            const list = studioGender === 'male' ? OPEN_PEEPS_MALE_HEADS : OPEN_PEEPS_FEMALE_HEADS;
+                            const next = (studioHeadIndex + 1) % list.length;
+                            setStudioHeadIndex(next);
+                            applyStudioAvatar(studioGender, next, studioFaceIndex, studioClothingColor, studioSkin);
                           }}
                           className="flex h-8 items-center gap-1 rounded-lg border border-brand-border bg-brand-bgAlt px-2.5 text-xs font-bold text-brand-muted hover:text-brand-text"
                         >
@@ -734,40 +733,37 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       </div>
                     </div>
 
-                    {/* Outfit Style Browser */}
+                    {/* Facial Expression Browser */}
                     <div className="rounded-xl border border-brand-border bg-brand-surface p-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold text-brand-text">
-                          Clothing & Outfit (Shirts, Polos, Jackets, Dresses)
+                          Facial Expression
                         </span>
                         <span className="font-mono text-[10px] font-bold text-brand-muted">
-                          Outfit {studioOutfitIndex} of 23
+                          {OPEN_PEEPS_FACES[studioFaceIndex % OPEN_PEEPS_FACES.length]}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => {
-                            let prev = studioOutfitIndex <= 1 ? 23 : studioOutfitIndex - 1;
-                            if (studioGender === 'male' && prev === 15) prev = 14;
-                            setStudioOutfitIndex(prev);
-                            applyStudioAvatar(studioGender, studioHairIndex, prev, studioClothingColor, studioSkin);
+                            const prev = studioFaceIndex <= 0 ? OPEN_PEEPS_FACES.length - 1 : studioFaceIndex - 1;
+                            setStudioFaceIndex(prev);
+                            applyStudioAvatar(studioGender, studioHeadIndex, prev, studioClothingColor, studioSkin);
                           }}
                           className="flex h-8 items-center gap-1 rounded-lg border border-brand-border bg-brand-bgAlt px-2.5 text-xs font-bold text-brand-muted hover:text-brand-text"
                         >
                           <ChevronLeft className="h-3.5 w-3.5" /> Prev
                         </button>
                         <div className="flex-1 text-center font-mono text-xs font-bold text-brand-green">
-                          variant{String(studioOutfitIndex).padStart(2, '0')}
-                          {studioOutfitIndex === 15 ? ' (Bikini / Crop)' : studioOutfitIndex === 1 ? ' (Collared Shirt)' : studioOutfitIndex === 2 ? ' (Crew Neck)' : studioOutfitIndex === 8 ? ' (Vest / Jacket)' : ''}
+                          face: {OPEN_PEEPS_FACES[studioFaceIndex % OPEN_PEEPS_FACES.length]}
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            let next = studioOutfitIndex >= 23 ? 1 : studioOutfitIndex + 1;
-                            if (studioGender === 'male' && next === 15) next = 16;
-                            setStudioOutfitIndex(next);
-                            applyStudioAvatar(studioGender, studioHairIndex, next, studioClothingColor, studioSkin);
+                            const next = (studioFaceIndex + 1) % OPEN_PEEPS_FACES.length;
+                            setStudioFaceIndex(next);
+                            applyStudioAvatar(studioGender, studioHeadIndex, next, studioClothingColor, studioSkin);
                           }}
                           className="flex h-8 items-center gap-1 rounded-lg border border-brand-border bg-brand-bgAlt px-2.5 text-xs font-bold text-brand-muted hover:text-brand-text"
                         >
@@ -779,7 +775,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     {/* Color Swatches (Outfit & Skin) */}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-brand-border bg-brand-surface p-3">
-                        <span className="block text-[11px] font-bold text-brand-text">Outfit Color</span>
+                        <span className="block text-[11px] font-bold text-brand-text">Clothing Color</span>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {CLOTHING_COLORS.map((c) => (
                             <button
@@ -788,7 +784,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                               title={c.name}
                               onClick={() => {
                                 setStudioClothingColor(c.hex);
-                                applyStudioAvatar(studioGender, studioHairIndex, studioOutfitIndex, c.hex, studioSkin);
+                                applyStudioAvatar(studioGender, studioHeadIndex, studioFaceIndex, c.hex, studioSkin);
                               }}
                               className={`h-6 w-6 rounded-full border transition ${
                                 studioClothingColor === c.hex
@@ -802,7 +798,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       </div>
 
                       <div className="rounded-xl border border-brand-border bg-brand-surface p-3">
-                        <span className="block text-[11px] font-bold text-brand-text">Skin Tone (Filipino Palette)</span>
+                        <span className="block text-[11px] font-bold text-brand-text">Skin Tone (Open Peeps Palette)</span>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {SKIN_TONES.map((s) => (
                             <button
@@ -811,7 +807,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                               title={s.name}
                               onClick={() => {
                                 setStudioSkin(s.hex);
-                                applyStudioAvatar(studioGender, studioHairIndex, studioOutfitIndex, studioClothingColor, s.hex);
+                                applyStudioAvatar(studioGender, studioHeadIndex, studioFaceIndex, studioClothingColor, s.hex);
                               }}
                               className={`h-6 w-6 rounded-full border transition ${
                                 studioSkin === s.hex
@@ -829,12 +825,12 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     <div className="flex items-center justify-between border-t border-brand-border/40 pt-2 text-[10px] text-brand-muted">
                       <span>Live preview updates above. Click <strong>Save</strong> when satisfied!</span>
                       <a
-                        href="https://www.dicebear.com/styles/pixel-art/"
+                        href="https://www.dicebear.com/styles/open-peeps/"
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 font-semibold text-brand-green hover:underline"
                       >
-                        <span>Full DiceBear Studio</span>
+                        <span>Full Open Peeps Studio</span>
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
