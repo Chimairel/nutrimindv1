@@ -34,7 +34,7 @@ const mockLogs: MealHistoryLog[] = [
 ];
 
 describe('MealActivityCalendar', () => {
-  it('renders the activity matrix and view mode toggles', () => {
+  it('renders the activity matrix and time range filter toggles', () => {
     const handleSelect = vi.fn();
     render(
       <MealActivityCalendar
@@ -45,12 +45,12 @@ describe('MealActivityCalendar', () => {
     );
 
     expect(screen.getByText('Activity Matrix')).toBeInTheDocument();
-    expect(screen.getByText('Daily')).toBeInTheDocument();
-    expect(screen.getByText('Weekly')).toBeInTheDocument();
-    expect(screen.getByText('Cumulative')).toBeInTheDocument();
+    expect(screen.getByText('Year')).toBeInTheDocument();
+    expect(screen.getByText('Month')).toBeInTheDocument();
+    expect(screen.getByText('Week')).toBeInTheDocument();
   });
 
-  it('switches view modes when toggle buttons are clicked', () => {
+  it('switches time ranges when filter buttons are clicked', () => {
     const handleSelect = vi.fn();
     render(
       <MealActivityCalendar
@@ -60,13 +60,13 @@ describe('MealActivityCalendar', () => {
       />
     );
 
-    const weeklyButton = screen.getByText('Weekly');
-    fireEvent.click(weeklyButton);
-    expect(weeklyButton).toHaveClass('bg-brand-surface');
+    const monthButton = screen.getByText('Month');
+    fireEvent.click(monthButton);
+    expect(monthButton).toHaveClass('bg-brand-surface');
 
-    const cumulativeButton = screen.getByText('Cumulative');
-    fireEvent.click(cumulativeButton);
-    expect(cumulativeButton).toHaveClass('bg-brand-surface');
+    const weekButton = screen.getByText('Week');
+    fireEvent.click(weekButton);
+    expect(weekButton).toHaveClass('bg-brand-surface');
   });
 
   it('triggers onSelectDateKey when an active day cell is clicked', () => {

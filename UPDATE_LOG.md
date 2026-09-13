@@ -156,9 +156,9 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
 *Overhauling the meal history timeline into an interactive activity heatmap matrix with glowing meal-type cards and user note-taking capability.*
 
 - **Interactive Intake Activity Heatmap Matrix (`MealActivityCalendar.tsx`):**
-  - Replaced the linear list in `/meals` (History tab) with an interactive 38-week GitHub/Codex-style contribution matrix.
-  - Features 7-day rows, dynamic month indicators along the bottom, and glowing warm amber/orange tokens matching intake density (0 to 3+ meals).
-  - Supports "Daily", "Weekly", and "Cumulative" view modes with active date ring focus.
+  - Replaced the linear list in `/meals` (History tab) with an interactive GitHub/Codex-style contribution matrix.
+  - Aligned with NutriMind's signature color palette: Level 0 crisp neutral sage, Level 1 soft mint emerald (`#a7f3d0`), Level 2 NutriMind forest pine (`#08705b`), and Level 3 electric lime glow (`#b8f45f`).
+  - Added dynamic time range filtering: **Year** (40-week rolling bird's-eye view), **Month** (5-week focused month matrix with larger tiles), and **Week** (responsive 7-day horizontal card view with daily calorie counters).
   - Clicking any date dynamically focuses that day and reveals its meals in the feed below.
 - **Glowing Meal History Card Variant (`MealHistoryCard.tsx`):**
   - Reusable card variant adhering to the dashboard aesthetic and shadcn/ui tactile conventions.
