@@ -14,6 +14,7 @@ import {
   resourceIdParamsSchema,
   swapMealBodySchema,
   swapPreviewQuerySchema,
+  updateMealLogNotesBodySchema,
 } from '@/validation/user-action.schemas';
 
 const router = Router();
@@ -67,6 +68,16 @@ router.patch(
   '/:id/status',
   validateZodRequest({ params: resourceIdParamsSchema, body: mealStatusBodySchema }),
   MealsController.updateMealStatus
+);
+
+/**
+ * Route: PATCH /api/user/meals/logs/:id/notes
+ * Description: Updates notes on an eaten/logged meal.
+ */
+router.patch(
+  '/logs/:id/notes',
+  validateZodRequest({ params: resourceIdParamsSchema, body: updateMealLogNotesBodySchema }),
+  MealsController.updateMealLogNotes
 );
 
 /**

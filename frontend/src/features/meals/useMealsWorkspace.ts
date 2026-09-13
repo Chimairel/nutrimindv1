@@ -34,6 +34,15 @@ export interface MealHistoryLog {
   carbsG: number;
   fatG: number;
   calorieDelta?: number | null;
+  notes?: string | null;
+  mealType?: string | null;
+  outsideItems?: Array<{
+    id?: string;
+    name: string;
+    portionGrams?: number | null;
+    calories?: number | null;
+    proteinG?: number | null;
+  }>;
 }
 
 interface PendingReviewState {
@@ -117,6 +126,7 @@ export function useMealsWorkspace() {
   const [historySearch, setHistorySearch] = useState('');
   const [historySource, setHistorySource] = useState('All');
   const [historyStatus, setHistoryStatus] = useState('All');
+  const [selectedHistoryDateKey, setSelectedHistoryDateKey] = useState<string | null>(null);
 
   // Library Tab states
   const [libraryMeals, setLibraryMeals] = useState<SwapOption[]>(cachedLibrary ?? []);
@@ -505,6 +515,30 @@ export function useMealsWorkspace() {
       });
   };
 
+  const handleUpdateLogNotes = async (logId: string, notes: string | null) => {
+    try {
+      const res = await api.patch(`/user/meals/logs/${logId}/notes`, { notes });
+      if (res.data?.success) {
+        const updatedNotes = res.data.data.notes;
+        setHistoryLogs((prev) =>
+          prev.map((log) => (log.id === logId ? { ...log, notes: updatedNotes } : log))
+        );
+        const resource = historyResource(historySearch, historySource, historyStatus);
+        const cached = readSessionResource<MealHistoryLog[]>(user?.userId, resource);
+        if (cached) {
+          writeSessionResource(
+            user?.userId,
+            resource,
+            cached.map((log) => (log.id === logId ? { ...log, notes: updatedNotes } : log))
+          );
+        }
+      }
+    } catch (err: unknown) {
+      console.error('[useMealsWorkspace] Failed to update log notes:', err);
+      throw err;
+    }
+  };
+
   const groupHistoryByDate = () => {
     const grouped: Record<string, MealHistoryLog[]> = {};
     historyLogs.forEach((log) => {
@@ -522,11 +556,20 @@ export function useMealsWorkspace() {
         const parsedDate = manilaDateFromKey(dateKey);
         const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
         const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric', year: 'numeric' });
+        const totalCalories = logsList.reduce((acc, curr) => acc + (curr.calories || 0), 0);
+        const totalProtein = logsList.reduce((acc, curr) => acc + (curr.proteinG || 0), 0);
+        const totalCarbs = logsList.reduce((acc, curr) => acc + (curr.carbsG || 0), 0);
+        const totalFat = logsList.reduce((acc, curr) => acc + (curr.fatG || 0), 0);
         return {
           dateKey,
           weekday,
           dateStr,
           logsList,
+          totalCalories,
+          totalProtein,
+          totalCarbs,
+          totalFat,
+          mealCount: logsList.length,
         };
       });
   };
@@ -620,6 +663,9 @@ export function useMealsWorkspace() {
     setHistorySource,
     historyStatus,
     setHistoryStatus,
+    selectedHistoryDateKey,
+    setSelectedHistoryDateKey,
+    handleUpdateLogNotes,
     libraryMeals,
     isLibraryLoading,
     libraryTotalCount,

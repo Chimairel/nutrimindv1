@@ -6,7 +6,18 @@ const boundedId = z.string().trim().min(1, 'A resource ID is required.').max(128
 
 export const resourceIdParamsSchema = z.object({ id: boundedId }).strict();
 
-export const mealStatusBodySchema = z.object({ status: z.enum(['DONE', 'SKIPPED', 'PENDING']) }).strict();
+export const mealStatusBodySchema = z
+  .object({
+    status: z.enum(['DONE', 'SKIPPED', 'PENDING']),
+    notes: z.string().trim().max(1000).optional(),
+  })
+  .strict();
+
+export const updateMealLogNotesBodySchema = z
+  .object({
+    notes: z.string().trim().max(1000).optional().nullable(),
+  })
+  .strict();
 
 export const mealGenerationBodySchema = z.object({ replaceExisting: z.boolean().optional() }).strict();
 

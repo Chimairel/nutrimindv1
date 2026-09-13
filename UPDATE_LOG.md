@@ -150,4 +150,25 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - *Progress & Settings Overhaul*: Recreated `/progress` page as a centralized biometrics/preferences card, health conditions/allergies choice chips, autocomplete inputs, SVG weight charts, and adherence calendars. Redesigned `/profile` exclusively for credentials, password changes, and DiceBear avatar seeds.
   - *Build and Compile*: Successfully verified backend/frontend compilation and Next.js static build optimized bundle checks.
 
+---
 
+## 📅 ADDENDUM 8: MEAL HISTORY ACTIVITY CALENDAR & NOTE-TAKING SYSTEM (September 2026)
+*Overhauling the meal history timeline into an interactive activity heatmap matrix with glowing meal-type cards and user note-taking capability.*
+
+- **Interactive Intake Activity Heatmap Matrix (`MealActivityCalendar.tsx`):**
+  - Replaced the linear list in `/meals` (History tab) with an interactive 38-week GitHub/Codex-style contribution matrix.
+  - Features 7-day rows, dynamic month indicators along the bottom, and glowing warm amber/orange tokens matching intake density (0 to 3+ meals).
+  - Supports "Daily", "Weekly", and "Cumulative" view modes with active date ring focus.
+  - Clicking any date dynamically focuses that day and reveals its meals in the feed below.
+- **Glowing Meal History Card Variant (`MealHistoryCard.tsx`):**
+  - Reusable card variant adhering to the dashboard aesthetic and shadcn/ui tactile conventions.
+  - Features glowing radial-gradient icon containers tailored to meal types: warm amber with `Egg` icon for Breakfast, coral/rose with `Flame` icon for Lunch and Dinner, and mint/cyan with `Apple` icon for Snack.
+  - Bold green category tags, macro breakdown, and status indicators (`DONE`, `SKIPPED`, `OUTSIDE MEAL`, `SWAPPED`).
+- **Interactive Meal Note-Taking:**
+  - Expanded accordion drawer with an interactive personal note editor (`textarea` with 1,000 character limit).
+  - Added `PATCH /api/user/meals/logs/:id/notes` endpoint and updated `updateMealStatus` to accept and persist notes on `MealLog`.
+  - Optimistic UI updates with instant feedback (`"Note saved"`) and session resource cache invalidation.
+- **Test Coverage:**
+  - Verified backend unit tests for `mealStatusBodySchema` and `updateMealLogNotesBodySchema` (520 tests passing).
+  - Added unit tests for `MealActivityCalendar` and `MealHistoryCard` (87 tests passing across 24 test files).
+  - Zero ESLint errors or warnings.

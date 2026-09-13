@@ -8,6 +8,7 @@ import {
   outsideMealBodySchema,
   resourceIdParamsSchema,
   swapMealBodySchema,
+  updateMealLogNotesBodySchema,
   weightEntryBodySchema,
 } from '../src/validation/user-action.schemas';
 
@@ -24,6 +25,16 @@ test('[TEST-150] user action schemas reject unknown, empty, and oversized input'
 test('[TEST-151] user action schemas normalize valid boundary input', () => {
   assert.deepEqual(mealGenerationBodySchema.parse({}), {});
   assert.deepEqual(mealGenerationBodySchema.parse({ replaceExisting: true }), { replaceExisting: true });
+  assert.deepEqual(mealStatusBodySchema.parse({ status: 'DONE', notes: '  Ate with brown rice  ' }), {
+    status: 'DONE',
+    notes: 'Ate with brown rice',
+  });
+  assert.deepEqual(updateMealLogNotesBodySchema.parse({ notes: '  Felt energized  ' }), {
+    notes: 'Felt energized',
+  });
+  assert.deepEqual(updateMealLogNotesBodySchema.parse({ notes: null }), {
+    notes: null,
+  });
   assert.deepEqual(weightEntryBodySchema.parse({ weightKg: '70.5', note: '  Morning measurement  ' }), {
     weightKg: 70.5,
     note: 'Morning measurement',

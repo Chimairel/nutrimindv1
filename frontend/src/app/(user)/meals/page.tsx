@@ -8,6 +8,8 @@ import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProg
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
+import MealActivityCalendar from '@/components/user/MealActivityCalendar';
+import MealHistoryCard from '@/components/user/MealHistoryCard';
 import LibraryMealCard from '@/features/meals/LibraryMealCard';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import {
@@ -60,6 +62,9 @@ export default function WeeklyPlanPage() {
     setHistorySource,
     historyStatus,
     setHistoryStatus,
+    selectedHistoryDateKey,
+    setSelectedHistoryDateKey,
+    handleUpdateLogNotes,
     libraryMeals,
     isLibraryLoading,
     libraryTotalCount,
@@ -629,152 +634,171 @@ export default function WeeklyPlanPage() {
             </div>
           ))}
 
-        {activeTab === 'history' && (
-          <div className="space-y-6 text-left">
-            {/* Filters block */}
-            <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
-              <form onSubmit={handleHistorySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
-                <label className="relative min-w-0 flex-1">
-                  <span className="sr-only">Search meal history</span>
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
-                  <input
-                    type="text"
-                    placeholder="Search history..."
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green"
-                  />
-                </label>
-                <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
-                  Apply
-                </Button>
-              </form>
-              <div className="grid w-full grid-cols-2 gap-2 md:w-auto">
-                <select
-                  value={historySource}
-                  onChange={(e) => setHistorySource(e.target.value)}
-                  className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green"
-                >
-                  <option value="All">All Sources</option>
-                  <option value="SYSTEM_GENERATED">NutriMind</option>
-                  <option value="USER_LOGGED">Outside Meal</option>
-                  <option value="USER_SWAPPED">Swapped</option>
-                </select>
-                <select
-                  value={historyStatus}
-                  onChange={(e) => setHistoryStatus(e.target.value)}
-                  className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="DONE">Done</option>
-                  <option value="SKIPPED">Skipped</option>
-                </select>
-              </div>
-            </div>
+        {activeTab === 'history' && (() => {
+          const historyDays = groupHistoryByDate();
+          const effectiveDateKey =
+            selectedHistoryDateKey || (historyDays.length > 0 ? historyDays[0].dateKey : null);
+          const activeDay = historyDays.find((day) => day.dateKey === effectiveDateKey);
 
-            {isHistoryLoading ? (
-              <div className="flex flex-col items-center py-12 gap-2">
-                <LoadingSpinner size="md" />
-                <span className="text-xs text-brand-muted">Loading history logs...</span>
-              </div>
-            ) : historyError ? (
-              <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-                <span>{historyError}</span>
-              </div>
-            ) : historyLogs.length === 0 ? (
-              <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
-                <FileText className="w-8 h-8 text-brand-green mx-auto mb-2" />
-                <p className="text-sm text-brand-text font-semibold">No Meal Logs Found</p>
-                <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-                  You haven&apos;t logged any meals matching the selected filters yet.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {groupHistoryByDate().map((day) => (
-                  <section
-                    key={day.dateKey}
-                    className="overflow-hidden rounded-[22px] border border-brand-border/70 bg-brand-surface shadow-sm"
+          return (
+            <div className="space-y-6 text-left">
+              {/* Activity Heatmap Calendar Matrix (Image 1) */}
+              <MealActivityCalendar
+                logs={historyLogs}
+                selectedDateKey={effectiveDateKey}
+                onSelectDateKey={(dateKey) => setSelectedHistoryDateKey(dateKey)}
+              />
+
+              {/* Filters block */}
+              <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row dark:border-white/10 dark:bg-white/[0.035]">
+                <form onSubmit={handleHistorySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
+                  <label className="relative min-w-0 flex-1">
+                    <span className="sr-only">Search meal history</span>
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search history..."
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    />
+                  </label>
+                  <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
+                    Apply
+                  </Button>
+                </form>
+                <div className="grid w-full grid-cols-2 gap-2 md:w-auto">
+                  <select
+                    value={historySource}
+                    onChange={(e) => setHistorySource(e.target.value)}
+                    className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
                   >
-                    <div className="border-b border-brand-border/60 bg-brand-bgAlt/35 px-4 py-3">
-                      <span className="text-xs font-extrabold text-brand-green font-display uppercase">
-                        {day.weekday}
-                      </span>
-                      <span className="text-[10px] text-brand-muted font-bold ml-2">{day.dateStr}</span>
-                    </div>
-                    <div className="grid gap-2 p-3">
-                      {day.logsList.map((log) => {
-                        const deltaVal = log.calorieDelta;
-                        const hasDelta = deltaVal !== null && deltaVal !== undefined;
-                        return (
-                          <div
-                            key={log.id}
-                            className="flex flex-col justify-between gap-4 rounded-2xl border border-brand-border/65 bg-brand-surface p-4 transition hover:border-brand-green/20 md:flex-row md:items-center animate-fadeIn"
-                          >
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-sm font-bold text-brand-text">{log.mealName}</h4>
-                                {log.source === 'SYSTEM_GENERATED' && (
-                                  <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded uppercase">
-                                    NutriMind
-                                  </span>
-                                )}
-                                {log.source === 'USER_LOGGED' && (
-                                  <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded uppercase">
-                                    Outside Meal
-                                  </span>
-                                )}
-                                {log.source === 'USER_SWAPPED' && (
-                                  <span className="rounded border border-brand-cyan/25 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-green dark:text-brand-cyan">
-                                    Swapped
-                                  </span>
-                                )}
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                                    log.status === 'DONE'
-                                      ? 'text-brand-green bg-brand-green/10'
-                                      : log.status === 'SKIPPED'
-                                        ? 'text-red-400 bg-red-400/10'
-                                        : 'text-amber-500 bg-amber-500/10'
-                                  }`}
-                                >
-                                  {log.status}
-                                </span>
-                              </div>
-                              <div className="flex gap-2 text-[10px] text-brand-muted">
-                                <span>{log.calories} kcal</span>
-                                <span>·</span>
-                                <span>{log.proteinG}g P</span>
-                                <span>·</span>
-                                <span>{log.carbsG}g C</span>
-                                <span>·</span>
-                                <span>{log.fatG}g F</span>
-                              </div>
-                            </div>
-                            {log.source === 'USER_SWAPPED' && hasDelta && (
-                              <div
-                                className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${
-                                  deltaVal > 0
-                                    ? 'text-amber-500 bg-amber-500/5 border-amber-500/20'
-                                    : deltaVal < 0
-                                      ? 'text-brand-green bg-brand-green/5 border-brand-green/20'
-                                      : 'text-brand-muted bg-brand-surface border-brand-border'
-                                }`}
-                              >
-                                {deltaVal > 0 ? `+${Math.round(deltaVal)}` : Math.round(deltaVal)} kcal
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
+                    <option value="All">All Sources</option>
+                    <option value="SYSTEM_GENERATED">NutriMind</option>
+                    <option value="USER_LOGGED">Outside Meal</option>
+                    <option value="USER_SWAPPED">Swapped</option>
+                  </select>
+                  <select
+                    value={historyStatus}
+                    onChange={(e) => setHistoryStatus(e.target.value)}
+                    className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="DONE">Done</option>
+                    <option value="SKIPPED">Skipped</option>
+                  </select>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {isHistoryLoading ? (
+                <div className="flex flex-col items-center py-12 gap-2">
+                  <LoadingSpinner size="md" />
+                  <span className="text-xs text-brand-muted">Loading history logs...</span>
+                </div>
+              ) : historyError ? (
+                <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+                  <span>{historyError}</span>
+                </div>
+              ) : historyLogs.length === 0 ? (
+                <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
+                  <FileText className="w-8 h-8 text-brand-green dark:text-brand-accent mx-auto mb-2" />
+                  <p className="text-sm text-brand-text dark:text-white font-semibold">No Meal Logs Found</p>
+                  <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
+                    You haven&apos;t logged any meals matching the selected filters yet.
+                  </p>
+                </div>
+              ) : activeDay ? (
+                /* Selected Day Section with Image 3 Meal Cards and Note-taking */
+                <section className="space-y-4">
+                  {/* Day Header Banner with Macro Summary */}
+                  <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
+                          {activeDay.weekday}
+                        </span>
+                        <span className="text-xs font-semibold text-brand-muted dark:text-white/40">·</span>
+                        <span className="text-xs font-bold text-brand-text dark:text-white/80">{activeDay.dateStr}</span>
+                      </div>
+                      <p className="text-xs text-brand-muted dark:text-white/40 mt-0.5">
+                        {activeDay.mealCount} meal{activeDay.mealCount !== 1 ? 's' : ''} logged
+                      </p>
+                    </div>
+
+                    {/* Day Macro Badges */}
+                    <div className="flex flex-wrap gap-2 text-xs font-bold">
+                      <span className="rounded-xl border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-brand-green dark:border-white/10 dark:bg-white/5 dark:text-brand-accent">
+                        {Math.round(activeDay.totalCalories)} kcal
+                      </span>
+                      <span
+                        className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                        style={{
+                          backgroundColor: 'var(--macro-protein-bg)',
+                          borderColor: 'var(--macro-protein-border)',
+                          color: 'var(--macro-protein)',
+                        }}
+                      >
+                        {Math.round(activeDay.totalProtein)}g P
+                      </span>
+                      <span
+                        className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                        style={{
+                          backgroundColor: 'var(--macro-carbs-bg)',
+                          borderColor: 'var(--macro-carbs-border)',
+                          color: 'var(--macro-carbs)',
+                        }}
+                      >
+                        {Math.round(activeDay.totalCarbs)}g C
+                      </span>
+                      <span
+                        className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                        style={{
+                          backgroundColor: 'var(--macro-fat-bg)',
+                          borderColor: 'var(--macro-fat-border)',
+                          color: 'var(--macro-fat)',
+                        }}
+                      >
+                        {Math.round(activeDay.totalFat)}g F
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Meal Cards List (Image 3 Variant with note editor) */}
+                  <div className="space-y-3">
+                    {activeDay.logsList.map((log) => (
+                      <MealHistoryCard
+                        key={log.id}
+                        log={log}
+                        onUpdateNotes={handleUpdateLogNotes}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                /* Empty state when clicking a calendar day that has 0 meals */
+                <div className="p-8 text-center border border-dashed border-brand-border/80 bg-brand-surface/40 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
+                  <Calendar className="w-8 h-8 text-brand-muted mx-auto mb-2 opacity-50" />
+                  <p className="text-sm text-brand-text dark:text-white font-semibold">
+                    No Meals Logged on {effectiveDateKey ? formatManilaDate(manilaDateFromKey(effectiveDateKey), { weekday: 'long', month: 'short', day: 'numeric' }) : 'this date'}
+                  </p>
+                  <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
+                    Select any highlighted day on the activity matrix above to view its meals, or click below to view your most recent day.
+                  </p>
+                  {historyDays.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setSelectedHistoryDateKey(historyDays[0].dateKey)}
+                      className="mt-4 text-xs font-bold"
+                    >
+                      View Most Recent Day ({historyDays[0].dateStr})
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {activeTab === 'library' && (
           <div className="space-y-6 text-left">

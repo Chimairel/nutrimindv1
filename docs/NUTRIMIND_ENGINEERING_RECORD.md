@@ -3809,5 +3809,18 @@ This section is a continuity record for agreed future work. Every item below is 
 ## 78. Approved UI audit implementation (2026-09-13)
 
 - Implements the approved role navigation and component hierarchy from the September 10 browser audit. Profile groups health, planning, membership and account settings; Progress exposes report history. Shared headers/cards, Home tracking, grocery quantities, meal-swap comparison, Nutritionist review navigation/library, and Admin mobile records and workspace organization are updated while retaining the established theme.
-- Repaired invalid application availability rendering, acknowledged-report footer/overflow, stale review triage presentation, and the swap preview's misleading calorie-delta sentence. No database migrations or approval-policy relaxation are part of this UI change.
 - Verification and exact scope are recorded in [UI redesign delivery](UI_REDESIGN_DELIVERY_2026-09-13.md): 32 routes at four widths in the in-app browser, synthetic swap/partial-purchase checks, and root checks. The preview now runs from this worktree on port 3002 against the disposable API on 5012; earlier references to preview port 3000 are superseded.
+
+## 79. Meal history activity calendar matrix and glowing card note-taking (2026-09-13)
+
+- **Context & Motivation**: The historical `/meals` History tab presented user-logged and plan-checked meals as a flat, unsegmented linear list. Users lacked temporal visibility into intake cadence, and had no way to record or view qualitative meal notes (portion deviations, subjective satiety, digestive comfort) on consumed items.
+- **Architectural & Design Implementation**:
+  - Replaced the linear list with an interactive 38-week Intake Activity Matrix (`MealActivityCalendar.tsx`) inspired by the OpenAI Codex / GitHub contribution calendar and styled under shadcn/ui tactile conventions. Provides "Daily", "Weekly", and "Cumulative" density scales with glowing amber/orange tokens matching meal logging frequency.
+  - Implemented an interactive day selection model: selecting any day cell in the calendar focuses that specific date in Manila time, displaying that day's meal count, macronutrient sums (Calories, Protein, Carbs, Fat), and meal items.
+  - Created a dedicated, reusable card variant (`MealHistoryCard.tsx`) following the dashboard aesthetic (Image 3) with soft radial-gradient icon containers customized by meal type (Breakfast: Egg in amber glow; Lunch/Dinner: Flame in coral/rose glow; Snack: Apple in mint glow).
+  - Integrated full note-taking functionality: expanding any card reveals an interactive personal note editor (`textarea` with 1,000-character cap). Added backend `PATCH /api/user/meals/logs/:id/notes` endpoint and updated `updateMealStatus` to persist notes to `MealLog.notes`.
+- **Verification Evidence**:
+  - Backend deterministic suite: 520 passed, 0 failed, 1 external clinical-policy todo (`npm test` in `backend`).
+  - Frontend test suite: 24 test files passed, 87 unit/component tests passed (`npm test` in `frontend`).
+  - ESLint verification: 0 errors, 0 warnings across frontend codebase.
+

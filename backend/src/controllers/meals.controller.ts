@@ -436,7 +436,8 @@ export class MealsController {
           warningType: l.warningType ?? null,
           nutritionCompleteness: l.nutritionCompleteness,
           provisionalCalories: l.provisionalCalories,
-          mealType: l.mealType,
+          mealType: l.mealType ?? l.mealPlan?.mealType ?? null,
+          notes: l.notes ?? null,
           outsideItems: l.outsideItems,
           loggedAt: l.loggedAt.toISOString(),
           calorieDelta: latestSwap ? latestSwap.calorieDelta : null,
@@ -508,7 +509,7 @@ export class MealsController {
       }
 
       const mealPlanId = req.params.id;
-      const { status } = req.body; // Expects 'DONE' | 'SKIPPED' | 'PENDING'
+      const { status, notes } = req.body; // Expects 'DONE' | 'SKIPPED' | 'PENDING', optional notes
 
       if (!status || !['DONE', 'SKIPPED', 'PENDING'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid or missing status parameter.' });
@@ -532,6 +533,7 @@ export class MealsController {
           update: {
             status: status as MealLogStatus,
             loggedAt: new Date(),
+            ...(notes !== undefined ? { notes: notes ?? null } : {}),
           },
           create: {
             userId,
@@ -547,6 +549,7 @@ export class MealsController {
             warningType: null,
             warningShown: false,
             warningAcknowledged: false,
+            notes: notes ?? null,
           },
         });
       });
@@ -706,6 +709,51 @@ export class MealsController {
       return res.status(500).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to retrieve compatible meals.'),
+      });
+    }
+  }
+
+  /**
+   * PATCH /api/user/meals/logs/:id/notes
+   * Updates user notes on a logged meal (owned by the authenticated user).
+   */
+  static async updateMealLogNotes(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      }
+
+      const logId = req.params.id;
+      const { notes } = req.body;
+
+      const log = await prisma.mealLog.findFirst({
+        where: { id: logId, userId },
+      });
+
+      if (!log) {
+        return res.status(404).json({ success: false, error: 'Meal log not found.' });
+      }
+
+      const updated = await prisma.mealLog.update({
+        where: { id: logId },
+        data: {
+          notes: notes !== undefined ? notes : null,
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: updated.id,
+          notes: updated.notes,
+        },
+      });
+    } catch (error: any) {
+      console.error('[MealsController] updateMealLogNotes error:', error);
+      return res.status(500).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Failed to update meal notes.'),
       });
     }
   }
