@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import Avatar from '@/components/ui/Avatar';
+import Avatar, { FILIPINO_AVATAR_PRESETS } from '@/components/ui/Avatar';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -29,12 +29,16 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
-  const PRESETS = ['Default', 'Juan', 'Maria', 'Bayani', 'Tala', 'Luningning', 'Datu', 'Mayari', 'Malakas', 'Maganda'];
+  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
 
   const isDefaultActive =
     !avatarSeed ||
     avatarSeed.toLowerCase() === 'default' ||
     (Boolean(defaultUserImage) && avatarSeed === defaultUserImage);
+
+  const activePresetInfo = FILIPINO_AVATAR_PRESETS.find(
+    (p) => !isDefaultActive && p.name.toLowerCase() === avatarSeed.toLowerCase()
+  );
 
   const isPresetActive = (preset: string) => {
     if (preset === 'Default') {
@@ -42,6 +46,11 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
     }
     return !isDefaultActive && avatarSeed.toLowerCase() === preset.toLowerCase();
   };
+
+  const filteredPresets = FILIPINO_AVATAR_PRESETS.filter((p) => {
+    if (genderFilter === 'all') return true;
+    return p.gender === genderFilter;
+  });
 
   // Account settings form state
   const [name, setName] = useState(user?.name || '');
@@ -379,12 +388,33 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               <span className="mt-4 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-brand-muted">
                 Live preview
               </span>
+              <div className="mt-2 text-center">
+                {isDefaultActive ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 border border-brand-green/25 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
+                    Default · Google Account
+                  </span>
+                ) : activePresetInfo ? (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
+                      activePresetInfo.gender === 'male'
+                        ? 'border-blue-500/25 bg-blue-500/10 text-blue-400'
+                        : 'border-pink-500/25 bg-pink-500/10 text-pink-400'
+                    }`}
+                  >
+                    {activePresetInfo.gender === 'male' ? '♂ Lalaki (Male)' : '♀ Babae (Female)'} · {activePresetInfo.name}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-brand-border bg-brand-surface px-2.5 py-0.5 text-[10px] font-bold text-brand-muted">
+                    Custom · {avatarSeed}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="p-5 sm:p-6">
               <div className="mb-5">
                 <h2 className="font-display text-base font-black text-brand-text">Profile avatar</h2>
                 <p className="mt-1 text-xs text-brand-muted">
-                  Select Default for your Google account photo, or choose a Filipino pixel-art preset.
+                  Choose your Google account photo, or select an authentic Filipino pixel-art character.
                 </p>
               </div>
               {avatarMsg && (
@@ -424,24 +454,90 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   Save
                 </Button>
               </div>
-              <span className="mt-5 block text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                Quick presets
-              </span>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {PRESETS.map((preset) => {
-                  const active = isPresetActive(preset);
-                  return (
+
+              <div className="mt-5 flex items-center justify-between">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                  Curated Filipino Avatars
+                </span>
+                <div className="flex items-center gap-1 rounded-lg border border-brand-border/60 bg-brand-bgAlt p-0.5">
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['male', '♂ Male'],
+                      ['female', '♀ Female'],
+                    ] as const
+                  ).map(([fKey, fLabel]) => (
                     <button
-                      key={preset}
+                      key={fKey}
                       type="button"
-                      onClick={() => setAvatarSeed(preset)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${
-                        active
-                          ? 'border-brand-green bg-brand-green/15 text-brand-green'
-                          : 'border-brand-border bg-brand-bgAlt text-brand-muted hover:text-brand-text'
+                      onClick={() => setGenderFilter(fKey)}
+                      className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition ${
+                        genderFilter === fKey
+                          ? 'bg-brand-green/20 text-brand-green'
+                          : 'text-brand-muted hover:text-brand-text'
                       }`}
                     >
-                      {preset}
+                      {fLabel}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {genderFilter === 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarSeed('Default')}
+                    className={`flex flex-col items-center justify-center rounded-2xl border p-2.5 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-brand-green/30 ${
+                      isDefaultActive
+                        ? 'border-brand-green bg-brand-green/15 text-brand-green shadow-sm'
+                        : 'border-brand-border bg-brand-bgAlt text-brand-muted hover:border-brand-border/80 hover:text-brand-text'
+                    }`}
+                  >
+                    <Avatar
+                      size="sm"
+                      src={defaultUserImage || undefined}
+                      fallbackText={user.name}
+                      showSalakot={false}
+                      className="h-10 w-10 rounded-xl"
+                    />
+                    <span className="mt-2 truncate w-full text-xs font-bold">Default</span>
+                    <span className="truncate w-full text-[9px] text-brand-muted">Google / Initial</span>
+                  </button>
+                )}
+                {filteredPresets.map((preset) => {
+                  const active = isPresetActive(preset.name);
+                  return (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => setAvatarSeed(preset.name)}
+                      className={`group relative flex flex-col items-center justify-center rounded-2xl border p-2.5 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-brand-green/30 ${
+                        active
+                          ? 'border-brand-green bg-brand-green/15 text-brand-green shadow-sm'
+                          : 'border-brand-border bg-brand-bgAlt text-brand-muted hover:border-brand-border/80 hover:text-brand-text'
+                      }`}
+                    >
+                      <div className="relative">
+                        <Avatar
+                          size="sm"
+                          src={preset.name}
+                          fallbackText={preset.name}
+                          showSalakot={false}
+                          className="h-10 w-10 rounded-xl"
+                        />
+                        <span
+                          className={`absolute -bottom-1 -right-1 rounded-full px-1 text-[8px] font-bold ${
+                            preset.gender === 'male'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-pink-500/20 text-pink-400'
+                          }`}
+                        >
+                          {preset.gender === 'male' ? '♂' : '♀'}
+                        </span>
+                      </div>
+                      <span className="mt-2 truncate w-full text-xs font-bold">{preset.name}</span>
+                      <span className="truncate w-full text-[9px] text-brand-muted">{preset.description}</span>
                     </button>
                   );
                 })}
