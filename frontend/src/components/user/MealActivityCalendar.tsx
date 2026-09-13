@@ -175,9 +175,9 @@ export default function MealActivityCalendar({
         const dow = cellDate.getDay();
 
         const slotIndex = startDayOfWeek + (dayNum - 1);
-        const weekCol = Math.floor(slotIndex / 7);
+        const weekRow = Math.floor(slotIndex / 7);
 
-        if (weekCol < 6) {
+        if (weekRow < 6) {
           const isToday = dayKey === todayKey;
           const isCellFuture = isFuture || dayKey > todayKey;
 
@@ -189,7 +189,7 @@ export default function MealActivityCalendar({
             activeDays++;
           }
 
-          rawWeeks[weekCol][dow] = {
+          rawWeeks[weekRow][dow] = {
             dateKey: dayKey,
             date: cellDate,
             dayOfWeek: dow,
@@ -203,7 +203,7 @@ export default function MealActivityCalendar({
         }
       }
 
-      const activeWeeks = rawWeeks.filter((col) => col.some((cell) => cell !== null));
+      const activeWeeks = rawWeeks.filter((row) => row.some((cell) => cell !== null));
       const name = formatManilaDate(firstDayDate, { month: 'long' }).toUpperCase();
       const fullLabel = formatManilaDate(firstDayDate, { month: 'long', year: 'numeric' });
 
@@ -263,35 +263,54 @@ export default function MealActivityCalendar({
     return 'border border-[#6ee7b7] bg-[#a7f3d0] text-emerald-950 dark:border-[#065f46] dark:bg-[#064e3b] dark:text-emerald-100';
   };
 
-  const renderMonthCard = (monthData: MonthColumnData) => {
+  const renderMonthCard = (monthData: MonthColumnData, isCenter: boolean = false) => {
     const todayYear = manilaDateFromKey(getManilaDateKey()).getFullYear();
     const isLocked = monthData.isFuture;
 
     return (
       <div
         key={`${monthData.year}-${monthData.monthIndex}`}
-        className="flex flex-col items-center select-none"
+        className={`flex flex-col items-center select-none transition-all duration-200 ${
+          isCenter
+            ? 'rounded-[22px] border border-brand-green/30 bg-brand-bgAlt/40 p-3.5 sm:p-4 shadow-sm dark:border-brand-accent/25 dark:bg-white/[0.03]'
+            : 'rounded-2xl p-2 sm:p-2.5 opacity-85 hover:opacity-100'
+        } ${
+          isLocked
+            ? 'opacity-40 grayscale select-none pointer-events-none cursor-not-allowed'
+            : ''
+        }`}
+        aria-label={`${monthData.name} ${monthData.year} calendar`}
       >
         {/* Month Header */}
-        <div className="mb-3 flex h-7 items-center justify-center gap-1.5 text-center">
+        <div
+          className={`flex items-center justify-center gap-1.5 text-center ${
+            isCenter ? 'mb-3 h-8' : 'mb-2 h-6'
+          }`}
+        >
           <h4
-            className={`font-display text-xs sm:text-sm font-black tracking-wider uppercase ${
-              isLocked
-                ? 'text-brand-muted/40 dark:text-white/30'
-                : 'text-brand-text dark:text-white'
+            className={`font-display font-black uppercase tracking-wider ${
+              isCenter
+                ? 'text-sm sm:text-base md:text-lg text-brand-text dark:text-white tracking-widest'
+                : isLocked
+                ? 'text-xs sm:text-sm text-brand-muted/40 dark:text-white/30'
+                : 'text-xs sm:text-sm text-brand-text/80 dark:text-white/70'
             }`}
           >
             {monthData.name}
           </h4>
           {monthData.year !== todayYear && (
-            <span className="font-mono text-[10px] font-bold text-brand-muted/60 dark:text-white/40">
+            <span
+              className={`font-mono font-bold text-brand-muted/70 dark:text-white/40 ${
+                isCenter ? 'text-xs' : 'text-[10px]'
+              }`}
+            >
               {monthData.year}
             </span>
           )}
           {isLocked && (
             <span
               title="Future month (locked)"
-              className="inline-flex items-center gap-1 rounded bg-brand-bgAlt/80 px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-extrabold uppercase text-brand-muted/70 dark:bg-white/[0.04] dark:text-white/30"
+              className="inline-flex items-center gap-1 rounded bg-brand-bgAlt/90 px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-extrabold uppercase text-brand-muted/70 dark:bg-white/[0.04] dark:text-white/30"
             >
               <Lock className="h-2.5 w-2.5" />
               Locked
@@ -299,78 +318,83 @@ export default function MealActivityCalendar({
           )}
         </div>
 
-        {/* Month Calendar Grid with Day of Week Axis */}
+        {/* Horizontal Weekday Headers (Sun .. Sat) */}
         <div
-          className={`flex gap-1 sm:gap-1.5 transition-opacity duration-200 ${
-            isLocked
-              ? 'opacity-40 grayscale select-none pointer-events-none cursor-not-allowed'
-              : ''
+          className={`grid grid-cols-7 text-center select-none ${
+            isCenter ? 'gap-1.5 sm:gap-2 mb-2' : 'gap-1 mb-1.5'
           }`}
-          aria-label={`${monthData.name} ${monthData.year} calendar`}
         >
-          {/* Day of Week Axis (Sun .. Sat) */}
-          <div className="flex flex-col gap-1 sm:gap-1.5 pr-0.5 select-none">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName) => (
-              <div
-                key={dayName}
-                className="flex h-6 w-5 sm:h-7 sm:w-6 items-center justify-end font-mono text-[9px] sm:text-[10px] font-bold text-brand-muted dark:text-white/40"
-              >
-                {dayName}
-              </div>
-            ))}
-          </div>
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName) => (
+            <div
+              key={dayName}
+              className={`flex items-center justify-center font-mono ${
+                isCenter
+                  ? 'h-6 w-7 sm:h-7 sm:w-8 md:w-9 text-[10px] sm:text-[11px] font-black text-brand-muted dark:text-white/60'
+                  : 'h-5 w-5 sm:h-6 sm:w-6 text-[8px] sm:text-[9px] font-bold text-brand-muted/60 dark:text-white/40'
+              }`}
+            >
+              {dayName}
+            </div>
+          ))}
+        </div>
 
-          {/* Week Columns */}
-          <div className="flex gap-1 sm:gap-1.5">
-            {monthData.weeks.map((week, wIdx) => (
-              <div key={wIdx} className="flex flex-col gap-1 sm:gap-1.5">
-                {week.map((cell, rowIdx) => {
-                  if (!cell) {
-                    return (
-                      <div
-                        key={`empty-${rowIdx}`}
-                        className="h-6 w-6 sm:h-7 sm:w-7 opacity-0 pointer-events-none"
-                        aria-hidden="true"
-                      />
-                    );
-                  }
-
-                  const isSelected = selectedDateKey === cell.dateKey;
-                  const isCellDisabled = cell.isFuture || isLocked;
-
+        {/* Calendar Rows of Weeks */}
+        <div className={`flex flex-col ${isCenter ? 'gap-1.5 sm:gap-2' : 'gap-1'}`}>
+          {monthData.weeks.map((weekRow, rIdx) => (
+            <div
+              key={rIdx}
+              className={`grid grid-cols-7 ${isCenter ? 'gap-1.5 sm:gap-2' : 'gap-1'}`}
+            >
+              {weekRow.map((cell, cIdx) => {
+                if (!cell) {
                   return (
-                    <button
-                      key={cell.dateKey}
-                      type="button"
-                      disabled={isCellDisabled}
-                      onClick={() => !isCellDisabled && onSelectDateKey(cell.dateKey)}
-                      onMouseEnter={() => !isCellDisabled && setHoveredCell(cell)}
-                      onMouseLeave={() => setHoveredCell(null)}
-                      onFocus={() => !isCellDisabled && setHoveredCell(cell)}
-                      onBlur={() => setHoveredCell(null)}
-                      aria-label={`${cell.dateKey}: ${cell.mealCount} meals logged`}
-                      aria-pressed={isSelected}
-                      className={`relative flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg border font-mono text-[9px] sm:text-[10px] font-black transition-all duration-150 outline-none ${getCellColor(
-                        cell
-                      )} ${
-                        isSelected && !isLocked
-                          ? 'ring-2 ring-brand-green ring-offset-2 ring-offset-brand-surface dark:ring-brand-accent dark:ring-offset-[#0c1511] z-10 scale-105'
-                          : ''
-                      } ${
-                        !isCellDisabled
-                          ? 'hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-brand-green'
-                          : 'cursor-not-allowed'
-                      }`}
-                    >
-                      {cell.mealCount > 0 && !isLocked && (
-                        <span>{cell.mealCount}</span>
-                      )}
-                    </button>
+                    <div
+                      key={`empty-${cIdx}`}
+                      className={`${
+                        isCenter
+                          ? 'h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9'
+                          : 'h-5 w-5 sm:h-6 sm:w-6'
+                      } opacity-0 pointer-events-none`}
+                      aria-hidden="true"
+                    />
                   );
-                })}
-              </div>
-            ))}
-          </div>
+                }
+
+                const isSelected = selectedDateKey === cell.dateKey;
+                const isCellDisabled = cell.isFuture || isLocked;
+
+                return (
+                  <button
+                    key={cell.dateKey}
+                    type="button"
+                    disabled={isCellDisabled}
+                    onClick={() => !isCellDisabled && onSelectDateKey(cell.dateKey)}
+                    onMouseEnter={() => !isCellDisabled && setHoveredCell(cell)}
+                    onMouseLeave={() => setHoveredCell(null)}
+                    onFocus={() => !isCellDisabled && setHoveredCell(cell)}
+                    onBlur={() => setHoveredCell(null)}
+                    aria-label={`${cell.dateKey}: ${cell.mealCount} meals logged`}
+                    aria-pressed={isSelected}
+                    className={`relative flex items-center justify-center border font-mono font-black transition-all duration-150 outline-none ${
+                      isCenter
+                        ? 'h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 rounded-lg sm:rounded-xl text-[10px] sm:text-xs'
+                        : 'h-5 w-5 sm:h-6 sm:w-6 rounded-md text-[8px] sm:text-[9px]'
+                    } ${getCellColor(cell)} ${
+                      isSelected && !isLocked
+                        ? 'ring-2 ring-brand-green ring-offset-2 ring-offset-brand-surface dark:ring-brand-accent dark:ring-offset-[#0c1511] z-10 scale-105'
+                        : ''
+                    } ${
+                      !isCellDisabled
+                        ? 'hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-brand-green'
+                        : 'cursor-not-allowed'
+                    }`}
+                  >
+                    {cell.mealCount > 0 && !isLocked && <span>{cell.mealCount}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -474,46 +498,42 @@ export default function MealActivityCalendar({
         ) : timeRange === 'Month' ? (
           /* Month Mode: 3 Months side-by-side (Prev, Center, Next) with navigation chevrons and future-locking */
           <div className="overflow-x-auto pb-2 scrollbar-thin">
-            <div className="flex min-w-max items-start justify-center gap-2 sm:gap-4 py-2 px-1 mx-auto">
-              {/* Previous Month (Left) */}
-              {renderMonthCard(threeMonthsData.prevMonth)}
+            <div className="flex min-w-max items-center justify-center gap-2 sm:gap-4 py-2 px-1 mx-auto">
+              {/* Previous Month (Left - Compact) */}
+              {renderMonthCard(threeMonthsData.prevMonth, false)}
 
               {/* Left Chevron (<) between Month 1 and Month 2 */}
-              <div className="flex items-center justify-center pt-8 sm:pt-9">
-                <button
-                  type="button"
-                  onClick={handlePrevMonth}
-                  aria-label="Previous month"
-                  title="Previous month"
-                  className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-brand-border/70 bg-brand-surface text-brand-text shadow-sm transition-all hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]"
-                >
-                  <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                aria-label="Previous month"
+                title="Previous month"
+                className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-brand-border/70 bg-brand-surface text-brand-text shadow-sm transition-all hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]"
+              >
+                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
 
-              {/* Center Month (Active / Focused) */}
-              {renderMonthCard(threeMonthsData.centerMonth)}
+              {/* Center Month (Active / Focused - Bigger) */}
+              {renderMonthCard(threeMonthsData.centerMonth, true)}
 
               {/* Right Chevron (>) between Month 2 and Month 3 */}
-              <div className="flex items-center justify-center pt-8 sm:pt-9">
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  disabled={!canGoNext}
-                  aria-label="Next month"
-                  title={canGoNext ? 'Next month' : 'Future month is locked'}
-                  className={`flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
-                    canGoNext
-                      ? 'border-brand-border/70 bg-brand-surface text-brand-text shadow-sm hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]'
-                      : 'border-brand-border/30 bg-brand-bgAlt/20 text-brand-muted/30 cursor-not-allowed opacity-30 shadow-none dark:border-white/5 dark:bg-white/[0.01] dark:text-white/20 pointer-events-none'
-                  }`}
-                >
-                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                disabled={!canGoNext}
+                aria-label="Next month"
+                title={canGoNext ? 'Next month' : 'Future month is locked'}
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
+                  canGoNext
+                    ? 'border-brand-border/70 bg-brand-surface text-brand-text shadow-sm hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]'
+                    : 'border-brand-border/30 bg-brand-bgAlt/20 text-brand-muted/30 cursor-not-allowed opacity-30 shadow-none dark:border-white/5 dark:bg-white/[0.01] dark:text-white/20 pointer-events-none'
+                }`}
+              >
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
 
-              {/* Next Month (Right - Locked if future) */}
-              {renderMonthCard(threeMonthsData.nextMonth)}
+              {/* Next Month (Right - Compact, Locked if future) */}
+              {renderMonthCard(threeMonthsData.nextMonth, false)}
             </div>
           </div>
         ) : (
