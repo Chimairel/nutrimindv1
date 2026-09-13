@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { User, Lock, CheckCircle, AlertTriangle, LogOut, Mail, Palette, ShieldCheck, Trash2 } from 'lucide-react';
@@ -444,6 +445,20 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   );
                 })}
               </div>
+
+              {!defaultUserImage && (
+                <div className="mt-5 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 p-4">
+                  <div className="mb-3">
+                    <p className="text-xs font-bold text-brand-text">Sync Google profile picture</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-brand-muted">
+                      Sign in with Google once to import and use your real Google account profile photo under the <strong>Default</strong> option.
+                    </p>
+                  </div>
+                  <div className="max-w-xs">
+                    <GoogleSignInButton label="continue_with" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>
