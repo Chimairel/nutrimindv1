@@ -18,19 +18,18 @@ export interface FilipinoAvatarPreset {
   face: string;
   skinColor: string;
   clothingColor: string;
-  description: string;
+  description?: string;
 }
 
 export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
-  { name: 'Juan', gender: 'male', head: 'short1', face: 'smile', skinColor: 'd08b5b', clothingColor: '00b159', description: 'Classic Filipino' },
-  { name: 'Bayani', gender: 'male', head: 'short2', face: 'driven', skinColor: 'd08b5b', clothingColor: '03396c', description: 'Heroic & bold' },
-  { name: 'Datu', gender: 'male', head: 'flatTop', face: 'calm', skinColor: 'd08b5b', clothingColor: 'ffd969', description: 'Distinguished chief' },
-  { name: 'Malakas', gender: 'male', head: 'short3', face: 'smileBig', skinColor: '694d3d', clothingColor: '323232', description: 'Strong mythic hero' },
-  { name: 'Maria', gender: 'female', head: 'long', face: 'smile', skinColor: 'e0ac69', clothingColor: 'ffeead', description: 'Traditional Filipina' },
-  { name: 'Tala', gender: 'female', head: 'bun', face: 'cute', skinColor: 'f8d25c', clothingColor: '428bca', description: 'Goddess of stars' },
-  { name: 'Luningning', gender: 'female', head: 'medium1', face: 'smileBig', skinColor: 'ffdbac', clothingColor: 'ae0001', description: 'Radiant & bright' },
-  { name: 'Mayari', gender: 'female', head: 'longBangs', face: 'eatingHappy', skinColor: 'edb98a', clothingColor: '00b159', description: 'Moon goddess' },
-  { name: 'Maganda', gender: 'female', head: 'longCurly', face: 'smile', skinColor: 'ffdbac', clothingColor: '428bca', description: 'Graceful mythic heroine' },
+  { name: 'Chimay', gender: 'male', head: 'short1', face: 'smile', skinColor: 'd08b5b', clothingColor: '00b159' },
+  { name: 'Kevin', gender: 'male', head: 'short2', face: 'driven', skinColor: 'd08b5b', clothingColor: '03396c' },
+  { name: 'Bedic', gender: 'male', head: 'flatTop', face: 'calm', skinColor: 'd08b5b', clothingColor: 'ffd969' },
+  { name: 'Ichan', gender: 'male', head: 'short3', face: 'smileBig', skinColor: '694d3d', clothingColor: '323232' },
+  { name: 'Telay', gender: 'female', head: 'long', face: 'smile', skinColor: 'e0ac69', clothingColor: 'ffeead' },
+  { name: 'Maeann', gender: 'female', head: 'bun', face: 'cute', skinColor: 'f8d25c', clothingColor: '428bca' },
+  { name: 'Jenelyn', gender: 'female', head: 'longBangs', face: 'eatingHappy', skinColor: 'edb98a', clothingColor: '00b159' },
+  { name: 'Mayan', gender: 'female', head: 'longCurly', face: 'smile', skinColor: 'ffdbac', clothingColor: '428bca' },
 ];
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(

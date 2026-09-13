@@ -38,10 +38,10 @@ describe('Avatar', () => {
   });
 
   it('renders DiceBear open-peeps URL when given a Filipino name preset seed', async () => {
-    const { container } = render(<Avatar src="Juan" fallbackText="Juan Dela Cruz" />);
+    const { container } = render(<Avatar src="Chimay" fallbackText="Chimay Pacaldo" />);
 
     await waitFor(() => {
-      const img = container.querySelector('img[src*="dicebear.com/10.x/open-peeps/svg?seed=Juan"]');
+      const img = container.querySelector('img[src*="dicebear.com/10.x/open-peeps/svg?seed=Chimay"]');
       expect(img).toBeInTheDocument();
     });
   });

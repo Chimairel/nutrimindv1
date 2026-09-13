@@ -616,7 +616,6 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       className="h-10 w-10 rounded-xl"
                     />
                     <span className="mt-2 truncate w-full text-xs font-bold">Default</span>
-                    <span className="truncate w-full text-[9px] text-brand-muted">Google / Initial</span>
                   </button>
                 )}
                 {filteredPresets.map((preset) => {
@@ -651,7 +650,6 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                         </span>
                       </div>
                       <span className="mt-2 truncate w-full text-xs font-bold">{preset.name}</span>
-                      <span className="truncate w-full text-[9px] text-brand-muted">{preset.description}</span>
                     </button>
                   );
                 })}
