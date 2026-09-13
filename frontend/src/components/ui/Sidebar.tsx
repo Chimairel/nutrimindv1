@@ -235,7 +235,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           aria-current={profileActive ? 'page' : undefined}
           className={`group relative flex items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] transition hover:bg-white/[0.065] ${collapsed ? 'justify-center p-1.5' : 'gap-3 p-2'}`}
         >
-          <Avatar size="sm" src={user.image} fallbackText={user.name} className="h-9 w-9 rounded-xl" />
+          <Avatar size="sm" src={user.image} fallbackText={user.name} className="h-9 w-9 rounded-full" />
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>

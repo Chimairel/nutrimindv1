@@ -141,12 +141,12 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
       <AvatarPrimitive.Root
         ref={ref}
         className={`
-        relative flex shrink-0 overflow-visible rounded-2xl border border-white/10 bg-brand-surface font-semibold shadow-sm ring-1 ring-brand-green/10
+        relative flex shrink-0 overflow-visible rounded-full bg-brand-surface font-semibold shadow-sm
         ${sizeClasses[size]} ${className}
       `}
         {...props}
       >
-        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[inherit]">
+        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
           {displaySrc ? (
             <AvatarPrimitive.Image
               src={displaySrc}
@@ -154,7 +154,7 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
               className="aspect-square h-full w-full object-cover animate-fade-in"
             />
           ) : null}
-          <AvatarPrimitive.Fallback className="flex h-full w-full items-center justify-center rounded-[inherit] bg-brand-bgAlt text-brand-green font-display font-semibold">
+          <AvatarPrimitive.Fallback className="flex h-full w-full items-center justify-center rounded-full bg-brand-bgAlt text-brand-green font-display font-semibold">
             {getInitials(fallbackText)}
           </AvatarPrimitive.Fallback>
         </div>
@@ -164,7 +164,7 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
             src="/icons/salakot.svg"
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute -top-[14%] -right-[8%] w-[64%] h-auto select-none z-10 drop-shadow-sm"
+            className="pointer-events-none absolute -top-[12%] -right-[4%] w-[64%] h-auto select-none z-10 drop-shadow-md"
           />
         )}
       </AvatarPrimitive.Root>

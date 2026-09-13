@@ -308,7 +308,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             size="lg"
             src={user.image}
             fallbackText={user.name}
-            className="h-20 w-20 rounded-[24px] border-2 border-brand-green/20 shadow-lg"
+            className="h-20 w-20 rounded-full shadow-lg"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -497,7 +497,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                 size="lg"
                 src={isDefaultActive ? defaultUserImage || undefined : avatarSeed}
                 fallbackText={user.name}
-                className="h-28 w-28 rounded-[30px] border-2 border-brand-green/20 shadow-xl"
+                className="h-28 w-28 rounded-full shadow-xl"
               />
               <span className="mt-4 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-brand-muted">
                 Live preview
@@ -613,7 +613,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       src={defaultUserImage || undefined}
                       fallbackText={user.name}
                       showSalakot={false}
-                      className="h-10 w-10 rounded-xl"
+                      className="h-10 w-10 rounded-full"
                     />
                     <span className="mt-2 truncate w-full text-xs font-bold">Default</span>
                   </button>
@@ -637,7 +637,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                           src={preset.name}
                           fallbackText={preset.name}
                           showSalakot={false}
-                          className="h-10 w-10 rounded-xl"
+                          className="h-10 w-10 rounded-full"
                         />
                         <span
                           className={`absolute -bottom-1 -right-1 rounded-full px-1 text-[8px] font-bold ${
