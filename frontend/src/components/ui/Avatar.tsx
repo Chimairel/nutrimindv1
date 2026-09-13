@@ -14,15 +14,24 @@ interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimit
 export interface FilipinoAvatarPreset {
   name: string;
   gender: 'male' | 'female';
-  head: string;
-  face: string;
-  skinColor: string;
-  clothingColor: string;
+  head?: string;
+  face?: string;
+  skinColor?: string;
+  clothingColor?: string;
+  customUrl?: string;
   description?: string;
 }
 
 export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
-  { name: 'Chimay', gender: 'male', head: 'short1', face: 'smile', skinColor: 'd08b5b', clothingColor: '00b159' },
+  {
+    name: 'Chimay',
+    gender: 'male',
+    head: 'dreads2',
+    face: 'smileBig',
+    skinColor: 'ffdbb4',
+    clothingColor: 'ffcf77',
+    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&headVariant=dreads2&facialHairVariant=&facialHairProbability=100&clothingColor=ffcf77&headContrastColor=2c1b18,ecdcbf,d6b370,f59797,b58143,a55728,724133,4a312c,c93305&seed=Felix',
+  },
   { name: 'Kevin', gender: 'male', head: 'short2', face: 'driven', skinColor: 'd08b5b', clothingColor: '03396c' },
   { name: 'Bedic', gender: 'male', head: 'flatTop', face: 'calm', skinColor: 'd08b5b', clothingColor: 'ffd969' },
   { name: 'Ichan', gender: 'male', head: 'short3', face: 'smileBig', skinColor: '694d3d', clothingColor: '323232' },
@@ -62,6 +71,9 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
           (p) => p.name.toLowerCase() === src.toLowerCase()
         );
         if (matched) {
+          if (matched.customUrl) {
+            return matched.customUrl;
+          }
           return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(matched.name)}&headVariant=${matched.head}&expressionVariant=${matched.face}&skinColor=${matched.skinColor}&clothingColor=${matched.clothingColor}&scale=1.2&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
         }
         return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(src)}&scale=1.2&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
