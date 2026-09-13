@@ -7,6 +7,6 @@ export type { TextShimmerProps } from './TextShimmer';
 export { MotionActiveIndicator } from './MotionActiveIndicator';
 export type { MotionActiveIndicatorProps } from './MotionActiveIndicator';
 
-export { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from './Dock';
-export type { DockProps, DockItemProps, DockIconProps, DockLabelProps, DockAvatarProps, DockDirection } from './Dock';
+export { Dock, DockItem, DockIcon, DockLabel, DockAvatar, useDock, useDockItem } from './Dock';
+export type { DockProps, DockItemProps, DockIconProps, DockLabelProps, DockAvatarProps, DockDirection, DockItemContextType } from './Dock';
 

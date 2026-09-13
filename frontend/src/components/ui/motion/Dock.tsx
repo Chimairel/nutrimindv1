@@ -1,8 +1,6 @@
 'use client';
 
 import React, {
-  Children,
-  cloneElement,
   createContext,
   useContext,
   useEffect,
@@ -127,6 +125,17 @@ export function Dock({
   );
 }
 
+export interface DockItemContextType {
+  size: MotionValue<number>;
+  isHovered: MotionValue<number>;
+}
+
+const DockItemContext = createContext<DockItemContextType | undefined>(undefined);
+
+export function useDockItem() {
+  return useContext(DockItemContext);
+}
+
 export function DockItem({ children, className = '', onClick, active = false, ...props }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { distance, magnification, baseSize, mousePos, spring, direction, isReducedMotion } = useDock();
@@ -167,21 +176,17 @@ export function DockItem({ children, className = '', onClick, active = false, ..
       onClick={onClick}
       {...props}
     >
-      {Children.map(children, (child) =>
-        React.isValidElement(child)
-          ? cloneElement(child as React.ReactElement<{ size?: MotionValue<number>; isHovered?: MotionValue<number> }>, {
-              size,
-              isHovered,
-            })
-          : child
-      )}
+      <DockItemContext.Provider value={{ size, isHovered }}>
+        {children}
+      </DockItemContext.Provider>
     </motion.div>
   );
 }
 
 export function DockIcon({ children, className = '', ...rest }: DockIconProps) {
   const restProps = rest as Record<string, unknown>;
-  const size = restProps['size'] as MotionValue<number> | undefined;
+  const itemCtx = useDockItem();
+  const size = (restProps['size'] as MotionValue<number> | undefined) ?? itemCtx?.size;
   const defaultSize = useMotionValue(36);
 
   const iconScale = useTransform(size ?? defaultSize, (val) => Math.max(14, Math.round(val * 0.44)));
@@ -196,18 +201,16 @@ export function DockIcon({ children, className = '', ...rest }: DockIconProps) {
   );
 }
 
-export interface DockAvatarProps {
+export interface DockAvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
   children: React.ReactNode;
 }
 
-export function DockAvatar({ children, className = '', ...rest }: DockAvatarProps) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { size, isHovered, ...domProps } = rest as Record<string, unknown>;
+export function DockAvatar({ children, className = '', ...props }: DockAvatarProps) {
   return (
     <div
       className={`relative flex h-full w-full items-center justify-center overflow-visible ${className}`}
-      {...domProps}
+      {...props}
     >
       {children}
     </div>
@@ -217,7 +220,8 @@ export function DockAvatar({ children, className = '', ...rest }: DockAvatarProp
 export function DockLabel({ children, className = '', ...rest }: DockLabelProps) {
   const { direction } = useDock();
   const restProps = rest as Record<string, unknown>;
-  const isHovered = restProps['isHovered'] as MotionValue<number> | undefined;
+  const itemCtx = useDockItem();
+  const isHovered = (restProps['isHovered'] as MotionValue<number> | undefined) ?? itemCtx?.isHovered;
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
