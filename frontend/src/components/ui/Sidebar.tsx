@@ -53,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isRailHovered, setIsRailHovered] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -79,11 +80,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
   return (
     <aside
+      onMouseEnter={() => setIsRailHovered(true)}
+      onMouseLeave={() => setIsRailHovered(false)}
       className={`
-        relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
+        relative z-30 hidden shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
         bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white shadow-[0_28px_80px_rgba(1,8,5,0.32)]
-        transition-[width,padding] duration-300 ease-out md:flex
-        ${collapsed ? 'w-[68px] px-2 py-3.5' : 'w-[248px] p-4'}
+        transition-all duration-300 ease-out md:flex
+        ${
+          collapsed
+            ? `self-start origin-top w-[68px] px-2 py-3.5 ${
+                isRailHovered
+                  ? 'h-[82vh] min-h-[540px] max-h-[720px] shadow-[0_32px_90px_rgba(1,8,5,0.48)]'
+                  : 'h-[68vh] min-h-[440px] max-h-[580px] shadow-[0_28px_80px_rgba(1,8,5,0.32)]'
+              }`
+            : 'h-full w-[248px] p-4'
+        }
         ${className}
       `}
     >
