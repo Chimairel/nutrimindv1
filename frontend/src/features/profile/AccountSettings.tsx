@@ -29,9 +29,50 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-const OPEN_PEEPS_MALE_HEADS = ['short1', 'short2', 'short3', 'curly', 'afro', 'dreads', 'flatTop', 'side'];
-const OPEN_PEEPS_FEMALE_HEADS = ['long1', 'long2', 'bun', 'medium1', 'bangs', 'curly', 'afro'];
-const OPEN_PEEPS_FACES = ['smile', 'cute', 'smileBig', 'driven', 'calm', 'serious', 'eatingHappy'];
+const OPEN_PEEPS_MALE_HEADS = [
+  'short1',
+  'short2',
+  'short3',
+  'short4',
+  'short5',
+  'flatTop',
+  'flatTopLong',
+  'pomp',
+  'shaved1',
+  'cornrows',
+  'dreads1',
+  'afro',
+  'twists',
+  'noHair1',
+];
+const OPEN_PEEPS_FEMALE_HEADS = [
+  'long',
+  'longBangs',
+  'longCurly',
+  'bun',
+  'bun2',
+  'buns',
+  'bangs',
+  'bangs2',
+  'medium1',
+  'medium2',
+  'medium3',
+  'mediumBangs',
+  'mediumStraight',
+  'bantuKnots',
+];
+const OPEN_PEEPS_FACES = [
+  'smile',
+  'smileBig',
+  'smileLOL',
+  'cute',
+  'calm',
+  'driven',
+  'serious',
+  'cheeky',
+  'eatingHappy',
+  'awe',
+];
 
 const SKIN_TONES = [
   { name: 'Fair Mestizo', hex: 'ffdbac' },
@@ -108,7 +149,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
     const list = gender === 'male' ? OPEN_PEEPS_MALE_HEADS : OPEN_PEEPS_FEMALE_HEADS;
     const head = list[headIdx % list.length];
     const face = OPEN_PEEPS_FACES[faceIdx % OPEN_PEEPS_FACES.length];
-    const url = `https://api.dicebear.com/10.x/open-peeps/svg?seed=Custom&head=${head}&face=${face}&skinColor=${skin}&clothingColor=${color}&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
+    const url = `https://api.dicebear.com/10.x/open-peeps/svg?headVariant=${head}&expressionVariant=${face}&skinColor=${skin}&clothingColor=${color}&scale=1.2&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
     setAvatarSeed(url);
   };
 
@@ -478,7 +519,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 rounded-full border border-brand-border bg-brand-surface px-2.5 py-0.5 text-[10px] font-bold text-brand-muted">
-                    Custom · {avatarSeed}
+                    Custom · {avatarSeed.startsWith('http') ? 'Custom Avatar' : avatarSeed}
                   </span>
                 )}
               </div>
