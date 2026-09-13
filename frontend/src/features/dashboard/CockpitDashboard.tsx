@@ -128,7 +128,7 @@ export function CockpitDashboard({
                 nutrition. Unresolved items are excluded from totals.
               </p>
             )}
-            <div className="flex items-center justify-between rounded-2xl border border-brand-border/60 bg-black/20 p-3 text-xs">
+            <div className="flex items-center justify-between rounded-2xl bg-black/25 dark:bg-black/35 px-4 py-3 text-xs">
               <span className="font-medium text-brand-muted">Remaining budget</span>
               <span className="font-mono font-bold text-brand-green">
                 {Math.max(0, Math.round(metrics.caloriesTarget - metrics.caloriesConsumed)).toLocaleString()} kcal
@@ -153,7 +153,7 @@ export function CockpitDashboard({
             </button>
           </div>
           {pendingMeals.length > 0 && (
-            <p className="mb-4 rounded-xl border border-status-pending-text/20 bg-status-pending-bg p-3 text-xs leading-relaxed text-status-pending-text">
+            <p className="mb-4 rounded-2xl bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text">
               Awaiting review: pending meals are previews. Open a preview to see its ingredients; logging becomes
               available after approval.
             </p>

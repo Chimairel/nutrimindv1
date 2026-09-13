@@ -69,14 +69,17 @@ export default function DashboardPage() {
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
 
-  // Extract unique scheduledDate values in chronological order
+  // Extract unique scheduledDate values in chronological order, keeping past days of the active plan visible
   const uniqueDates = React.useMemo(() => {
     const scheduledMeals = [...currentMeals, ...(pendingReview?.meals ?? [])];
 
     if (scheduledMeals.length === 0) return [];
-    const todayKey = getManilaDateKey();
-    const dateKeys = Array.from(new Set(scheduledMeals.map((meal) => getManilaDateKey(meal.scheduledDate)))).filter(
-      (dateKey) => dateKey && dateKey >= todayKey
+    const dateKeys = Array.from(
+      new Set(
+        scheduledMeals
+          .map((meal) => getManilaDateKey(meal.scheduledDate))
+          .filter((dateKey): dateKey is string => Boolean(dateKey))
+      )
     );
     return dateKeys.map((dateKey) => new Date(`${dateKey}T00:00:00+08:00`)).sort((a, b) => a.getTime() - b.getTime());
   }, [currentMeals, pendingReview]);
@@ -384,12 +387,17 @@ export default function DashboardPage() {
     outsideMealLogs,
     pendingMeals: pendingReview?.meals ?? [],
   });
-  const daySelectors = uniqueDates.map((date, index) => ({
-    offset: index,
-    dayLabel: formatManilaDate(date, { weekday: 'short' }),
-    dateLabel: formatManilaDate(date, { day: 'numeric' }),
-    isPast: getManilaDateKey(date) < getManilaDateKey(),
-  }));
+  const todayKey = getManilaDateKey();
+  const daySelectors = uniqueDates.map((date, index) => {
+    const dateKey = getManilaDateKey(date);
+    return {
+      offset: index,
+      dayLabel: formatManilaDate(date, { weekday: 'short' }),
+      dateLabel: formatManilaDate(date, { day: 'numeric' }),
+      isPast: dateKey < todayKey,
+      isToday: dateKey === todayKey,
+    };
+  });
 
   const closeOutsideMealModal = () => {
     setIsLogModalOpen(false);
@@ -454,13 +462,18 @@ export default function DashboardPage() {
                       aria-pressed={isSelected}
                       className={`flex min-w-[76px] flex-col items-center justify-center rounded-2xl border px-4 py-3 outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                         isSelected
-                          ? 'border-brand-border bg-brand-accent text-black shadow-md shadow-brand-accent/10'
+                          ? 'border-transparent bg-brand-accent text-brand-black font-bold shadow-md shadow-brand-accent/20'
                           : item.isPast
-                            ? 'border-transparent bg-brand-bgAlt/70 text-brand-muted/70 hover:border-brand-border hover:text-brand-text'
-                            : 'border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/60 hover:text-brand-text'
+                            ? 'border-transparent bg-black/[0.04] text-slate-400 hover:bg-black/[0.07] hover:text-slate-600 dark:bg-white/[0.03] dark:text-zinc-500 dark:hover:bg-white/[0.07] dark:hover:text-zinc-300'
+                            : 'border-transparent bg-transparent text-brand-muted hover:bg-brand-bgAlt/60 hover:text-brand-text'
                       }`}
                     >
-                      <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">{item.dayLabel}</span>
+                      <span className="flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-[0.14em]">
+                        {item.dayLabel}
+                        {item.isToday && !isSelected && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-brand-green" title="Today" />
+                        )}
+                      </span>
                       <span className="mt-1 font-display text-xl font-black leading-none">{item.dateLabel}</span>
                     </button>
                   );

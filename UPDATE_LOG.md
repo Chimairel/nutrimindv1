@@ -352,11 +352,26 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
 
 - **Full-Height Alignment (`frontend/src/features/dashboard/CockpitDashboard.tsx`):**
   - Removed `items-start` from the outer dashboard grid container, allowing grid cells to stretch naturally to equal heights.
-  - Added `flex h-full flex-col justify-between` to `.daily-intake-card`, ensuring its dark green radial gradient background and border cover the full vertical span.
-  - Added a dedicated bottom summary pill (`Remaining budget: X kcal`) in `.daily-intake-card` for immediate daily budget clarity.
+---
+
+## 📅 ADDENDUM 18: BORDERLESS MODERN AESTHETICS & PAST DAY RETENTION IN DASHBOARD (September 2026)
+*Eliminated harsh white borders on inner status callouts/pills and restored historical days to the day selector with muted grayish past-day styling.*
+
+- **Elimination of Harsh/White Borders (`CockpitDashboard.tsx`, `meals/page.tsx`, `globals.css`):**
+  - Removed `border border-brand-border/60` from the "Remaining budget" pill in `.daily-intake-card`, converting it into a sleek, borderless inner container with subtle translucent tint (`bg-black/25 dark:bg-black/35`).
+  - Removed `border border-status-pending-text/20` from the "Awaiting review" callout in `CockpitDashboard.tsx` and weekly meal plan preview cards (`meals/page.tsx`), opting for clean, modern borderless banners with gentle background tints (`bg-status-pending-bg/50` and `bg-status-pending-bg/30`).
+  - Added global CSS border-color fallbacks in `globals.css` for `:root .border-brand-border`, `:root [class*='border-brand-border/']`, and status opacity variants (`border-status-pending-text/`, `border-status-error-text/`, `border-status-verified-text/`) to prevent Tailwind color tokens from falling back to `currentColor` (white).
+- **Past Day Visibility & Management in Dashboard (`dashboard/page.tsx`):**
+  - Removed the `dateKey >= todayKey` filter in `uniqueDates`, allowing previous days of the scheduled cycle (e.g., Sun 13) to remain visible and interactive in the day selector.
+  - Automatically defaults selection to the current day (`isToday`), while keeping past days accessible.
+  - Styled past day buttons with a theme-consistent muted grayish aesthetic (`bg-black/[0.04] text-slate-400 dark:bg-white/[0.03] dark:text-zinc-500`) without borders, distinguishing past dates from current/future dates.
+  - Added a subtle green indicator dot on the current day (`isToday`) when browsing other dates.
+  - Users can select past days to view their scheduled meals, inspect nutrition totals, and toggle meal completion status directly.
 - **Automated Verification:**
-  - Vitest suite: 38 passed across 7 test files.
+  - Vitest suite: 102 passed across 27 test files.
   - ESLint check: passed with 0 errors and 0 warnings.
+  - Backend test suite: 521 passed with 0 failures.
+
 
 
 

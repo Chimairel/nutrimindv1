@@ -482,7 +482,7 @@ export default function WeeklyPlanPage() {
                           <p className="text-xs font-extrabold text-brand-text">Plan generated</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 rounded-2xl border border-status-pending-text/25 bg-status-pending-bg/40 p-3.5">
+                      <div className="flex items-center gap-3 rounded-2xl bg-status-pending-bg/40 p-3.5">
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-status-pending-text text-white">
                           <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
                         </div>
@@ -504,7 +504,7 @@ export default function WeeklyPlanPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-2.5 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/30 px-4 py-3 text-status-pending-text">
+                    <div className="flex items-start gap-2.5 rounded-2xl bg-status-pending-bg/30 px-4 py-3 text-status-pending-text">
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       <p className="text-[11px] font-semibold leading-relaxed">
                         Preview only. Logging, swaps, regeneration, nutrition totals, and groceries remain disabled
@@ -652,7 +652,7 @@ export default function WeeklyPlanPage() {
                   .map((day) => (
                     <section
                       key={`pending-${day.dateKey}`}
-                      className="rounded-[26px] border border-status-pending-text/25 bg-status-pending-bg/20 p-4 shadow-sm sm:p-5"
+                      className="rounded-[26px] bg-status-pending-bg/20 p-4 shadow-sm sm:p-5"
                     >
                       <div className="mb-4 flex flex-col gap-2 border-b border-brand-border/50 pb-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>

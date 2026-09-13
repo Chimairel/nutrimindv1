@@ -123,9 +123,22 @@ html.dark {
  * text color and render as solid white outlines. Keep every neutral dark
  * border on the same quiet treatment used by the portal hero.
  */
+:root .border-brand-border,
+:root [class*='border-brand-border/'] {
+  border-color: var(--brand-border);
+}
 html.dark .border-brand-border,
 html.dark [class*='border-brand-border/'] {
   border-color: rgba(255, 255, 255, 0.09);
+}
+[class*='border-status-pending-text/'] {
+  border-color: var(--status-pending-text);
+}
+[class*='border-status-error-text/'] {
+  border-color: var(--status-error-text);
+}
+[class*='border-status-verified-text/'] {
+  border-color: var(--status-verified-text);
 }
 
 body,
