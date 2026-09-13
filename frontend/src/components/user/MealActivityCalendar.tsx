@@ -126,30 +126,30 @@ export default function MealActivityCalendar({
   // Color mapping inspired by Image 1 (warm amber/terracotta/orange glowing tokens)
   const getCellColor = (cell: DayCell) => {
     if (cell.isFuture) {
-      return 'bg-brand-border/20 dark:bg-white/[0.02] border-transparent opacity-30 cursor-not-allowed';
+      return 'border border-dashed border-brand-border/60 bg-[#f4f7f5] opacity-40 cursor-not-allowed dark:border-white/[0.04] dark:bg-white/[0.02] dark:opacity-30';
     }
     if (cell.mealCount === 0) {
-      return 'bg-brand-border/40 dark:bg-white/[0.05] border-transparent hover:border-brand-border hover:bg-brand-border/70 dark:hover:bg-white/[0.12]';
+      return 'border border-[#c6d6ce] bg-[#e8efec] hover:border-brand-green/40 hover:bg-[#dce8e0] dark:border-white/[0.08] dark:bg-[#14221b] dark:hover:border-white/[0.16] dark:hover:bg-white/[0.12]';
     }
 
     if (viewMode === 'Cumulative') {
       if (cell.totalCalories >= 2000) {
-        return 'bg-[#ff7a00] text-black border-[#ff7a00]/40 shadow-[0_0_8px_rgba(255,122,0,0.5)]';
+        return 'border border-[#ff7a00]/60 bg-[#ff7a00] text-black shadow-[0_0_8px_rgba(255,122,0,0.55)]';
       }
       if (cell.totalCalories >= 1200) {
-        return 'bg-[#e06500] text-white border-[#e06500]/40';
+        return 'border border-[#e06500]/50 bg-[#e06500] text-white';
       }
-      return 'bg-[#994700] text-white border-[#994700]/40';
+      return 'border border-[#994700]/50 bg-[#994700] text-white';
     }
 
     // Daily / Weekly meal count levels matching Image 1
     if (cell.mealCount >= 3) {
-      return 'bg-[#ff7a00] border-[#ff7a00]/50 shadow-[0_0_8px_rgba(255,122,0,0.55)]';
+      return 'border border-[#ff7a00]/60 bg-[#ff7a00] shadow-[0_0_8px_rgba(255,122,0,0.55)]';
     }
     if (cell.mealCount === 2) {
-      return 'bg-[#d05c04] border-[#d05c04]/40';
+      return 'border border-[#d05c04]/50 bg-[#d05c04]';
     }
-    return 'bg-[#7c3806] border-[#7c3806]/40';
+    return 'border border-[#7c3806]/50 bg-[#7c3806]';
   };
 
   return (
@@ -284,10 +284,10 @@ export default function MealActivityCalendar({
           {/* Activity Scale Legend */}
           <div className="flex items-center gap-1.5 self-end sm:self-auto text-[10px] font-mono text-brand-muted dark:text-white/40">
             <span>Less</span>
-            <span className="h-3 w-3 rounded-[3px] bg-brand-border/40 dark:bg-white/[0.05]" />
-            <span className="h-3 w-3 rounded-[3px] bg-[#7c3806]" />
-            <span className="h-3 w-3 rounded-[3px] bg-[#d05c04]" />
-            <span className="h-3 w-3 rounded-[3px] bg-[#ff7a00] shadow-[0_0_6px_rgba(255,122,0,0.5)]" />
+            <span className="h-3 w-3 rounded-[3px] border border-[#c6d6ce] bg-[#e8efec] dark:border-white/[0.08] dark:bg-[#14221b]" />
+            <span className="h-3 w-3 rounded-[3px] border border-[#7c3806]/50 bg-[#7c3806]" />
+            <span className="h-3 w-3 rounded-[3px] border border-[#d05c04]/50 bg-[#d05c04]" />
+            <span className="h-3 w-3 rounded-[3px] border border-[#ff7a00]/60 bg-[#ff7a00] shadow-[0_0_6px_rgba(255,122,0,0.5)]" />
             <span>More</span>
           </div>
         </div>
