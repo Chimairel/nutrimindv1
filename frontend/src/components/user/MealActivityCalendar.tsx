@@ -35,6 +35,7 @@ interface DayCell {
   totalCalories: number;
   isToday: boolean;
   isFuture: boolean;
+  isOutOfBounds?: boolean;
 }
 
 export default function MealActivityCalendar({
@@ -62,83 +63,147 @@ export default function MealActivityCalendar({
     return map;
   }, [logs]);
 
-  // Generate weeks based on timeRange (Year = 40 weeks, Month = 5 weeks, Week = 1 week)
+  // Generate weeks based on timeRange (Year = full 52/53-week calendar year, Week = 1 week)
   const { weeks, monthLabels, totalLoggedDays } = useMemo(() => {
     const todayKey = getManilaDateKey();
     const todayDate = manilaDateFromKey(todayKey);
+    const todayYear = todayDate.getFullYear();
 
-    // End on the coming Saturday (or today's week end)
-    const endOfWeek = new Date(todayDate);
-    const dayOfWeek = endOfWeek.getDay(); // 0 = Sunday
-    endOfWeek.setDate(endOfWeek.getDate() + (6 - dayOfWeek));
+    if (timeRange === 'Year') {
+      // Full calendar year: start from the Sunday of the week containing Jan 1
+      const jan1 = new Date(todayYear, 0, 1);
+      const startDayOfWeek = jan1.getDay(); // 0 = Sunday
+      const startDate = new Date(jan1);
+      startDate.setDate(jan1.getDate() - startDayOfWeek);
 
-    const totalWeeks = timeRange === 'Year' ? 40 : timeRange === 'Month' ? 5 : 1;
-    const totalDays = totalWeeks * 7;
-    const startDate = new Date(endOfWeek);
-    startDate.setDate(startDate.getDate() - totalDays + 1);
+      // End on the Saturday of the week containing Dec 31
+      const dec31 = new Date(todayYear, 11, 31);
+      const endDayOfWeek = dec31.getDay(); // 0 = Sunday, 6 = Saturday
+      const endDate = new Date(dec31);
+      endDate.setDate(dec31.getDate() + (6 - endDayOfWeek));
 
-    const generatedWeeks: DayCell[][] = [];
-    const months: Array<{ label: string; weekIndex: number }> = [];
-    let lastMonth = '';
-    let currentWeek: DayCell[] = [];
+      const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
 
-    let loggedDaysCount = 0;
+      const generatedWeeks: DayCell[][] = [];
+      const months: Array<{ label: string; weekIndex: number }> = [];
+      const seenMonths = new Set<number>();
+      let currentWeek: DayCell[] = [];
+      let loggedDaysCount = 0;
 
-    for (let i = 0; i < totalDays; i++) {
-      const cellDate = new Date(startDate);
-      cellDate.setDate(cellDate.getDate() + i);
+      for (let i = 0; i < totalDays; i++) {
+        const cellDate = new Date(startDate);
+        cellDate.setDate(cellDate.getDate() + i);
 
-      const cellDateKey = getManilaDateKey(cellDate);
-      const isToday = cellDateKey === todayKey;
-      const isFuture = cellDateKey > todayKey;
+        const isCurrentYear = cellDate.getFullYear() === todayYear;
+        const cellDateKey = getManilaDateKey(cellDate);
+        const isToday = isCurrentYear && cellDateKey === todayKey;
+        const isFuture = isCurrentYear && cellDateKey > todayKey;
 
-      const activity = logsByDate.get(cellDateKey);
-      const mealCount = activity?.count ?? 0;
-      const totalCalories = activity?.calories ?? 0;
+        const activity = isCurrentYear ? logsByDate.get(cellDateKey) : undefined;
+        const mealCount = activity?.count ?? 0;
+        const totalCalories = activity?.calories ?? 0;
 
-      if (mealCount > 0) {
-        loggedDaysCount++;
+        if (isCurrentYear && mealCount > 0) {
+          loggedDaysCount++;
+        }
+
+        const weekIdx = Math.floor(i / 7);
+
+        // Track the first week column that contains the start of each month in this calendar year
+        if (isCurrentYear) {
+          const monthIdx = cellDate.getMonth();
+          if (!seenMonths.has(monthIdx)) {
+            seenMonths.add(monthIdx);
+            months.push({
+              label: formatManilaDate(cellDate, { month: 'short' }),
+              weekIndex: weekIdx,
+            });
+          }
+        }
+
+        const cell: DayCell = {
+          dateKey: cellDateKey,
+          date: cellDate,
+          dayOfWeek: cellDate.getDay(),
+          monthName: formatManilaDate(cellDate, { month: 'short' }),
+          isCurrentMonth: isCurrentYear && cellDate.getMonth() === todayDate.getMonth(),
+          mealCount,
+          totalCalories,
+          isToday,
+          isFuture,
+          isOutOfBounds: !isCurrentYear,
+        };
+
+        currentWeek.push(cell);
+
+        if (currentWeek.length === 7) {
+          generatedWeeks.push(currentWeek);
+          currentWeek = [];
+        }
       }
 
-      const mName = formatManilaDate(cellDate, { month: 'short' });
-      const weekIdx = Math.floor(i / 7);
-
-      if (mName !== lastMonth && cellDate.getDate() <= 14) {
-        months.push({ label: mName, weekIndex: weekIdx });
-        lastMonth = mName;
-      }
-
-      const cell: DayCell = {
-        dateKey: cellDateKey,
-        date: cellDate,
-        dayOfWeek: cellDate.getDay(),
-        monthName: mName,
-        isCurrentMonth: cellDate.getMonth() === todayDate.getMonth(),
-        mealCount,
-        totalCalories,
-        isToday,
-        isFuture,
+      return {
+        weeks: generatedWeeks,
+        monthLabels: months,
+        totalLoggedDays: loggedDaysCount,
       };
+    }
 
-      currentWeek.push(cell);
+    if (timeRange === 'Week') {
+      // Current week from Sunday to Saturday (7 days)
+      const dayOfWeek = todayDate.getDay(); // 0 = Sun
+      const startDate = new Date(todayDate);
+      startDate.setDate(todayDate.getDate() - dayOfWeek);
 
-      if (currentWeek.length === 7) {
-        generatedWeeks.push(currentWeek);
-        currentWeek = [];
+      const currentWeek: DayCell[] = [];
+      let loggedDaysCount = 0;
+
+      for (let i = 0; i < 7; i++) {
+        const cellDate = new Date(startDate);
+        cellDate.setDate(cellDate.getDate() + i);
+
+        const cellDateKey = getManilaDateKey(cellDate);
+        const isToday = cellDateKey === todayKey;
+        const isFuture = cellDateKey > todayKey;
+
+        const activity = logsByDate.get(cellDateKey);
+        const mealCount = activity?.count ?? 0;
+        const totalCalories = activity?.calories ?? 0;
+
+        if (mealCount > 0) {
+          loggedDaysCount++;
+        }
+
+        currentWeek.push({
+          dateKey: cellDateKey,
+          date: cellDate,
+          dayOfWeek: cellDate.getDay(),
+          monthName: formatManilaDate(cellDate, { month: 'short' }),
+          isCurrentMonth: cellDate.getMonth() === todayDate.getMonth(),
+          mealCount,
+          totalCalories,
+          isToday,
+          isFuture,
+        });
       }
+
+      return {
+        weeks: [currentWeek],
+        monthLabels: [
+          {
+            label: formatManilaDate(todayDate, { month: 'short' }),
+            weekIndex: 0,
+          },
+        ],
+        totalLoggedDays: loggedDaysCount,
+      };
     }
 
-    if (months.length === 0) {
-      months.push({
-        label: formatManilaDate(todayDate, { month: 'short' }),
-        weekIndex: 0,
-      });
-    }
-
+    // Month mode uses threeMonthsData directly
     return {
-      weeks: generatedWeeks,
-      monthLabels: months,
-      totalLoggedDays: loggedDaysCount,
+      weeks: [],
+      monthLabels: [],
+      totalLoggedDays: 0,
     };
   }, [logsByDate, timeRange]);
 
@@ -537,13 +602,13 @@ export default function MealActivityCalendar({
             </div>
           </div>
         ) : (
-          /* Year Mode: 40-week rolling matrix */
+          /* Year Mode: Full calendar year matrix */
           <div className="overflow-x-auto pb-2 scrollbar-thin">
             <div className="inline-block min-w-full">
               {/* Grid Container */}
               <div className="flex gap-1.5">
                 {/* Day of Week Axis (Sun, Mon, Tue, Wed, Thu, Fri, Sat) */}
-                <div className="flex flex-col justify-between pr-2 text-[9px] font-mono text-brand-muted dark:text-white/30 select-none py-0.5">
+                <div className="flex w-7 sm:w-8 flex-shrink-0 flex-col justify-between pr-2 text-[9px] font-mono text-brand-muted dark:text-white/30 select-none py-0.5">
                   <span>Sun</span>
                   <span>Tue</span>
                   <span>Thu</span>
@@ -555,6 +620,16 @@ export default function MealActivityCalendar({
                   {weeks.map((week, weekIndex) => (
                     <div key={`week-${weekIndex}`} className="flex flex-col gap-1">
                       {week.map((cell) => {
+                        if (cell.isOutOfBounds) {
+                          return (
+                            <div
+                              key={cell.dateKey}
+                              className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-0 pointer-events-none"
+                              aria-hidden="true"
+                            />
+                          );
+                        }
+
                         const isSelected = selectedDateKey === cell.dateKey;
                         return (
                           <button
@@ -566,7 +641,16 @@ export default function MealActivityCalendar({
                             onMouseLeave={() => setHoveredCell(null)}
                             onFocus={() => setHoveredCell(cell)}
                             onBlur={() => setHoveredCell(null)}
-                            aria-label={`${cell.dateKey}: ${cell.mealCount} meals logged`}
+                            title={
+                              cell.isFuture
+                                ? `${formatManilaDate(cell.date, { month: 'short', day: 'numeric' })}: Upcoming (Locked)`
+                                : `${cell.dateKey}: ${cell.mealCount} meals logged`
+                            }
+                            aria-label={
+                              cell.isFuture
+                                ? `${cell.dateKey}: Upcoming (Locked)`
+                                : `${cell.dateKey}: ${cell.mealCount} meals logged`
+                            }
                             aria-pressed={isSelected}
                             className={`relative h-3.5 w-3.5 rounded-[4px] border transition-all duration-150 outline-none sm:h-4 sm:w-4 ${getCellColor(
                               cell
@@ -574,7 +658,7 @@ export default function MealActivityCalendar({
                               isSelected
                                 ? 'ring-2 ring-brand-green ring-offset-2 ring-offset-brand-surface dark:ring-brand-accent dark:ring-offset-[#0c1511] z-10 scale-110'
                                 : ''
-                            } focus-visible:ring-2 focus-visible:ring-brand-green`}
+                            } ${!cell.isFuture ? 'focus-visible:ring-2 focus-visible:ring-brand-green hover:scale-110' : ''}`}
                           />
                         );
                       })}
@@ -584,12 +668,25 @@ export default function MealActivityCalendar({
               </div>
 
               {/* Month Labels along the bottom */}
-              <div className="relative mt-2 h-4 pl-8 text-[10px] font-mono text-brand-muted dark:text-white/40 select-none flex justify-between">
-                {monthLabels.map((m) => (
-                  <span key={`${m.label}-${m.weekIndex}`} className="inline-block">
-                    {m.label}
-                  </span>
-                ))}
+              <div className="mt-2 flex gap-1.5 h-4 select-none">
+                {/* Spacer matching Day of Week Axis */}
+                <div className="w-7 sm:w-8 flex-shrink-0 pr-2" aria-hidden="true" />
+
+                {/* Week-aligned month label slots */}
+                <div className="flex gap-1 relative">
+                  {weeks.map((_, weekIndex) => {
+                    const month = monthLabels.find((m) => m.weekIndex === weekIndex);
+                    return (
+                      <div key={`m-col-${weekIndex}`} className="relative w-3.5 sm:w-4 flex-shrink-0">
+                        {month && (
+                          <span className="absolute left-0 top-0 whitespace-nowrap text-[10px] font-mono font-bold text-brand-muted dark:text-white/60">
+                            {month.label}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -604,8 +701,14 @@ export default function MealActivityCalendar({
                 <span className="font-bold text-brand-green dark:text-brand-accent">
                   {formatManilaDate(hoveredCell.date, { weekday: 'short', month: 'short', day: 'numeric' })}
                 </span>
-                : {hoveredCell.mealCount} meal{hoveredCell.mealCount !== 1 ? 's' : ''} logged
-                {hoveredCell.mealCount > 0 && ` (${Math.round(hoveredCell.totalCalories)} kcal)`}
+                {hoveredCell.isFuture ? (
+                  <span className="font-mono text-brand-muted dark:text-white/50"> : Upcoming (Locked)</span>
+                ) : (
+                  <>
+                    : {hoveredCell.mealCount} meal{hoveredCell.mealCount !== 1 ? 's' : ''} logged
+                    {hoveredCell.mealCount > 0 && ` (${Math.round(hoveredCell.totalCalories)} kcal)`}
+                  </>
+                )}
               </span>
             ) : selectedDateKey ? (
               <span className="font-semibold text-brand-text dark:text-white">

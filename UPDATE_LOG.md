@@ -225,4 +225,26 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - ESLint check: passed with 0 errors and 0 warnings.
   - Next.js production build: 52/52 routes successfully compiled.
 
+---
+
+## 📅 ADDENDUM 11: FULL CALENDAR YEAR MATRIX & FUTURE DAY LOCKING (September 2026)
+*Full 52/53-week calendar year visualization (Jan 1 to Dec 31) with aligned 12-month headers and faint locked styling for future days.*
+
+- **Full Calendar Year Representation (`MealActivityCalendar.tsx`):**
+  - Updated Year mode from a rolling 40-week backward window that truncated at the current date to a full calendar year spanning January 1st through December 31st of the current year (53 weeks).
+  - Out-of-bounds days prior to January 1st and after December 31st are rendered as invisible placeholder slots (`opacity-0 pointer-events-none`) preserving exact weekday alignment (e.g., January 1st starts on its accurate day of the week).
+- **Future Day Locking & Grayed-Out Styling:**
+  - Future days (dates past today through December 31st) are locked and unclickable (`disabled={cell.isFuture}`, `cursor-not-allowed`).
+  - Styled with faint dashed border and muted grayish tint matching the Month view design token:
+    `border border-dashed border-[#c6d6ce]/60 bg-[#e8efec]/40 opacity-40 cursor-not-allowed dark:border-white/[0.04] dark:bg-white/[0.02] dark:opacity-30`.
+  - Accessible `title` and `aria-label` indicate `Upcoming (Locked)` status.
+- **Pixel-Perfect 12-Month Header Alignment:**
+  - Generated all 12 month labels (`Jan` through `Dec`) mapped to the exact week column where each month begins.
+  - Replaced imprecise `justify-between` spacing with week-column-matched slots (`flex gap-1` mirroring the 53 week columns) and matching day-of-week axis spacer (`w-7 sm:w-8`).
+  - Guarantees each month label sits directly aligned under its starting week without drift or premature cutoff.
+- **Test Suite & Verification:**
+  - Expanded `MealActivityCalendar.test.tsx` (7/7 tests passing) verifying all 12 month labels render, future days are disabled with locked labels, and active days remain clickable with live status updates.
+  - ESLint check: passed with 0 errors and 0 warnings.
+
+
 

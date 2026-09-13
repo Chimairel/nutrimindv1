@@ -166,4 +166,34 @@ describe('MealActivityCalendar', () => {
     fireEvent.click(activeCell);
     expect(handleSelect).toHaveBeenCalledWith('2026-09-07');
   });
+
+  it('renders all 12 month labels and locks future days in Year view', () => {
+    const handleSelect = vi.fn();
+    render(
+      <MealActivityCalendar
+        logs={mockLogs}
+        selectedDateKey={null}
+        onSelectDateKey={handleSelect}
+      />
+    );
+
+    // Year view is the default timeRange
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    for (const m of months) {
+      expect(screen.getByText(m)).toBeInTheDocument();
+    }
+
+    // Future days (e.g. December 2026) must be rendered as disabled buttons with locked aria-label & title
+    const futureCells = screen.getAllByLabelText(/Upcoming \(Locked\)/i);
+    expect(futureCells.length).toBeGreaterThan(0);
+    expect(futureCells[0]).toBeDisabled();
+    expect(futureCells[0]).toHaveAttribute('title', expect.stringContaining('Upcoming (Locked)'));
+
+    // Past active day cell (2026-09-07) is enabled and hovering updates the status bar
+    const activeCell = screen.getByLabelText(/2026-09-07: 2 meals logged/i);
+    expect(activeCell).not.toBeDisabled();
+    fireEvent.mouseEnter(activeCell);
+    expect(screen.getByText(/2 meals logged/i)).toBeInTheDocument();
+    expect(screen.getByText(/1160 kcal/i)).toBeInTheDocument();
+  });
 });
