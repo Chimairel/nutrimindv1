@@ -79,49 +79,42 @@ export default function MealPlanGenerationProgress({
 
   return (
     <section
-      className="flex min-h-[65vh] items-center justify-center px-4 py-10 text-brand-text"
+      className="flex min-h-[65vh] flex-col items-center justify-center px-4 py-12 text-brand-text"
       aria-live="polite"
       aria-busy={!isComplete}
     >
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-brand-border bg-brand-surface p-6 shadow-card-lg md:p-8">
-        <div
-          className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-brand-green via-brand-cyan to-brand-accent"
-          aria-hidden="true"
-        />
-
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-green-light text-brand-green">
+      <div className="relative mx-auto flex w-full max-w-lg flex-col items-center text-center">
+        {/* Animated Icon with Soft Ambient Aura */}
+        <div className="relative mb-6 flex h-16 w-16 items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-brand-green/20 blur-xl animate-pulse" />
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-green/30 bg-brand-green/10 text-brand-green shadow-sm">
             {isComplete ? (
-              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+              <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
             ) : (
-              <Sparkles className="h-6 w-6 animate-pulse" aria-hidden="true" />
+              <Sparkles className="h-7 w-7 animate-pulse text-brand-green" aria-hidden="true" />
             )}
-          </div>
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-brand-green">
-              Personalized plan generation
-            </p>
-            <h1 className="mt-1 font-display text-2xl font-black tracking-tight text-brand-text">
-              Building your weekly meal plan
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-              NutriMind is assembling a safe, practical plan around your nutrition profile.
-            </p>
           </div>
         </div>
 
-        <div className="mt-8">
-          <div className="mb-3 flex items-end justify-between gap-4">
-            <div>
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-brand-muted">
-                Estimated progress
-              </p>
-              <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-brand-muted">
-                <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>{getRemainingTimeLabel(normalizedProgress, elapsedSeconds)}</span>
-              </div>
+        {/* Eyebrow, Title & Subtitle */}
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-green">
+          Personalized plan generation
+        </p>
+        <h1 className="mt-2 font-display text-2xl font-black tracking-tight text-brand-text sm:text-3xl">
+          {isComplete ? 'Your meal plan is ready!' : 'Building your weekly meal plan'}
+        </h1>
+        <p className="mt-2 max-w-md text-xs leading-relaxed text-brand-muted sm:text-sm">
+          NutriMind is assembling a safe, practical plan around your nutrition profile.
+        </p>
+
+        {/* Centered Progress Bar Section (Free from outer box) */}
+        <div className="mt-8 w-full max-w-md">
+          <div className="mb-2.5 flex items-center justify-between text-xs font-semibold">
+            <div className="flex items-center gap-1.5 text-brand-muted">
+              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{getRemainingTimeLabel(normalizedProgress, elapsedSeconds)}</span>
             </div>
-            <span className="font-mono text-2xl font-black tabular-nums text-brand-green">
+            <span className="font-mono text-base font-black tabular-nums text-brand-green">
               <AnimatedNumber value={normalizedProgress} format={(v) => `${Math.round(v)}%`} />
             </span>
           </div>
@@ -129,32 +122,35 @@ export default function MealPlanGenerationProgress({
           <Progress
             value={normalizedProgress}
             max={100}
-            className="h-3 border-brand-border bg-brand-bgAlt"
+            className="h-2.5 w-full border-brand-border/60 bg-brand-surface/80 sm:h-3"
             aria-label={`Estimated meal plan generation progress: ${normalizedProgress}%`}
           />
         </div>
 
-        <div className="mt-6 rounded-2xl border border-brand-border bg-brand-bgAlt p-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-1.5 flex shrink-0 items-center gap-1" aria-hidden="true">
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-green"
-                  style={{ animationDelay: `${delay}ms` }}
-                />
-              ))}
-            </div>
-            <div>
-              <p className="font-display text-sm font-extrabold text-brand-text">
-                {!isComplete ? <TextShimmer>{stageMessage || phase.title}</TextShimmer> : stageMessage || phase.title}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-brand-muted">{phase.detail}</p>
-            </div>
+        {/* Current Stage Status (Frameless & Centered) */}
+        <div className="mt-6 flex flex-col items-center">
+          <div className="flex items-center justify-center gap-2">
+            {!isComplete && (
+              <span className="flex items-center gap-1" aria-hidden="true">
+                {[0, 150, 300].map((delay) => (
+                  <span
+                    key={delay}
+                    className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-green"
+                    style={{ animationDelay: `${delay}ms` }}
+                  />
+                ))}
+              </span>
+            )}
+            <p className="font-display text-sm font-bold text-brand-text">
+              {!isComplete ? <TextShimmer>{stageMessage || phase.title}</TextShimmer> : stageMessage || phase.title}
+            </p>
           </div>
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-brand-muted">
+            {phase.detail}
+          </p>
         </div>
 
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-brand-muted">
+        <p className="mt-8 text-center text-[11px] leading-relaxed text-brand-muted/70">
           Progress is reported by the server. The bar reaches 100% only after the plan is safely stored.
         </p>
       </div>

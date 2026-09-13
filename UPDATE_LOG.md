@@ -310,6 +310,22 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Vitest test suite: 15 passed across 3 test files.
   - Live routes: `http://localhost:3000/meals` and `http://localhost:3000/progress` responding with HTTP 200 OK.
 
+---
+
+## 📅 ADDENDUM 15: FRAMELESS CENTERED MEAL GENERATION PROGRESS (September 2026)
+*Freed the meal generation loading bar and status from enclosing box/div containers, providing a seamless, centered experience.*
+
+- **Frameless Centered Meal Generation (`frontend/src/components/user/MealPlanGenerationProgress.tsx`):**
+  - Removed enclosing card container styling (`rounded-[28px]`, `border border-brand-border`, `bg-brand-surface`, `shadow-card-lg`, and the top gradient bar).
+  - Removed inner card container around the stage message (`border border-brand-border bg-brand-bgAlt p-4`), allowing stage status and shimmering text to sit seamlessly directly on the workspace background.
+  - Balanced the layout into a clean, centered stack (`flex min-h-[65vh] flex-col items-center justify-center text-center`) with glowing icon, title, subtitle, centered progress bar (`max-w-md`), and status updates.
+- **Automated Verification:**
+  - Added unit test suite `MealPlanGenerationProgress.test.tsx` asserting frameless layout and completed states.
+  - Vitest suite: 19 passed across 5 test files.
+  - ESLint check: passed with 0 errors and 0 warnings.
+  - Live dev servers: backend (port 5000) and frontend (port 3000) running and healthy.
+
+
 
 
 
