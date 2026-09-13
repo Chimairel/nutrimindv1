@@ -345,6 +345,20 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Vitest suite: 34 passed across 6 test files.
   - ESLint check: passed with 0 errors and 0 warnings.
 
+---
+
+## 📅 ADDENDUM 17: DASHBOARD DAILY INTAKE CARD FULL-HEIGHT SYNCHRONIZATION (September 2026)
+*Eliminated the empty vertical gap below the Daily Intake card so both primary dashboard panels match bottom edges flush.*
+
+- **Full-Height Alignment (`frontend/src/features/dashboard/CockpitDashboard.tsx`):**
+  - Removed `items-start` from the outer dashboard grid container, allowing grid cells to stretch naturally to equal heights.
+  - Added `flex h-full flex-col justify-between` to `.daily-intake-card`, ensuring its dark green radial gradient background and border cover the full vertical span.
+  - Added a dedicated bottom summary pill (`Remaining budget: X kcal`) in `.daily-intake-card` for immediate daily budget clarity.
+- **Automated Verification:**
+  - Vitest suite: 38 passed across 7 test files.
+  - ESLint check: passed with 0 errors and 0 warnings.
+
+
 
 
 

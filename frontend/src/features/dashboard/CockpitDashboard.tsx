@@ -66,63 +66,77 @@ export function CockpitDashboard({
   ];
   return (
     <section aria-label="Daily nutrition" className="space-y-5">
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
-        <section aria-label="Nutrition summary" className="daily-intake-card rounded-3xl border p-5 sm:p-6">
-          <p className="text-sm font-semibold text-brand-muted">Your daily intake</p>
-          <div className="my-6 flex items-center gap-5">
-            <div
-              className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full p-2"
-              style={{ background: `conic-gradient(var(--brand-green) ${percent}%, var(--brand-border) 0)` }}
-            >
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-brand-surface font-display text-3xl font-bold text-brand-text">
-                {percent}%
-              </div>
-            </div>
-            <div>
-              <p className="font-display text-3xl font-bold tracking-tight text-brand-text">
-                {Math.round(metrics.caloriesConsumed).toLocaleString()}
-              </p>
-              <p className="mt-1 text-sm text-brand-muted">
-                of {Math.round(metrics.caloriesTarget).toLocaleString()} kcal
-              </p>
-              <p className="mt-2 text-xs font-medium text-brand-green">Logged for this day</p>
-            </div>
-          </div>
-          <div className="space-y-4 border-t border-brand-border pt-5">
-            {macros.map((macro) => (
-              <div key={macro.label}>
-                <div className="mb-2 flex justify-between gap-3 text-sm">
-                  <span className="font-medium text-brand-text">{macro.label}</span>
-                  <span className="text-brand-muted">
-                    <strong className="text-brand-text">{Math.round(macro.consumed)}g</strong> /{' '}
-                    {Math.round(macro.target)}g
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-brand-border" aria-hidden="true">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      background: macro.color,
-                      width: `${Math.max(0, Math.min(100, (macro.consumed / Math.max(1, macro.target)) * 100))}%`,
-                    }}
-                  />
+      <div className="grid gap-5 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
+        <section
+          aria-label="Nutrition summary"
+          className="daily-intake-card flex h-full flex-col justify-between rounded-3xl border p-5 sm:p-6"
+        >
+          <div>
+            <p className="text-sm font-semibold text-brand-muted">Your daily intake</p>
+            <div className="my-6 flex items-center gap-5">
+              <div
+                className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full p-2"
+                style={{ background: `conic-gradient(var(--brand-green) ${percent}%, var(--brand-border) 0)` }}
+              >
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-brand-surface font-display text-3xl font-bold text-brand-text">
+                  {percent}%
                 </div>
               </div>
-            ))}
+              <div>
+                <p className="font-display text-3xl font-bold tracking-tight text-brand-text">
+                  {Math.round(metrics.caloriesConsumed).toLocaleString()}
+                </p>
+                <p className="mt-1 text-sm text-brand-muted">
+                  of {Math.round(metrics.caloriesTarget).toLocaleString()} kcal
+                </p>
+                <p className="mt-2 text-xs font-medium text-brand-green">Logged for this day</p>
+              </div>
+            </div>
+            <div className="space-y-4 border-t border-brand-border pt-5">
+              {macros.map((macro) => (
+                <div key={macro.label}>
+                  <div className="mb-2 flex justify-between gap-3 text-sm">
+                    <span className="font-medium text-brand-text">{macro.label}</span>
+                    <span className="text-brand-muted">
+                      <strong className="text-brand-text">{Math.round(macro.consumed)}g</strong> /{' '}
+                      {Math.round(macro.target)}g
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-brand-border" aria-hidden="true">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        background: macro.color,
+                        width: `${Math.max(0, Math.min(100, (macro.consumed / Math.max(1, macro.target)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          {metrics.provisionalCalories > 0 && (
-            <p className="mt-5 rounded-xl bg-status-pending-bg p-3 text-xs leading-relaxed text-status-pending-text">
-              Includes {Math.round(metrics.provisionalCalories)} provisional kcal from outside meals.
-            </p>
-          )}
-          {metrics.unresolvedMealCount > 0 && (
-            <p role="status" className="mt-3 text-xs leading-relaxed text-status-pending-text">
-              {metrics.unresolvedMealCount} outside meal{metrics.unresolvedMealCount === 1 ? '' : 's'} with incomplete
-              nutrition. Unresolved items are excluded from totals.
-            </p>
-          )}
+
+          <div className="mt-6 space-y-3">
+            {metrics.provisionalCalories > 0 && (
+              <p className="rounded-xl bg-status-pending-bg p-3 text-xs leading-relaxed text-status-pending-text">
+                Includes {Math.round(metrics.provisionalCalories)} provisional kcal from outside meals.
+              </p>
+            )}
+            {metrics.unresolvedMealCount > 0 && (
+              <p role="status" className="text-xs leading-relaxed text-status-pending-text">
+                {metrics.unresolvedMealCount} outside meal{metrics.unresolvedMealCount === 1 ? '' : 's'} with incomplete
+                nutrition. Unresolved items are excluded from totals.
+              </p>
+            )}
+            <div className="flex items-center justify-between rounded-2xl border border-brand-border/60 bg-black/20 p-3 text-xs">
+              <span className="font-medium text-brand-muted">Remaining budget</span>
+              <span className="font-mono font-bold text-brand-green">
+                {Math.max(0, Math.round(metrics.caloriesTarget - metrics.caloriesConsumed)).toLocaleString()} kcal
+              </span>
+            </div>
+          </div>
         </section>
-        <section aria-label="Scheduled meals" className="dashboard-surface min-w-0 rounded-3xl p-5 sm:p-6">
+        <section aria-label="Scheduled meals" className="dashboard-surface flex h-full min-w-0 flex-col rounded-3xl p-5 sm:p-6">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-brand-green">
