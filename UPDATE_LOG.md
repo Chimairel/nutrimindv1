@@ -302,6 +302,9 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Enabled hover tooltips for all navigation items (Dashboard, Meals, Grocery, Progress, Profile) across both active and inactive states.
 - **Product Docs Link Removal (`frontend/src/components/ui/Sidebar.tsx`):**
   - Removed the `/docs` "Product docs" navigation link and Sparkles icon from the sidebar bottom panel.
+- **Sidebar Bottom-Pinned Profile & Stronger Red Logout (`frontend/src/components/ui/Sidebar.tsx`):**
+  - Added `flex-1` to the collapsed `<nav>` and set `mt-auto` on the footer container, ensuring Profile and Logout are consistently pinned to the bottom of the sidebar across both expanded and collapsed modes.
+  - Upgraded the Logout button to a vibrant, saturated red (`text-red-500`, hover `text-red-400` and `bg-red-500/15`, stroke `2.25`) with hover suppression handling on click/blur/mouseleave for crisp visibility.
 - **Verification:**
   - ESLint check: passed with 0 errors and 0 warnings.
   - Vitest test suite: 15 passed across 3 test files.

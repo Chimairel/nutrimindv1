@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         id="nutrimind-sidebar-navigation"
         className={
           collapsed
-            ? 'relative flex flex-col gap-1.5 overflow-visible'
+            ? 'relative flex flex-1 flex-col gap-1.5 overflow-visible'
             : 'relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent'
         }
         aria-label={`${user.role.toLowerCase()} navigation`}
@@ -221,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         })}
       </nav>
 
-      <div className="relative mt-4 border-t border-white/[0.08] pt-4">
+      <div className="relative mt-auto border-t border-white/[0.08] pt-4">
         <Link
           href={profileHref}
           onClick={() => setSuppressedTooltip('profile')}
@@ -253,14 +253,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
         <button
           type="button"
-          onClick={() => logout()}
+          onClick={() => {
+            setSuppressedTooltip('logout');
+            logout();
+          }}
+          onBlur={() => setSuppressedTooltip((current) => (current === 'logout' ? null : current))}
+          onMouseLeave={(event) => {
+            if (suppressedTooltip === 'logout') event.currentTarget.blur();
+            setSuppressedTooltip((current) => (current === 'logout' ? null : current));
+          }}
           aria-label={collapsed ? 'Log out' : undefined}
           aria-describedby={collapsed ? 'sidebar-logout-tooltip' : undefined}
-          className={`group relative mt-2 flex w-full items-center rounded-xl text-red-300/70 outline-none transition hover:bg-red-500/10 hover:text-red-200 focus:ring-2 focus:ring-red-400/30 ${collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2.5'}`}
+          className={`group relative mt-2 flex w-full items-center rounded-xl text-red-500 outline-none transition hover:bg-red-500/15 hover:text-red-400 focus:ring-2 focus:ring-red-500/30 ${collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2.5'}`}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="text-xs font-semibold">Log out</span>}
-          {collapsed && <SidebarTooltip id="sidebar-logout-tooltip" label="Log out" />}
+          <LogOut className="h-4 w-4 shrink-0 stroke-[2.25] text-red-500 transition-colors group-hover:text-red-400" />
+          {!collapsed && (
+            <span className="text-xs font-semibold text-red-500 transition-colors group-hover:text-red-400">
+              Log out
+            </span>
+          )}
+          {collapsed && (
+            <SidebarTooltip
+              id="sidebar-logout-tooltip"
+              label="Log out"
+              suppressed={suppressedTooltip === 'logout'}
+            />
+          )}
         </button>
       </div>
     </aside>
