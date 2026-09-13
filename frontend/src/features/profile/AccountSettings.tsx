@@ -93,7 +93,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
       if (res.data.success) {
         setAvatarMsg('Avatar updated successfully!');
         const savedImage = res.data.data?.image ?? (isDefaultActive ? defaultUserImage : avatarSeed);
-        updateUserSession({ image: savedImage });
+        const googleImage = res.data.data?.googleImage ?? (savedImage?.startsWith('http') ? savedImage : user?.googleImage);
+        updateUserSession({ image: savedImage, googleImage });
       }
     } catch {
       setAvatarError('Failed to save avatar.');
@@ -452,6 +453,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     <p className="text-xs font-bold text-brand-text">Sync Google profile picture</p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-brand-muted">
                       Sign in with Google once to import and use your real Google account profile photo under the <strong>Default</strong> option.
+                    </p>
+                    <p className="mt-1 text-[10px] text-brand-muted/80">
+                      💡 <em>Using Brave?</em> Toggle <strong>Brave Shields to OFF</strong> in your address bar, or simply copy your Google profile photo address and paste it directly into the <strong>Avatar seed</strong> input above.
                     </p>
                   </div>
                   <div className="max-w-xs">

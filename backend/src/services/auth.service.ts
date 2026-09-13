@@ -151,11 +151,13 @@ export class AuthService {
     const { email, given_name, family_name, name: googleName, picture } = payload;
     const sanitizedEmail = email.trim().toLowerCase();
     const displayName = [given_name, family_name].filter(Boolean).join(' ') || googleName || 'Google User';
+    console.log('[googleAuth] Google token payload:', { email, sanitizedEmail, picture: picture ? picture.slice(0, 40) + '...' : undefined, sub: payload.sub });
 
     // Check if user already exists
     let user = await prisma.user.findUnique({
       where: { email: sanitizedEmail },
     });
+    console.log('[googleAuth] Matched user in DB:', user ? { id: user.id, email: user.email, image: user.image } : 'NOT_FOUND');
 
     if (user) {
       if (user.isSuspended) throw new Error('This account has been suspended.');
