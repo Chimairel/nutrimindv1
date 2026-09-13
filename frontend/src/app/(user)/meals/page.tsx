@@ -38,6 +38,48 @@ import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/man
 import { useMealsWorkspace } from '@/features/meals/useMealsWorkspace';
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
+import { Select, SelectOption } from '@/components/ui/Select';
+
+const HISTORY_SOURCE_OPTIONS: SelectOption[] = [
+  {
+    value: 'All',
+    label: 'All Sources',
+    icon: <Sparkles className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />,
+  },
+  {
+    value: 'SYSTEM_GENERATED',
+    label: 'NutriMind',
+    icon: <ShieldCheck className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />,
+  },
+  {
+    value: 'USER_LOGGED',
+    label: 'Outside Meal',
+    icon: <FileText className="h-3.5 w-3.5 text-brand-muted dark:text-white/40" />,
+  },
+  {
+    value: 'USER_SWAPPED',
+    label: 'Swapped',
+    icon: <Repeat2 className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />,
+  },
+];
+
+const HISTORY_STATUS_OPTIONS: SelectOption[] = [
+  {
+    value: 'All',
+    label: 'All Statuses',
+    icon: <ListChecks className="h-3.5 w-3.5 text-brand-muted dark:text-white/40" />,
+  },
+  {
+    value: 'DONE',
+    label: 'Done',
+    icon: <CheckCircle2 className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />,
+  },
+  {
+    value: 'SKIPPED',
+    label: 'Skipped',
+    icon: <Clock3 className="h-3.5 w-3.5 text-amber-500" />,
+  },
+];
 
 export default function WeeklyPlanPage() {
   const workspace = useMealsWorkspace();
@@ -700,26 +742,23 @@ export default function WeeklyPlanPage() {
                     Apply
                   </Button>
                 </form>
-                <div className="grid w-full grid-cols-2 gap-2 md:w-auto">
-                  <select
-                    value={historySource}
-                    onChange={(e) => setHistorySource(e.target.value)}
-                    className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
-                  >
-                    <option value="All">All Sources</option>
-                    <option value="SYSTEM_GENERATED">NutriMind</option>
-                    <option value="USER_LOGGED">Outside Meal</option>
-                    <option value="USER_SWAPPED">Swapped</option>
-                  </select>
-                  <select
-                    value={historyStatus}
-                    onChange={(e) => setHistoryStatus(e.target.value)}
-                    className="h-10 rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="DONE">Done</option>
-                    <option value="SKIPPED">Skipped</option>
-                  </select>
+                <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:flex md:items-center">
+                  <div className="w-full md:w-40">
+                    <Select
+                      value={historySource}
+                      onChange={setHistorySource}
+                      options={HISTORY_SOURCE_OPTIONS}
+                      aria-label="Filter history by source"
+                    />
+                  </div>
+                  <div className="w-full md:w-36">
+                    <Select
+                      value={historyStatus}
+                      onChange={setHistoryStatus}
+                      options={HISTORY_STATUS_OPTIONS}
+                      aria-label="Filter history by status"
+                    />
+                  </div>
                 </div>
               </div>
 

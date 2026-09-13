@@ -246,5 +246,31 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Expanded `MealActivityCalendar.test.tsx` (7/7 tests passing) verifying all 12 month labels render, future days are disabled with locked labels, and active days remain clickable with live status updates.
   - ESLint check: passed with 0 errors and 0 warnings.
 
+---
+
+## 📅 ADDENDUM 12: THEME-NATIVE ACCESSIBLE CUSTOM SELECT COMPONENT (September 2026)
+*Replaced unstyled OS native `<select>` dropdowns with custom NutriMind theme-aligned, keyboard-accessible dropdown components.*
+
+- **Custom Select Component (`frontend/src/components/ui/Select.tsx`):**
+  - Replaced native `<select>` and OS popup options with a custom accessible combobox/listbox dropdown.
+  - Styled with NutriMind theme tokens:
+    - Trigger button: rounded `rounded-xl`, subtle border (`border-brand-border/80 dark:border-white/10`), background (`bg-brand-bgAlt/60 dark:bg-white/5`), focus ring (`ring-brand-green/20 dark:ring-brand-accent/20`), and animated rotating chevron (`ChevronDown`).
+    - Menu panel: popover anchored beneath trigger with `bg-brand-surface dark:bg-[#121e18]`, rounded `rounded-xl`, border `dark:border-white/10`, and deep shadow (`dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)]`).
+    - Option rows: rounded `rounded-lg`, distinct hover state, emerald/electric lime selection highlight (`bg-brand-green/15 text-brand-green dark:bg-brand-accent/20 dark:text-brand-accent`), and checkmark indicator (`Check` icon).
+    - Supports option icons for quick visual scanning.
+  - Fully accessible:
+    - Click-outside handling.
+    - Escape key closes menu.
+    - Keyboard navigation with `ArrowUp`, `ArrowDown`, `Enter`, and `Space`.
+    - WAI-ARIA combobox/listbox attributes (`role="combobox"`, `aria-expanded`, `aria-haspopup="listbox"`, `role="listbox"`, `role="option"`, `aria-selected`).
+- **Meal History Tab Integration (`frontend/src/app/(user)/meals/page.tsx`):**
+  - Upgraded both `historySource` (`All Sources`, `NutriMind`, `Outside Meal`, `Swapped`) and `historyStatus` (`All Statuses`, `Done`, `Skipped`) filter dropdowns to use `<Select>`.
+  - Decorated options with context-specific Lucide icons (`Sparkles`, `ShieldCheck`, `FileText`, `Repeat2`, `ListChecks`, `CheckCircle2`, `Clock3`).
+- **Test Suite & Verification:**
+  - Added unit test suite `frontend/src/components/ui/Select.test.tsx` (5/5 tests passing).
+  - Vitest suite (15 tests across 3 suites) passing.
+  - ESLint check: passed with 0 errors and 0 warnings.
+
+
 
 
