@@ -238,10 +238,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           }`}
         >
           <Avatar
-            size={collapsed ? 'md' : 'sm'}
+            size="sm"
             src={user.image}
             fallbackText={user.name}
-            className={`${collapsed ? 'h-11 w-11' : 'h-9 w-9'} rounded-full transition-transform duration-200 group-hover:scale-105`}
+            className={`${collapsed ? 'h-[38px] w-[38px]' : 'h-9 w-9'} rounded-full transition-transform duration-200 group-hover:scale-105`}
           />
           {!collapsed && (
             <div className="min-w-0 flex-1">
