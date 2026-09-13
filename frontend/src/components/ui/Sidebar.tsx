@@ -91,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             ? `self-start origin-top w-[68px] px-2 py-3.5 ${
                 isRailHovered
                   ? 'h-full shadow-[0_32px_90px_rgba(1,8,5,0.48)]'
-                  : 'h-[95%] shadow-[0_28px_80px_rgba(1,8,5,0.32)]'
+                  : 'h-[97%] shadow-[0_28px_80px_rgba(1,8,5,0.32)]'
               }`
             : 'h-full w-[248px] p-4'
         }
