@@ -159,7 +159,7 @@ export class UserProfileService {
   /**
    * Updates the user's avatar image seed or custom URL.
    */
-  static async updateUserImage(userId: string, image: string) {
+  static async updateUserImage(userId: string, image: string | null) {
     return prisma.user.update({
       where: { id: userId },
       data: { image },
@@ -282,6 +282,10 @@ export class UserProfileService {
             version: true,
           },
         },
+        accounts: {
+          where: { provider: 'google' },
+          select: { access_token: true },
+        },
       },
     });
 
@@ -290,6 +294,8 @@ export class UserProfileService {
     }
 
     const onboardingStatus = evaluateUserOnboardingStatus(user);
+    const googleAccount = user.accounts?.[0];
+    const googleImage = googleAccount?.access_token || (user.image?.startsWith('http') ? user.image : null);
 
     // Transform into clean structure for client
     return {
@@ -305,6 +311,7 @@ export class UserProfileService {
       healthDataConsentedAt: user.healthDataConsentedAt,
       onboardingDone: user.onboardingDone,
       image: user.image,
+      googleImage,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       userProfile: user.userProfile,

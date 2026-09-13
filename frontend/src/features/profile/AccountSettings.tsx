@@ -20,11 +20,27 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const [activePanel, setActivePanel] = useState<ProfilePanel>(initialPanel);
 
   // Avatar customization state
-  const [avatarSeed, setAvatarSeed] = useState(user?.image || '');
+  const defaultUserImage = user?.googleImage || (user?.image?.startsWith('http') ? user.image : null);
+  const initialSeed = (!user?.image || user.image.toLowerCase() === 'default' || user.image.startsWith('http'))
+    ? 'Default'
+    : user.image;
+  const [avatarSeed, setAvatarSeed] = useState(initialSeed);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
-  const PRESETS = ['John', 'Jane', 'Felix', 'Coco', 'Cookie', 'Simba', 'Buster', 'Lucky', 'Shadow', 'Sparky'];
+  const PRESETS = ['Default', 'Juan', 'Maria', 'Bayani', 'Tala', 'Luningning', 'Datu', 'Mayari', 'Malakas', 'Maganda'];
+
+  const isDefaultActive =
+    !avatarSeed ||
+    avatarSeed.toLowerCase() === 'default' ||
+    (Boolean(defaultUserImage) && avatarSeed === defaultUserImage);
+
+  const isPresetActive = (preset: string) => {
+    if (preset === 'Default') {
+      return isDefaultActive;
+    }
+    return !isDefaultActive && avatarSeed.toLowerCase() === preset.toLowerCase();
+  };
 
   // Account settings form state
   const [name, setName] = useState(user?.name || '');
@@ -71,10 +87,12 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
     setAvatarMsg(null);
     setAvatarError(null);
     try {
-      const res = await api.put('/user/profile/avatar', { image: avatarSeed });
+      const payloadImage = isDefaultActive ? 'Default' : avatarSeed;
+      const res = await api.put('/user/profile/avatar', { image: payloadImage });
       if (res.data.success) {
         setAvatarMsg('Avatar updated successfully!');
-        updateUserSession({ image: avatarSeed });
+        const savedImage = res.data.data?.image ?? (isDefaultActive ? defaultUserImage : avatarSeed);
+        updateUserSession({ image: savedImage });
       }
     } catch {
       setAvatarError('Failed to save avatar.');
@@ -352,7 +370,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             <div className="flex flex-col items-center justify-center border-b border-brand-border/60 bg-brand-bgAlt/55 p-7 lg:border-b-0 lg:border-r">
               <Avatar
                 size="lg"
-                src={avatarSeed}
+                src={isDefaultActive ? defaultUserImage || undefined : avatarSeed}
                 fallbackText={user.name}
                 className="h-28 w-28 rounded-[30px] border-2 border-brand-green/20 shadow-xl"
               />
@@ -362,9 +380,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             </div>
             <div className="p-5 sm:p-6">
               <div className="mb-5">
-                <h2 className="font-display text-base font-black text-brand-text">Pixel-art avatar</h2>
+                <h2 className="font-display text-base font-black text-brand-text">Profile avatar</h2>
                 <p className="mt-1 text-xs text-brand-muted">
-                  Choose a preset or enter any word to generate a distinct character.
+                  Select Default for your Google account photo, or choose a Filipino pixel-art preset.
                 </p>
               </div>
               {avatarMsg && (
@@ -390,7 +408,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   id="avatar-seed"
                   name="avatarSeed"
                   type="text"
-                  placeholder="Type any word..."
+                  placeholder="Default or enter any name..."
                   value={avatarSeed}
                   onChange={(e) => setAvatarSeed(e.target.value)}
                   className="min-w-0 flex-1 rounded-xl border border-brand-border bg-brand-bgAlt px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/25"
@@ -408,16 +426,23 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                 Quick presets
               </span>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setAvatarSeed(preset)}
-                    className={`rounded-xl border px-3 py-2 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${avatarSeed === preset ? 'border-brand-green bg-brand-green/15 text-brand-green' : 'border-brand-border bg-brand-bgAlt text-brand-muted hover:text-brand-text'}`}
-                  >
-                    {preset}
-                  </button>
-                ))}
+                {PRESETS.map((preset) => {
+                  const active = isPresetActive(preset);
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAvatarSeed(preset)}
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${
+                        active
+                          ? 'border-brand-green bg-brand-green/15 text-brand-green'
+                          : 'border-brand-border bg-brand-bgAlt text-brand-muted hover:text-brand-text'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

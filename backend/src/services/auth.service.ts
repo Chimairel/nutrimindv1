@@ -173,12 +173,36 @@ export class AuthService {
         user = { ...user, emailVerified: true };
       }
 
-      // Update profile picture if they don't have one
-      if (!user.image && picture) {
+      // Update profile picture if they don't have one or it was default
+      if (picture && (!user.image || user.image.toLowerCase() === 'default' || user.image.startsWith('https://lh3.googleusercontent.com'))) {
         await prisma.user.update({
           where: { id: user.id },
           data: { image: picture },
         });
+        user = { ...user, image: picture };
+      }
+
+      // Persist Google OAuth profile photo to Account record
+      if (picture) {
+        const existingAccount = await prisma.account.findFirst({
+          where: { userId: user.id, provider: 'google' },
+        });
+        if (existingAccount) {
+          await prisma.account.update({
+            where: { id: existingAccount.id },
+            data: { access_token: picture },
+          });
+        } else {
+          await prisma.account.create({
+            data: {
+              userId: user.id,
+              type: 'oauth',
+              provider: 'google',
+              providerAccountId: payload.sub || user.id,
+              access_token: picture,
+            },
+          });
+        }
       }
     } else {
       // New user — create account with emailVerified=true (Google already verified)
@@ -195,6 +219,16 @@ export class AuthService {
           role: 'USER',
           emailVerified: true,
           image: picture || null,
+          accounts: picture
+            ? {
+                create: {
+                  type: 'oauth',
+                  provider: 'google',
+                  providerAccountId: payload.sub || 'google-' + Date.now(),
+                  access_token: picture,
+                },
+              }
+            : undefined,
         },
       });
     }

@@ -4,14 +4,15 @@ import React from 'react';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
 
 interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> {
-  src?: string;
+  src?: string | null;
   alt?: string;
   fallbackText?: string;
   size?: 'sm' | 'md' | 'lg';
+  showSalakot?: boolean;
 }
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
-  ({ className = '', src, alt, fallbackText = 'NM', size = 'md', ...props }, ref) => {
+  ({ className = '', src, alt, fallbackText = 'NM', size = 'md', showSalakot = true, ...props }, ref) => {
     const sizeClasses = {
       sm: 'h-10 w-10 text-xs',
       md: 'h-14 w-14 text-sm',
@@ -33,10 +34,12 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
         if (src.startsWith('http://') || src.startsWith('https://')) {
           return src;
         }
+        if (src.toLowerCase() === 'default') {
+          return undefined;
+        }
         return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(src)}`;
       }
-      const seed = fallbackText ? fallbackText.trim() : 'user';
-      return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(seed)}`;
+      return undefined;
     };
 
     const displaySrc = getAvatarUrl();
@@ -45,19 +48,32 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
       <AvatarPrimitive.Root
         ref={ref}
         className={`
-        relative flex shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-brand-surface font-semibold shadow-sm ring-1 ring-brand-green/10
+        relative flex shrink-0 overflow-visible rounded-2xl border border-white/10 bg-brand-surface font-semibold shadow-sm ring-1 ring-brand-green/10
         ${sizeClasses[size]} ${className}
       `}
         {...props}
       >
-        <AvatarPrimitive.Image
-          src={displaySrc}
-          alt={alt}
-          className="aspect-square h-full w-full object-cover animate-fade-in"
-        />
-        <AvatarPrimitive.Fallback className="flex h-full w-full items-center justify-center rounded-2xl bg-brand-bgAlt text-brand-green font-display font-semibold">
-          {getInitials(fallbackText)}
-        </AvatarPrimitive.Fallback>
+        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[inherit]">
+          {displaySrc ? (
+            <AvatarPrimitive.Image
+              src={displaySrc}
+              alt={alt}
+              className="aspect-square h-full w-full object-cover animate-fade-in"
+            />
+          ) : null}
+          <AvatarPrimitive.Fallback className="flex h-full w-full items-center justify-center rounded-[inherit] bg-brand-bgAlt text-brand-green font-display font-semibold">
+            {getInitials(fallbackText)}
+          </AvatarPrimitive.Fallback>
+        </div>
+        {showSalakot && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/icons/salakot.svg"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-[14%] -right-[8%] w-[64%] h-auto select-none z-10 drop-shadow-sm"
+          />
+        )}
       </AvatarPrimitive.Root>
     );
   }

@@ -375,6 +375,30 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Backend test suite: 521 passed with 0 failures.
   - Live API validation: verified `/api/user/meals/current` returns all 21 meals and all 7 scheduled dates (Sep 12T16:00Z through Sep 18T16:00Z) for active user.
 
+---
+
+## 📅 ADDENDUM 19: FIXED SALAKOT PROFILE PICTURE ADORNMENT & FILIPINO AVATAR PRESETS (September 2026)
+*Added a fixed traditional Filipino salakot hat tilted onto the user's profile avatar, integrated Google account photo fallback for the 'Default' avatar option, and localized pixel-art preset seeds to authentic Filipino names.*
+
+- **Salakot Hat Overlay (`Avatar.tsx`, `salakot.svg`):**
+  - Updated `public/icons/salakot.svg` viewBox to `360 60 865 790` to tightly frame the conical hat and eliminate unnecessary empty canvas padding.
+  - Updated `<Avatar />` to feature a fixed salakot hat overlay positioned tilted on the top-right corner (`-top-[14%] -right-[8%] w-[64%] select-none pointer-events-none z-10 drop-shadow-sm`).
+  - Allowed `AvatarPrimitive.Root` to overflow visibly while wrapping the inner avatar image and fallback in an `overflow-hidden rounded-[inherit]` container, ensuring the avatar image is neatly clipped to its border radius while the salakot sits atop the container naturally.
+  - Added optional `showSalakot` prop (defaults to `true`) across all avatar variants (`sm`, `md`, `lg`).
+- **Default Profile Picture Support (Google OAuth & Initials Fallback):**
+  - Updated `AuthService.googleAuth` (`backend/src/services/auth.service.ts`) to persist the user's Google profile picture (`picture`) into the `Account` table upon OAuth login, and ensure default avatars adopt the Google photo.
+  - Updated `UserService.getUserProfileDetails` (`backend/src/services/user-profile.service.ts`) to query the linked Google account and expose `googleImage` in profile responses.
+  - Updated `UserController.updateAvatar` (`backend/src/controllers/user.controller.ts`) to resolve `'default'` or empty avatar seeds to the user's linked Google photo (or `null`), restoring the authentic Google profile photo upon selection.
+  - Updated `AuthContext.tsx` (`frontend/src/lib/context/AuthContext.tsx`) to track `googleImage` in `UserSession`.
+- **Filipino Avatar Presets (`AccountSettings.tsx`):**
+  - Replaced English pet/person names with authentic Filipino presets: `Default`, `Juan`, `Maria`, `Bayani`, `Tala`, `Luningning`, `Datu`, `Mayari`, `Malakas`, and `Maganda`.
+  - Configured `'Default'` to dynamically preview the user's Google profile picture (or clean fallback initials if registered via email), while presets call the DiceBear Pixel-Art API using the Filipino name seed.
+- **Automated Verification:**
+  - Added `Avatar.test.tsx` testing the salakot overlay, `showSalakot={false}` opt-out, fallback initials on `'default'`, DiceBear pixel-art rendering on Filipino name seeds, and external Google photo URL rendering.
+  - Vitest frontend suite: 107 passed across 28 test files.
+  - ESLint check: passed with 0 errors and 0 warnings.
+  - Backend test suite: 521 passed with 0 failures.
+
 
 
 

@@ -18,6 +18,7 @@ export interface UserSession {
   reportAcknowledged: boolean;
   onboardingNextPath?: string;
   image?: string;
+  googleImage?: string;
 }
 
 export interface AuthContextType {
@@ -53,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           onboardingDone,
           tosAccepted,
           image,
+          googleImage,
           nutritionReport,
           onboardingStatus,
         } = response.data.data;
@@ -65,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           onboardingDone,
           tosAccepted,
           image,
+          googleImage,
           reportAcknowledged: !!nutritionReport?.acknowledgedAt,
           onboardingNextPath: onboardingStatus?.nextPath,
         };
