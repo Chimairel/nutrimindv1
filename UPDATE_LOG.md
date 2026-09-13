@@ -198,3 +198,31 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Frontend: Added unit tests in `UnloggedMealCatchUpCard.test.tsx` verifying render, eaten toggle, and skip toggle (90 passed across 25 test files).
   - Frontend Lint: `npm run lint` passed with 0 errors and 0 warnings.
 
+---
+
+## 📅 ADDENDUM 10: 3-MONTH CAROUSEL REDESIGN & FUTURE MONTH LOCKING (September 2026)
+*Multi-month side-by-side activity visualization with navigation chevrons, future-month locking, and calendar alignment.*
+
+- **Side-by-Side 3-Month Matrix Layout (`MealActivityCalendar.tsx`):**
+  - Redesigned Month view to present 3 consecutive months horizontally: Previous Month (`[Month - 1]`), Focused Center Month (`[Month 0]`), and Next Month (`[Month + 1]`).
+  - Added interactive navigation chevrons between the month panels:
+    - Left chevron `<`: shifts focus to previous months.
+    - Right chevron `>`: shifts focus back towards the current month.
+  - Positioned navigation chevrons vertically centered with the calendar day grids (`pt-8 sm:pt-9`).
+- **Future Month & Chevron Locking Rules:**
+  - When the center month is the active/current month (`monthOffset === 0`), the next month panel is recognized as strictly in the future.
+  - The right chevron `>` is unclickable and disabled (`disabled={!canGoNext}`, `cursor-not-allowed`, `opacity-30`).
+  - The future month panel is displayed with grayish locked styling (`opacity-40 grayscale select-none pointer-events-none cursor-not-allowed`) and a subtle `Locked` badge.
+  - Future month cells are unclickable.
+  - When navigating backwards in time with `<`, the right chevron re-enables to allow advancing back to the current month.
+- **Calendar Grid Alignment & Aesthetic:**
+  - Individual day-of-week vertical axes (`Sun`, `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`) for each month.
+  - Clean column structure with invisible placeholders for days outside the month boundary, guaranteeing 100% vertical row alignment.
+  - High-contrast meal count badges (`1`, `2`, `3+`) inside days with logged activity, styled with NutriMind's theme palette.
+  - Header badge dynamically reports active days count for the focused month (`2 active days (month)`).
+- **Test Suite & Verification:**
+  - Added unit tests in `MealActivityCalendar.test.tsx` testing 3-month side-by-side rendering, future month locking, disabled right chevron at current month, chevron re-enabling after backwards navigation, and day selection (6 passed).
+  - ESLint check: passed with 0 errors and 0 warnings.
+  - Next.js production build: 52/52 routes successfully compiled.
+
+

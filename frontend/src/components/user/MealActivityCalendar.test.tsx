@@ -85,4 +85,85 @@ describe('MealActivityCalendar', () => {
     fireEvent.click(activeCell);
     expect(handleSelect).toHaveBeenCalledWith('2026-09-07');
   });
+
+  it('renders 3 months side-by-side with locked future month and disabled right chevron in Month view', () => {
+    const handleSelect = vi.fn();
+    render(
+      <MealActivityCalendar
+        logs={mockLogs}
+        selectedDateKey={null}
+        onSelectDateKey={handleSelect}
+      />
+    );
+
+    // Switch to Month view
+    fireEvent.click(screen.getByText('Month'));
+
+    // Verify left and right chevrons are present
+    const prevBtn = screen.getByRole('button', { name: /previous month/i });
+    const nextBtn = screen.getByRole('button', { name: /next month/i });
+
+    expect(prevBtn).toBeInTheDocument();
+    expect(prevBtn).not.toBeDisabled();
+
+    expect(nextBtn).toBeInTheDocument();
+    // At current month (monthOffset = 0), next month is future so nextBtn must be disabled
+    expect(nextBtn).toBeDisabled();
+
+    // Verify locked badge is shown for future month
+    expect(screen.getByText('Locked')).toBeInTheDocument();
+  });
+
+  it('enables the next month chevron after navigating to previous months with left chevron', () => {
+    const handleSelect = vi.fn();
+    render(
+      <MealActivityCalendar
+        logs={mockLogs}
+        selectedDateKey={null}
+        onSelectDateKey={handleSelect}
+      />
+    );
+
+    // Switch to Month view
+    fireEvent.click(screen.getByText('Month'));
+
+    const prevBtn = screen.getByRole('button', { name: /previous month/i });
+    const nextBtn = screen.getByRole('button', { name: /next month/i });
+
+    // Initially disabled
+    expect(nextBtn).toBeDisabled();
+
+    // Click previous month
+    fireEvent.click(prevBtn);
+
+    // After navigating back, next month button should now be enabled
+    expect(nextBtn).not.toBeDisabled();
+
+    // Click next month to return to current month
+    fireEvent.click(nextBtn);
+
+    // Next button should be disabled again
+    expect(nextBtn).toBeDisabled();
+  });
+
+  it('allows clicking an active day cell in Month view to trigger onSelectDateKey', () => {
+    const handleSelect = vi.fn();
+    render(
+      <MealActivityCalendar
+        logs={mockLogs}
+        selectedDateKey={null}
+        onSelectDateKey={handleSelect}
+      />
+    );
+
+    // Switch to Month view
+    fireEvent.click(screen.getByText('Month'));
+
+    // September 7 has 2 logged meals
+    const activeCell = screen.getByLabelText(/2026-09-07: 2 meals logged/i);
+    expect(activeCell).toBeInTheDocument();
+
+    fireEvent.click(activeCell);
+    expect(handleSelect).toHaveBeenCalledWith('2026-09-07');
+  });
 });
