@@ -159,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
       <nav
         id="nutrimind-sidebar-navigation"
-        className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto"
+        className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent"
         aria-label={`${user.role.toLowerCase()} navigation`}
       >
         {navItems.map((item, index) => {

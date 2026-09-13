@@ -271,6 +271,24 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Vitest suite (15 tests across 3 suites) passing.
   - ESLint check: passed with 0 errors and 0 warnings.
 
+---
+
+## 📅 ADDENDUM 13: SLEEK ULTRA-THIN SCROLLBARS & SIDEBAR HORIZONTAL OVERFLOW FIX (September 2026)
+*Eliminated horizontal scrollbar in collapsed desktop sidebar and implemented ultra-thin, theme-native scrollbars across the application.*
+
+- **Sidebar Horizontal Scrollbar Removal (`frontend/src/components/ui/Sidebar.tsx`):**
+  - Added `overflow-x-hidden` to the sidebar `<nav id="nutrimind-sidebar-navigation">` container to prevent subpixel layout calculations in collapsed mode (84px width) from triggering an unwanted horizontal scrollbar track/thumb.
+  - Configured custom ultra-thin scrollbar styling for the sidebar (`[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent`).
+- **Global Sleek Scrollbar Styling (`frontend/src/app/globals.css`):**
+  - Implemented cross-browser thin scrollbar rules (`scrollbar-width: thin` and `::-webkit-scrollbar` with width/height: 6px).
+  - Configured rounded pill thumbs with translucent brand emerald tint in light mode and subtle white translucent tint in dark mode (`rgba(255, 255, 255, 0.15)`).
+  - Added utility classes `.scrollbar-thin` (5px) and `.scrollbar-none` for tight UI components (such as dropdowns and heatmaps).
+- **Test Suite & Verification:**
+  - ESLint check: passed with 0 errors and 0 warnings.
+  - Vitest tests: all suites passing (12 tests).
+  - Route check: `http://localhost:3000/meals` responds with HTTP 200 OK.
+
+
 
 
 
