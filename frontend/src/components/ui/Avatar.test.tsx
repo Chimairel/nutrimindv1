@@ -41,8 +41,9 @@ describe('Avatar', () => {
     const { container } = render(<Avatar src="Bedic" fallbackText="Bedic Pacaldo" />);
 
     await waitFor(() => {
-      const img = container.querySelector('img[src*="dicebear.com/10.x/open-peeps/svg?seed=Bedic"]');
+      const img = container.querySelector('img[src*="seed=Bedic"]');
       expect(img).toBeInTheDocument();
+      expect(img?.getAttribute('src')).toContain('dicebear.com/10.x/open-peeps/svg');
     });
   });
 
