@@ -233,9 +233,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           aria-label={collapsed ? `Profile: ${user.name}` : undefined}
           aria-describedby={collapsed ? 'sidebar-profile-tooltip' : undefined}
           aria-current={profileActive ? 'page' : undefined}
-          className={`group relative flex items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] transition hover:bg-white/[0.065] ${collapsed ? 'justify-center p-1.5' : 'gap-3 p-2'}`}
+          className={`group relative flex items-center outline-none transition focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] ${
+            collapsed ? 'justify-center rounded-full p-0 py-1' : 'gap-3 rounded-2xl p-2 hover:bg-white/[0.06]'
+          }`}
         >
-          <Avatar size="sm" src={user.image} fallbackText={user.name} className="h-9 w-9 rounded-full" />
+          <Avatar
+            size={collapsed ? 'md' : 'sm'}
+            src={user.image}
+            fallbackText={user.name}
+            className={`${collapsed ? 'h-12 w-12' : 'h-10 w-10'} rounded-full transition-transform duration-200 group-hover:scale-105`}
+          />
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
