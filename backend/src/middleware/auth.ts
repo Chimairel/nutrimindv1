@@ -21,7 +21,12 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
     const token = authHeader.split(' ')[1];
 
     // Verify token using JWT helper
-    const decoded = verifyAccessToken(token);
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch {
+      return res.status(401).json({ success: false, error: 'Invalid or expired authentication session.' });
+    }
 
     const currentUser = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -41,10 +46,10 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
     };
 
     next();
-  } catch (error: unknown) {
-    return res.status(401).json({
+  } catch {
+    return res.status(503).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Invalid or expired authentication session.',
+      error: 'Session verification is temporarily unavailable. Please try again.',
     });
   }
 };

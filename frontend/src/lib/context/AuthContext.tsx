@@ -80,8 +80,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.warn('[AuthContext] Failed to fetch live profile status, using token fallbacks.', error);
       // If we fail because we are unauthenticated, clear session
-      clearSessionResourceCache();
-      setUser(null);
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
+        clearSessionResourceCache();
+        setUser(null);
+      }
       return null;
     } finally {
       if (requestId === sessionRequestId.current) {

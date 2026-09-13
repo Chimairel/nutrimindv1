@@ -65,6 +65,7 @@ api.interceptors.response.use(
 
       if (!isAuthPage && !isRefreshRequest) {
         if (isRefreshing) {
+          originalRequest._retry = true;
           // Queue this failed request while token is being refreshed
           return new Promise<string | null>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
@@ -100,14 +101,18 @@ api.interceptors.response.use(
 
             return api(originalRequest);
           }
+          throw new Error('Session refresh returned an invalid response.');
         } catch (refreshError) {
           processQueue(refreshError, null);
           isRefreshing = false;
 
           // Only clear the access token — the backend clears the HttpOnly refresh cookie
-          cookieHelper.clear('nutrimind_session');
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+          const status = (refreshError as { response?: { status?: number } }).response?.status;
+          if (status === 401 || status === 400) {
+            cookieHelper.clear('nutrimind_session');
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
           }
           return Promise.reject(refreshError);
         }

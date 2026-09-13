@@ -248,7 +248,14 @@ export class AuthController {
         data: { accessToken: result.accessToken },
       });
     } catch (error: any) {
-      // If refresh fails, clear the stale cookie
+      // Database outages are not evidence that the refresh session is invalid.
+      if (error instanceof Error && error.name.startsWith('PrismaClient')) {
+        return res.status(503).json({
+          success: false,
+          error: 'Session refresh is temporarily unavailable. Please try again.',
+        });
+      }
+      // Clear the cookie only when the refresh session is rejected.
       clearRefreshCookie(res);
       return res.status(401).json({
         success: false,
