@@ -8,6 +8,7 @@ import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
+import { Dock, DockItem, DockIcon, DockLabel } from '@/components/ui/motion';
 
 interface SidebarProps {
   className?: string;
@@ -157,69 +158,90 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
         </div>
       )}
 
-      <nav
-        id="nutrimind-sidebar-navigation"
-        className={
-          collapsed
-            ? 'relative flex flex-1 flex-col gap-1.5 overflow-visible'
-            : 'relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent'
-        }
-        aria-label={`${user.role.toLowerCase()} navigation`}
-      >
-        {navItems.map((item, index) => {
-          const active =
-            pathname === item.href ||
-            pathname.startsWith(`${item.href}/`) ||
-            (item.href === '/nutritionist/reviews' &&
-              ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
-          const Icon = item.icon;
-          return (
-            <React.Fragment key={item.href}>
-              {!collapsed && user.role === 'ADMIN' && (index === 0 || navItems[index - 1].group !== item.group) && (
-                <p className="px-3 pt-3 pb-1 text-xs font-semibold text-white/60">{item.group}</p>
-              )}
+      {collapsed ? (
+        <Dock
+          direction="vertical"
+          distance={100}
+          baseSize={44}
+          magnification={54}
+          className="relative flex-1 w-full justify-start py-1"
+          ariaLabel={`${user.role.toLowerCase()} navigation`}
+        >
+          {navItems.map((item) => {
+            const active =
+              pathname === item.href ||
+              pathname.startsWith(`${item.href}/`) ||
+              (item.href === '/nutritionist/reviews' &&
+                ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
+            const Icon = item.icon;
+            return (
               <Link
+                key={item.href}
                 href={item.href}
-                onClick={() => setSuppressedTooltip(item.href)}
-                onBlur={() => setSuppressedTooltip((current) => (current === item.href ? null : current))}
-                onMouseLeave={(event) => {
-                  if (suppressedTooltip === item.href) event.currentTarget.blur();
-                  setSuppressedTooltip((current) => (current === item.href ? null : current));
-                }}
-                aria-label={collapsed ? item.label : undefined}
-                aria-describedby={collapsed ? `sidebar-nav-${item.href.replace(/\W+/g, '-')}` : undefined}
+                aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`
-                group relative flex min-h-12 items-center rounded-2xl outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]
-                ${collapsed ? 'justify-center px-3' : 'gap-3 px-3.5'}
-                ${active ? 'text-[#07100d]' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'}
-              `}
+                className="outline-none"
               >
-                {active && (
-                  <MotionActiveIndicator
-                    layoutId="sidebar-active-nav-indicator"
-                    className="rounded-2xl bg-brand-accent shadow-neon"
-                  />
-                )}
-                <span className={`relative z-10 flex items-center ${collapsed ? 'justify-center' : 'w-full gap-3'}`}>
-                  <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
-                  {!collapsed && (
-                    <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
-                  )}
-                  {active && !collapsed && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
-                </span>
-                {collapsed && (
-                  <SidebarTooltip
-                    id={`sidebar-nav-${item.href.replace(/\W+/g, '-')}`}
-                    label={item.label}
-                    suppressed={suppressedTooltip === item.href}
-                  />
-                )}
+                <DockItem
+                  active={active}
+                  className={`transition-colors duration-200 ${
+                    active
+                      ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon'
+                      : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <DockLabel>{item.label}</DockLabel>
+                  <DockIcon>
+                    <Icon className={active ? 'stroke-[2.5]' : 'stroke-2'} />
+                  </DockIcon>
+                </DockItem>
               </Link>
-            </React.Fragment>
-          );
-        })}
-      </nav>
+            );
+          })}
+        </Dock>
+      ) : (
+        <nav
+          id="nutrimind-sidebar-navigation"
+          className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent"
+          aria-label={`${user.role.toLowerCase()} navigation`}
+        >
+          {navItems.map((item, index) => {
+            const active =
+              pathname === item.href ||
+              pathname.startsWith(`${item.href}/`) ||
+              (item.href === '/nutritionist/reviews' &&
+                ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
+            const Icon = item.icon;
+            return (
+              <React.Fragment key={item.href}>
+                {user.role === 'ADMIN' && (index === 0 || navItems[index - 1].group !== item.group) && (
+                  <p className="px-3 pt-3 pb-1 text-xs font-semibold text-white/60">{item.group}</p>
+                )}
+                <Link
+                  href={item.href}
+                  aria-label={item.label}
+                  aria-current={active ? 'page' : undefined}
+                  className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] ${
+                    active ? 'text-[#07100d]' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'
+                  }`}
+                >
+                  {active && (
+                    <MotionActiveIndicator
+                      layoutId="sidebar-active-nav-indicator"
+                      className="rounded-2xl bg-brand-accent shadow-neon"
+                    />
+                  )}
+                  <span className="relative z-10 flex w-full items-center gap-3">
+                    <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
+                    <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
+                    {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
+                  </span>
+                </Link>
+              </React.Fragment>
+            );
+          })}
+        </nav>
+      )}
 
       <div className="relative mt-auto border-t border-white/[0.08] pt-4">
         <Link

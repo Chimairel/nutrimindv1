@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Activity, Home, Utensils, ShoppingCart, User } from 'lucide-react';
+import { Dock, DockItem, DockIcon, DockLabel } from '@/components/ui/motion';
 
 interface BottomNavProps {
   className?: string;
@@ -26,33 +27,46 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   ];
 
   return (
-    <nav
-      aria-label="Main navigation"
-      className={`
-        fixed bottom-3 left-3 right-3 z-40 flex h-16 select-none items-center justify-around rounded-[22px]
-        border border-white/10 bg-[#07100d]/95 px-3 shadow-[0_18px_45px_rgba(1,8,5,0.38)] backdrop-blur-xl md:hidden
-        ${className}
-      `}
+    <div
+      className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-24px)] md:hidden ${className}`}
     >
-      {items.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={isActive ? 'page' : undefined}
-            className={`
-              relative flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-cyan
-              ${isActive ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon' : 'text-white/75 hover:bg-white/5 hover:text-white'}
-            `}
-          >
-            <Icon className="h-5 w-5 shrink-0" />
-            <span className="text-[10px] tracking-wide leading-none font-display">{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+      <Dock
+        direction="horizontal"
+        distance={110}
+        baseSize={44}
+        magnification={58}
+        className="rounded-[26px] border border-brand-border/70 bg-brand-surface/90 px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.2)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#07100d]/90 dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+        ariaLabel="Mobile navigation dock"
+      >
+        {items.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
+              className="outline-none"
+            >
+              <DockItem
+                active={isActive}
+                className={`transition-colors duration-200 ${
+                  isActive
+                    ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon'
+                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
+                }`}
+              >
+                <DockLabel>{item.label}</DockLabel>
+                <DockIcon>
+                  <Icon className={isActive ? 'stroke-[2.5]' : 'stroke-2'} />
+                </DockIcon>
+              </DockItem>
+            </Link>
+          );
+        })}
+      </Dock>
+    </div>
   );
 };
 
