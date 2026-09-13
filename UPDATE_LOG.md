@@ -288,6 +288,26 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Vitest tests: all suites passing (12 tests).
   - Route check: `http://localhost:3000/meals` responds with HTTP 200 OK.
 
+---
+
+## 📅 ADDENDUM 14: TRANSIENT 503 RECOVERY, SIDEBAR HOVER TOOLTIPS, & PRODUCT DOCS REMOVAL (September 2026)
+*Automatic retry resilience for serverless database cold-starts, floating tooltips enabled across all sidebar tabs, and removal of Product docs link.*
+
+- **Automatic 503 Recovery & Resilient Polling (`frontend/src/lib/axios.ts`, `useNotifications.ts`, `ProgressWorkspace.tsx`):**
+  - Configured Axios interceptor to automatically retry idempotent `GET` and `HEAD` requests once after a 400ms delay upon encountering HTTP 503 Service Unavailable (e.g., Neon serverless PostgreSQL compute cold-start wake-up).
+  - Updated background notification polling (`useNotifications.ts`) to use `console.warn` instead of `console.error` on failed polling attempts, preventing Next.js development overlay redbox popups.
+  - Added user-facing inline error banner with a manual "Retry" action in `ProgressWorkspace.tsx`.
+- **Sidebar Floating Hover Tooltips (`frontend/src/components/ui/Sidebar.tsx`):**
+  - Updated collapsed sidebar navigation container `<nav>` to use `overflow-visible` in collapsed mode, preventing the floating tooltip pill (`left-[calc(100%+12px)]`) from being clipped by container overflow.
+  - Enabled hover tooltips for all navigation items (Dashboard, Meals, Grocery, Progress, Profile) across both active and inactive states.
+- **Product Docs Link Removal (`frontend/src/components/ui/Sidebar.tsx`):**
+  - Removed the `/docs` "Product docs" navigation link and Sparkles icon from the sidebar bottom panel.
+- **Verification:**
+  - ESLint check: passed with 0 errors and 0 warnings.
+  - Vitest test suite: 15 passed across 3 test files.
+  - Live routes: `http://localhost:3000/meals` and `http://localhost:3000/progress` responding with HTTP 200 OK.
+
+
 
 
 

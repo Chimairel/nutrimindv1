@@ -396,5 +396,6 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     targetWeight,
     currentWeight,
     dailyCalorieTarget,
+    fetchPageData,
   };
 }

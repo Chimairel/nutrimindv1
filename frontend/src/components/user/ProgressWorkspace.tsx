@@ -96,6 +96,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     targetWeight,
     currentWeight,
     dailyCalorieTarget,
+    fetchPageData,
   } = useProgressWorkspace(mode);
 
   if (isLoading) {
@@ -309,6 +310,18 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           ) : undefined
         }
       />
+
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-4 text-status-error-text">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <Button variant="secondary" onClick={() => fetchPageData()} className="h-8 px-3 text-xs">
+            Retry
+          </Button>
+        </div>
+      )}
 
       {mode !== 'planning' && (
         <nav

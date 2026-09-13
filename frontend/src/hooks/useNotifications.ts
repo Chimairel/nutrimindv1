@@ -32,7 +32,7 @@ export function useNotifications() {
         setUnreadCount(res.data.data.unreadCount);
       }
     } catch (err) {
-      console.error('[useNotifications] Fetch failed:', err);
+      console.warn('[useNotifications] Fetch failed:', err);
     } finally {
       setIsLoading(false);
     }

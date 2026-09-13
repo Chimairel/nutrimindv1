@@ -45,6 +45,19 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Retry once on 503 Service Unavailable (e.g. serverless DB wake-up cold start) for idempotent requests
+    if (
+      error.response &&
+      error.response.status === 503 &&
+      originalRequest &&
+      !originalRequest._retry503 &&
+      (!originalRequest.method || ['get', 'head'].includes(originalRequest.method.toLowerCase()))
+    ) {
+      originalRequest._retry503 = true;
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return api(originalRequest);
+    }
+
     // Check if error is a 401 and we haven't already retried this request
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       // Guard: don't redirect/refresh if we're already on an auth page
