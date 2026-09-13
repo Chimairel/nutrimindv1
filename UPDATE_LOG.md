@@ -325,6 +325,27 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - ESLint check: passed with 0 errors and 0 warnings.
   - Live dev servers: backend (port 5000) and frontend (port 3000) running and healthy.
 
+---
+
+## 📅 ADDENDUM 16: AUTHENTIC CULINARY PHOTO PLACEHOLDERS FOR MEALS (September 2026)
+*Replaced abstract SVG icon symbols with appetizing, authentic Philippine food photography placeholders for Breakfast, Lunch, Dinner, and Snack.*
+
+- **Authentic Culinary Photo Placeholders (`frontend/public/meals/`, `frontend/src/components/user/MealImage.tsx`):**
+  - Added high-resolution, culturally authentic food photography assets to `frontend/public/meals/`:
+    - `placeholder-breakfast.jpg`: Garlic fried rice (*sinangag*), golden sunny-side egg, sliced tomatoes, calamansi, and spiced vinegar.
+    - `placeholder-lunch.jpg`: Savory chicken adobo with rich sauce over steamed white rice, bay leaves, peppercorns, and sautéed greens (*kangkong*).
+    - `placeholder-dinner.jpg`: Nourishing pork *sinigang* tamarind soup with water spinach, radish, eggplant, and steamed jasmine rice.
+    - `placeholder-snack.jpg`: Fresh ripe mango slices, sliced banana, and light merienda snack plate.
+  - Updated `MealImage.tsx`:
+    - Integrated `resolveMealTypePlaceholder(mealType, mealName)` to automatically map missing or unreviewed meal images to the matching authentic culinary photo.
+    - Preserved a 3-tier fallback hierarchy: (1) Verified exact dish photo -> (2) Meal-type culinary placeholder photo (`BREAKFAST`, `LUNCH`, `DINNER`, `SNACK`) -> (3) SVG category illustration fallback.
+    - Displayed clear, unobtrusive "Representative image" badge on placeholder photos with smooth image fade-in.
+- **Automated Verification:**
+  - Expanded `MealImage.test.tsx` to assert placeholder photo resolution across Breakfast, Lunch, Dinner, and Snack, as well as graceful fallback recovery.
+  - Vitest suite: 34 passed across 6 test files.
+  - ESLint check: passed with 0 errors and 0 warnings.
+
+
 
 
 

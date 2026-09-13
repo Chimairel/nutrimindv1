@@ -59,12 +59,27 @@ describe('MealImage', () => {
     rerender(<MealImage mealName="Pancit" image={{ ...mockImage, url: '/replacement.jpg' }} />);
     expect(screen.getByRole('img')).toHaveAttribute('src', '/replacement.jpg');
   });
-  it('renders representative fallback with category awareness for missing images', () => {
-    render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" />);
+  it('renders representative fallback with category awareness for missing images when placeholder is disabled', () => {
+    render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" allowMealTypePlaceholder={false} />);
     expect(screen.getByRole('figure', { name: /Chicken Tinola/ })).toBeInTheDocument();
     expect(screen.getByText('Illustration')).toBeInTheDocument();
     expect(screen.getByText('Poultry & Egg')).toBeInTheDocument();
     expect(screen.getByText(/Recipe photo coming soon/i)).toBeInTheDocument();
+  });
+
+  it('renders authentic culinary photo placeholders for breakfast, lunch, dinner, and snack by default', () => {
+    const { rerender } = render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-lunch.jpg');
+    expect(screen.getByText('Representative image')).toBeInTheDocument();
+
+    rerender(<MealImage mealName="Tapsilog" mealType="BREAKFAST" />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-breakfast.jpg');
+
+    rerender(<MealImage mealName="Sinigang na Baboy" mealType="DINNER" />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-dinner.jpg');
+
+    rerender(<MealImage mealName="Turon" mealType="SNACK" />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-snack.jpg');
   });
 
   it('detects seafood, plant-based, meat, and breakfast categories correctly in fallbacks', () => {
@@ -103,7 +118,7 @@ describe('MealImage', () => {
   });
 
   it('switches gracefully to category fallback when remote image delivery fails', () => {
-    render(<MealImage mealName="Tuna Rice Bowl" mealType="LUNCH" image={mockImage} />);
+    render(<MealImage mealName="Tuna Rice Bowl" mealType="LUNCH" image={mockImage} allowMealTypePlaceholder={false} />);
     const photo = screen.getByRole('img', { name: mockImage.altText });
     fireEvent.error(photo);
 
@@ -126,7 +141,7 @@ describe('MealImage', () => {
     expect(photoContainer.querySelectorAll('a')).toHaveLength(0);
 
     render(
-      <MealImage mealName="Sinigang na Baboy" mealType="DINNER" variant="thumbnail" allowCanonicalFallback={false} />
+      <MealImage mealName="Sinigang na Baboy" mealType="DINNER" variant="thumbnail" allowCanonicalFallback={false} allowMealTypePlaceholder={false} />
     );
     expect(screen.getByLabelText('Sinigang na Baboy (Meat & Savory visual placeholder)')).toBeInTheDocument();
   });

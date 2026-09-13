@@ -197,6 +197,80 @@ export function resolveCanonicalReviewedImage(mealName: string): PublicMealImage
   return reviewedMealImages[mealName.trim().toLowerCase()] ?? null;
 }
 
+export const defaultMealTypePlaceholders: Record<string, PublicMealImage> = {
+  BREAKFAST: {
+    url: '/meals/placeholder-breakfast.jpg',
+    altText: 'Appetizing Filipino breakfast plate with garlic fried rice, sunny-side egg, and sliced tomatoes',
+    kind: 'REPRESENTATIVE',
+    attribution: {
+      creator: null,
+      licenseCode: 'CC0',
+      sourcePageUrl: null,
+      licenseUrl: null,
+      modifications: null,
+    },
+  },
+  LUNCH: {
+    url: '/meals/placeholder-lunch.jpg',
+    altText: 'Appetizing Filipino chicken adobo lunch with steamed rice and sautéed greens',
+    kind: 'REPRESENTATIVE',
+    attribution: {
+      creator: null,
+      licenseCode: 'CC0',
+      sourcePageUrl: null,
+      licenseUrl: null,
+      modifications: null,
+    },
+  },
+  DINNER: {
+    url: '/meals/placeholder-dinner.jpg',
+    altText: 'Comforting Filipino sinigang tamarind soup dinner with tender meat and rice',
+    kind: 'REPRESENTATIVE',
+    attribution: {
+      creator: null,
+      licenseCode: 'CC0',
+      sourcePageUrl: null,
+      licenseUrl: null,
+      modifications: null,
+    },
+  },
+  SNACK: {
+    url: '/meals/placeholder-snack.jpg',
+    altText: 'Fresh Philippine golden mango, banana slices, and light snack plate',
+    kind: 'REPRESENTATIVE',
+    attribution: {
+      creator: null,
+      licenseCode: 'CC0',
+      sourcePageUrl: null,
+      licenseUrl: null,
+      modifications: null,
+    },
+  },
+};
+
+export function resolveMealTypePlaceholder(
+  mealType?: MealType | string,
+  mealName?: string
+): PublicMealImage {
+  const normalized = (mealType || '').toUpperCase();
+  if (normalized in defaultMealTypePlaceholders) {
+    return defaultMealTypePlaceholders[normalized];
+  }
+
+  const name = (mealName || '').toLowerCase();
+  if (/silog|pandesal|egg|oatmeal|breakfast|champorado|pancake|toast|waffle|bread/.test(name)) {
+    return defaultMealTypePlaceholders.BREAKFAST;
+  }
+  if (/sinigang|soup|stew|nilaga|bulalo|dinner|sopas|mami/.test(name)) {
+    return defaultMealTypePlaceholders.DINNER;
+  }
+  if (/snack|merienda|fruit|mango|banana|saba|shake/.test(name)) {
+    return defaultMealTypePlaceholders.SNACK;
+  }
+
+  return defaultMealTypePlaceholders.LUNCH;
+}
+
 export type MealImageProps = {
   image?: PublicMealImage | null;
   mealName: string;
@@ -207,6 +281,7 @@ export type MealImageProps = {
   variant?: 'card' | 'detail' | 'compact' | 'hero' | 'thumbnail';
   ingredients?: { ingredientName: string; category?: string }[];
   allowCanonicalFallback?: boolean;
+  allowMealTypePlaceholder?: boolean;
 };
 
 export default function MealImage({
@@ -219,14 +294,23 @@ export default function MealImage({
   variant = 'card',
   ingredients = [],
   allowCanonicalFallback = true,
+  allowMealTypePlaceholder = true,
 }: MealImageProps) {
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
 
-  const effectiveImage = image || (allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName) : null);
-  const failed = Boolean(effectiveImage && failedUrl === effectiveImage.url);
+  // 1. Specific image provided via props or reviewed canonical recipe match
+  const primaryImage = image || (allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName) : null);
+  const primaryFailed = Boolean(primaryImage && failedUrls[primaryImage.url]);
+
+  // 2. Real food placeholder image for BREAKFAST, LUNCH, DINNER, SNACK
+  const placeholderCandidate = allowMealTypePlaceholder ? resolveMealTypePlaceholder(mealType, mealName) : null;
+  const placeholderFailed = Boolean(placeholderCandidate && failedUrls[placeholderCandidate.url]);
+
+  // Determine which image candidate to display
+  const effectiveImage = !primaryFailed && primaryImage ? primaryImage : !placeholderFailed && placeholderCandidate ? placeholderCandidate : null;
+  const showFallback = !effectiveImage;
   const isLoaded = Boolean(effectiveImage && loadedUrl === effectiveImage.url);
-  const showFallback = !effectiveImage || failed;
   const categoryInfo = resolveMealCategory(mealName, mealType, ingredients);
   const FallbackIcon = categoryInfo.icon;
 
@@ -300,7 +384,7 @@ export default function MealImage({
           }`}
           priority={priority}
           onLoad={() => setLoadedUrl(effectiveImage.url)}
-          onError={() => setFailedUrl(effectiveImage.url)}
+          onError={() => setFailedUrls((prev) => ({ ...prev, [effectiveImage.url]: true }))}
         />
         {effectiveImage.kind === 'REPRESENTATIVE' && (
           <span
@@ -339,7 +423,7 @@ export default function MealImage({
         }`}
         priority={priority}
         onLoad={() => setLoadedUrl(effectiveImage.url)}
-        onError={() => setFailedUrl(effectiveImage.url)}
+        onError={() => setFailedUrls((prev) => ({ ...prev, [effectiveImage.url]: true }))}
       />
 
       {/* Visible Representative Photo Disclosure */}
@@ -351,15 +435,15 @@ export default function MealImage({
       )}
 
       {/* Compact Non-Interactive Attribution Pill (Safe inside clickable cards) */}
-      {(effectiveImage.attribution.creator || effectiveImage.attribution.licenseCode) && (
+      {(effectiveImage.attribution?.creator || effectiveImage.attribution?.licenseCode) && (
         <figcaption
           className="absolute top-2.5 left-2.5 z-10 max-w-[55%] truncate rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-medium text-white/90 shadow-md backdrop-blur-md border border-white/10"
-          title={effectiveImage.attribution.modifications || undefined}
+          title={effectiveImage.attribution?.modifications || undefined}
         >
           {[
-            effectiveImage.attribution.creator,
-            effectiveImage.attribution.licenseCode,
-            effectiveImage.attribution.modifications && 'adapted',
+            effectiveImage.attribution?.creator,
+            effectiveImage.attribution?.licenseCode,
+            effectiveImage.attribution?.modifications && 'adapted',
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -369,7 +453,7 @@ export default function MealImage({
       {/* Accessible Interactive External Links (Only when showAttributionLinks is explicitly requested and NOT in compact mode) */}
       {!isCompact &&
         showAttributionLinks &&
-        (effectiveImage.attribution.sourcePageUrl || effectiveImage.attribution.licenseUrl) && (
+        (effectiveImage.attribution?.sourcePageUrl || effectiveImage.attribution?.licenseUrl) && (
           <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 rounded-full bg-black/80 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-white/10">
             {effectiveImage.attribution.sourcePageUrl && (
               <a
