@@ -27,10 +27,9 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     name: 'Chimay',
     gender: 'male',
     head: 'dreads2',
-    face: 'smileBig',
-    skinColor: 'ffdbb4',
+    face: 'explaining',
     clothingColor: 'ffcf77',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&headVariant=dreads2&facialHairVariant=&facialHairProbability=100&clothingColor=ffcf77&headContrastColor=2c1b18,ecdcbf,d6b370,f59797,b58143,a55728,724133,4a312c,c93305&seed=Felix',
+    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=explaining&facialHairVariant=&headVariant=dreads2&maskVariant=&clothingColor=ffcf77&seed=Chimay',
   },
   {
     name: 'Kevin',
