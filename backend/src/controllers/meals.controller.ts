@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { lockUserProfile } from '@/services/profile-revision.service';
-import { getNextWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
+import { getCurrentWeeklyCycleWindow, getNextWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
@@ -166,34 +166,63 @@ export class MealsController {
       if (viewNext && entitlement.tier !== 'PREMIUM')
         return res.status(403).json({ success: false, error: 'Next-week planning requires Premium.' });
       const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
+      const currentWindow = getCurrentWeeklyCycleWindow(profile, now);
       const nextWindow = getNextWeeklyCycleWindow(profile, now);
       const schedule = {
         scheduledDate: viewNext
           ? { gte: nextWindow.startDate, lte: nextWindow.endDate }
-          : { gte: getStartOfManilaBusinessDay(now), lt: nextWindow.startDate },
+          : { gte: currentWindow.startDate, lt: nextWindow.startDate },
       };
 
-      // Find the latest plan group containing a currently actionable row.
-      const latestPlan = await prisma.mealPlan.findFirst({
+      // Find the latest plan group containing an approved row in the active cycle.
+      let latestPlan = await prisma.mealPlan.findFirst({
         where: {
           userId,
-          ...getUserActionableMealPlanWhere(now),
+          status: MealPlanStatus.APPROVED,
+          requiresSafetyRevalidation: false,
           ...schedule,
         },
-        orderBy: { scheduledDate: 'asc' },
+        orderBy: { scheduledDate: 'desc' },
         select: { planGroupId: true },
       });
 
+      // Fallback for ad-hoc bridge starter plans that may have started earlier than current cycle
+      if (!latestPlan && !viewNext) {
+        latestPlan = await prisma.mealPlan.findFirst({
+          where: {
+            userId,
+            status: MealPlanStatus.APPROVED,
+            requiresSafetyRevalidation: false,
+            scheduledDate: { gte: getStartOfManilaBusinessDay(now), lt: nextWindow.startDate },
+          },
+          orderBy: { scheduledDate: 'desc' },
+          select: { planGroupId: true },
+        });
+      }
+
       if (!latestPlan) {
-        const latestPendingPlan = await prisma.mealPlan.findFirst({
+        let latestPendingPlan = await prisma.mealPlan.findFirst({
           where: {
             userId,
             status: MealPlanStatus.PENDING_REVIEW,
             ...schedule,
           },
-          orderBy: { scheduledDate: 'asc' },
+          orderBy: { scheduledDate: 'desc' },
           select: { planGroupId: true },
         });
+
+        if (!latestPendingPlan && !viewNext) {
+          latestPendingPlan = await prisma.mealPlan.findFirst({
+            where: {
+              userId,
+              status: MealPlanStatus.PENDING_REVIEW,
+              scheduledDate: { gte: getStartOfManilaBusinessDay(now), lt: nextWindow.startDate },
+            },
+            orderBy: { scheduledDate: 'desc' },
+            select: { planGroupId: true },
+          });
+        }
+
         const [pendingPlanRows, pendingSwapTracker] = latestPendingPlan
           ? await Promise.all([
               prisma.mealPlan.findMany({
@@ -268,7 +297,9 @@ export class MealsController {
           select: { swapsUsed: true },
         }),
       ]);
-      const meals = filterUserActionableMealPlans(groupMeals, now).map(serializeActionableMeal);
+      const meals = groupMeals
+        .filter((meal) => isUserActionableMealPlanStatus(meal.status) && meal.requiresSafetyRevalidation === false)
+        .map(serializeActionableMeal);
 
       return res.status(200).json({
         success: true,

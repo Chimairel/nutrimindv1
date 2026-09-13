@@ -366,11 +366,14 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Automatically defaults selection to the current day (`isToday`), while keeping past days accessible.
   - Styled past day buttons with a theme-consistent muted grayish aesthetic (`bg-black/[0.04] text-slate-400 dark:bg-white/[0.03] dark:text-zinc-500`) without borders, distinguishing past dates from current/future dates.
   - Added a subtle green indicator dot on the current day (`isToday`) when browsing other dates.
-  - Users can select past days to view their scheduled meals, inspect nutrition totals, and toggle meal completion status directly.
+- **Backend Current Weekly Cycle Retention (`meals.controller.ts`):**
+  - Updated `MealsController.getCurrentPlan` to anchor its schedule window on `getCurrentWeeklyCycleWindow(profile, now).startDate` rather than `getStartOfManilaBusinessDay(now)`. Previously, midnight date rollovers caused the backend database query to drop all previous days of the active weekly cycle (e.g. Sunday 13) from both approved and pending review plan responses.
+  - Ensured all 7 days of the active weekly cycle are retained and returned to the client in full.
 - **Automated Verification:**
   - Vitest suite: 102 passed across 27 test files.
   - ESLint check: passed with 0 errors and 0 warnings.
   - Backend test suite: 521 passed with 0 failures.
+  - Live API validation: verified `/api/user/meals/current` returns all 21 meals and all 7 scheduled dates (Sep 12T16:00Z through Sep 18T16:00Z) for active user.
 
 
 
