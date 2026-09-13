@@ -90,8 +90,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           collapsed
             ? `self-start origin-top w-[68px] px-2 py-3.5 ${
                 isRailHovered
-                  ? 'h-[82vh] min-h-[540px] max-h-[720px] shadow-[0_32px_90px_rgba(1,8,5,0.48)]'
-                  : 'h-[68vh] min-h-[440px] max-h-[580px] shadow-[0_28px_80px_rgba(1,8,5,0.32)]'
+                  ? 'h-full shadow-[0_32px_90px_rgba(1,8,5,0.48)]'
+                  : 'h-[95%] shadow-[0_28px_80px_rgba(1,8,5,0.32)]'
               }`
             : 'h-full w-[248px] p-4'
         }
