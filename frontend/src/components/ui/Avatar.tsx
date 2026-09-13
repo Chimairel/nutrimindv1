@@ -15,20 +15,22 @@ export interface FilipinoAvatarPreset {
   name: string;
   gender: 'male' | 'female';
   hair: string;
+  clothing?: string;
+  clothingColor?: string;
   skinColor?: string;
   description: string;
 }
 
 export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
-  { name: 'Juan', gender: 'male', hair: 'short01', skinColor: 'e0b687', description: 'Classic Filipino' },
-  { name: 'Bayani', gender: 'male', hair: 'short04', skinColor: 'cb9e6e', description: 'Heroic & bold' },
-  { name: 'Datu', gender: 'male', hair: 'short16', skinColor: 'a26d3d', description: 'Distinguished chief' },
-  { name: 'Malakas', gender: 'male', hair: 'short08', skinColor: 'b68655', description: 'Strong mythic hero' },
-  { name: 'Maria', gender: 'female', hair: 'long01', skinColor: 'eac393', description: 'Traditional Filipina' },
-  { name: 'Tala', gender: 'female', hair: 'long08', skinColor: 'f5cfa0', description: 'Goddess of stars' },
-  { name: 'Luningning', gender: 'female', hair: 'long14', skinColor: 'ffdbac', description: 'Radiant & bright' },
-  { name: 'Mayari', gender: 'female', hair: 'long03', skinColor: 'e0b687', description: 'Moon goddess' },
-  { name: 'Maganda', gender: 'female', hair: 'long10', skinColor: 'cb9e6e', description: 'Graceful mythic heroine' },
+  { name: 'Juan', gender: 'male', hair: 'short01', clothing: 'variant01', skinColor: 'e0b687', description: 'Classic Filipino' },
+  { name: 'Bayani', gender: 'male', hair: 'short04', clothing: 'variant02', skinColor: 'cb9e6e', description: 'Heroic & bold' },
+  { name: 'Datu', gender: 'male', hair: 'short16', clothing: 'variant08', skinColor: 'a26d3d', description: 'Distinguished chief' },
+  { name: 'Malakas', gender: 'male', hair: 'short08', clothing: 'variant03', skinColor: 'b68655', description: 'Strong mythic hero' },
+  { name: 'Maria', gender: 'female', hair: 'long01', clothing: 'variant14', skinColor: 'eac393', description: 'Traditional Filipina' },
+  { name: 'Tala', gender: 'female', hair: 'long08', clothing: 'variant18', skinColor: 'f5cfa0', description: 'Goddess of stars' },
+  { name: 'Luningning', gender: 'female', hair: 'long14', clothing: 'variant13', skinColor: 'ffdbac', description: 'Radiant & bright' },
+  { name: 'Mayari', gender: 'female', hair: 'long03', clothing: 'variant19', skinColor: 'e0b687', description: 'Moon goddess' },
+  { name: 'Maganda', gender: 'female', hair: 'long10', clothing: 'variant20', skinColor: 'cb9e6e', description: 'Graceful mythic heroine' },
 ];
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
@@ -62,7 +64,9 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
         );
         if (matched) {
           const skin = matched.skinColor ? `&skinColor=${matched.skinColor}` : '';
-          return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(matched.name)}&hair=${matched.hair}&beardProbability=0&hatProbability=0${skin}`;
+          const cloth = matched.clothing ? `&clothing=${matched.clothing}` : '';
+          const clothColor = matched.clothingColor ? `&clothingColor=${matched.clothingColor}` : '';
+          return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(matched.name)}&hair=${matched.hair}&beardProbability=0&hatProbability=0${cloth}${clothColor}${skin}`;
         }
         return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(src)}&hatProbability=0`;
       }
