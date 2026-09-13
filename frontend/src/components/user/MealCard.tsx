@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
 import MealImage from './MealImage';
-import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw, ShieldCheck, ListChecks } from 'lucide-react';
+import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw, ShieldCheck, ListChecks, Clock3 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
 interface Ingredient {
@@ -82,14 +82,21 @@ export default function MealCard({
     return d.getTime() < today.getTime();
   }, [scheduledDate]);
 
-  // Check if meal is logged as DONE or SKIPPED (or is a past unlogged meal)
+  // Check if past grace period (> 7 days)
+  const isPastGracePeriod = React.useMemo(() => {
+    if (!scheduledDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(scheduledDate);
+    d.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 7;
+  }, [scheduledDate]);
+
+  // Check if meal is logged as DONE or SKIPPED
   const isCompleted = mealLogs.some((l) => l.status === 'DONE');
-  const isSkipped =
-    mealLogs.some((l) => l.status === 'SKIPPED') ||
-    (!mealLogs.some(
-      (l) => l.status === 'DONE' || l.status === 'SKIPPED' || (l.status === 'PENDING' && l.source !== 'SAFETY_REPLACED')
-    ) &&
-      isPastDate);
+  const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED');
+  const isUnloggedPastMeal = isPastDate && !isCompleted && !isSkipped;
   const isLogged = isCompleted || isSkipped;
 
   const handleCheckedChange = async (checked: boolean) => {
@@ -189,6 +196,15 @@ export default function MealCard({
                   className="text-[9px] font-extrabold py-0.5 px-1.5 bg-red-500/10 text-red-500 border-red-500/20 flex items-center gap-0.5 uppercase"
                 >
                   <X className="h-2.5 w-2.5" /> Skipped
+                </Badge>
+              )}
+              {isUnloggedPastMeal && (
+                <Badge
+                  variant="pending"
+                  showIcon={false}
+                  className="text-[9px] font-extrabold py-0.5 px-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25 flex items-center gap-0.5 uppercase"
+                >
+                  <Clock3 className="h-2.5 w-2.5" /> Unlogged
                 </Badge>
               )}
               {status === 'PENDING_REVIEW' && !isLogged && (
@@ -402,13 +418,25 @@ export default function MealCard({
 
           {/* Action Buttons Panel */}
           <div className="border-t border-brand-border/60 pt-4 mt-2">
+            {isUnloggedPastMeal && !isPastGracePeriod && (
+              <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
+                <Clock3 className="h-4 w-4 shrink-0" />
+                <span>Missed this meal? You can still catch up and record whether you ate or skipped it.</span>
+              </div>
+            )}
+            {isPastGracePeriod && (
+              <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>The 7-day logging grace period for this scheduled meal has passed.</span>
+              </div>
+            )}
             {!isLogged ? (
               <div className="flex flex-col gap-3">
                 {/* Primary: Mark as Eaten */}
                 <Button
                   variant="primary"
                   onClick={() => handleCheckedChange(true)}
-                  disabled={isUpdating}
+                  disabled={isUpdating || isPastGracePeriod}
                   className="w-full font-bold py-2.5 text-xs"
                 >
                   Mark as Eaten
@@ -423,10 +451,14 @@ export default function MealCard({
                         setIsOpen(false);
                         onSwapClick(id);
                       }}
-                      disabled={swapsUsed >= swapCap}
-                      className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1"
+                      disabled={swapsUsed >= swapCap || isPastDate}
+                      className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                       title={
-                        swapsUsed >= swapCap ? `You've used all ${swapCap} swaps for this weekly plan.` : undefined
+                        isPastDate
+                          ? 'Past scheduled meals cannot be swapped.'
+                          : swapsUsed >= swapCap
+                            ? `You've used all ${swapCap} swaps for this weekly plan.`
+                            : undefined
                       }
                     >
                       <RefreshCw className="h-3 w-3 animate-spin-hover" /> Swap Meal
@@ -435,7 +467,7 @@ export default function MealCard({
                   <Button
                     variant="ghost"
                     onClick={handleSkipMeal}
-                    disabled={isUpdating}
+                    disabled={isUpdating || isPastGracePeriod}
                     className="flex-1 font-bold text-xs py-2 h-9 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white"
                   >
                     Skip Meal
@@ -447,7 +479,7 @@ export default function MealCard({
               <Button
                 variant="secondary"
                 onClick={() => handleCheckedChange(false)}
-                disabled={isUpdating}
+                disabled={isUpdating || isPastGracePeriod}
                 className="w-full font-bold py-2.5 text-xs border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50"
               >
                 Reset Meal Status

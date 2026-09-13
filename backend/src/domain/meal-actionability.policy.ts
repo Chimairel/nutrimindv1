@@ -74,6 +74,29 @@ export function isUserActionableMealPlanStatus(status: unknown): status is typeo
   }
 }
 
+export const MEAL_PLAN_LOG_GRACE_DAYS = 7;
+
+function addCalendarDaysToDateKey(dateKey: string, days: number): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+export function isMealPlanScheduleLoggable(
+  scheduledDate: MealPlanCandidate['scheduledDate'],
+  now: Date = new Date(),
+  graceDays: number = MEAL_PLAN_LOG_GRACE_DAYS
+): boolean {
+  const scheduledDateKey =
+    scheduledDate === null || scheduledDate === undefined ? null : getManilaBusinessDateKey(scheduledDate);
+  const currentDateKey = getManilaBusinessDateKey(now);
+  if (!scheduledDateKey || !currentDateKey) return false;
+
+  const minDateKey = addCalendarDaysToDateKey(currentDateKey, -graceDays);
+  const maxDateKey = addCalendarDaysToDateKey(currentDateKey, 14);
+  return scheduledDateKey >= minDateKey && scheduledDateKey <= maxDateKey;
+}
+
 export function isMealPlanScheduleCurrent(
   scheduledDate: MealPlanCandidate['scheduledDate'],
   now: Date = new Date()
@@ -96,6 +119,42 @@ export function isUserActionableMealPlan(mealPlan: MealPlanCandidate, now: Date 
 export function assertUserActionableMealPlan(mealPlan: MealPlanCandidate, now: Date = new Date()): void {
   if (!isUserActionableMealPlan(mealPlan, now)) {
     throw new MealPlanNotActionableError();
+  }
+}
+
+export function isUserLoggableMealPlan(
+  mealPlan: MealPlanCandidate,
+  now: Date = new Date(),
+  graceDays: number = MEAL_PLAN_LOG_GRACE_DAYS
+): boolean {
+  return (
+    isUserActionableMealPlanStatus(mealPlan.status) &&
+    mealPlan.requiresSafetyRevalidation === false &&
+    isMealPlanScheduleLoggable(mealPlan.scheduledDate, now, graceDays)
+  );
+}
+
+export function assertUserLoggableMealPlan(
+  mealPlan: MealPlanCandidate,
+  now: Date = new Date(),
+  graceDays: number = MEAL_PLAN_LOG_GRACE_DAYS
+): void {
+  if (!isUserLoggableMealPlan(mealPlan, now, graceDays)) {
+    throw new MealPlanNotActionableError('Meal plan item is not currently loggable.');
+  }
+}
+
+export function isUserSwappableMealPlan(mealPlan: MealPlanCandidate, now: Date = new Date()): boolean {
+  return (
+    isUserActionableMealPlanStatus(mealPlan.status) &&
+    mealPlan.requiresSafetyRevalidation === false &&
+    isMealPlanScheduleCurrent(mealPlan.scheduledDate, now)
+  );
+}
+
+export function assertUserSwappableMealPlan(mealPlan: MealPlanCandidate, now: Date = new Date()): void {
+  if (!isUserSwappableMealPlan(mealPlan, now)) {
+    throw new MealPlanNotActionableError('Cannot swap a past or non-actionable meal.');
   }
 }
 

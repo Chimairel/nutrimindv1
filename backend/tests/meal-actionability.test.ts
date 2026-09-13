@@ -4,6 +4,8 @@ import { MealLibraryStatus, MealPlanStatus } from '@prisma/client';
 import {
   MealPlanNotActionableError,
   assertUserActionableMealPlan,
+  assertUserLoggableMealPlan,
+  assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
   getApprovedMealPlanStatusWhere,
   getApprovedMealLibraryWhere,
@@ -16,10 +18,13 @@ import {
   isApprovedMealLibraryStatus,
   isMealPlanHistoryVisible,
   isMealPlanScheduleCurrent,
+  isMealPlanScheduleLoggable,
   isNutritionEligibleMealLog,
   isNutritionistReviewableMealPlanStatus,
   isUserActionableMealPlan,
   isUserActionableMealPlanStatus,
+  isUserLoggableMealPlan,
+  isUserSwappableMealPlan,
 } from '../src/domain/meal-actionability.policy';
 
 const now = new Date('2026-08-19T16:30:00.000Z'); // 2026-08-20 in Asia/Manila
@@ -190,3 +195,41 @@ test('[TEST-014] known meal-plan states remain history-visible without becoming 
   }
   assert.equal(isMealPlanHistoryVisible('FUTURE_STATUS'), false);
 });
+
+test('[TEST-015] active weekly grace period allows logging past meals up to 7 days while rejecting swaps', () => {
+  const yesterdaySchedule = expiredSchedule; // 2026-08-19 in Manila vs now 2026-08-20
+  const ancientSchedule = new Date('2026-08-01T16:00:00.000Z'); // > 7 days in the past
+
+  // Yesterday's meal is loggable
+  assert.equal(isMealPlanScheduleLoggable(yesterdaySchedule, now), true);
+  assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, yesterdaySchedule), now), true);
+  assert.doesNotThrow(() => assertUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, yesterdaySchedule), now));
+
+  // Yesterday's meal CANNOT be swapped (swaps must be today or future)
+  assert.equal(isUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, yesterdaySchedule), now), false);
+  assert.throws(
+    () => assertUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, yesterdaySchedule), now),
+    MealPlanNotActionableError
+  );
+
+  // Today and future meals are both loggable and swappable
+  assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, currentSchedule), now), true);
+  assert.equal(isUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, currentSchedule), now), true);
+  assert.doesNotThrow(() => assertUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, currentSchedule), now));
+
+  assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now), true);
+  assert.equal(isUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now), true);
+
+  // Ancient schedules (>7 days ago) reject both logging and swapping
+  assert.equal(isMealPlanScheduleLoggable(ancientSchedule, now), false);
+  assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, ancientSchedule), now), false);
+  assert.throws(
+    () => assertUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, ancientSchedule), now),
+    MealPlanNotActionableError
+  );
+  assert.throws(
+    () => assertUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, ancientSchedule), now),
+    MealPlanNotActionableError
+  );
+});
+

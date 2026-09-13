@@ -391,7 +391,7 @@ export function useMealsWorkspace() {
     try {
       await api.patch(`/user/meals/${mealPlanId}/status`, { status: newStatus });
       // Reload current meals to update checkboxes and macro sums
-      const res = await api.get('/user/meals/current');
+      const res = await api.get('/user/meals/current', { params: { view: planView } });
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -400,6 +400,8 @@ export function useMealsWorkspace() {
           swapCap: res.data.meta?.swapCap ?? 3,
         });
       }
+      // Reload history so history tab and heatmap immediately update
+      await fetchHistory();
     } catch (err) {
       console.error('[WeeklyPlan] Status toggle failed:', err);
     }

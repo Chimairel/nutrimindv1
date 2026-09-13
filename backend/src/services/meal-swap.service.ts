@@ -9,6 +9,7 @@ import { MealLibrarySafetyEvidenceStatus, MealType, Prisma } from '@prisma/clien
 import { GroceryService } from './grocery.service';
 import {
   assertUserActionableMealPlan,
+  assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
   getApprovedMealLibraryWhere,
   getApprovedMealPlanStatusWhere,
@@ -48,7 +49,7 @@ async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId
   });
   if (!mealPlan) throw new Error('Meal plan slot not found.');
 
-  assertUserActionableMealPlan(mealPlan);
+  assertUserSwappableMealPlan(mealPlan);
   if (mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED')) {
     throw new Error('Cannot swap a meal that has already been eaten or skipped.');
   }

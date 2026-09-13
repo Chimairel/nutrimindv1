@@ -3826,3 +3826,37 @@ This section is a continuity record for agreed future work. Every item below is 
   - Frontend test suite: 24 test files passed, 87 unit/component tests passed (`npm test` in `frontend`).
   - ESLint verification: 0 errors, 0 warnings across frontend codebase.
 
+## 80. Retroactive meal logging grace period and catch-up system (2026-09-13)
+
+**Change ID:** CHG-20260913-01
+
+- **Problem & Policy Clarification**: Untouched scheduled meals are not automatically classified as skipped upon date rollover. Automatically stamping passive inaction as skipped creates false clinical non-compliance records, skews user adherence calculations, and generates ghost data in PostgreSQL. Instead, clinical adherence integrity requires establishing an active weekly cycle grace window (up to 7 days into the past) allowing users to catch up and accurately log whether a past meal was eaten (`DONE`) or skipped (`SKIPPED`). However, meal swapping on past scheduled days remains strictly blocked, as retrospective recipe substitution violates shopping and preparation integrity.
+- **Backend Policy & Controller Adjustments**:
+  - `backend/src/domain/meal-actionability.policy.ts`:
+    - Defined `MEAL_PLAN_LOG_GRACE_DAYS = 7`.
+    - Added `isMealPlanScheduleLoggable` to allow schedule dates within `[now - 7 days, now + 14 days]`.
+    - Added `isUserLoggableMealPlan` and `assertUserLoggableMealPlan` to enforce that past meals within the grace period can be logged.
+    - Added `isUserSwappableMealPlan` and `assertUserSwappableMealPlan` to strictly require `isMealPlanScheduleCurrent` (today or future only) for meal swaps.
+  - `backend/src/services/meal-swap.service.ts`:
+    - Updated `loadActionableUnloggedMealPlan` to enforce `assertUserSwappableMealPlan(mealPlan)`, completely rejecting swap attempts on past days.
+  - `backend/src/controllers/meals.controller.ts`:
+    - Updated `updateMealStatus` to use `assertUserLoggableMealPlan(mealPlan)`.
+    - Enforced `loggedAt: mealPlan.scheduledDate` and `mealType: mealPlan.mealType` on `tx.mealLog.upsert` create and update operations, ensuring retrospective logs attach directly to their scheduled date rather than the instant of catch-up.
+- **Frontend Catch-Up Experience**:
+  - Created `UnloggedMealCatchUpCard.tsx` (`frontend/src/components/user/UnloggedMealCatchUpCard.tsx`) with meal type badges, macro targets, and 1-click `[ Mark as Eaten ]` and `[ Skip ]` action buttons with pending loading state.
+  - In `frontend/src/app/(user)/meals/page.tsx` (History tab):
+    - When selecting any past date on the Activity Matrix (or when viewing a day with untouched scheduled meals from the current plan within the 7-day grace window), unlogged meals are surfaced in a prominent catch-up card section.
+    - Works seamlessly when a day has partial logs (e.g. Breakfast logged, Lunch/Dinner unlogged) and when 0 meals have been logged yet.
+  - In `frontend/src/components/user/MealCard.tsx` (Plan tab):
+    - Separated unlogged past meals from explicitly skipped meals. Unlogged past meals render an amber "Unlogged" badge (with clock icon) without strikethrough text.
+    - Inside the modal, past unlogged meals within 7 days present "Mark as Eaten" and "Skip Meal" actions alongside an informative guidance banner.
+    - "Swap Meal" is disabled for past scheduled meals with an informative tooltip: `"Past scheduled meals cannot be swapped."`.
+    - Past 7 days, logging actions are cleanly disabled with an expiration message: `"The 7-day logging grace period for this scheduled meal has passed."`.
+  - In `frontend/src/features/meals/useMealsWorkspace.ts`:
+    - `handleMealStatusToggle` invokes `await fetchHistory()` to synchronize history logs and matrix state immediately.
+- **Verification Evidence**:
+  - Backend test `[TEST-015]` in `meal-actionability.test.ts`: verified logging acceptance within 7 days, rejection past 7 days, and strict rejection of past swaps. All 521 tests pass (0 failed, 1 clinical todo).
+  - Frontend test `UnloggedMealCatchUpCard.test.tsx`: verified render, 'Mark as Eaten' callback, and 'Skip' callback. All 25 test files and 90 unit tests pass.
+  - Frontend Lint: `npm run lint` passed with 0 errors and 0 warnings.
+
+

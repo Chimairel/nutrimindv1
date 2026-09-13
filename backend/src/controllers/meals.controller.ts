@@ -12,6 +12,7 @@ import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealTy
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
   assertUserActionableMealPlan,
+  assertUserLoggableMealPlan,
   filterUserActionableMealPlans,
   getOwnedMealPlanWhere,
   getUserActionableMealPlanWhere,
@@ -526,13 +527,14 @@ export class MealsController {
           throw new Error('Meal plan item not found.');
         }
 
-        assertUserActionableMealPlan(mealPlan);
+        assertUserLoggableMealPlan(mealPlan);
 
         return tx.mealLog.upsert({
           where: { mealPlanId },
           update: {
             status: status as MealLogStatus,
-            loggedAt: new Date(),
+            loggedAt: mealPlan.scheduledDate,
+            ...(mealPlan.mealType ? { mealType: mealPlan.mealType } : {}),
             ...(notes !== undefined ? { notes: notes ?? null } : {}),
           },
           create: {
@@ -550,6 +552,8 @@ export class MealsController {
             warningShown: false,
             warningAcknowledged: false,
             notes: notes ?? null,
+            mealType: mealPlan.mealType,
+            loggedAt: mealPlan.scheduledDate,
           },
         });
       });

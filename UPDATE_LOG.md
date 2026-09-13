@@ -172,3 +172,29 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Verified backend unit tests for `mealStatusBodySchema` and `updateMealLogNotesBodySchema` (520 tests passing).
   - Added unit tests for `MealActivityCalendar` and `MealHistoryCard` (87 tests passing across 24 test files).
   - Zero ESLint errors or warnings.
+
+---
+
+## ⏱️ ADDENDUM 9: RETROACTIVE MEAL LOGGING GRACE PERIOD & CATCH-UP SYSTEM (September 2026)
+*Establishing clinical adherence integrity by allowing a 7-day retrospective grace window for passive inactions, preventing ghost data, and enabling 1-click catch-up.*
+
+- **Backend Actionability Separation (`meal-actionability.policy.ts`):**
+  - Clarified policy: untouched meals are never automatically marked as skipped, preventing false clinical compliance deterioration and phantom database entries.
+  - Added `MEAL_PLAN_LOG_GRACE_DAYS = 7` constant and `isMealPlanScheduleLoggable` function.
+  - Added `assertUserLoggableMealPlan(mealPlan, now, graceDays)` to permit logging past meals within 7 days.
+  - Added `assertUserSwappableMealPlan(mealPlan, now)` to strictly prevent swapping past scheduled meals (swapping remains restricted to current and upcoming days).
+  - Updated `updateMealStatus` controller to stamp `loggedAt: mealPlan.scheduledDate` and record `mealType`, ensuring retroactively checked meals attach to their scheduled calendar day rather than the moment of catch-up.
+- **Frontend Catch-Up Experience (`UnloggedMealCatchUpCard.tsx`):**
+  - Implemented interactive catch-up card featuring meal type icons, macro details, and 1-click `[ Mark as Eaten ]` and `[ Skip ]` action buttons with integrated loading spinners.
+  - Integrated into the `/meals` History tab: when a user clicks on a past day in the Activity Matrix (or when viewing a day with untouched plan items), unlogged scheduled meals are surfaced in a prominent catch-up section.
+  - Toggling status from the catch-up cards instantly updates both plan state and meal history cache, immediately lighting up the day's heatmap cell.
+- **Plan Workspace Synchronization (`MealCard.tsx`):**
+  - Removed visual bug where unlogged past meals were falsely rendered as strikethrough with a "Skipped" badge.
+  - Added amber "Unlogged" badge with clock icon for scheduled past meals within the grace period.
+  - Enabled "Mark as Eaten" and "Skip Meal" in the modal for past items within the 7-day grace period, while disabling "Swap Meal" with an informative tooltip (`"Past scheduled meals cannot be swapped."`).
+  - Added expiration alert for meals older than 7 days (`"The 7-day logging grace period for this scheduled meal has passed."`).
+- **Test Suite & Verification:**
+  - Backend: Added `[TEST-015]` in `meal-actionability.test.ts` verifying 7-day grace window logging acceptance, past swap rejection, and >7-day rejection (521 passed, 0 failed, 1 clinical todo).
+  - Frontend: Added unit tests in `UnloggedMealCatchUpCard.test.tsx` verifying render, eaten toggle, and skip toggle (90 passed across 25 test files).
+  - Frontend Lint: `npm run lint` passed with 0 errors and 0 warnings.
+
