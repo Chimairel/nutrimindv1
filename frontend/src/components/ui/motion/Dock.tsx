@@ -54,7 +54,7 @@ export interface DockProps {
   ariaLabel?: string;
 }
 
-export interface DockItemProps {
+export interface DockItemProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
   children: React.ReactNode;
   onClick?: () => void;
@@ -127,7 +127,7 @@ export function Dock({
   );
 }
 
-export function DockItem({ children, className = '', onClick, active = false }: DockItemProps) {
+export function DockItem({ children, className = '', onClick, active = false, ...props }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { distance, magnification, baseSize, mousePos, spring, direction, isReducedMotion } = useDock();
   const isHovered = useMotionValue(0);
@@ -165,6 +165,7 @@ export function DockItem({ children, className = '', onClick, active = false }: 
       data-active={active ? 'true' : undefined}
       className={`relative inline-flex shrink-0 items-center justify-center rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan ${className}`}
       onClick={onClick}
+      {...props}
     >
       {Children.map(children, (child) =>
         React.isValidElement(child)
@@ -181,9 +182,9 @@ export function DockItem({ children, className = '', onClick, active = false }: 
 export function DockIcon({ children, className = '', ...rest }: DockIconProps) {
   const restProps = rest as Record<string, unknown>;
   const size = restProps['size'] as MotionValue<number> | undefined;
-  const defaultSize = useMotionValue(40);
+  const defaultSize = useMotionValue(36);
 
-  const iconScale = useTransform(size ?? defaultSize, (val) => Math.max(16, val * 0.52));
+  const iconScale = useTransform(size ?? defaultSize, (val) => Math.max(14, Math.round(val * 0.44)));
 
   return (
     <motion.div
@@ -192,6 +193,24 @@ export function DockIcon({ children, className = '', ...rest }: DockIconProps) {
     >
       {children}
     </motion.div>
+  );
+}
+
+export interface DockAvatarProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+export function DockAvatar({ children, className = '', ...rest }: DockAvatarProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { size, isHovered, ...domProps } = rest as Record<string, unknown>;
+  return (
+    <div
+      className={`relative flex h-full w-full items-center justify-center overflow-visible ${className}`}
+      {...domProps}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -234,7 +253,7 @@ export function DockLabel({ children, className = '', ...rest }: DockLabelProps)
             ...(direction === 'vertical' ? { x: -4 } : { y: 4 }),
           }}
           transition={{ duration: 0.15 }}
-          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-brand-border/70 bg-brand-surface/95 px-2.5 py-1 text-[11px] font-bold text-brand-text shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-[#07100d]/95 dark:text-white ${placementStyles} ${className}`}
+          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-white/10 bg-[#17201d]/95 px-2.5 py-1 font-display text-[11px] font-semibold tracking-tight text-white shadow-[0_12px_34px_rgba(0,0,0,0.38)] backdrop-blur-xl ${placementStyles} ${className}`}
           role="tooltip"
         >
           {children}

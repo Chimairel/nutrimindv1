@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import { Dock, DockItem, DockIcon, DockLabel } from '../Dock';
+import { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from '../Dock';
 
 describe('Dock Motion Primitive', () => {
   it('renders horizontal dock with accessible role and label', () => {
@@ -62,5 +62,24 @@ describe('Dock Motion Primitive', () => {
       await user.click(item);
       expect(handleClick).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it('renders DockAvatar within a DockItem without DOM attribute leaks', () => {
+    render(
+      <Dock ariaLabel="User dock" direction="vertical">
+        <DockItem>
+          <DockLabel>Profile · Chimay</DockLabel>
+          <DockAvatar className="test-avatar-container">
+            <span data-testid="custom-avatar">Avatar</span>
+          </DockAvatar>
+        </DockItem>
+      </Dock>
+    );
+
+    const avatar = screen.getByTestId('custom-avatar');
+    expect(avatar).toBeInTheDocument();
+    const container = avatar.closest('.test-avatar-container');
+    expect(container).toBeInTheDocument();
+    expect(container).toHaveClass('relative', 'flex', 'h-full', 'w-full');
   });
 });
