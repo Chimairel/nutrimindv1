@@ -9,6 +9,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
+import InteractiveCyberGrid from '@/components/ui/InteractiveCyberGrid';
 
 interface AuthShellProps {
   eyebrow: string;
@@ -35,12 +36,21 @@ export default function AuthShell({
     <main className="relative min-h-screen overflow-hidden bg-brand-bg p-3 text-brand-text sm:p-4 lg:p-5">
       <div className="pointer-events-none absolute left-[52%] top-16 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[110px]" />
       <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1540px] overflow-hidden rounded-[34px] border border-brand-border/70 bg-brand-surface/45 shadow-card-lg backdrop-blur-xl lg:grid-cols-[1.04fr_0.96fr]">
-        <section className="futuristic-grid relative hidden overflow-hidden bg-[#07100d] p-10 text-white lg:flex lg:flex-col xl:p-14">
+        <section className="relative hidden overflow-hidden bg-[#07100d] p-10 text-white lg:flex lg:flex-col xl:p-14">
           <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-cyan/15 blur-[90px]" />
           <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-brand-accent/10 blur-[90px]" />
 
-          <div className="relative z-10 flex items-center justify-between">
-            <Link href="/" className="group flex items-center gap-3" aria-label="KAINARA home">
+          {/* Interactive Cyber Grid with box hover effects */}
+          <InteractiveCyberGrid
+            cols={8}
+            rows={10}
+            accentIndices={[30, 50]}
+            variant="dark"
+            withMask={true}
+          />
+
+          <div className="pointer-events-none relative z-10 flex items-center justify-between">
+            <Link href="/" className="group pointer-events-auto flex items-center gap-3" aria-label="KAINARA home">
               <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d] shadow-neon transition group-hover:-rotate-3">
                 <KainaraLogo className="h-6 w-6" variant="solid" />
                 <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#07100d] bg-brand-cyan" />
@@ -54,14 +64,14 @@ export default function AuthShell({
             </Link>
             <Link
               href="/docs"
-              className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/55 transition hover:border-brand-cyan/30 hover:text-brand-cyan"
+              className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/55 transition hover:border-brand-cyan/30 hover:text-brand-cyan"
             >
               Project docs
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <div className="relative z-10 my-auto max-w-2xl py-12">
+          <div className="pointer-events-none relative z-10 my-auto max-w-2xl py-12">
             <div className="eyebrow inline-flex items-center gap-2 border border-white/10 bg-white/[0.04] text-brand-accent">
               <Sparkles className="h-3.5 w-3.5" />
               Your personal nutrition system
@@ -91,7 +101,7 @@ export default function AuthShell({
             </div>
           </div>
 
-          <div className="relative z-10 grid grid-cols-[1fr_auto] gap-3 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
+          <div className="pointer-events-none relative z-10 grid grid-cols-[1fr_auto] gap-3 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d]">
                 <UtensilsCrossed className="h-[18px] w-[18px]" />
