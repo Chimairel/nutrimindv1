@@ -32,6 +32,9 @@ const nextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
   },
   allowedDevOrigins: ['127.0.0.1'],
+  devIndicators: {
+    position: 'bottom-right',
+  },
   output: 'standalone',
   outputFileTracingRoot: fileURLToPath(new URL('..', import.meta.url)),
   poweredByHeader: false,

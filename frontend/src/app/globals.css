@@ -637,3 +637,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   display: none;
 }
 
+/* Prevent dev tools overlays from blocking bottom-left sidebar interactions */
+nextjs-portal {
+  pointer-events: none !important;
+}
+

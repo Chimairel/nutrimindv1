@@ -98,6 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           distance={85}
           baseSize={36}
           magnification={46}
+          spring={{ mass: 0.08, stiffness: 320, damping: 16 }}
           className="relative z-10 flex h-full w-full flex-col items-center justify-start py-1"
           ariaLabel={`${user.role.toLowerCase()} navigation`}
         >
@@ -181,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             >
               <DockItem
                 active={profileActive}
-                className={`rounded-full p-0.5 transition-all duration-200 ${
+                className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
                   profileActive
                     ? 'ring-2 ring-brand-accent shadow-neon'
                     : 'hover:ring-2 hover:ring-white/30'
@@ -295,7 +296,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 size="sm"
                 src={user.image}
                 fallbackText={user.name}
-                className="h-9 w-9 rounded-full transition-transform duration-200 group-hover:scale-105"
+                className="h-9 w-9 rounded-full transition-transform duration-100 ease-out group-hover:scale-110"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>

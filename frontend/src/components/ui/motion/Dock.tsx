@@ -73,7 +73,7 @@ export function Dock({
   children,
   className = '',
   direction = 'horizontal',
-  spring = { mass: 0.1, stiffness: 170, damping: 14 },
+  spring = { mass: 0.08, stiffness: 300, damping: 16 },
   magnification = 58,
   baseSize = 40,
   distance = 130,
@@ -86,6 +86,11 @@ export function Dock({
 
   return (
     <nav
+      onMouseEnter={(e) => {
+        if (!isReducedMotion) {
+          mousePos.set(direction === 'vertical' ? e.clientY : e.clientX);
+        }
+      }}
       onMouseMove={(e) => {
         if (!isReducedMotion) {
           mousePos.set(direction === 'vertical' ? e.clientY : e.clientX);
