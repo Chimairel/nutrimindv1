@@ -337,8 +337,8 @@ export default function MealActivityCalendar({
         key={`${monthData.year}-${monthData.monthIndex}`}
         className={`flex flex-col items-center select-none transition-all duration-200 ${
           isCenter
-            ? 'rounded-[22px] border border-brand-green/30 bg-brand-bgAlt/40 p-3.5 sm:p-4 shadow-sm dark:border-brand-accent/25 dark:bg-white/[0.03]'
-            : 'rounded-2xl p-2 sm:p-2.5 opacity-85 hover:opacity-100'
+            ? 'rounded-[22px] border border-brand-green/30 bg-brand-bgAlt/40 p-3 sm:p-4 shadow-sm dark:border-brand-accent/25 dark:bg-white/[0.03] w-full max-w-[320px] md:w-auto'
+            : 'hidden md:flex rounded-2xl p-2 sm:p-2.5 opacity-85 hover:opacity-100'
         } ${
           isLocked
             ? 'opacity-40 grayscale select-none pointer-events-none cursor-not-allowed'
@@ -553,42 +553,49 @@ export default function MealActivityCalendar({
                       <span className="text-[10px] opacity-40">0</span>
                     )}
                   </div>
-                  <span className="mt-0.5 font-mono text-[9px] sm:text-[10px] font-bold text-brand-muted dark:text-white/40 truncate w-full">
-                    {cell.mealCount > 0 ? `${Math.round(cell.totalCalories)} kcal` : '—'}
+                  <span className="mt-0.5 font-mono text-[8.5px] sm:text-[10px] font-bold text-brand-muted dark:text-white/40 truncate w-full">
+                    {cell.mealCount > 0 ? (
+                      <>
+                        <span>{Math.round(cell.totalCalories)}</span>
+                        <span className="hidden sm:inline"> kcal</span>
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </span>
                 </button>
               );
             })}
           </div>
         ) : timeRange === 'Month' ? (
-          /* Month Mode: 3 Months side-by-side (Prev, Center, Next) with navigation chevrons and future-locking */
+          /* Month Mode: 3 Months side-by-side on desktop, single centered month on mobile */
           <div className="overflow-x-auto pb-2 scrollbar-thin">
-            <div className="flex min-w-max items-center justify-center gap-2 sm:gap-4 py-2 px-1 mx-auto">
-              {/* Previous Month (Left - Compact) */}
+            <div className="flex w-full md:w-auto md:min-w-max items-center justify-center gap-2 sm:gap-4 py-2 px-1 mx-auto">
+              {/* Previous Month (Left - Hidden on mobile, visible on desktop) */}
               {renderMonthCard(threeMonthsData.prevMonth, false)}
 
-              {/* Left Chevron (<) between Month 1 and Month 2 */}
+              {/* Left Chevron (<) */}
               <button
                 type="button"
                 onClick={handlePrevMonth}
                 aria-label="Previous month"
                 title="Previous month"
-                className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-brand-border/70 bg-brand-surface text-brand-text shadow-sm transition-all hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]"
+                className="flex h-9 w-9 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-brand-border/70 bg-brand-surface text-brand-text shadow-sm transition-all hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]"
               >
                 <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
 
-              {/* Center Month (Active / Focused - Bigger) */}
+              {/* Center Month (Active / Focused - Full width on mobile, centered on desktop) */}
               {renderMonthCard(threeMonthsData.centerMonth, true)}
 
-              {/* Right Chevron (>) between Month 2 and Month 3 */}
+              {/* Right Chevron (>) */}
               <button
                 type="button"
                 onClick={handleNextMonth}
                 disabled={!canGoNext}
                 aria-label="Next month"
                 title={canGoNext ? 'Next month' : 'Future month is locked'}
-                className={`flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
+                className={`flex h-9 w-9 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
                   canGoNext
                     ? 'border-brand-border/70 bg-brand-surface text-brand-text shadow-sm hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]'
                     : 'border-brand-border/30 bg-brand-bgAlt/20 text-brand-muted/30 cursor-not-allowed opacity-30 shadow-none dark:border-white/5 dark:bg-white/[0.01] dark:text-white/20 pointer-events-none'
@@ -597,7 +604,7 @@ export default function MealActivityCalendar({
                 <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
 
-              {/* Next Month (Right - Compact, Locked if future) */}
+              {/* Next Month (Right - Hidden on mobile, visible on desktop) */}
               {renderMonthCard(threeMonthsData.nextMonth, false)}
             </div>
           </div>

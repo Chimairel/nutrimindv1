@@ -6,20 +6,24 @@ export function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6 text-left" aria-label="Loading daily dashboard">
       {/* 1. Day Selector Strip Skeleton */}
-      <div className="mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card">
-        {[...Array(7)].map((_, i) => (
-          <div
-            key={i}
-            className={`flex min-w-[76px] flex-1 flex-col items-center justify-center rounded-2xl border px-4 py-3 gap-1.5 ${
-              i === 0
-                ? 'border-brand-green/30 bg-brand-green/10 dark:border-brand-accent/40 dark:bg-brand-accent/10'
-                : 'border-brand-border/60 bg-brand-bgAlt/50 dark:border-transparent dark:bg-white/[0.02]'
-            }`}
-          >
-            <Skeleton className="h-2.5 w-8 rounded" />
-            <Skeleton className="h-5 w-6 rounded" />
-          </div>
-        ))}
+      <div className="mx-auto flex max-w-full items-center gap-1.5 sm:gap-2 rounded-[24px] border border-brand-border/60 bg-brand-surface/75 p-2 shadow-card">
+        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl sm:rounded-2xl border border-brand-border/70" />
+        <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
+          {[...Array(7)].map((_, i) => (
+            <div
+              key={i}
+              className={`flex min-w-[66px] sm:min-w-[76px] flex-1 flex-col items-center justify-center rounded-xl sm:rounded-2xl border px-2 sm:px-4 py-2 sm:py-3 gap-1.5 ${
+                i === 0
+                  ? 'border-brand-green/30 bg-brand-green/10 dark:border-brand-accent/40 dark:bg-brand-accent/10'
+                  : 'border-brand-border/60 bg-brand-bgAlt/50 dark:border-transparent dark:bg-white/[0.02]'
+              }`}
+            >
+              <Skeleton className="h-2.5 w-8 rounded" />
+              <Skeleton className="h-5 w-6 rounded" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl sm:rounded-2xl border border-brand-border/70" />
       </div>
 
       {/* 2. Cockpit Grid Skeleton */}

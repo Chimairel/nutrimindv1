@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
@@ -136,6 +137,14 @@ export default function WeeklyPlanPage() {
     completedMealCount,
     remainingSwapCount,
   } = workspace;
+
+  const activePlanPillRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (activePlanPillRef.current) {
+      activePlanPillRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [selectedPlanDay?.dateKey]);
 
   if (isRegenerating) {
     return (
@@ -330,7 +339,7 @@ export default function WeeklyPlanPage() {
             className="rounded-[26px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card"
             aria-label="Select a meal-plan day"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() =>
@@ -339,23 +348,24 @@ export default function WeeklyPlanPage() {
                   )
                 }
                 disabled={selectedPlanDayIndex === 0}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
                 aria-label="Previous plan day"
               >
-                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
               </button>
 
-              <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+              <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-smooth">
                 {displayedPlanDays.map((day, index) => {
                   const isSelected = day.dateKey === selectedPlanDay.dateKey;
                   const parsedDate = manilaDateFromKey(day.dateKey);
                   return (
                     <button
                       key={day.dateKey}
+                      ref={isSelected ? activePlanPillRef : undefined}
                       type="button"
                       onClick={() => setSelectedPlanDateKey(day.dateKey)}
                       aria-current={isSelected ? 'date' : undefined}
-                      className={`group relative flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border px-3 py-2.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green ${
+                      className={`group relative flex min-w-[70px] sm:min-w-[88px] flex-1 snap-center flex-col items-center justify-center rounded-xl sm:rounded-2xl border px-2 sm:px-3 py-2 sm:py-2.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green ${
                         isSelected
                           ? 'border-brand-accent text-[#07100d]'
                           : 'border-transparent text-brand-muted hover:border-brand-border hover:bg-brand-bgAlt/70 hover:text-brand-text'
@@ -364,18 +374,18 @@ export default function WeeklyPlanPage() {
                       {isSelected && (
                         <MotionActiveIndicator
                           layoutId="meals-day-selector-indicator"
-                          className="rounded-2xl bg-brand-accent shadow-neon"
+                          className="rounded-xl sm:rounded-2xl bg-brand-accent shadow-neon"
                         />
                       )}
                       <span className="relative z-10 flex flex-col items-center justify-center w-full">
-                        <span className="text-[9px] font-extrabold uppercase tracking-[0.14em]">
+                        <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-[0.14em]">
                           {formatManilaDate(parsedDate, { weekday: 'short' })}
                         </span>
-                        <span className="mt-0.5 font-display text-lg font-black leading-none">
+                        <span className="mt-0.5 font-display text-base sm:text-lg font-black leading-none">
                           {formatManilaDate(parsedDate, { day: 'numeric' })}
                         </span>
                         <span
-                          className={`mt-1 font-mono text-[8px] font-bold uppercase tracking-wider ${
+                          className={`mt-1 font-mono text-[7px] sm:text-[8px] font-bold uppercase tracking-wider ${
                             isSelected ? 'text-[#07100d]/60' : 'text-brand-muted/70'
                           }`}
                         >
@@ -395,10 +405,10 @@ export default function WeeklyPlanPage() {
                   )
                 }
                 disabled={selectedPlanDayIndex === displayedPlanDays.length - 1}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
                 aria-label="Next plan day"
               >
-                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
               </button>
             </div>
             <div className="flex items-center justify-between px-3 pb-1 pt-2 text-[10px] font-bold text-brand-muted">

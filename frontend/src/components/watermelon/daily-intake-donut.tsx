@@ -27,6 +27,7 @@ export const AnimatedValue: React.FC<{
         easing: 'ease-out',
         duration: 500,
       }}
+      style={{ isolation: 'isolate' }}
       className={className}
     />
   );
