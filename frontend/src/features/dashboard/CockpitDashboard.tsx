@@ -90,9 +90,7 @@ export function CockpitDashboard({
                 <div className="flex items-start gap-2.5">
                   <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-green shadow-[0_0_8px_rgba(18,129,100,0.5)]" />
                   <div className="flex flex-col">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                      Consumed
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Consumed</p>
                     <div className="flex items-baseline gap-1">
                       <AnimatedValue
                         value={Math.round(metrics.caloriesConsumed)}
@@ -126,9 +124,7 @@ export function CockpitDashboard({
                 <div className="flex items-start gap-2.5">
                   <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-border dark:bg-zinc-700" />
                   <div className="flex flex-col">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                      Daily Target
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Daily Target</p>
                     <div className="flex items-baseline gap-1">
                       <AnimatedValue
                         value={Math.round(metrics.caloriesTarget)}
@@ -149,21 +145,24 @@ export function CockpitDashboard({
                 <div key={macro.label}>
                   <div className="mb-2 flex justify-between gap-3 text-sm">
                     <div className="flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: macro.color }}
-                      />
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: macro.color }} />
                       <span className="font-medium text-brand-text">{macro.label}</span>
                     </div>
                     <span className="text-brand-muted font-mono text-xs flex items-center gap-1">
                       <strong className="text-brand-text font-bold">
-                        <AnimatedValue value={Math.round(macro.consumed)} suffix="g" className="font-bold text-brand-text" />
+                        <AnimatedValue
+                          value={Math.round(macro.consumed)}
+                          suffix="g"
+                          className="font-bold text-brand-text"
+                        />
                       </strong>{' '}
-                      /{' '}
-                      <AnimatedValue value={Math.round(macro.target)} suffix="g" className="text-brand-muted" />
+                      / <AnimatedValue value={Math.round(macro.target)} suffix="g" className="text-brand-muted" />
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-brand-border/60 dark:bg-zinc-800" aria-hidden="true">
+                  <div
+                    className="h-2 overflow-hidden rounded-full bg-brand-border/60 dark:bg-zinc-800"
+                    aria-hidden="true"
+                  >
                     <motion.div
                       className="h-full rounded-full"
                       style={{ background: macro.color }}
@@ -203,7 +202,10 @@ export function CockpitDashboard({
             </div>
           </div>
         </section>
-        <section aria-label="Scheduled meals" className="dashboard-surface flex h-full min-w-0 flex-col rounded-3xl p-5 sm:p-6">
+        <section
+          aria-label="Scheduled meals"
+          className="dashboard-surface flex h-full min-w-0 flex-col rounded-3xl p-5 sm:p-6"
+        >
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-brand-green">

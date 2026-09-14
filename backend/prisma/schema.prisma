@@ -525,7 +525,9 @@ enum ConsumptionGeographyLevel {
 
 enum MealLocalityPreference {
   NATIONAL
+  NATIONAL_REGIONAL
   REGIONAL
+  REGIONAL_LOCAL
   LOCAL
 }
 

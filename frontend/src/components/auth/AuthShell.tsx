@@ -1,13 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  CheckCircle2,
-  ShieldCheck,
-  Sparkles,
-  UtensilsCrossed,
-} from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import InteractiveCyberGrid from '@/components/ui/InteractiveCyberGrid';
 
@@ -41,13 +34,7 @@ export default function AuthShell({
           <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-brand-accent/10 blur-[90px]" />
 
           {/* Interactive Cyber Grid with box hover effects */}
-          <InteractiveCyberGrid
-            cols={8}
-            rows={10}
-            accentIndices={[30, 50]}
-            variant="dark"
-            withMask={true}
-          />
+          <InteractiveCyberGrid cols={8} rows={10} accentIndices={[30, 50]} variant="dark" withMask={true} />
 
           <div className="pointer-events-none relative z-10 flex items-center justify-between">
             <Link href="/" className="group pointer-events-auto flex items-center gap-3" aria-label="KAINARA home">

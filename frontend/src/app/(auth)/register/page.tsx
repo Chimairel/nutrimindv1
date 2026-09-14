@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
+import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 import {
   getRegistrationFieldErrors,
@@ -96,7 +97,7 @@ export default function RegisterPage() {
     >
       <AuthFormPrelude googleLabel="signup_with" error={error} compact />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input
             id="firstName"
@@ -182,7 +183,7 @@ export default function RegisterPage() {
         <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
           Create account
         </Button>
-      </form>
+      </HydratedForm>
     </AuthShell>
   );
 }

@@ -171,7 +171,11 @@ export function Select({
         <span className="flex items-center gap-2 truncate">
           {selectedOption?.icon && <span className="shrink-0">{selectedOption.icon}</span>}
           <span className="truncate">
-            {selectedOption ? selectedOption.label : <span className="text-brand-muted dark:text-white/40">{placeholder}</span>}
+            {selectedOption ? (
+              selectedOption.label
+            ) : (
+              <span className="text-brand-muted dark:text-white/40">{placeholder}</span>
+            )}
           </span>
         </span>
 
@@ -193,9 +197,7 @@ export function Select({
             id={listboxId}
             role="listbox"
             tabIndex={-1}
-            aria-activedescendant={
-              highlightedIndex >= 0 ? `${selectId}-option-${highlightedIndex}` : undefined
-            }
+            aria-activedescendant={highlightedIndex >= 0 ? `${selectId}-option-${highlightedIndex}` : undefined}
             className="max-h-60 overflow-y-auto space-y-0.5 scrollbar-thin"
           >
             {options.map((option, idx) => {
@@ -214,8 +216,8 @@ export function Select({
                     isSelected
                       ? 'bg-brand-green/15 text-brand-green dark:bg-brand-accent/20 dark:text-brand-accent font-bold'
                       : isHighlighted
-                      ? 'bg-brand-bgAlt/80 text-brand-text dark:bg-white/[0.06] dark:text-white'
-                      : 'text-brand-text/90 hover:bg-brand-bgAlt/50 dark:text-white/80 dark:hover:bg-white/[0.04]'
+                        ? 'bg-brand-bgAlt/80 text-brand-text dark:bg-white/[0.06] dark:text-white'
+                        : 'text-brand-text/90 hover:bg-brand-bgAlt/50 dark:text-white/80 dark:hover:bg-white/[0.04]'
                   }`}
                 >
                   <span className="flex items-center gap-2 truncate">

@@ -248,10 +248,7 @@ export const defaultMealTypePlaceholders: Record<string, PublicMealImage> = {
   },
 };
 
-export function resolveMealTypePlaceholder(
-  mealType?: MealType | string,
-  mealName?: string
-): PublicMealImage {
+export function resolveMealTypePlaceholder(mealType?: MealType | string, mealName?: string): PublicMealImage {
   const normalized = (mealType || '').toUpperCase();
   if (normalized in defaultMealTypePlaceholders) {
     return defaultMealTypePlaceholders[normalized];
@@ -308,7 +305,12 @@ export default function MealImage({
   const placeholderFailed = Boolean(placeholderCandidate && failedUrls[placeholderCandidate.url]);
 
   // Determine which image candidate to display
-  const effectiveImage = !primaryFailed && primaryImage ? primaryImage : !placeholderFailed && placeholderCandidate ? placeholderCandidate : null;
+  const effectiveImage =
+    !primaryFailed && primaryImage
+      ? primaryImage
+      : !placeholderFailed && placeholderCandidate
+        ? placeholderCandidate
+        : null;
   const showFallback = !effectiveImage;
   const isLoaded = Boolean(effectiveImage && loadedUrl === effectiveImage.url);
   const categoryInfo = resolveMealCategory(mealName, mealType, ingredients);

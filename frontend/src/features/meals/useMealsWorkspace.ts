@@ -525,9 +525,7 @@ export function useMealsWorkspace() {
       const res = await api.patch(`/user/meals/logs/${logId}/notes`, { notes });
       if (res.data?.success) {
         const updatedNotes = res.data.data.notes;
-        setHistoryLogs((prev) =>
-          prev.map((log) => (log.id === logId ? { ...log, notes: updatedNotes } : log))
-        );
+        setHistoryLogs((prev) => prev.map((log) => (log.id === logId ? { ...log, notes: updatedNotes } : log)));
         const resource = historyResource(historySearch, historySource, historyStatus);
         const cached = readSessionResource<MealHistoryLog[]>(user?.userId, resource);
         if (cached) {

@@ -1,3 +1,4 @@
+import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
 import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
@@ -97,7 +98,10 @@ export class UserProfileService {
       } else if (effectiveLevel === ConsumptionGeographyLevel.REGION || !effectiveProvinceHuc) {
         safeData.planningProvinceHucName = null;
         safeData.mealLocalityPreference =
-          requestedLocality === MealLocalityPreference.LOCAL ? MealLocalityPreference.REGIONAL : requestedLocality;
+          requestedLocality === MealLocalityPreference.LOCAL ||
+          requestedLocality === MealLocalityPreference.REGIONAL_LOCAL
+            ? MealLocalityPreference.REGIONAL
+            : requestedLocality;
       } else {
         safeData.mealLocalityPreference = requestedLocality;
       }
@@ -295,7 +299,7 @@ export class UserProfileService {
 
     const onboardingStatus = evaluateUserOnboardingStatus(user);
     const googleAccount = user.accounts?.[0];
-    const googleImage = googleAccount?.access_token || (user.image?.startsWith('http') ? user.image : null);
+    const googleImage = googleProfileImage(googleAccount?.access_token) || googleProfileImage(user.image);
 
     // Transform into clean structure for client
     return {

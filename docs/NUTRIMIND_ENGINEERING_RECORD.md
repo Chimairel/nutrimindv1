@@ -3865,3 +3865,9 @@ This section is a continuity record for agreed future work. Every item below is 
 - Frontend verification: full `npm test` passed 133 tests across 34 files; an additional skipped-note regression then passed with all four MealHistoryCard tests. `npm run lint` passed without errors or warnings. Regressions cover mixed statuses, skipped-only intake, calendar selection/calories, and editing skipped-meal notes.
 - This entry covers the intake correction only; the separate authentication and broader UI-integration investigation remains in progress.
 
+## 82. Antigravity UI integration and locality blends (2026-09-15)
+
+- Completed a bounded functional integration pass preserving the existing UI. Repairs cover pre-hydration auth submission, public recovery routing, atomic reset-token consumption, read-only database retries, avatar persistence/Google default restoration, motion types and reusable avatar/library sections.
+- Both user-approved blend stops now persist independently and gather adjacent geographic evidence with scope provenance and fallback. Additive migration `20260915020000_locality_blends` was applied to disposable and existing local databases; a verified PostgreSQL backup preceded the local migration.
+- Backend: **526 passed / zero failed / one existing clinical TODO**. Frontend: **140 passed across 36 files**. Both production builds and backend script checking passed. Disposable acceptance covers login/recovery, session revocation, avatars, persisted blends and note ownership/length. All three roles passed endpoint and access-boundary smoke checks.
+- See [UI functional audit](UI_FUNCTIONAL_AUDIT_2026-09-15.md) for exact evidence and limits. Recovery browser interactions were checked; full three-role browser acceptance was not completed because automatic approval rejected the separate preview startup. Real-account login, live providers, image provenance and clinical correctness are not established by this pass.

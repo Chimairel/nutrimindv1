@@ -69,6 +69,9 @@ function formatPlanningLocation(profile?: UserProfileData['userProfile']) {
 }
 
 function formatMealLocality(profile?: UserProfileData['userProfile']) {
+  if (profile?.mealLocalityPreference === 'NATIONAL_REGIONAL') return `Philippines & ${profile.planningRegionName}`;
+  if (profile?.mealLocalityPreference === 'REGIONAL_LOCAL')
+    return `${profile.planningRegionName} & ${profile.planningProvinceHucName}`;
   if (profile?.mealLocalityPreference === 'LOCAL' && profile.planningProvinceHucName) {
     return profile.planningProvinceHucName;
   }

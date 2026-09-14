@@ -8,10 +8,7 @@ export function ProgressSkeleton() {
       {/* 1. Metric Cards Grid */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm"
-          >
+          <div key={i} className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
             <Skeleton className="h-4 w-4 rounded-full" />
             <Skeleton className="mt-4 h-6 w-20 rounded" />
             <Skeleton className="mt-2 h-3 w-28 rounded" />

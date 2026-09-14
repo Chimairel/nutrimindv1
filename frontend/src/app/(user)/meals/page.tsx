@@ -10,7 +10,7 @@ import MealCard from '@/components/user/MealCard';
 import MealActivityCalendar from '@/components/user/MealActivityCalendar';
 import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
-import LibraryMealCard from '@/features/meals/LibraryMealCard';
+import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   Search,
   FileText,
-  Salad,
   CheckCircle2,
   Clock3,
   ShieldCheck,
@@ -109,20 +108,11 @@ export default function WeeklyPlanPage() {
     selectedHistoryDateKey,
     setSelectedHistoryDateKey,
     handleUpdateLogNotes,
-    libraryMeals,
-    isLibraryLoading,
     libraryTotalCount,
-    libraryError,
-    librarySearch,
-    setLibrarySearch,
-    setSelectedVerifier,
-    libraryMealType,
-    setLibraryMealType,
     handleSwapClick,
     handleMealStatusToggle,
     handleRegeneratePlan,
     handleHistorySearchSubmit,
-    handleLibrarySearchSubmit,
     groupHistoryByDate,
     groupedDays,
     groupedPendingDays,
@@ -160,9 +150,7 @@ export default function WeeklyPlanPage() {
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
-        {pendingReview && (
-          <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />
-        )}
+        {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />}
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
@@ -593,29 +581,30 @@ export default function WeeklyPlanPage() {
             </div>
           ))}
 
-        {activeTab === 'history' && (() => {
-          const historyDays = groupHistoryByDate();
-          const effectiveDateKey =
-            selectedHistoryDateKey || (historyDays.length > 0 ? historyDays[0].dateKey : getManilaDateKey());
-          const activeDay = historyDays.find((day) => day.dateKey === effectiveDateKey);
+        {activeTab === 'history' &&
+          (() => {
+            const historyDays = groupHistoryByDate();
+            const effectiveDateKey =
+              selectedHistoryDateKey || (historyDays.length > 0 ? historyDays[0].dateKey : getManilaDateKey());
+            const activeDay = historyDays.find((day) => day.dateKey === effectiveDateKey);
 
-          // Check if there are scheduled plan meals matching effectiveDateKey
-          const scheduledForDate = effectiveDateKey
-            ? meals.filter((m) => getManilaDateKey(m.scheduledDate) === effectiveDateKey)
-            : [];
+            // Check if there are scheduled plan meals matching effectiveDateKey
+            const scheduledForDate = effectiveDateKey
+              ? meals.filter((m) => getManilaDateKey(m.scheduledDate) === effectiveDateKey)
+              : [];
 
-          // An unlogged meal is one where none of its mealLogs have status DONE or SKIPPED
-          const unloggedScheduledMeals = scheduledForDate.filter((m) => {
-            return !m.mealLogs?.some((l) => l.status === 'DONE' || l.status === 'SKIPPED');
-          });
+            // An unlogged meal is one where none of its mealLogs have status DONE or SKIPPED
+            const unloggedScheduledMeals = scheduledForDate.filter((m) => {
+              return !m.mealLogs?.some((l) => l.status === 'DONE' || l.status === 'SKIPPED');
+            });
 
-          const todayKey = getManilaDateKey();
-          const parsedEffectiveDate = effectiveDateKey ? manilaDateFromKey(effectiveDateKey) : null;
-          const isDateInPastOrToday = Boolean(effectiveDateKey && effectiveDateKey <= todayKey);
+            const todayKey = getManilaDateKey();
+            const parsedEffectiveDate = effectiveDateKey ? manilaDateFromKey(effectiveDateKey) : null;
+            const isDateInPastOrToday = Boolean(effectiveDateKey && effectiveDateKey <= todayKey);
 
-          // Check if within the 7-day grace window
-          const isWithinGraceWindow = Boolean(
-            effectiveDateKey &&
+            // Check if within the 7-day grace window
+            const isWithinGraceWindow = Boolean(
+              effectiveDateKey &&
               parsedEffectiveDate &&
               (() => {
                 const today = new Date();
@@ -625,136 +614,198 @@ export default function WeeklyPlanPage() {
                 const diffDays = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
                 return diffDays >= 0 && diffDays <= 7;
               })()
-          );
+            );
 
-          const hasUnloggedToCatchUp = unloggedScheduledMeals.length > 0 && isDateInPastOrToday && isWithinGraceWindow;
-          const weekday = parsedEffectiveDate ? formatManilaDate(parsedEffectiveDate, { weekday: 'long' }) : 'Selected Day';
-          const dateStr = parsedEffectiveDate ? formatManilaDate(parsedEffectiveDate, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+            const hasUnloggedToCatchUp =
+              unloggedScheduledMeals.length > 0 && isDateInPastOrToday && isWithinGraceWindow;
+            const weekday = parsedEffectiveDate
+              ? formatManilaDate(parsedEffectiveDate, { weekday: 'long' })
+              : 'Selected Day';
+            const dateStr = parsedEffectiveDate
+              ? formatManilaDate(parsedEffectiveDate, { month: 'short', day: 'numeric', year: 'numeric' })
+              : '';
 
-          return (
-            <div className="space-y-6 text-left">
-              {/* Activity Heatmap Calendar Matrix */}
-              <MealActivityCalendar
-                logs={historyLogs}
-                selectedDateKey={effectiveDateKey}
-                onSelectDateKey={(dateKey) => setSelectedHistoryDateKey(dateKey)}
-              />
+            return (
+              <div className="space-y-6 text-left">
+                {/* Activity Heatmap Calendar Matrix */}
+                <MealActivityCalendar
+                  logs={historyLogs}
+                  selectedDateKey={effectiveDateKey}
+                  onSelectDateKey={(dateKey) => setSelectedHistoryDateKey(dateKey)}
+                />
 
-              {/* Filters block */}
-              <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row dark:border-white/10 dark:bg-white/[0.035]">
-                <form onSubmit={handleHistorySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
-                  <label className="relative min-w-0 flex-1">
-                    <span className="sr-only">Search meal history</span>
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
-                    <input
-                      type="text"
-                      placeholder="Search history..."
-                      value={historySearch}
-                      onChange={(e) => setHistorySearch(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    />
-                  </label>
-                  <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
-                    Apply
-                  </Button>
-                </form>
-                <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:flex md:items-center">
-                  <div className="w-full md:w-40">
-                    <Select
-                      value={historySource}
-                      onChange={setHistorySource}
-                      options={HISTORY_SOURCE_OPTIONS}
-                      aria-label="Filter history by source"
-                    />
+                {/* Filters block */}
+                <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row dark:border-white/10 dark:bg-white/[0.035]">
+                  <form onSubmit={handleHistorySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
+                    <label className="relative min-w-0 flex-1">
+                      <span className="sr-only">Search meal history</span>
+                      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                      <input
+                        type="text"
+                        placeholder="Search history..."
+                        value={historySearch}
+                        onChange={(e) => setHistorySearch(e.target.value)}
+                        className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      />
+                    </label>
+                    <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
+                      Apply
+                    </Button>
+                  </form>
+                  <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:flex md:items-center">
+                    <div className="w-full md:w-40">
+                      <Select
+                        value={historySource}
+                        onChange={setHistorySource}
+                        options={HISTORY_SOURCE_OPTIONS}
+                        aria-label="Filter history by source"
+                      />
+                    </div>
+                    <div className="w-full md:w-36">
+                      <Select
+                        value={historyStatus}
+                        onChange={setHistoryStatus}
+                        options={HISTORY_STATUS_OPTIONS}
+                        aria-label="Filter history by status"
+                      />
+                    </div>
                   </div>
-                  <div className="w-full md:w-36">
-                    <Select
-                      value={historyStatus}
-                      onChange={setHistoryStatus}
-                      options={HISTORY_STATUS_OPTIONS}
-                      aria-label="Filter history by status"
-                    />
-                  </div>
                 </div>
-              </div>
 
-              {isHistoryLoading ? (
-                <div className="flex flex-col items-center py-12 gap-2">
-                  <LoadingSpinner size="md" />
-                  <span className="text-xs text-brand-muted">Loading history logs...</span>
-                </div>
-              ) : historyError ? (
-                <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-                  <span>{historyError}</span>
-                </div>
-              ) : historyLogs.length === 0 && !hasUnloggedToCatchUp ? (
-                <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
-                  <FileText className="w-8 h-8 text-brand-green dark:text-brand-accent mx-auto mb-2" />
-                  <p className="text-sm text-brand-text dark:text-white font-semibold">No Meal Logs Found</p>
-                  <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-                    You haven&apos;t logged any meals matching the selected filters yet.
-                  </p>
-                </div>
-              ) : activeDay ? (
-                /* Selected Day Section with Macro Summary, Catch-Up Card (if any unlogged), and Logged Meal Cards */
-                <section className="space-y-4">
-                  {/* Day Header Banner with Macro Summary */}
-                  <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
-                          {activeDay.weekday}
-                        </span>
-                        <span className="text-xs font-semibold text-brand-muted dark:text-white/40">·</span>
-                        <span className="text-xs font-bold text-brand-text dark:text-white/80">{activeDay.dateStr}</span>
+                {isHistoryLoading ? (
+                  <div className="flex flex-col items-center py-12 gap-2">
+                    <LoadingSpinner size="md" />
+                    <span className="text-xs text-brand-muted">Loading history logs...</span>
+                  </div>
+                ) : historyError ? (
+                  <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+                    <span>{historyError}</span>
+                  </div>
+                ) : historyLogs.length === 0 && !hasUnloggedToCatchUp ? (
+                  <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
+                    <FileText className="w-8 h-8 text-brand-green dark:text-brand-accent mx-auto mb-2" />
+                    <p className="text-sm text-brand-text dark:text-white font-semibold">No Meal Logs Found</p>
+                    <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
+                      You haven&apos;t logged any meals matching the selected filters yet.
+                    </p>
+                  </div>
+                ) : activeDay ? (
+                  /* Selected Day Section with Macro Summary, Catch-Up Card (if any unlogged), and Logged Meal Cards */
+                  <section className="space-y-4">
+                    {/* Day Header Banner with Macro Summary */}
+                    <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
+                            {activeDay.weekday}
+                          </span>
+                          <span className="text-xs font-semibold text-brand-muted dark:text-white/40">·</span>
+                          <span className="text-xs font-bold text-brand-text dark:text-white/80">
+                            {activeDay.dateStr}
+                          </span>
+                        </div>
+                        <p className="text-xs text-brand-muted dark:text-white/40 mt-0.5">
+                          {activeDay.mealCount} meal{activeDay.mealCount !== 1 ? 's' : ''} logged
+                          {hasUnloggedToCatchUp ? ` · ${unloggedScheduledMeals.length} planned awaiting log` : ''}
+                        </p>
                       </div>
-                      <p className="text-xs text-brand-muted dark:text-white/40 mt-0.5">
-                        {activeDay.mealCount} meal{activeDay.mealCount !== 1 ? 's' : ''} logged
-                        {hasUnloggedToCatchUp ? ` · ${unloggedScheduledMeals.length} planned awaiting log` : ''}
-                      </p>
+
+                      {/* Day Macro Badges */}
+                      <div className="flex flex-wrap gap-2 text-xs font-bold">
+                        <span className="rounded-xl border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-brand-green dark:border-white/10 dark:bg-white/5 dark:text-brand-accent">
+                          {Math.round(activeDay.totalCalories)} kcal
+                        </span>
+                        <span
+                          className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                          style={{
+                            backgroundColor: 'var(--macro-protein-bg)',
+                            borderColor: 'var(--macro-protein-border)',
+                            color: 'var(--macro-protein)',
+                          }}
+                        >
+                          {Math.round(activeDay.totalProtein)}g P
+                        </span>
+                        <span
+                          className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                          style={{
+                            backgroundColor: 'var(--macro-carbs-bg)',
+                            borderColor: 'var(--macro-carbs-border)',
+                            color: 'var(--macro-carbs)',
+                          }}
+                        >
+                          {Math.round(activeDay.totalCarbs)}g C
+                        </span>
+                        <span
+                          className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                          style={{
+                            backgroundColor: 'var(--macro-fat-bg)',
+                            borderColor: 'var(--macro-fat-border)',
+                            color: 'var(--macro-fat)',
+                          }}
+                        >
+                          {Math.round(activeDay.totalFat)}g F
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Day Macro Badges */}
-                    <div className="flex flex-wrap gap-2 text-xs font-bold">
-                      <span className="rounded-xl border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-brand-green dark:border-white/10 dark:bg-white/5 dark:text-brand-accent">
-                        {Math.round(activeDay.totalCalories)} kcal
-                      </span>
-                      <span
-                        className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
-                        style={{
-                          backgroundColor: 'var(--macro-protein-bg)',
-                          borderColor: 'var(--macro-protein-border)',
-                          color: 'var(--macro-protein)',
-                        }}
-                      >
-                        {Math.round(activeDay.totalProtein)}g P
-                      </span>
-                      <span
-                        className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
-                        style={{
-                          backgroundColor: 'var(--macro-carbs-bg)',
-                          borderColor: 'var(--macro-carbs-border)',
-                          color: 'var(--macro-carbs)',
-                        }}
-                      >
-                        {Math.round(activeDay.totalCarbs)}g C
-                      </span>
-                      <span
-                        className="rounded-xl border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
-                        style={{
-                          backgroundColor: 'var(--macro-fat-bg)',
-                          borderColor: 'var(--macro-fat-border)',
-                          color: 'var(--macro-fat)',
-                        }}
-                      >
-                        {Math.round(activeDay.totalFat)}g F
+                    {/* Catch-up Section for Unlogged Scheduled Meals on this day */}
+                    {hasUnloggedToCatchUp && (
+                      <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/[0.04] p-4 sm:p-5 dark:border-amber-500/20 dark:bg-amber-500/[0.03]">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3.5">
+                          <div className="flex items-center gap-2">
+                            <Clock3 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <h4 className="font-display text-sm font-extrabold text-brand-text dark:text-white">
+                              Missed / Unlogged Plan Meals ({unloggedScheduledMeals.length})
+                            </h4>
+                          </div>
+                          <span className="text-[11px] text-brand-muted dark:text-white/40">
+                            Log within your 7-day grace window to keep your adherence accurate.
+                          </span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {unloggedScheduledMeals.map((meal) => (
+                            <UnloggedMealCatchUpCard
+                              key={meal.id}
+                              meal={meal}
+                              onStatusToggle={handleMealStatusToggle}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Logged Meal Cards List with note editor */}
+                    <div className="space-y-3">
+                      {activeDay.logsList.map((log) => (
+                        <MealHistoryCard key={log.id} log={log} onUpdateNotes={handleUpdateLogNotes} />
+                      ))}
+                    </div>
+                  </section>
+                ) : hasUnloggedToCatchUp ? (
+                  /* Unlogged Scheduled Day (0 meals logged yet, but has plan meals) */
+                  <section className="space-y-4">
+                    {/* Day Header Banner */}
+                    <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
+                            {weekday}
+                          </span>
+                          <span className="text-xs font-semibold text-brand-muted dark:text-white/40">·</span>
+                          <span className="text-xs font-bold text-brand-text dark:text-white/80">{dateStr}</span>
+                        </div>
+                        <p className="text-xs text-brand-muted dark:text-white/40 mt-0.5">
+                          0 meals logged · {unloggedScheduledMeals.length} planned awaiting log
+                        </p>
+                      </div>
+
+                      <span className="self-start md:self-auto rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                        Catch-up available
                       </span>
                     </div>
-                  </div>
 
-                  {/* Catch-up Section for Unlogged Scheduled Meals on this day */}
-                  {hasUnloggedToCatchUp && (
+                    {/* Catch-up Section */}
                     <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/[0.04] p-4 sm:p-5 dark:border-amber-500/20 dark:bg-amber-500/[0.03]">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3.5">
                         <div className="flex items-center gap-2">
@@ -764,174 +815,50 @@ export default function WeeklyPlanPage() {
                           </h4>
                         </div>
                         <span className="text-[11px] text-brand-muted dark:text-white/40">
-                          Log within your 7-day grace window to keep your adherence accurate.
+                          Select whether you ate or skipped these meals to record your intake.
                         </span>
                       </div>
                       <div className="space-y-2.5">
                         {unloggedScheduledMeals.map((meal) => (
-                          <UnloggedMealCatchUpCard
-                            key={meal.id}
-                            meal={meal}
-                            onStatusToggle={handleMealStatusToggle}
-                          />
+                          <UnloggedMealCatchUpCard key={meal.id} meal={meal} onStatusToggle={handleMealStatusToggle} />
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  {/* Logged Meal Cards List with note editor */}
-                  <div className="space-y-3">
-                    {activeDay.logsList.map((log) => (
-                      <MealHistoryCard
-                        key={log.id}
-                        log={log}
-                        onUpdateNotes={handleUpdateLogNotes}
-                      />
-                    ))}
+                  </section>
+                ) : (
+                  /* Empty state when clicking a calendar day that has 0 meals and no planned meals */
+                  <div className="p-8 text-center border border-dashed border-brand-border/80 bg-brand-surface/40 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
+                    <Calendar className="w-8 h-8 text-brand-muted mx-auto mb-2 opacity-50" />
+                    <p className="text-sm text-brand-text dark:text-white font-semibold">
+                      No Meals Logged on{' '}
+                      {effectiveDateKey
+                        ? formatManilaDate(manilaDateFromKey(effectiveDateKey), {
+                            weekday: 'long',
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : 'this date'}
+                    </p>
+                    <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
+                      Select any highlighted day on the activity matrix above to view its meals, or click below to view
+                      your most recent day.
+                    </p>
+                    {historyDays.length > 0 && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setSelectedHistoryDateKey(historyDays[0].dateKey)}
+                        className="mt-4 text-xs font-bold"
+                      >
+                        View Most Recent Day ({historyDays[0].dateStr})
+                      </Button>
+                    )}
                   </div>
-                </section>
-              ) : hasUnloggedToCatchUp ? (
-                /* Unlogged Scheduled Day (0 meals logged yet, but has plan meals) */
-                <section className="space-y-4">
-                  {/* Day Header Banner */}
-                  <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
-                          {weekday}
-                        </span>
-                        <span className="text-xs font-semibold text-brand-muted dark:text-white/40">·</span>
-                        <span className="text-xs font-bold text-brand-text dark:text-white/80">{dateStr}</span>
-                      </div>
-                      <p className="text-xs text-brand-muted dark:text-white/40 mt-0.5">
-                        0 meals logged · {unloggedScheduledMeals.length} planned awaiting log
-                      </p>
-                    </div>
+                )}
+              </div>
+            );
+          })()}
 
-                    <span className="self-start md:self-auto rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                      Catch-up available
-                    </span>
-                  </div>
-
-                  {/* Catch-up Section */}
-                  <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/[0.04] p-4 sm:p-5 dark:border-amber-500/20 dark:bg-amber-500/[0.03]">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3.5">
-                      <div className="flex items-center gap-2">
-                        <Clock3 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        <h4 className="font-display text-sm font-extrabold text-brand-text dark:text-white">
-                          Missed / Unlogged Plan Meals ({unloggedScheduledMeals.length})
-                        </h4>
-                      </div>
-                      <span className="text-[11px] text-brand-muted dark:text-white/40">
-                        Select whether you ate or skipped these meals to record your intake.
-                      </span>
-                    </div>
-                    <div className="space-y-2.5">
-                      {unloggedScheduledMeals.map((meal) => (
-                        <UnloggedMealCatchUpCard
-                          key={meal.id}
-                          meal={meal}
-                          onStatusToggle={handleMealStatusToggle}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              ) : (
-                /* Empty state when clicking a calendar day that has 0 meals and no planned meals */
-                <div className="p-8 text-center border border-dashed border-brand-border/80 bg-brand-surface/40 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
-                  <Calendar className="w-8 h-8 text-brand-muted mx-auto mb-2 opacity-50" />
-                  <p className="text-sm text-brand-text dark:text-white font-semibold">
-                    No Meals Logged on {effectiveDateKey ? formatManilaDate(manilaDateFromKey(effectiveDateKey), { weekday: 'long', month: 'short', day: 'numeric' }) : 'this date'}
-                  </p>
-                  <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-                    Select any highlighted day on the activity matrix above to view its meals, or click below to view your most recent day.
-                  </p>
-                  {historyDays.length > 0 && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => setSelectedHistoryDateKey(historyDays[0].dateKey)}
-                      className="mt-4 text-xs font-bold"
-                    >
-                      View Most Recent Day ({historyDays[0].dateStr})
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {activeTab === 'library' && (
-          <div className="space-y-6 text-left">
-            <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
-              <form onSubmit={handleLibrarySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
-                <label className="relative min-w-0 flex-1">
-                  <span className="sr-only">Search verified recipes</span>
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
-                  <input
-                    type="text"
-                    placeholder="Search recipes..."
-                    value={librarySearch}
-                    onChange={(e) => setLibrarySearch(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green"
-                  />
-                </label>
-                <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
-                  Apply
-                </Button>
-              </form>
-              <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-brand-bgAlt/60 p-1 select-none md:w-auto">
-                {['All', 'BREAKFAST', 'LUNCH', 'DINNER'].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setLibraryMealType(type)}
-                    className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
-                      libraryMealType === type
-                        ? 'border-brand-green bg-brand-green text-white shadow-sm'
-                        : 'border-transparent text-brand-muted hover:bg-brand-surface hover:text-brand-text'
-                    }`}
-                  >
-                    {type === 'All' ? 'All Types' : type.charAt(0) + type.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {isLibraryLoading ? (
-              <div className="flex flex-col items-center py-12 gap-2">
-                <LoadingSpinner size="md" />
-                <span className="text-xs text-brand-muted">Loading recipes...</span>
-              </div>
-            ) : libraryError ? (
-              <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-                <span>{libraryError}</span>
-              </div>
-            ) : libraryMeals.length === 0 ? (
-              <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
-                <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
-                <p className="text-sm text-brand-text font-semibold">No Recipes Found</p>
-                <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-                  No verified meals of this type match your health profile right now.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {libraryMeals.map((meal) => (
-                  <LibraryMealCard
-                    key={meal.id}
-                    meal={meal}
-                    meals={meals}
-                    planView={workspace.planView}
-                    onSwap={handleSwapClick}
-                    onVerifier={setSelectedVerifier}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {activeTab === 'library' && <MealLibraryPanel workspace={workspace} />}
       </div>
 
       <MealsWorkspaceModals workspace={workspace} />

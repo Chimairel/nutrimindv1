@@ -37,13 +37,7 @@ export function SystemErrorPanel({
       <div className="pointer-events-none absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-brand-cyan/10 blur-[140px] dark:bg-[#61e6ff]/10" />
 
       {/* Full-screen Interactive Cyber Grid with box hover effects */}
-      <InteractiveCyberGrid
-        cols={14}
-        rows={8}
-        accentIndices={[32, 65, 66]}
-        variant="adaptive"
-        withMask={true}
-      />
+      <InteractiveCyberGrid cols={14} rows={8} accentIndices={[32, 65, 66]} variant="adaptive" withMask={true} />
 
       {/* Top Header */}
       <header className="pointer-events-none relative z-20 flex w-full items-center justify-between p-6 sm:px-10 lg:px-16">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useMemo, useState } from 'react';
+import React, { useId, useMemo } from 'react';
 import { Check, Compass, Globe2, LockKeyhole, Map, MapPin, Sparkles } from 'lucide-react';
 import { usePlanningLocations, validPlanningLocation } from '@/hooks/usePlanningLocations';
 import type { MealLocalityPreference } from '@/types';
@@ -33,25 +33,14 @@ export default function MealLocalityPreferenceControl({
   // 5: Province/HUC
   const maxStop = provinceValid ? 5 : regionValid ? 3 : 1;
 
-  // Track the internal stop (1..5) while keeping compatibility with MealLocalityPreference
-  const [internalStop, setInternalStop] = useState<number>(() => {
-    if (value === 'LOCAL') return 5;
-    if (value === 'REGIONAL') return 3;
-    return 1;
-  });
-
-  // Keep internal stop synchronized with value and validity boundaries
-  const resolvedStop = useMemo(() => {
-    let stop = internalStop;
-    if (value === 'NATIONAL' && stop > 2) {
-      stop = 1;
-    } else if (value === 'REGIONAL' && (stop < 2 || stop > 3)) {
-      stop = 3;
-    } else if (value === 'LOCAL' && stop < 4) {
-      stop = 5;
-    }
-    return Math.min(stop, maxStop);
-  }, [internalStop, value, maxStop]);
+  const savedStops: Record<MealLocalityPreference, number> = {
+    NATIONAL: 1,
+    NATIONAL_REGIONAL: 2,
+    REGIONAL: 3,
+    REGIONAL_LOCAL: 4,
+    LOCAL: 5,
+  };
+  const resolvedStop = Math.min(savedStops[value], maxStop);
 
   const cleanRegion = regionName.trim();
   const cleanProvince = provinceHucName.trim();
@@ -73,7 +62,7 @@ export default function MealLocalityPreferenceControl({
       },
       {
         stop: 2,
-        preference: 'REGIONAL' as MealLocalityPreference,
+        preference: 'NATIONAL_REGIONAL' as MealLocalityPreference,
         buttonName: 'National-Regional blend',
         badge: 'National+',
         title: cleanRegion ? `Philippines & ${cleanRegion}` : 'National & Regional blend',
@@ -101,12 +90,16 @@ export default function MealLocalityPreferenceControl({
       },
       {
         stop: 4,
-        preference: 'LOCAL' as MealLocalityPreference,
+        preference: 'REGIONAL_LOCAL' as MealLocalityPreference,
         buttonName: 'Regional-Local blend',
         badge: 'Local+',
         title: cleanProvince && cleanRegion ? `${cleanRegion} & ${cleanProvince}` : 'Regional & Local blend',
-        subtitle: cleanProvince ? `${cleanRegion || 'Regional'} with ${cleanProvince} favorites` : 'Regional & Local blend',
-        ariaText: cleanProvince ? `${cleanRegion || 'Regional'} with ${cleanProvince} favorites` : 'Regional and Local blend',
+        subtitle: cleanProvince
+          ? `${cleanRegion || 'Regional'} with ${cleanProvince} favorites`
+          : 'Regional & Local blend',
+        ariaText: cleanProvince
+          ? `${cleanRegion || 'Regional'} with ${cleanProvince} favorites`
+          : 'Regional and Local blend',
         description: cleanProvince
           ? `Blend broader regional dishes with distinctive local favorites from ${cleanProvince}.`
           : 'Blend regional dishes with distinctive province/city favorites.',
@@ -134,7 +127,6 @@ export default function MealLocalityPreferenceControl({
 
   const handleStopChange = (nextStop: number) => {
     const clamped = Math.min(Math.max(nextStop, 1), maxStop);
-    setInternalStop(clamped);
     const stopData = stops[clamped - 1];
     onChange(stopData.preference);
   };
@@ -161,15 +153,10 @@ export default function MealLocalityPreferenceControl({
             <span className="rounded-full border border-brand-green/30 bg-brand-green/10 px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-brand-green">
               Stop {resolvedStop} of 5
             </span>
-            <span className="text-[11px] font-bold text-brand-muted">
-              {currentStopData.badge}
-            </span>
+            <span className="text-[11px] font-bold text-brand-muted">{currentStopData.badge}</span>
           </div>
           <div className="overflow-hidden">
-            <AnimatedText
-              value={currentStopData.title}
-              className="text-xs font-black text-brand-text sm:text-sm"
-            />
+            <AnimatedText value={currentStopData.title} className="text-xs font-black text-brand-text sm:text-sm" />
           </div>
         </div>
 
@@ -214,9 +201,7 @@ export default function MealLocalityPreferenceControl({
               >
                 {/* Top Icon & Lock */}
                 <div className="flex w-full items-center justify-between">
-                  <span className="font-mono text-[9px] font-black opacity-75">
-                    {stopItem.stop}
-                  </span>
+                  <span className="font-mono text-[9px] font-black opacity-75">{stopItem.stop}</span>
                   {isUnlocked ? (
                     isSelected ? (
                       <Check className="h-3 w-3" aria-hidden="true" />
@@ -229,9 +214,7 @@ export default function MealLocalityPreferenceControl({
                 </div>
 
                 {/* Badge / Stop Type */}
-                <span className="line-clamp-1 text-[10px] font-extrabold leading-tight">
-                  {stopItem.badge}
-                </span>
+                <span className="line-clamp-1 text-[10px] font-extrabold leading-tight">{stopItem.badge}</span>
 
                 {/* Subtitle / Location Target */}
                 <span
@@ -264,21 +247,13 @@ export default function MealLocalityPreferenceControl({
         aria-live="polite"
       >
         <div className="flex items-center gap-2">
-          <p className="text-xs font-bold text-brand-text">
-            Currently favoring: {currentStopData.title}
-          </p>
+          <p className="text-xs font-bold text-brand-text">Currently favoring: {currentStopData.title}</p>
           <span className="rounded-md border border-brand-border bg-brand-bgAlt px-1.5 py-0.5 font-mono text-[9px] font-bold text-brand-green">
             Stop {resolvedStop} of 5
           </span>
         </div>
-        <p className="mt-1 text-xs leading-relaxed text-brand-muted">
-          {currentStopData.description}
-        </p>
-        {maxStop < 5 && (
-          <p className="mt-2 text-[11px] font-semibold text-brand-green">
-            {availableHint}
-          </p>
-        )}
+        <p className="mt-1 text-xs leading-relaxed text-brand-muted">{currentStopData.description}</p>
+        {maxStop < 5 && <p className="mt-2 text-[11px] font-semibold text-brand-green">{availableHint}</p>}
       </div>
     </fieldset>
   );

@@ -1,3 +1,4 @@
+import { googleProfileImage } from '@/domain/google-profile-image';
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
@@ -514,29 +515,7 @@ export class UserController {
           where: { userId, provider: 'google' },
           select: { access_token: true },
         });
-        targetImage = googleAccount?.access_token || null;
-      } else if (targetImage.startsWith('http://') || targetImage.startsWith('https://')) {
-        // User provided a direct image URL (e.g. from their Google profile photo)
-        // Persist it into Account table so "Default" can always restore it
-        const existingAccount = await prisma.account.findFirst({
-          where: { userId, provider: 'google' },
-        });
-        if (existingAccount) {
-          await prisma.account.update({
-            where: { id: existingAccount.id },
-            data: { access_token: targetImage },
-          });
-        } else {
-          await prisma.account.create({
-            data: {
-              userId,
-              type: 'oauth',
-              provider: 'google',
-              providerAccountId: `manual-${userId}`,
-              access_token: targetImage,
-            },
-          });
-        }
+        targetImage = googleProfileImage(googleAccount?.access_token);
       }
 
       const updatedUser = await UserService.updateUserImage(userId, targetImage);
@@ -550,7 +529,7 @@ export class UserController {
         success: true,
         data: {
           image: updatedUser.image,
-          googleImage: googleAccount?.access_token || (updatedUser.image?.startsWith('http') ? updatedUser.image : null),
+          googleImage: googleProfileImage(googleAccount?.access_token),
         },
       });
     } catch (error: any) {

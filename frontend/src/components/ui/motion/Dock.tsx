@@ -1,12 +1,6 @@
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   motion,
   MotionValue,
@@ -14,6 +8,7 @@ import {
   useSpring,
   useTransform,
   type SpringOptions,
+  type HTMLMotionProps,
   AnimatePresence,
   useReducedMotion,
 } from 'motion/react';
@@ -52,7 +47,7 @@ export interface DockProps {
   ariaLabel?: string;
 }
 
-export interface DockItemProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface DockItemProps extends HTMLMotionProps<'div'> {
   className?: string;
   children: React.ReactNode;
   onClick?: () => void;
@@ -156,22 +151,14 @@ export function DockItem({ children, className = '', onClick, active = false, ..
     return val - (domRect.x + domRect.width / 2);
   });
 
-  const sizeTransform = useTransform(
-    mouseDistance,
-    [-distance, 0, distance],
-    [baseSize, magnification, baseSize]
-  );
+  const sizeTransform = useTransform(mouseDistance, [-distance, 0, distance], [baseSize, magnification, baseSize]);
 
   const size = useSpring(sizeTransform, spring);
 
   return (
     <motion.div
       ref={ref}
-      style={
-        isReducedMotion
-          ? { width: baseSize, height: baseSize }
-          : { width: size, height: size }
-      }
+      style={isReducedMotion ? { width: baseSize, height: baseSize } : { width: size, height: size }}
       onHoverStart={() => isHovered.set(1)}
       onHoverEnd={() => isHovered.set(0)}
       onFocus={() => isHovered.set(1)}
@@ -181,9 +168,7 @@ export function DockItem({ children, className = '', onClick, active = false, ..
       onClick={onClick}
       {...props}
     >
-      <DockItemContext.Provider value={{ size, isHovered }}>
-        {children}
-      </DockItemContext.Provider>
+      <DockItemContext.Provider value={{ size, isHovered }}>{children}</DockItemContext.Provider>
     </motion.div>
   );
 }
@@ -213,10 +198,7 @@ export interface DockAvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function DockAvatar({ children, className = '', ...props }: DockAvatarProps) {
   return (
-    <div
-      className={`relative flex h-full w-full items-center justify-center overflow-visible ${className}`}
-      {...props}
-    >
+    <div className={`relative flex h-full w-full items-center justify-center overflow-visible ${className}`} {...props}>
       {children}
     </div>
   );
@@ -238,9 +220,7 @@ export function DockLabel({ children, className = '', ...rest }: DockLabelProps)
   }, [isHovered]);
 
   const placementStyles =
-    direction === 'vertical'
-      ? 'left-full top-1/2 -translate-y-1/2 ml-3'
-      : '-top-9 left-1/2 -translate-x-1/2';
+    direction === 'vertical' ? 'left-full top-1/2 -translate-y-1/2 ml-3' : '-top-9 left-1/2 -translate-x-1/2';
 
   return (
     <AnimatePresence>

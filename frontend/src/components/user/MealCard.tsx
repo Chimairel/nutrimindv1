@@ -7,7 +7,19 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
 import MealImage from './MealImage';
-import { Check, X, AlertCircle, Coffee, Sun, Moon, Apple, RefreshCw, ShieldCheck, ListChecks, Clock3 } from 'lucide-react';
+import {
+  Check,
+  X,
+  AlertCircle,
+  Coffee,
+  Sun,
+  Moon,
+  Apple,
+  RefreshCw,
+  ShieldCheck,
+  ListChecks,
+  Clock3,
+} from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
 interface Ingredient {

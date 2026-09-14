@@ -84,13 +84,7 @@ export const DailyIntakeDonut: React.FC<DailyIntakeDonutProps> = ({
         estimatedCalories > 0 ? ` (includes ${Math.round(estimatedCalories)} estimated calories)` : ''
       }`}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 140 140"
-        className="-rotate-90 overflow-visible"
-        aria-hidden="true"
-      >
+      <svg width={size} height={size} viewBox="0 0 140 140" className="-rotate-90 overflow-visible" aria-hidden="true">
         {/* Track backdrop circle */}
         <circle
           cx="70"

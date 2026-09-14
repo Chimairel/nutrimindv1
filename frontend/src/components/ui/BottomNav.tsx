@@ -27,9 +27,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   ];
 
   return (
-    <div
-      className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-24px)] md:hidden ${className}`}
-    >
+    <div className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-24px)] md:hidden ${className}`}>
       <Dock
         direction="horizontal"
         distance={110}

@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 
 export default function ForgotPasswordPage() {
@@ -83,7 +84,7 @@ export default function ForgotPasswordPage() {
               <span>{error}</span>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input
               id="forgot-email"
               label="Email address"
@@ -97,7 +98,7 @@ export default function ForgotPasswordPage() {
             <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
               Send reset link
             </Button>
-          </form>
+          </HydratedForm>
         </>
       )}
     </AuthShell>

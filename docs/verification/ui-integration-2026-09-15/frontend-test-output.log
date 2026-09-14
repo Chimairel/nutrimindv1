@@ -1,0 +1,13 @@
+
+> nutrimind-frontend@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.11 C:/Users/chima/.codex/worktrees/35eb/Nutrimind/frontend
+
+
+ Test Files  36 passed (36)
+      Tests  140 passed (140)
+   Start at  01:34:04
+   Duration  11.50s (transform 4.82s, setup 18.28s, import 42.48s, tests 29.19s, environment 51.48s)
+

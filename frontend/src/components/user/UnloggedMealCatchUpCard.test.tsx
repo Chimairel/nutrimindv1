@@ -6,6 +6,9 @@ import type { MealPlan } from '@/types';
 
 const mockMeal: MealPlan = {
   id: 'meal-test-123',
+  planGroupId: 'test-group',
+  planType: 'WEEKLY',
+  createdAt: '2026-09-12T00:00:00.000Z',
   userId: 'user-1',
   mealName: 'Sinigang na Baboy with Kangkong',
   mealType: 'LUNCH',
@@ -15,7 +18,7 @@ const mockMeal: MealPlan = {
   carbsG: 45,
   fatG: 18,
   status: 'APPROVED',
-  aiConfidenceFlag: 'VERIFIED',
+  aiConfidenceFlag: 'SAFE',
   ingredients: [],
   mealLogs: [],
 };

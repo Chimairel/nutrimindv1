@@ -75,7 +75,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
         redirectTarget = '/unauthorized';
       } else if (isUserRoute && user.role !== 'USER') {
         redirectTarget = '/unauthorized';
-      } else if (user.role === 'USER') {
+      } else if (!isPublicRoute && user.role === 'USER') {
         if (!user.onboardingDone && !isOnboardingPage && !isNutritionReportPage) {
           redirectTarget = user.onboardingNextPath || '/onboarding/stats';
         } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isNutritionReportPage) {

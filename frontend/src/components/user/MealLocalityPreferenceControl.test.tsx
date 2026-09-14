@@ -17,6 +17,19 @@ vi.mock('@/lib/axios', () => ({
 }));
 
 describe('MealLocalityPreferenceControl', () => {
+  it('restores both persisted blend stops and submits distinct preferences', async () => {
+    const onChange = vi.fn();
+    const props = { regionName: 'Central Visayas', provinceHucName: 'Cebu City', onChange };
+    const { rerender } = render(<MealLocalityPreferenceControl {...props} value="NATIONAL_REGIONAL" />);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'National-Regional blend' })).toHaveAttribute('aria-pressed', 'true')
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Regional-Local blend' }));
+    expect(onChange).toHaveBeenCalledWith('REGIONAL_LOCAL');
+    rerender(<MealLocalityPreferenceControl {...props} value="REGIONAL_LOCAL" />);
+    expect(screen.getByRole('button', { name: 'Regional-Local blend' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('shows the three dynamic stops and supports keyboard changes', async () => {
     const onChange = vi.fn();
     render(
@@ -33,7 +46,7 @@ describe('MealLocalityPreferenceControl', () => {
     expect(screen.getByRole('button', { name: 'Philippines' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cebu City' })).toBeInTheDocument();
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenCalledWith('LOCAL');
+    expect(onChange).toHaveBeenCalledWith('REGIONAL_LOCAL');
   });
 
   it('locks invalid typed names and provinces outside the chosen region', async () => {

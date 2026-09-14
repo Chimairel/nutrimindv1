@@ -99,13 +99,7 @@ export default function InteractiveCyberGrid({
               : 'border-slate-900/[0.06] hover:border-emerald-600/40 hover:bg-emerald-600/15 dark:border-white/[0.06] dark:hover:border-[#b8f45f]/40 dark:hover:bg-[#b8f45f]/20';
           }
 
-          return (
-            <div
-              key={index}
-              data-grid-tile={index}
-              className={tileClasses}
-            />
-          );
+          return <div key={index} data-grid-tile={index} className={tileClasses} />;
         })}
       </div>
     </div>

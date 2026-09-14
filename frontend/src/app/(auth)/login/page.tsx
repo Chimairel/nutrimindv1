@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
 import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
+import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
@@ -81,7 +82,7 @@ export default function LoginPage() {
     >
       <AuthFormPrelude googleLabel="signin_with" error={error} />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <Input
           id="email"
           label="Email address"
@@ -129,7 +130,7 @@ export default function LoginPage() {
         >
           Sign in
         </Button>
-      </form>
+      </HydratedForm>
     </AuthShell>
   );
 }

@@ -340,26 +340,18 @@ export default function MealActivityCalendar({
           isCenter
             ? 'rounded-[22px] border border-brand-green/30 bg-brand-bgAlt/40 p-3 sm:p-4 shadow-sm dark:border-brand-accent/25 dark:bg-white/[0.03] w-full max-w-[320px] md:w-auto'
             : 'hidden md:flex rounded-2xl p-2 sm:p-2.5 opacity-85 hover:opacity-100'
-        } ${
-          isLocked
-            ? 'opacity-40 grayscale select-none pointer-events-none cursor-not-allowed'
-            : ''
-        }`}
+        } ${isLocked ? 'opacity-40 grayscale select-none pointer-events-none cursor-not-allowed' : ''}`}
         aria-label={`${monthData.name} ${monthData.year} calendar`}
       >
         {/* Month Header */}
-        <div
-          className={`flex items-center justify-center gap-1.5 text-center ${
-            isCenter ? 'mb-3 h-8' : 'mb-2 h-6'
-          }`}
-        >
+        <div className={`flex items-center justify-center gap-1.5 text-center ${isCenter ? 'mb-3 h-8' : 'mb-2 h-6'}`}>
           <h4
             className={`font-display font-black uppercase tracking-wider ${
               isCenter
                 ? 'text-sm sm:text-base md:text-lg text-brand-text dark:text-white tracking-widest'
                 : isLocked
-                ? 'text-xs sm:text-sm text-brand-muted/40 dark:text-white/30'
-                : 'text-xs sm:text-sm text-brand-text/80 dark:text-white/70'
+                  ? 'text-xs sm:text-sm text-brand-muted/40 dark:text-white/30'
+                  : 'text-xs sm:text-sm text-brand-text/80 dark:text-white/70'
             }`}
           >
             {monthData.name}
@@ -386,9 +378,7 @@ export default function MealActivityCalendar({
 
         {/* Horizontal Weekday Headers (Sun .. Sat) */}
         <div
-          className={`grid grid-cols-7 text-center select-none ${
-            isCenter ? 'gap-1.5 sm:gap-2 mb-2' : 'gap-1 mb-1.5'
-          }`}
+          className={`grid grid-cols-7 text-center select-none ${isCenter ? 'gap-1.5 sm:gap-2 mb-2' : 'gap-1 mb-1.5'}`}
         >
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName) => (
             <div
@@ -407,19 +397,14 @@ export default function MealActivityCalendar({
         {/* Calendar Rows of Weeks */}
         <div className={`flex flex-col ${isCenter ? 'gap-1.5 sm:gap-2' : 'gap-1'}`}>
           {monthData.weeks.map((weekRow, rIdx) => (
-            <div
-              key={rIdx}
-              className={`grid grid-cols-7 ${isCenter ? 'gap-1.5 sm:gap-2' : 'gap-1'}`}
-            >
+            <div key={rIdx} className={`grid grid-cols-7 ${isCenter ? 'gap-1.5 sm:gap-2' : 'gap-1'}`}>
               {weekRow.map((cell, cIdx) => {
                 if (!cell) {
                   return (
                     <div
                       key={`empty-${cIdx}`}
                       className={`${
-                        isCenter
-                          ? 'h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9'
-                          : 'h-5 w-5 sm:h-6 sm:w-6'
+                        isCenter ? 'h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9' : 'h-5 w-5 sm:h-6 sm:w-6'
                       } opacity-0 pointer-events-none`}
                       aria-hidden="true"
                     />
@@ -547,9 +532,7 @@ export default function MealActivityCalendar({
                     )}`}
                   >
                     {cell.mealCount > 0 ? (
-                      <span className="font-mono text-xs sm:text-sm font-black">
-                        {cell.mealCount}
-                      </span>
+                      <span className="font-mono text-xs sm:text-sm font-black">{cell.mealCount}</span>
                     ) : (
                       <span className="text-[10px] opacity-40">0</span>
                     )}

@@ -29,7 +29,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     head: 'dreads2',
     face: 'explaining',
     clothingColor: 'ffcf77',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=explaining&facialHairVariant=&headVariant=dreads2&maskVariant=&clothingColor=ffcf77&seed=Chimay',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=explaining&facialHairVariant=&headVariant=dreads2&maskVariant=&clothingColor=ffcf77&seed=Chimay',
   },
   {
     name: 'Kevin',
@@ -37,7 +38,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     head: 'twists',
     face: 'eyesClosed',
     clothingColor: '78e185',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=glasses,glasses2,glasses3,glasses4,glasses5&accessoriesProbability=0&expressionProbability=100&expressionVariant=eyesClosed&headVariant=twists&clothingColor=78e185&seed=Kevin',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=glasses,glasses2,glasses3,glasses4,glasses5&accessoriesProbability=0&expressionProbability=100&expressionVariant=eyesClosed&headVariant=twists&clothingColor=78e185&seed=Kevin',
   },
   {
     name: 'Bedic',
@@ -46,7 +48,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     face: 'serious',
     clothingColor: 'ffffff',
     skinColor: 'edb98a',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=glasses&accessoriesProbability=97&expressionVariant=serious&headVariant=short5&clothingColor=ffffff&skinColor=edb98a&facialHairVariant=&seed=Bedic',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=glasses&accessoriesProbability=97&expressionVariant=serious&headVariant=short5&clothingColor=ffffff&skinColor=edb98a&facialHairVariant=&seed=Bedic',
   },
   {
     name: 'Ichan',
@@ -55,7 +58,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     face: 'smileBig',
     clothingColor: 'e78276',
     skinColor: 'd08b5b',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=smileBig&facialHairVariant=&headVariant=twists2&clothingColor=e78276&skinColor=d08b5b&seed=Ichan',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=smileBig&facialHairVariant=&headVariant=twists2&clothingColor=e78276&skinColor=d08b5b&seed=Ichan',
   },
   {
     name: 'Telay',
@@ -64,7 +68,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     face: 'cheeky',
     clothingColor: '9ddadb',
     skinColor: 'edb98a',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=cheeky&facialHairVariant=&headVariant=long&clothingColor=9ddadb&skinColor=edb98a&seed=Telay',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=cheeky&facialHairVariant=&headVariant=long&clothingColor=9ddadb&skinColor=edb98a&seed=Telay',
   },
   {
     name: 'Maeann',
@@ -73,7 +78,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     face: 'cute',
     clothingColor: 'e279c7',
     skinColor: 'edb98a',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=cute&facialHairVariant=&headVariant=mediumBangs3&clothingColor=e279c7&skinColor=edb98a&maskProbability=0&maskVariant=&seed=Maeann',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=cute&facialHairVariant=&headVariant=mediumBangs3&clothingColor=e279c7&skinColor=edb98a&maskProbability=0&maskVariant=&seed=Maeann',
   },
   {
     name: 'Jenelyn',
@@ -82,7 +88,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     face: 'suspicious',
     clothingColor: 'e279c7',
     skinColor: 'edb98a',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=suspicious&facialHairVariant=&headVariant=longBangs&clothingColor=e279c7&skinColor=edb98a&maskProbability=0&maskVariant=&seed=Jenelyn',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=&expressionVariant=suspicious&facialHairVariant=&headVariant=longBangs&clothingColor=e279c7&skinColor=edb98a&maskProbability=0&maskVariant=&seed=Jenelyn',
   },
   {
     name: 'Mayan',
@@ -91,7 +98,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
     face: 'calm',
     clothingColor: '8fa7df',
     skinColor: 'edb98a',
-    customUrl: 'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=glasses2&expressionVariant=calm&facialHairVariant=&headVariant=bun2&skinColor=edb98a&maskProbability=0&maskVariant=&accessoriesProbability=100&clothingColor=8fa7df&seed=Mayan',
+    customUrl:
+      'https://api.dicebear.com/10.x/open-peeps/svg?scale=1.2&accessoriesVariant=glasses2&expressionVariant=calm&facialHairVariant=&headVariant=bun2&skinColor=edb98a&maskProbability=0&maskVariant=&accessoriesProbability=100&clothingColor=8fa7df&seed=Mayan',
   },
 ];
 
@@ -121,9 +129,7 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
         if (src.toLowerCase() === 'default') {
           return undefined;
         }
-        const matched = FILIPINO_AVATAR_PRESETS.find(
-          (p) => p.name.toLowerCase() === src.toLowerCase()
-        );
+        const matched = FILIPINO_AVATAR_PRESETS.find((p) => p.name.toLowerCase() === src.toLowerCase());
         if (matched) {
           if (matched.customUrl) {
             return matched.customUrl;

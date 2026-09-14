@@ -8,7 +8,6 @@ import { additionalShoppingNeeds } from '@/domain/swap-shopping.policy';
 import { MealLibrarySafetyEvidenceStatus, MealType, Prisma } from '@prisma/client';
 import { GroceryService } from './grocery.service';
 import {
-  assertUserActionableMealPlan,
   assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
   getApprovedMealLibraryWhere,

@@ -1,0 +1,83 @@
+
+> nutrimind-frontend@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.25
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 9.2s
+   Linting and checking validity of types ...
+
+./src/app/(user)/meals/page.tsx
+26:3  Warning: 'Salad' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/52) ...
+   Generating static pages (13/52) 
+   Generating static pages (26/52) 
+   Generating static pages (39/52) 
+ ✓ Generating static pages (52/52)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    9.08 kB         140 kB
+├ ○ /_not-found                            137 B         102 kB
+├ ○ /admin/analytics                     4.17 kB         128 kB
+├ ○ /admin/compensation                  5.86 kB         130 kB
+├ ○ /admin/data                          15.4 kB         154 kB
+├ ○ /admin/images                        7.64 kB         140 kB
+├ ○ /admin/more                            823 B         107 kB
+├ ○ /admin/nutritionists                 8.86 kB         130 kB
+├ ○ /admin/operations                    4.64 kB         126 kB
+├ ○ /admin/overview                      8.84 kB         133 kB
+├ ○ /admin/users                         7.61 kB         141 kB
+├ ○ /billing                               171 B         132 kB
+├ ○ /billing/cancel                      2.25 kB         108 kB
+├ ○ /billing/success                     3.92 kB         132 kB
+├ ○ /dashboard                           21.1 kB         218 kB
+├ ƒ /dashboard/[mealId]                  8.63 kB         153 kB
+├ ○ /docs                                1.53 kB         132 kB
+├ ○ /export                               8.4 kB         133 kB
+├ ○ /forgot-password                     3.93 kB         135 kB
+├ ○ /grocery                             10.8 kB         132 kB
+├ ○ /health-profile                        137 B         102 kB
+├ ○ /login                               1.44 kB         158 kB
+├ ○ /meals                               27.9 kB         222 kB
+├ ○ /nutrition-report                    6.69 kB         139 kB
+├ ○ /nutritionist-apply                  8.31 kB         159 kB
+├ ○ /nutritionist-invitation             4.52 kB         155 kB
+├ ○ /nutritionist/approved               6.47 kB         127 kB
+├ ○ /nutritionist/compensation           2.72 kB         127 kB
+├ ○ /nutritionist/library                  16 kB         150 kB
+├ ○ /nutritionist/outside-meals          6.18 kB         127 kB
+├ ○ /nutritionist/profile                6.43 kB         127 kB
+├ ○ /nutritionist/reviews                10.4 kB         131 kB
+├ ○ /onboarding/allergies                  136 B         132 kB
+├ ○ /onboarding/conditions                 136 B         132 kB
+├ ○ /onboarding/preferences              8.25 kB         133 kB
+├ ○ /onboarding/shopping-day             6.04 kB         131 kB
+├ ○ /onboarding/stats                    7.76 kB         133 kB
+├ ○ /onboarding/tos                      9.32 kB         137 kB
+├ ○ /profile                             5.62 kB         134 kB
+├ ○ /profile/health                        187 B         187 kB
+├ ○ /profile/membership                    186 B         135 kB
+├ ○ /profile/personal                      139 B         143 kB
+├ ○ /profile/planning                      187 B         187 kB
+├ ○ /profile/security                      138 B         143 kB
+├ ○ /progress                              280 B         187 kB
+├ ○ /progress/reports                       4 kB         128 kB
+├ ○ /register                            1.85 kB         158 kB
+├ ○ /reset-password                      4.58 kB         155 kB
+├ ○ /unauthorized                         4.9 kB         129 kB
+└ ○ /verify-email                        4.71 kB         136 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/1255-623a1bc706ecd6cc.js      46.1 kB
+  ├ chunks/4bd1b696-100b9d70ed4e49c1.js  54.2 kB
+  └ other shared chunks (total)          2.01 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

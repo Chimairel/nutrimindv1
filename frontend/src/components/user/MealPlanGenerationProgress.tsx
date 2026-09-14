@@ -145,9 +145,7 @@ export default function MealPlanGenerationProgress({
               {!isComplete ? <TextShimmer>{stageMessage || phase.title}</TextShimmer> : stageMessage || phase.title}
             </p>
           </div>
-          <p className="mt-1 max-w-sm text-xs leading-relaxed text-brand-muted">
-            {phase.detail}
-          </p>
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-brand-muted">{phase.detail}</p>
         </div>
 
         <p className="mt-8 text-center text-[11px] leading-relaxed text-brand-muted/70">

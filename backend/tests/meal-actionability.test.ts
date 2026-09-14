@@ -232,4 +232,3 @@ test('[TEST-015] active weekly grace period allows logging past meals up to 7 da
     MealPlanNotActionableError
   );
 });
-

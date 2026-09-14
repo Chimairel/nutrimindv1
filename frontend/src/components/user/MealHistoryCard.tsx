@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Apple,
-  Check,
-  ChevronDown,
-  Egg,
-  FileText,
-  Flame,
-  Loader2,
-  Save,
-  UtensilsCrossed,
-  X,
-} from 'lucide-react';
+import { Apple, Check, ChevronDown, Egg, FileText, Flame, Loader2, Save, UtensilsCrossed, X } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
 
@@ -308,9 +297,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
               className="w-full rounded-xl border border-brand-border bg-brand-bgAlt/50 p-3 text-xs text-brand-text outline-none transition focus:border-brand-green focus:bg-brand-surface dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:focus:border-brand-accent resize-none"
             />
 
-            {saveError && (
-              <p className="mt-1 text-[11px] font-semibold text-status-error-text">{saveError}</p>
-            )}
+            {saveError && <p className="mt-1 text-[11px] font-semibold text-status-error-text">{saveError}</p>}
 
             <div className="mt-3 flex items-center justify-between">
               {saveSuccess ? (
@@ -329,11 +316,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
                 disabled={isSaving || noteInput === (log.notes || '')}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-brand-green bg-brand-green px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-brand-green/90 disabled:cursor-not-allowed disabled:opacity-40 dark:border-brand-accent dark:bg-brand-accent dark:text-[#07100d]"
               >
-                {isSaving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Save className="h-3.5 w-3.5" />
-                )}
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 <span>Save Note</span>
               </button>
             </div>

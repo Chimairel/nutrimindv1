@@ -86,9 +86,7 @@ export default function UnloggedMealCatchUpCard({
       className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-[22px] border border-dashed border-amber-500/30 bg-brand-surface/90 p-4 transition-all hover:border-amber-500/50 hover:shadow-sm dark:border-amber-500/25 dark:bg-white/[0.03] ${className}`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${config.glowSurface}`}
-        >
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${config.glowSurface}`}>
           <IconComponent className={`h-6 w-6 ${config.iconColor} stroke-[2]`} />
         </div>
 
@@ -108,9 +106,7 @@ export default function UnloggedMealCatchUpCard({
           </h4>
 
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-brand-muted dark:text-white/40">
-            <span className="font-mono text-brand-text dark:text-white/70">
-              {Math.round(meal.calories)} kcal
-            </span>
+            <span className="font-mono text-brand-text dark:text-white/70">{Math.round(meal.calories)} kcal</span>
             <span>·</span>
             <span>{Math.round(meal.proteinG)}g P</span>
             <span>·</span>

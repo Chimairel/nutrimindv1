@@ -416,9 +416,7 @@ export default function DashboardPage() {
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        {pendingReview && (
-          <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />
-        )}
+        {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />}
 
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
@@ -516,7 +514,9 @@ export default function DashboardPage() {
                       setSelectedDayOffset(daySelectors[currentIndex + 1].offset);
                     }
                   }}
-                  disabled={daySelectors.findIndex((item) => item.offset === selectedDayOffset) === daySelectors.length - 1}
+                  disabled={
+                    daySelectors.findIndex((item) => item.offset === selectedDayOffset) === daySelectors.length - 1
+                  }
                   className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
                   aria-label="Next day"
                 >

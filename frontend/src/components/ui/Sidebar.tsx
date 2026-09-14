@@ -113,7 +113,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <DockLabel>Open sidebar</DockLabel>
               <DockIcon>
                 <div className="relative flex h-full w-full items-center justify-center">
-                  <KainaraLogo className="h-full w-full p-0.5 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0" variant="solid" />
+                  <KainaraLogo
+                    className="h-full w-full p-0.5 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
+                    variant="solid"
+                  />
                   <PanelLeftOpen className="absolute h-full w-full scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100" />
                 </div>
               </DockIcon>
@@ -184,9 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <DockItem
                 active={profileActive}
                 className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
-                  profileActive
-                    ? 'ring-2 ring-brand-accent shadow-neon'
-                    : 'hover:ring-2 hover:ring-white/30'
+                  profileActive ? 'ring-2 ring-brand-accent shadow-neon' : 'hover:ring-2 hover:ring-white/30'
                 }`}
               >
                 <DockLabel>Profile · {user.name}</DockLabel>
@@ -301,7 +302,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
-                <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">{user.role}</p>
+                <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">
+                  {user.role}
+                </p>
               </div>
             </Link>
 

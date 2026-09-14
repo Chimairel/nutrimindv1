@@ -7,7 +7,7 @@ const activitySchema = z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_AC
 const dietarySchema = z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN']);
 const carbSchema = z.enum(['LOW', 'MODERATE', 'HIGH']);
 const planningGeographySchema = z.enum(['NATIONAL', 'REGION', 'PROVINCE_HUC']);
-const mealLocalityPreferenceSchema = z.enum(['NATIONAL', 'REGIONAL', 'LOCAL']);
+const mealLocalityPreferenceSchema = z.enum(['NATIONAL', 'NATIONAL_REGIONAL', 'REGIONAL', 'REGIONAL_LOCAL', 'LOCAL']);
 const sexSchema = z.enum(['MALE', 'FEMALE']);
 const conditionSchema = z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT', 'NONE']);
 const allergySchema = z.enum(['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS', 'NONE']);
@@ -106,7 +106,10 @@ export const onboardingProfileSchema = z
         message: 'Choose a province/HUC that belongs to the selected region.',
       });
     }
-    if (data.mealLocalityPreference === 'REGIONAL' && data.planningRegionName === null) {
+    if (
+      (data.mealLocalityPreference === 'REGIONAL' || data.mealLocalityPreference === 'NATIONAL_REGIONAL') &&
+      data.planningRegionName === null
+    ) {
       ctx.addIssue({
         code: 'custom',
         path: ['mealLocalityPreference'],
@@ -114,7 +117,7 @@ export const onboardingProfileSchema = z
       });
     }
     if (
-      data.mealLocalityPreference === 'LOCAL' &&
+      (data.mealLocalityPreference === 'LOCAL' || data.mealLocalityPreference === 'REGIONAL_LOCAL') &&
       (data.planningRegionName === null || data.planningProvinceHucName === null)
     ) {
       ctx.addIssue({

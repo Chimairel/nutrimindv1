@@ -8,7 +8,9 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import PasswordInput from '@/components/ui/PasswordInput';
+import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
+import { passwordSchema } from '@/validation/auth.schemas';
 
 function ResetPasswordForm() {
   const token = useSearchParams().get('token');
@@ -24,9 +26,8 @@ function ResetPasswordForm() {
     setError(null);
     if (!token) return setError('Invalid reset link. Please request a new password reset.');
     if (!password || !confirmPassword) return setError('Please fill in all fields.');
-    if (password.length < 8) return setError('Password must be at least 8 characters long.');
-    if (!/[A-Z]/.test(password)) return setError('Password must contain at least one uppercase letter.');
-    if (!/[0-9]/.test(password)) return setError('Password must contain at least one number.');
+    const validation = passwordSchema.safeParse(password);
+    if (!validation.success) return setError(validation.error.issues[0].message);
     if (password !== confirmPassword) return setError('Passwords do not match.');
 
     setIsLoading(true);
@@ -84,7 +85,7 @@ function ResetPasswordForm() {
           <span>{error}</span>
         </div>
       )}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5">
         <PasswordInput
           id="new-password"
           name="newPassword"
@@ -112,7 +113,7 @@ function ResetPasswordForm() {
         <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
           Reset password
         </Button>
-      </form>
+      </HydratedForm>
     </>
   );
 }

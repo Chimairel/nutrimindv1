@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import AuthShell from '@/components/auth/AuthShell';
+import HydratedForm from '@/components/auth/HydratedForm';
 import Button from '@/components/ui/Button';
 import PasswordInput from '@/components/ui/PasswordInput';
 import api from '@/lib/axios';
@@ -59,7 +60,7 @@ function InvitationForm() {
     );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <HydratedForm onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div
           role="alert"
@@ -92,7 +93,7 @@ function InvitationForm() {
       <Button type="submit" size="lg" isLoading={isLoading} className="w-full">
         Activate nutritionist account
       </Button>
-    </form>
+    </HydratedForm>
   );
 }
 

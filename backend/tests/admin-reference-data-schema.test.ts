@@ -74,7 +74,7 @@ test('[TEST-186] runtime FNRI aliases distinguish administrator verification fro
 
 test('[TEST-187] only mapped active aggregate evidence can influence unmatched-slot generation', () => {
   assert.match(consumptionContext, /status: 'ACTIVE'/);
-  assert.match(consumptionContext, /resolveFirstAvailableConsumptionScope/);
+  assert.match(consumptionContext, /resolveConsumptionScopeGroups/);
   assert.match(consumptionContext, /geographyLevel: scope\.level/);
   assert.match(consumptionContext, /mappingStatus: \{ in: \['EXACT', 'MANUAL'\] \}/);
   assert.match(mealPrompt, /ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE/);

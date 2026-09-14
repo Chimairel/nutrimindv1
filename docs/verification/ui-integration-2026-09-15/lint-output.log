@@ -1,0 +1,20 @@
+
+> nutrimind@1.0.0 lint
+> npm run lint:backend && npm run lint:frontend
+
+
+> nutrimind@1.0.0 lint:backend
+> npm --prefix backend run lint
+
+
+> nutrimind-backend@1.0.0 lint
+> eslint src tests scripts
+
+
+> nutrimind@1.0.0 lint:frontend
+> npm --prefix frontend run lint
+
+
+> nutrimind-frontend@0.1.0 lint
+> eslint src e2e playwright.config.ts vitest.config.ts next.config.mjs
+

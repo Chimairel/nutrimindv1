@@ -162,7 +162,10 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   useEffect(() => {
     if (!planningRegionName.trim() && mealLocalityPreference !== 'NATIONAL') {
       setMealLocalityPreference('NATIONAL');
-    } else if (!planningProvinceHucName.trim() && mealLocalityPreference === 'LOCAL') {
+    } else if (
+      !planningProvinceHucName.trim() &&
+      (mealLocalityPreference === 'LOCAL' || mealLocalityPreference === 'REGIONAL_LOCAL')
+    ) {
       setMealLocalityPreference('REGIONAL');
     }
   }, [mealLocalityPreference, planningProvinceHucName, planningRegionName]);

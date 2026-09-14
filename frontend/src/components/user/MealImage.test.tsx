@@ -141,7 +141,13 @@ describe('MealImage', () => {
     expect(photoContainer.querySelectorAll('a')).toHaveLength(0);
 
     render(
-      <MealImage mealName="Sinigang na Baboy" mealType="DINNER" variant="thumbnail" allowCanonicalFallback={false} allowMealTypePlaceholder={false} />
+      <MealImage
+        mealName="Sinigang na Baboy"
+        mealType="DINNER"
+        variant="thumbnail"
+        allowCanonicalFallback={false}
+        allowMealTypePlaceholder={false}
+      />
     );
     expect(screen.getByLabelText('Sinigang na Baboy (Meat & Savory visual placeholder)')).toBeInTheDocument();
   });

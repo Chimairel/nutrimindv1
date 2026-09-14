@@ -1,5 +1,5 @@
 export type PlanningGeographyLevel = 'NATIONAL' | 'REGION' | 'PROVINCE_HUC';
-export type MealLocalityPreference = 'NATIONAL' | 'REGIONAL' | 'LOCAL';
+export type MealLocalityPreference = 'NATIONAL' | 'NATIONAL_REGIONAL' | 'REGIONAL' | 'REGIONAL_LOCAL' | 'LOCAL';
 
 export interface PlanningLocation {
   planningGeographyLevel?: PlanningGeographyLevel | null;
@@ -39,7 +39,7 @@ export function buildConsumptionScopeChain(location?: PlanningLocation | null): 
   const provinceHucName = clean(location?.planningProvinceHucName);
   const scopes: ConsumptionScope[] = [];
 
-  if (preference === 'LOCAL' && regionName && provinceHucName) {
+  if ((preference === 'LOCAL' || preference === 'REGIONAL_LOCAL') && regionName && provinceHucName) {
     scopes.push({
       level: 'PROVINCE_HUC',
       regionName,
@@ -48,7 +48,7 @@ export function buildConsumptionScopeChain(location?: PlanningLocation | null): 
     });
   }
 
-  if ((preference === 'REGIONAL' || preference === 'LOCAL') && regionName) {
+  if (preference !== 'NATIONAL' && regionName) {
     scopes.push({ level: 'REGION', regionName, provinceHucName: null, label: regionName });
   }
 
@@ -65,6 +65,16 @@ export function formatPlanningLocation(location?: PlanningLocation | null): stri
 
 export function formatMealLocalityPreference(location?: PlanningLocation | null): string {
   const preference = location?.mealLocalityPreference ?? 'NATIONAL';
+  if (preference === 'NATIONAL_REGIONAL' && clean(location?.planningRegionName)) {
+    return `Philippines & ${clean(location?.planningRegionName)}`;
+  }
+  if (
+    preference === 'REGIONAL_LOCAL' &&
+    clean(location?.planningProvinceHucName) &&
+    clean(location?.planningRegionName)
+  ) {
+    return `${clean(location?.planningRegionName)} & ${clean(location?.planningProvinceHucName)}`;
+  }
   if (preference === 'LOCAL' && clean(location?.planningProvinceHucName)) {
     return clean(location?.planningProvinceHucName)!;
   }
@@ -90,6 +100,44 @@ export async function resolveFirstAvailableConsumptionScope<T>(
   }
 
   return { scope: null, rows: [] };
+}
+
+/** Blend two adjacent evidence scopes; retain ordinary fallback when one or both lack records. */
+export async function resolveConsumptionScopeGroups<T>(
+  location: PlanningLocation | null | undefined,
+  loadRows: (scope: ConsumptionScope) => Promise<T[]>
+): Promise<Array<{ scope: ConsumptionScope; rows: T[] }>> {
+  const preference = location?.mealLocalityPreference;
+  if (preference !== 'NATIONAL_REGIONAL' && preference !== 'REGIONAL_LOCAL') {
+    const result = await resolveFirstAvailableConsumptionScope(location, loadRows);
+    return result.scope ? [{ scope: result.scope, rows: result.rows }] : [];
+  }
+  const chain = buildConsumptionScopeChain(location);
+  const primaryLevels = preference === 'NATIONAL_REGIONAL' ? ['NATIONAL', 'REGION'] : ['REGION', 'PROVINCE_HUC'];
+  const groups: Array<{ scope: ConsumptionScope; rows: T[] }> = [];
+  for (const level of primaryLevels) {
+    const scope = chain.find((item) => item.level === level);
+    if (!scope) continue;
+    const rows = await loadRows(scope);
+    if (rows.length) groups.push({ scope, rows });
+  }
+  if (groups.length) return groups;
+  for (const scope of chain.filter((item) => !primaryLevels.includes(item.level))) {
+    const rows = await loadRows(scope);
+    if (rows.length) return [{ scope, rows }];
+  }
+  return [];
+}
+
+/** Alternate scope contributions so a bounded context contains both sides of a blend. */
+export function interleaveScopeRows<T>(groups: Array<{ scope: ConsumptionScope; rows: T[] }>) {
+  const rows: Array<{ row: T; scope: ConsumptionScope }> = [];
+  const length = Math.max(0, ...groups.map((group) => group.rows.length));
+  for (let index = 0; index < length; index++) {
+    for (const group of groups)
+      if (index < group.rows.length) rows.push({ row: group.rows[index], scope: group.scope });
+  }
+  return rows;
 }
 
 /**

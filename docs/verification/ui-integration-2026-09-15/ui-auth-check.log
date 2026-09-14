@@ -1,0 +1,17 @@
+⚠️ GEMINI_API_KEY is not defined in environment variables.
+{"timestamp":"2026-09-14T17:26:32.644Z","level":"info","event":"http_request","requestId":"f3507cfb-08db-4c4c-a107-aa95bc45d2af","method":"POST","path":"/login","status":200,"durationMs":32}
+{"timestamp":"2026-09-14T17:26:32.658Z","level":"info","event":"http_request","requestId":"6bab4be5-df5c-4853-a9a8-e11b0edd266c","method":"POST","path":"/login","status":400,"durationMs":7}
+{"timestamp":"2026-09-14T17:26:32.741Z","level":"info","event":"http_request","requestId":"3fa0ef4c-68fa-47e1-8696-c6457a100f98","method":"POST","path":"/forgot-password","status":200,"durationMs":72}
+{"timestamp":"2026-09-14T17:26:33.051Z","level":"info","event":"http_request","requestId":"80836f76-350b-42e1-8721-daa8db1a1f18","method":"POST","path":"/reset-password","status":200,"durationMs":306}
+{"timestamp":"2026-09-14T17:26:33.063Z","level":"info","event":"http_request","requestId":"6b61201f-10c6-4223-af53-5ae6642b412b","method":"POST","path":"/reset-password","status":400,"durationMs":3}
+{"timestamp":"2026-09-14T17:26:33.317Z","level":"info","event":"http_request","requestId":"d547e1ed-3e01-473f-86d0-4c532b9f3cf3","method":"POST","path":"/login","status":400,"durationMs":242}
+{"timestamp":"2026-09-14T17:26:33.565Z","level":"info","event":"http_request","requestId":"1fa01c02-ef3e-4a9d-872a-492c652780d0","method":"POST","path":"/login","status":200,"durationMs":239}
+{"timestamp":"2026-09-14T17:26:33.590Z","level":"info","event":"http_request","requestId":"30b737fc-a2e2-42e5-bf29-d495e6caaa9b","method":"PUT","path":"/profile/avatar","status":200,"durationMs":13}
+{"timestamp":"2026-09-14T17:26:33.618Z","level":"info","event":"http_request","requestId":"89f3e6c1-ee33-43e4-bfd7-a2072a15045e","method":"PUT","path":"/profile/avatar","status":200,"durationMs":9}
+{"timestamp":"2026-09-14T17:26:33.699Z","level":"info","event":"http_request","requestId":"ba5ccc0e-3677-4424-931e-4992fab7f0b1","method":"POST","path":"/onboarding/profile","status":200,"durationMs":79}
+{"timestamp":"2026-09-14T17:26:33.750Z","level":"info","event":"http_request","requestId":"bab8851d-01ed-4822-9d2f-41271514c062","method":"POST","path":"/onboarding/profile","status":200,"durationMs":33}
+{"timestamp":"2026-09-14T17:26:33.796Z","level":"info","event":"http_request","requestId":"627cf2cb-bcad-4b2d-bbc9-5cfbf55e2a91","method":"PATCH","path":"/logs/cmu1ilqn6000liveekrq6v9e9/notes","status":200,"durationMs":18}
+{"timestamp":"2026-09-14T17:26:33.820Z","level":"info","event":"http_request","requestId":"574ca556-7759-4c6a-977e-b5b7eb49c1ca","method":"PATCH","path":"/logs/cmu1ilqn6000liveekrq6v9e9/notes","status":400,"durationMs":12}
+{"timestamp":"2026-09-14T17:26:33.841Z","level":"info","event":"http_request","requestId":"a74c1731-ee5c-4efa-884c-4cabf7a32394","method":"PATCH","path":"/logs/cmu1ilqox000oiveekevfhmn6/notes","status":404,"durationMs":13}
+{"timestamp":"2026-09-14T17:26:33.857Z","level":"info","event":"http_request","requestId":"e1a93c77-f753-4d05-aece-da356245ccd3","method":"POST","path":"/reset-password","status":400,"durationMs":2}
+PASS: normalized login, wrong credentials, public password recovery with stale session, one-use reset, session revocation, new-password login, expiry, custom avatar and Google-photo restoration. No real email sent.

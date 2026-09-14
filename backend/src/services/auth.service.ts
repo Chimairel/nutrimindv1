@@ -151,13 +151,21 @@ export class AuthService {
     const { email, given_name, family_name, name: googleName, picture } = payload;
     const sanitizedEmail = email.trim().toLowerCase();
     const displayName = [given_name, family_name].filter(Boolean).join(' ') || googleName || 'Google User';
-    console.log('[googleAuth] Google token payload:', { email, sanitizedEmail, picture: picture ? picture.slice(0, 40) + '...' : undefined, sub: payload.sub });
+    console.log('[googleAuth] Google token payload:', {
+      email,
+      sanitizedEmail,
+      picture: picture ? picture.slice(0, 40) + '...' : undefined,
+      sub: payload.sub,
+    });
 
     // Check if user already exists
     let user = await prisma.user.findUnique({
       where: { email: sanitizedEmail },
     });
-    console.log('[googleAuth] Matched user in DB:', user ? { id: user.id, email: user.email, image: user.image } : 'NOT_FOUND');
+    console.log(
+      '[googleAuth] Matched user in DB:',
+      user ? { id: user.id, email: user.email, image: user.image } : 'NOT_FOUND'
+    );
 
     if (user) {
       if (user.isSuspended) throw new Error('This account has been suspended.');
@@ -176,7 +184,12 @@ export class AuthService {
       }
 
       // Update profile picture if they don't have one or it was default
-      if (picture && (!user.image || user.image.toLowerCase() === 'default' || user.image.startsWith('https://lh3.googleusercontent.com'))) {
+      if (
+        picture &&
+        (!user.image ||
+          user.image.toLowerCase() === 'default' ||
+          user.image.startsWith('https://lh3.googleusercontent.com'))
+      ) {
         await prisma.user.update({
           where: { id: user.id },
           data: { image: picture },
@@ -486,17 +499,24 @@ export class AuthService {
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: matchedUser.id },
+    await prisma.$transaction(async (tx) => {
+      const changed = await tx.user.updateMany({
+        where: {
+          id: matchedUser.id,
+          passwordResetToken: matchedUser.passwordResetToken,
+          passwordResetExpiry: { gt: new Date() },
+        },
         data: {
           passwordHash,
           passwordResetToken: null,
           passwordResetExpiry: null,
         },
-      }),
-      prisma.session.deleteMany({ where: { userId: matchedUser.id } }),
-    ]);
+      });
+      if (changed.count !== 1) {
+        throw new Error('This reset link was already used or replaced. Please request a new one.');
+      }
+      await tx.session.deleteMany({ where: { userId: matchedUser.id } });
+    });
 
     return { message: 'Password has been reset successfully. You can now log in.' };
   }

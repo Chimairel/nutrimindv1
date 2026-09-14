@@ -28,13 +28,7 @@ export interface AdaptiveSliderProps {
   'aria-describedby'?: string;
 }
 
-export const AnimatedText = ({
-  value,
-  className = '',
-}: {
-  value: string;
-  className?: string;
-}) => {
+export const AnimatedText = ({ value, className = '' }: { value: string; className?: string }) => {
   return (
     <div className={`flex tracking-tight will-change-transform ${className}`}>
       <AnimatePresence mode="popLayout" initial={false}>
@@ -220,9 +214,7 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
               boxShadow: `0 3px 14px ${colorSettings.thumbGlow}`,
             }}
           >
-            <span className="font-mono text-xs font-black text-brand-black dark:text-white">
-              {clampedValue}
-            </span>
+            <span className="font-mono text-xs font-black text-brand-black dark:text-white">{clampedValue}</span>
           </div>
         </motion.div>
       </div>
