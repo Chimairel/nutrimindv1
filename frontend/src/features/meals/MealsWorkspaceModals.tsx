@@ -1,7 +1,7 @@
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { AlertTriangle, ShieldCheck, Utensils } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, Soup } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 
@@ -125,7 +125,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
               </div>
             ) : swapOptions.length === 0 ? (
               <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
-                <Utensils className="w-8 h-8 text-brand-green mx-auto mb-2" />
+                <Soup className="w-8 h-8 text-brand-green mx-auto mb-2" />
                 <p className="text-sm text-brand-text font-semibold">No Alternative Meals Found</p>
                 <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
                   No alternative verified meals match your profile for this meal type right now.

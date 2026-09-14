@@ -78,12 +78,12 @@ export function CockpitDashboard({
             </div>
 
             {/* Donut Gauge & Calorie Telemetry */}
-            <div className="my-6 flex items-center gap-5">
+            <div className="my-6 flex items-center gap-5 sm:gap-6">
               <DailyIntakeDonut
                 consumed={metrics.caloriesConsumed}
                 target={metrics.caloriesTarget}
                 provisional={metrics.provisionalCalories}
-                size={116}
+                size={152}
               />
               <div className="space-y-3">
                 {/* Consumed Stat */}

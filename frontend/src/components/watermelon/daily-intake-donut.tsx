@@ -165,18 +165,22 @@ export const DailyIntakeDonut: React.FC<DailyIntakeDonutProps> = ({
         <AnimatedValue
           value={percent}
           suffix="%"
-          className={`font-display text-2xl font-black tracking-tight leading-none ${
-            isOverLimit ? 'text-status-error-text' : 'text-brand-text'
-          }`}
+          className={`font-display font-black tracking-tight leading-none ${
+            size >= 140 ? 'text-3xl' : 'text-2xl'
+          } ${isOverLimit ? 'text-status-error-text' : 'text-brand-text'}`}
         />
-        <div className="flex items-center gap-1 mt-1">
+        <div className={`flex items-center ${size >= 140 ? 'gap-1.5 mt-1.5' : 'gap-1 mt-1'}`}>
           {hasEstimated && (
             <span
-              className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"
+              className={`${size >= 140 ? 'h-2 w-2' : 'h-1.5 w-1.5'} rounded-full bg-amber-500 shrink-0`}
               title="Includes estimated outside meals"
             />
           )}
-          <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-muted leading-none">
+          <span
+            className={`${
+              size >= 140 ? 'text-[10px]' : 'text-[9px]'
+            } font-extrabold uppercase tracking-widest text-brand-muted leading-none`}
+          >
             {hasEstimated ? 'Intake*' : 'Intake'}
           </span>
         </div>

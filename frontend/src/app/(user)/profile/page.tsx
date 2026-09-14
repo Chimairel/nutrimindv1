@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { User, HeartPulse, Utensils, Crown, ShieldCheck, ChevronRight } from 'lucide-react';
+import { User, HeartPulse, Soup, Crown, ShieldCheck, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -17,7 +17,7 @@ const sections = [
     href: '/profile/planning',
     title: 'Food & planning',
     description: 'Diet, location, meal preferences and shopping day',
-    icon: Utensils,
+    icon: Soup,
   },
   {
     href: '/profile/membership',

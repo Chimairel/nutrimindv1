@@ -7,7 +7,7 @@ import Badge from '@/components/ui/Badge';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Coffee, Sun, Moon, Apple, Utensils, CheckCircle } from 'lucide-react';
+import { Coffee, Sun, Moon, Apple, Soup, CheckCircle } from 'lucide-react';
 
 interface ApprovedMeal {
   id: string;
@@ -88,7 +88,7 @@ export default function NutritionistApprovedPage() {
           {meals.map((meal) => {
             const type = mealTypeLabels[meal.mealType] || {
               label: meal.mealType,
-              icon: <Utensils className="w-4 h-4 text-brand-muted" />,
+              icon: <Soup className="w-4 h-4 text-brand-muted" />,
             };
             const reviewDate = new Date(meal.reviewedAt);
             const isValidDate = !isNaN(reviewDate.getTime());

@@ -11,10 +11,10 @@ import {
   Receipt,
   ShieldCheck,
   ShoppingCart,
+  Soup,
   Stethoscope,
   User,
   Users,
-  Utensils,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -39,7 +39,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       href: '/meals',
       description: 'Your weekly plan, meal history, swaps, and library.',
       group: 'Every day',
-      icon: Utensils,
+      icon: Soup,
     },
     {
       label: 'Groceries',
@@ -97,7 +97,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       href: '/nutritionist/outside-meals',
       description: 'Verify itemized food logs and correct nutrition estimates.',
       group: 'Review work',
-      icon: Utensils,
+      icon: Soup,
     },
     {
       label: 'Approved reviews',

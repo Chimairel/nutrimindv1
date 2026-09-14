@@ -5,7 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { BookOpen, Utensils, Stethoscope, ShieldAlert, Flag } from 'lucide-react';
+import { BookOpen, Soup, Stethoscope, ShieldAlert, Flag } from 'lucide-react';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 
 import {
@@ -352,7 +352,7 @@ export default function MealLibraryPage() {
           </div>
         ) : meals.length === 0 ? (
           <Card className="p-16 text-center border-brand-border/40 bg-brand-surface/30 flex flex-col items-center">
-            <Utensils className="w-12 h-12 text-brand-muted mb-4" />
+            <Soup className="w-12 h-12 text-brand-muted mb-4" />
             <h3 className="text-lg font-bold text-brand-text font-display">No Meals Found</h3>
             <p className="text-sm text-brand-muted mt-1 max-w-md mx-auto">
               Try adjusting your search query, selecting different filters, or checking back later.

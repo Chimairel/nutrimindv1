@@ -1,6 +1,6 @@
 import React from 'react';
 import Button from '@/components/ui/Button';
-import { Utensils } from 'lucide-react';
+import { Soup } from 'lucide-react';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -12,7 +12,7 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = <Utensils className="h-8 w-8 text-brand-green" />,
+  icon = <Soup className="h-8 w-8 text-brand-green" />,
   title,
   description,
   actionText,
