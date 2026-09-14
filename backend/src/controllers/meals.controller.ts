@@ -11,12 +11,11 @@ import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealType } from '@prisma/client';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
-  assertUserActionableMealPlan,
   assertUserLoggableMealPlan,
   filterUserActionableMealPlans,
   getOwnedMealPlanWhere,
-  getUserActionableMealPlanWhere,
   isMealPlanNotActionableError,
+  isUserActionableMealPlanStatus,
 } from '@/domain/meal-actionability.policy';
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';

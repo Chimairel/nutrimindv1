@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
@@ -135,7 +136,7 @@ export default function DashboardPage() {
         writeSessionResource(ownerId, 'user-profile', res.data.data);
       }
     } catch (err) {
-      console.error('[Dashboard] Failed to fetch user profile', err);
+      console.warn('[Dashboard] Failed to fetch user profile', err);
     }
   }, [ownerId]);
 
@@ -185,7 +186,7 @@ export default function DashboardPage() {
         writeSessionResource(ownerId, 'dashboard-outside-meals', logs);
       }
     } catch (err) {
-      console.error('[Dashboard] Failed to fetch outside-meal history', err);
+      console.warn('[Dashboard] Failed to fetch outside-meal history', err);
     }
   }, [ownerId]);
 
@@ -234,7 +235,7 @@ export default function DashboardPage() {
         writeSessionResource(ownerId, 'dashboard-checkin', res.data.data);
       }
     } catch (err) {
-      console.error('[Dashboard] Failed to fetch checkin status', err);
+      console.warn('[Dashboard] Failed to fetch checkin status', err);
     }
   }, [ownerId]);
 
@@ -411,6 +412,8 @@ export default function DashboardPage() {
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        {pendingReview && <ClinicalReviewBanner />}
+
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <AlertTriangle className="h-4 w-4 shrink-0" />

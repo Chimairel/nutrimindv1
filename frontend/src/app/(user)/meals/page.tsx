@@ -13,6 +13,7 @@ import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import LibraryMealCard from '@/features/meals/LibraryMealCard';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
+import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
 import {
   Sprout,
   Calendar,
@@ -153,6 +154,7 @@ export default function WeeklyPlanPage() {
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
+        {pendingReview && <ClinicalReviewBanner />}
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
@@ -428,92 +430,7 @@ export default function WeeklyPlanPage() {
         {activeTab === 'plan' &&
           (groupedDays.length === 0 ? (
             pendingReview ? (
-              <section className="flex flex-col gap-8 text-left" aria-labelledby="pending-plan-heading">
-                <div className="relative overflow-hidden rounded-[30px] border border-brand-green/20 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/10 p-5 shadow-card md:p-7">
-                  <div
-                    className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand-accent/15 blur-3xl"
-                    aria-hidden="true"
-                  />
-                  <div className="relative flex flex-col gap-6">
-                    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
-                      <div className="max-w-2xl">
-                        <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-green">
-                          <Sparkles className="h-4 w-4" aria-hidden="true" />
-                          AI plan generated
-                        </div>
-                        <h2
-                          id="pending-plan-heading"
-                          className="mt-3 font-display text-2xl font-black tracking-tight text-brand-text md:text-3xl"
-                        >
-                          Your plan is in clinical review
-                        </h2>
-                        <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                          All {pendingReview.mealCount} meals are connected across {groupedPendingDays.length} scheduled
-                          days. You can preview them now while a nutritionist verifies the recommendations.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 sm:min-w-[250px]">
-                        <div className="rounded-2xl border border-brand-border/60 bg-brand-bg/70 p-3.5">
-                          <span className="block font-display text-2xl font-black text-brand-text">
-                            {pendingReview.mealCount}
-                          </span>
-                          <span className="text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
-                            Meals
-                          </span>
-                        </div>
-                        <div className="rounded-2xl border border-brand-border/60 bg-brand-bg/70 p-3.5">
-                          <span className="block font-display text-2xl font-black text-brand-text">
-                            {groupedPendingDays.length}
-                          </span>
-                          <span className="text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
-                            Days
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2 md:grid-cols-3">
-                      <div className="flex items-center gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-3.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-green text-white">
-                          <CheckCircle2 className="h-4.5 w-4.5" aria-hidden="true" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Step 1</p>
-                          <p className="text-xs font-extrabold text-brand-text">Plan generated</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-2xl bg-status-pending-bg/40 p-3.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-status-pending-text text-white">
-                          <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-status-pending-text">
-                            Current
-                          </p>
-                          <p className="text-xs font-extrabold text-brand-text">Nutritionist review</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-2xl border border-brand-border/60 bg-brand-bg/55 p-3.5 opacity-70">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border bg-brand-surface text-brand-muted">
-                          <ShieldCheck className="h-4.5 w-4.5" aria-hidden="true" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Step 3</p>
-                          <p className="text-xs font-extrabold text-brand-text">Ready after approval</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5 rounded-2xl bg-status-pending-bg/30 px-4 py-3 text-status-pending-text">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                      <p className="text-[11px] font-semibold leading-relaxed">
-                        Preview only. Logging, swaps, regeneration, nutrition totals, and groceries remain disabled
-                        until approval.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
+              <section className="flex flex-col gap-6 text-left" aria-label="Pending meal plan review">
                 {groupedPendingDays
                   .filter((day) => day.dateKey === selectedPlanDay?.dateKey)
                   .map((day, dayIndex) => (

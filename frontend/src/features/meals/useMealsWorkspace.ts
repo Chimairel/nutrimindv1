@@ -83,7 +83,7 @@ export function useMealsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
-  const currentPlanRequestInFlight = useRef(0);
+  const currentPlanRequestInFlight = useRef(false);
   const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
 
   // Meal swap states
@@ -149,11 +149,11 @@ export function useMealsWorkspace() {
   );
 
   const fetchMeals = useCallback(async () => {
-    const request = ++currentPlanRequestInFlight.current;
+    if (currentPlanRequestInFlight.current) return;
+    currentPlanRequestInFlight.current = true;
     setError(null);
     try {
       const res = await api.get('/user/meals/current', { params: { view: planView } });
-      if (request !== currentPlanRequestInFlight.current) return;
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -165,6 +165,7 @@ export function useMealsWorkspace() {
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
     } finally {
+      currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
   }, [applyCurrentPlan, planView]);

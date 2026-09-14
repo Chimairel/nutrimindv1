@@ -45,16 +45,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Retry once on 503 Service Unavailable (e.g. serverless DB wake-up cold start) for idempotent requests
+    // Retry once on 503 or transient 500 (e.g. serverless DB wake-up cold start / reconnect) for idempotent requests
     if (
       error.response &&
-      error.response.status === 503 &&
+      (error.response.status === 503 || error.response.status === 500) &&
       originalRequest &&
-      !originalRequest._retry503 &&
+      !originalRequest._retryTransient &&
       (!originalRequest.method || ['get', 'head'].includes(originalRequest.method.toLowerCase()))
     ) {
-      originalRequest._retry503 = true;
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      originalRequest._retryTransient = true;
+      await new Promise((resolve) => setTimeout(resolve, 500));
       return api(originalRequest);
     }
 
