@@ -94,42 +94,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       </div>
 
       {collapsed ? (
-        <Dock
-          direction="vertical"
-          distance={85}
-          baseSize={36}
-          magnification={46}
-          spring={{ mass: 0.08, stiffness: 320, damping: 16 }}
-          className="relative z-10 flex h-full w-full flex-col items-center justify-start py-1"
-          ariaLabel={`${user.role.toLowerCase()} navigation`}
-        >
+        <div className="relative z-10 flex h-full w-full flex-col items-center justify-start py-1">
           {/* 1. TOP GROUP: Logo & Expand Toggle */}
           <div className="flex shrink-0 flex-col items-center pt-0.5">
-            <DockItem
+            <button
+              type="button"
               onClick={toggleCollapse}
               aria-label="Open sidebar"
-              className="group/sidebar-toggle relative cursor-ew-resize rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon"
+              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-accent/40"
             >
-              <DockLabel>Open sidebar</DockLabel>
-              <DockIcon>
-                <div className="relative flex h-full w-full items-center justify-center">
-                  <KainaraLogo
-                    className="h-full w-full p-0.5 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
-                    variant="solid"
-                  />
-                  <PanelLeftOpen className="absolute h-full w-full scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100" />
-                </div>
-              </DockIcon>
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0" />
-            </DockItem>
+              <div className="relative flex h-full w-full items-center justify-center">
+                <KainaraLogo
+                  className="h-8 w-8 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
+                  variant="solid"
+                />
+                <PanelLeftOpen className="absolute h-6 w-6 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-[#07100d]" />
+              </div>
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0" />
+              <SidebarTooltip id="sidebar-open-tooltip" label="Open sidebar" placement="side" />
+            </button>
           </div>
 
-          {/* 2. CENTER GROUP: Navigation Tabs */}
-          <nav
-            id="nutrimind-sidebar-navigation"
-            className="mt-6 flex shrink-0 flex-col items-center gap-3 py-1"
-            aria-label={`${user.role.toLowerCase()} tabs`}
+          {/* 2. DOCK for Navigation Tabs & Bottom Actions */}
+          <Dock
+            direction="vertical"
+            distance={85}
+            baseSize={40}
+            magnification={48}
+            spring={{ mass: 0.08, stiffness: 320, damping: 16 }}
+            className="flex h-full w-full flex-col items-center justify-start mt-6"
+            ariaLabel={`${user.role.toLowerCase()} navigation`}
           >
+            {/* Center Navigation Tabs */}
+            <nav
+              id="nutrimind-sidebar-navigation"
+              className="flex shrink-0 flex-col items-center gap-3 py-1"
+              aria-label={`${user.role.toLowerCase()} tabs`}
+            >
             {navItems.map((item) => {
               const active =
                 pathname === item.href ||
@@ -203,6 +204,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             </Link>
           </div>
         </Dock>
+        </div>
       ) : (
         <>
           {/* Expanded Header */}
@@ -212,12 +214,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               className="flex min-w-0 items-center gap-3 outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-accent/40"
               aria-label="KAINARA home"
             >
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon">
-                <KainaraLogo className="h-6 w-6" variant="solid" />
+              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon">
+                <KainaraLogo className="h-8 w-8" variant="solid" />
                 <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
               </span>
               <span className="min-w-0">
-                <span className="block font-display text-[15px] font-extrabold tracking-[0.16em]">KAINARA</span>
+                <span className="block font-display text-[16px] font-extrabold tracking-[0.16em]">KAINARA</span>
                 <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">
                   {roleLabel}
                 </span>
