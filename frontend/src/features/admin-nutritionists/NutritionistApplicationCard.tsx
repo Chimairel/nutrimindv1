@@ -7,7 +7,6 @@ import {
   Phone,
   RotateCw,
   ShieldCheck,
-  Stethoscope,
   UserCheck,
   Video,
   XCircle,
@@ -16,6 +15,7 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Avatar from '@/components/ui/Avatar';
 import {
   statusLabel,
   toLocalInput,
@@ -172,10 +172,8 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
   return (
     <div className="border-b border-brand-border/70 p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-            <Stethoscope className="h-5 w-5" />
-          </span>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={application.fullName} size="md" className="border border-brand-border/70 shrink-0" />
           <div className="min-w-0">
             <h3 className="truncate font-display text-base font-black text-brand-text">{application.fullName}</h3>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-brand-muted">

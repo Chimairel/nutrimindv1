@@ -2,6 +2,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import Avatar from '@/components/ui/Avatar';
 import { Stethoscope, ShieldAlert, Salad } from 'lucide-react';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 import {
@@ -163,10 +164,18 @@ export function NutritionistLibraryModals({ workspace }: Props) {
         <Modal
           isOpen={true}
           onClose={() => setActiveModal(null)}
-          title={`${selectedVerifier.user.name} Profile`}
+          title="Nutritionist Profile"
           size="md"
         >
           <div className="space-y-4">
+            <div className="flex items-center gap-3.5 border-b border-brand-border/60 pb-3">
+              <Avatar name={selectedVerifier.user.name} size="lg" />
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-display text-base font-black text-brand-text">{selectedVerifier.user.name}</h3>
+                <p className="font-mono text-xs font-bold text-brand-green">PRC {selectedVerifier.prcLicenseNumber}</p>
+                <p className="text-xs text-brand-muted">{selectedVerifier.specialization || 'General Nutrition'}</p>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="block font-bold text-brand-muted uppercase">PRC License</span>

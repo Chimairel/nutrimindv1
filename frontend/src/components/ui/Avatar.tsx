@@ -5,9 +5,11 @@ import * as AvatarPrimitive from '@radix-ui/react-avatar';
 
 interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> {
   src?: string | null;
+  seed?: string | null;
+  name?: string;
   alt?: string;
   fallbackText?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showSalakot?: boolean;
 }
 
@@ -104,15 +106,32 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
 ];
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
-  ({ className = '', src, alt, fallbackText = 'NM', size = 'md', showSalakot = true, ...props }, ref) => {
+  (
+    {
+      className = '',
+      src,
+      seed,
+      name,
+      alt,
+      fallbackText = 'NM',
+      size = 'md',
+      showSalakot = true,
+      ...props
+    },
+    ref
+  ) => {
+    const activeSrc = src !== undefined ? src : seed;
+    const activeFallback = fallbackText !== 'NM' ? fallbackText : (name || fallbackText);
+
     const sizeClasses = {
       sm: 'h-10 w-10 text-xs',
       md: 'h-14 w-14 text-sm',
       lg: 'h-24 w-24 text-2xl',
+      xl: 'h-28 w-28 text-3xl',
     };
 
-    const getInitials = (name: string) => {
-      return name
+    const getInitials = (text: string) => {
+      return text
         .trim()
         .split(/\s+/)
         .map((part) => part[0])
@@ -122,21 +141,21 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
     };
 
     const getAvatarUrl = () => {
-      if (src) {
-        if (src.startsWith('http://') || src.startsWith('https://')) {
-          return src;
+      if (activeSrc) {
+        if (activeSrc.startsWith('http://') || activeSrc.startsWith('https://')) {
+          return activeSrc;
         }
-        if (src.toLowerCase() === 'default') {
+        if (activeSrc.toLowerCase() === 'default') {
           return undefined;
         }
-        const matched = FILIPINO_AVATAR_PRESETS.find((p) => p.name.toLowerCase() === src.toLowerCase());
+        const matched = FILIPINO_AVATAR_PRESETS.find((p) => p.name.toLowerCase() === activeSrc.toLowerCase());
         if (matched) {
           if (matched.customUrl) {
             return matched.customUrl;
           }
           return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(matched.name)}&headVariant=${matched.head}&expressionVariant=${matched.face}&skinColor=${matched.skinColor}&clothingColor=${matched.clothingColor}&scale=1.2&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
         }
-        return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(src)}&scale=1.2&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
+        return `https://api.dicebear.com/10.x/open-peeps/svg?seed=${encodeURIComponent(activeSrc)}&scale=1.2&facialHairProbability=0&maskProbability=0&accessoriesProbability=0`;
       }
       return undefined;
     };
@@ -156,12 +175,12 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
           {displaySrc ? (
             <AvatarPrimitive.Image
               src={displaySrc}
-              alt={alt}
+              alt={alt || (typeof activeFallback === 'string' ? activeFallback : undefined)}
               className="aspect-square h-full w-full object-cover animate-fade-in"
             />
           ) : null}
           <AvatarPrimitive.Fallback className="flex h-full w-full items-center justify-center rounded-full bg-brand-bgAlt text-brand-green font-display font-semibold">
-            {getInitials(fallbackText)}
+            {getInitials(activeFallback)}
           </AvatarPrimitive.Fallback>
         </div>
         {showSalakot && (

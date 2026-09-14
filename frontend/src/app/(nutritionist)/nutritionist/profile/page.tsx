@@ -5,9 +5,12 @@ import api from '@/lib/axios';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Avatar from '@/components/ui/Avatar';
+import AvatarSettings from '@/features/profile/AvatarSettings';
 import { useAuth } from '@/hooks/useAuth';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Check, Clock, UserRound } from 'lucide-react';
+import { Check, Clock, UserRound, Sparkles, ShieldCheck } from 'lucide-react';
 
 interface NProfile {
   id: string;
@@ -22,9 +25,10 @@ interface NProfile {
 }
 
 export default function NutritionistProfilePage() {
-  const { logout, user } = useAuth();
+  const { logout, user, updateUserSession } = useAuth();
   const [profile, setProfile] = useState<NProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'credentials' | 'avatar'>('credentials');
   const [bio, setBio] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [saving, setSaving] = useState(false);
@@ -77,111 +81,217 @@ export default function NutritionistProfilePage() {
         icon={UserRound}
         eyebrow="Professional identity"
         title="Nutritionist profile"
-        description="Manage the credentials and introduction users see alongside your reviews."
+        description="Manage the credentials, clinical introduction, and avatar users see alongside your reviews."
       />
 
-      <Card className="grid gap-4 p-6 text-sm sm:grid-cols-2">
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-          <span className="text-[10px] uppercase tracking-wider text-brand-muted">PRC License</span>
-          <span className="mt-2 block font-mono font-bold text-brand-text">{profile?.prcLicenseNumber}</span>
-        </div>
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-          <span className="text-[10px] uppercase tracking-wider text-brand-muted">License expiry</span>
-          <span className="mt-2 block font-bold text-brand-text">
-            {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
-          </span>
-        </div>
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-          <span className="text-brand-muted">Verified</span>
-          <span
-            className={`mt-2 flex font-bold ${profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}`}
-          >
-            {profile?.isVerified ? (
-              <span className="inline-flex items-center gap-1">
-                <Check className="w-3.5 h-3.5 stroke-[3px]" />
-                <span>Yes</span>
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-brand-border/60 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('credentials')}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+            activeTab === 'credentials'
+              ? 'bg-brand-accent text-[#07100d] shadow-sm'
+              : 'border border-brand-border/70 bg-brand-surface/70 text-brand-muted hover:text-brand-text'
+          }`}
+        >
+          <ShieldCheck className="h-4 w-4" />
+          <span>Clinical Credentials</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('avatar')}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+            activeTab === 'avatar'
+              ? 'bg-brand-accent text-[#07100d] shadow-sm'
+              : 'border border-brand-border/70 bg-brand-surface/70 text-brand-muted hover:text-brand-text'
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>Avatar & Appearance</span>
+        </button>
+      </div>
+
+      {activeTab === 'credentials' ? (
+        <div className="space-y-6">
+          {/* Professional Identity Hero Card */}
+          <Card className="flex flex-col items-center gap-5 p-6 sm:flex-row sm:items-start">
+            <div className="relative shrink-0">
+              <Avatar name={user?.name} seed={user?.image} size="xl" />
+              {profile?.isVerified && (
+                <span
+                  className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-brand-green text-white shadow-md ring-2 ring-brand-surface"
+                  title="PRC Verified Nutritionist-Dietitian"
+                >
+                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <h2 className="font-display text-xl font-black text-brand-text">{user?.name}</h2>
+                <Badge variant={profile?.isVerified ? 'verified' : 'pending'}>
+                  {profile?.isVerified ? 'PRC Verified RND' : 'Verification Pending'}
+                </Badge>
+              </div>
+              <p className="mt-1 font-mono text-xs font-bold text-brand-green">
+                PRC License: {profile?.prcLicenseNumber || 'Not available'}
+              </p>
+              <p className="mt-1 text-xs text-brand-muted">
+                {profile?.specialization || 'General Clinical Nutrition'} ·{' '}
+                {profile?.university || 'Philippine Accredited University'}
+              </p>
+            </div>
+          </Card>
+
+          {/* License & Metrics Grid */}
+          <Card className="grid gap-4 p-6 text-sm sm:grid-cols-2">
+            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+              <span className="text-[10px] uppercase tracking-wider text-brand-muted">PRC License</span>
+              <span className="mt-2 block font-mono font-bold text-brand-text">{profile?.prcLicenseNumber}</span>
+            </div>
+            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+              <span className="text-[10px] uppercase tracking-wider text-brand-muted">License expiry</span>
+              <span className="mt-2 block font-bold text-brand-text">
+                {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
               </span>
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Pending</span>
+            </div>
+            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+              <span className="text-brand-muted">Verified</span>
+              <span
+                className={`mt-2 flex font-bold ${profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}`}
+              >
+                {profile?.isVerified ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Check className="h-3.5 w-3.5 stroke-[3px]" />
+                    <span>Yes</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Pending</span>
+                  </span>
+                )}
               </span>
+            </div>
+            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
+              <span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span>
+              <span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span>
+            </div>
+          </Card>
+
+          {/* Edit Profile Form */}
+          <Card className="space-y-5 p-6">
+            <p className="portal-section-label">Edit profile</p>
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text"
+              >
+                {error}
+              </p>
             )}
-          </span>
-        </div>
-        <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-          <span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span>
-          <span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span>
-        </div>
-      </Card>
+            {success && (
+              <p
+                role="status"
+                className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text"
+              >
+                {success}
+              </p>
+            )}
+            <div>
+              <label htmlFor="nutritionist-specialization" className="mb-2 block text-xs font-bold text-brand-text">
+                Specialization
+              </label>
+              <input
+                id="nutritionist-specialization"
+                name="specialization"
+                value={specialization}
+                onChange={(e) => setSpecialization(e.target.value)}
+                className="w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
+                placeholder="e.g. Sports Nutrition, Clinical Nutrition"
+              />
+            </div>
+            <div>
+              <label htmlFor="nutritionist-bio" className="mb-2 block text-xs font-bold text-brand-text">
+                Bio
+              </label>
+              <textarea
+                id="nutritionist-bio"
+                name="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
+                rows={4}
+                placeholder="Summarize your clinical expertise and review focus..."
+              />
+            </div>
+            <Button variant="primary" onClick={handleSave} isLoading={saving} className="text-xs">
+              Save Changes
+            </Button>
+          </Card>
 
-      <Card className="space-y-5 p-6">
-        <p className="portal-section-label">Edit profile</p>
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text"
-          >
-            {error}
-          </p>
-        )}
-        {success && (
-          <p
-            role="status"
-            className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text"
-          >
-            {success}
-          </p>
-        )}
-        <div>
-          <label htmlFor="nutritionist-specialization" className="mb-2 block text-xs font-bold text-brand-text">
-            Specialization
-          </label>
-          <input
-            id="nutritionist-specialization"
-            name="specialization"
-            value={specialization}
-            onChange={(e) => setSpecialization(e.target.value)}
-            className="w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
-            placeholder="e.g. Sports Nutrition, Clinical Nutrition"
-          />
+          {/* Public Profile Preview with Live Avatar */}
+          <Card className="space-y-4 p-6">
+            <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
+              <p className="portal-section-label">Public Review Attribution Preview</p>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-brand-muted">
+                Patient View
+              </span>
+            </div>
+            <div className="flex items-start gap-4 pt-1">
+              <div className="relative shrink-0">
+                <Avatar name={user?.name} seed={user?.image} size="lg" />
+                {profile?.isVerified && (
+                  <span
+                    className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white shadow-sm ring-2 ring-brand-surface"
+                    title="PRC Licensed Nutritionist"
+                  >
+                    <Check className="h-3 w-3 stroke-[3]" />
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-1.5 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-display font-bold text-brand-text">{user?.name}</p>
+                  {profile?.isVerified && (
+                    <Badge variant="verified" className="text-[9px]">
+                      Verified RND
+                    </Badge>
+                  )}
+                </div>
+                <p className="font-mono text-xs font-semibold text-brand-green">
+                  PRC {profile?.prcLicenseNumber || 'Not available'}
+                </p>
+                <p className="text-xs text-brand-muted">
+                  Valid until {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
+                </p>
+                <p className="text-xs font-semibold text-brand-text">
+                  {profile?.specialization || 'General Clinical Nutrition'}
+                </p>
+                <p className="text-xs leading-relaxed text-brand-muted">
+                  {profile?.bio || 'No introduction provided'}
+                </p>
+                <p className="pt-2 text-[10px] text-brand-muted/80">
+                  Users view these professional credentials whenever you approve or review their meal plans.
+                </p>
+              </div>
+            </div>
+          </Card>
         </div>
-        <div>
-          <label htmlFor="nutritionist-bio" className="mb-2 block text-xs font-bold text-brand-text">
-            Bio
-          </label>
-          <textarea
-            id="nutritionist-bio"
-            name="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
-            rows={4}
-            placeholder="Summarize your clinical expertise and review focus..."
-          />
+      ) : (
+        <div className="space-y-6">
+          {user && (
+            <AvatarSettings
+              visible={activeTab === 'avatar'}
+              user={user}
+              updateUserSession={updateUserSession}
+            />
+          )}
         </div>
-        <Button variant="primary" onClick={handleSave} isLoading={saving} className="text-xs">
-          Save Changes
-        </Button>
-      </Card>
+      )}
 
-      <details className="rounded-2xl border border-brand-border bg-brand-surface p-5">
-        <summary className="cursor-pointer font-semibold">Public profile preview</summary>
-        <div className="mt-4 space-y-2 text-sm">
-          <p className="font-display text-lg font-bold">{user?.name}</p>
-          <p>PRC license: {profile?.prcLicenseNumber || 'Not available'}</p>
-          <p>
-            Valid until:{' '}
-            {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
-          </p>
-          <p>{profile?.specialization || 'No specialization provided'}</p>
-          <p className="text-brand-muted">{profile?.bio || 'No introduction provided'}</p>
-          <p className="text-xs text-brand-muted">
-            Users can view these professional details through your meal-review attribution. Your email and contact
-            details are excluded here.
-          </p>
-        </div>
-      </details>
       <Button variant="secondary" onClick={logout} className="w-full py-3 text-sm">
         Sign Out
       </Button>

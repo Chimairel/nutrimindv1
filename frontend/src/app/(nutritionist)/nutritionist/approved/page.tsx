@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import Avatar from '@/components/ui/Avatar';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -150,12 +151,13 @@ export default function NutritionistApprovedPage() {
                     </div>
 
                     {/* Patient Info */}
-                    <div className="text-[10px] text-brand-muted">
+                    <div className="flex items-center gap-2 text-[10px] text-brand-muted">
+                      <Avatar name={meal.user.name} size="sm" />
                       <span>
                         Patient: <strong className="text-brand-text">{meal.user.name}</strong>
                       </span>
                       {meal.nutritionistNote && (
-                        <span className="ml-3">
+                        <span className="ml-2 truncate">
                           Note: <em>{meal.nutritionistNote}</em>
                         </span>
                       )}

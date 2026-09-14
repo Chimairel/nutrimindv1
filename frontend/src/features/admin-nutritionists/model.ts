@@ -31,7 +31,7 @@ export interface NutritionistRow {
   isVerified: boolean;
   totalVerified: number;
   verifiedAt?: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; image?: string | null };
 }
 
 export type ScheduleDraft = { scheduledCallAt: string; meetingUrl: string };

@@ -5,6 +5,7 @@ import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RotateCcw, Search
 import api from '@/lib/axios';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Avatar from '@/components/ui/Avatar';
 import Modal from '@/components/ui/Modal';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +15,7 @@ interface UserRow {
   name: string;
   email: string;
   role: string;
+  image?: string | null;
   emailVerified: boolean;
   onboardingDone: boolean;
   createdAt: string;
@@ -153,9 +155,12 @@ export default function AdminUsersPage() {
           <div className="divide-y divide-brand-border md:hidden">
             {users.map((user) => (
               <article key={user.id} className="space-y-3 p-4">
-                <div>
-                  <h2 className="font-semibold text-brand-text">{user.name}</h2>
-                  <p className="break-all text-sm text-brand-muted">{user.email}</p>
+                <div className="flex items-center gap-3">
+                  <Avatar name={user.name} seed={user.image} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate font-semibold text-brand-text">{user.name}</h2>
+                    <p className="break-all text-sm text-brand-muted">{user.email}</p>
+                  </div>
                 </div>
                 <p className="text-sm text-brand-muted">
                   {user.role} · {user.isSuspended ? 'Suspended' : 'Active'}
@@ -193,7 +198,12 @@ export default function AdminUsersPage() {
                     key={user.id}
                     className="border-b border-brand-border/45 transition last:border-0 hover:bg-brand-green/[0.035]"
                   >
-                    <td className="px-5 py-4 font-semibold text-brand-text">{user.name}</td>
+                    <td className="px-5 py-4 font-semibold text-brand-text">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.name} seed={user.image} size="sm" />
+                        <span className="truncate">{user.name}</span>
+                      </div>
+                    </td>
                     <td className="px-5 py-4 text-brand-muted">{user.email}</td>
                     <td className="px-5 py-4 text-center">
                       <Badge

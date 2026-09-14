@@ -2,6 +2,7 @@
 
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Avatar from '@/components/ui/Avatar';
 import {
   CheckCircle,
   Flame,
@@ -125,9 +126,12 @@ export default function ReviewsPage() {
                       {meal.requiresIndependentSecondReview ? 'Independent second review required' : 'Escalated review'}
                     </p>
                   )}
-                  <div className="flex items-center justify-between text-[11px] text-brand-muted">
-                    <span>{meal.user.name}</span>
-                    <span>{new Date(meal.scheduledDate).toLocaleDateString()}</span>
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-brand-muted">
+                    <span className="flex items-center gap-1.5 min-w-0 truncate">
+                      <Avatar name={meal.user.name} size="sm" />
+                      <span className="truncate">{meal.user.name}</span>
+                    </span>
+                    <span className="shrink-0">{new Date(meal.scheduledDate).toLocaleDateString()}</span>
                   </div>
                   {meal.claimStatus.claimedByOther && (
                     <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-500 font-bold">
@@ -231,12 +235,15 @@ export default function ReviewsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {/* Left Panel: User Profile */}
               <div className="space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card">
-                <div className="border-b border-brand-border pb-3">
-                  <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">User Health Profile</h2>
-                  <h3 className="text-base font-extrabold text-brand-text mt-1">{detailData.user.name}</h3>
-                  <p className="text-xs text-brand-muted">
-                    {detailData.user.age} yrs • {detailData.user.sex}
-                  </p>
+                <div className="flex items-center gap-3.5 border-b border-brand-border pb-3">
+                  <Avatar name={detailData.user.name} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">User Health Profile</h2>
+                    <h3 className="truncate text-base font-extrabold text-brand-text mt-0.5">{detailData.user.name}</h3>
+                    <p className="text-xs text-brand-muted">
+                      {detailData.user.age} yrs • {detailData.user.sex}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Health Conditions */}
