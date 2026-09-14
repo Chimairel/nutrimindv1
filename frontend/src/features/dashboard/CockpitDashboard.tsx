@@ -64,10 +64,10 @@ export function CockpitDashboard({
   ];
   return (
     <section aria-label="Daily nutrition" className="space-y-5">
-      <div className="grid gap-5 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(360px,1fr)_minmax(0,1.4fr)]">
         <section
           aria-label="Nutrition summary"
-          className="daily-intake-card flex h-full flex-col justify-between rounded-3xl border p-5 sm:p-6"
+          className="daily-intake-card flex min-h-full flex-col justify-between rounded-3xl border p-5 sm:p-6"
         >
           <div>
             <div className="flex items-center justify-between">
@@ -85,7 +85,7 @@ export function CockpitDashboard({
                 provisional={metrics.provisionalCalories}
                 size={152}
               />
-              <div className="space-y-3">
+              <div className="min-w-0 flex-1 space-y-3">
                 {/* Consumed Stat */}
                 <div className="flex items-start gap-2.5">
                   <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-green shadow-[0_0_8px_rgba(18,129,100,0.5)]" />
@@ -135,7 +135,7 @@ export function CockpitDashboard({
                   </div>
                 </div>
 
-                <p className="text-xs font-medium text-brand-green">Logged for this day</p>
+                <p className="text-xs font-medium text-brand-green whitespace-nowrap">Logged for this day</p>
               </div>
             </div>
 
@@ -204,7 +204,7 @@ export function CockpitDashboard({
         </section>
         <section
           aria-label="Scheduled meals"
-          className="dashboard-surface flex h-full min-w-0 flex-col rounded-3xl p-5 sm:p-6"
+          className="dashboard-surface flex min-h-full min-w-0 flex-col rounded-3xl p-5 sm:p-6"
         >
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
