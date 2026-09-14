@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { Calendar, Droplets, Scale, ClipboardCheck, ArrowUpRight } from 'lucide-react';
+import { motion } from 'motion/react';
 import { formatManilaDate } from '@/lib/manila-date';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { UserProfileData } from '@/hooks/useProfile';
+import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
 import { DashboardMealRow } from './DashboardMealRow';
 
 export interface CockpitDashboardProps {
@@ -50,10 +52,6 @@ export function CockpitDashboard({
   onStatusToggle,
   onOpenWeeklyPlan,
 }: CockpitDashboardProps) {
-  const percent = Math.max(
-    0,
-    Math.min(100, Math.round((metrics.caloriesConsumed / Math.max(1, metrics.caloriesTarget)) * 100))
-  );
   const macros = [
     {
       label: 'Protein',
@@ -72,43 +70,88 @@ export function CockpitDashboard({
           className="daily-intake-card flex h-full flex-col justify-between rounded-3xl border p-5 sm:p-6"
         >
           <div>
-            <p className="text-sm font-semibold text-brand-muted">Your daily intake</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-brand-muted">Your daily intake</p>
+              <span className="rounded-full border border-brand-green/30 bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
+                Today
+              </span>
+            </div>
+
+            {/* Donut Gauge & Calorie Telemetry */}
             <div className="my-6 flex items-center gap-5">
-              <div
-                className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full p-2"
-                style={{ background: `conic-gradient(var(--brand-green) ${percent}%, var(--brand-border) 0)` }}
-              >
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-brand-surface font-display text-3xl font-bold text-brand-text">
-                  {percent}%
+              <DailyIntakeDonut
+                consumed={metrics.caloriesConsumed}
+                target={metrics.caloriesTarget}
+                size={116}
+              />
+              <div className="space-y-3">
+                {/* Consumed Stat */}
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-green shadow-[0_0_8px_rgba(18,129,100,0.5)]" />
+                  <div className="flex flex-col">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                      Consumed
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <AnimatedValue
+                        value={Math.round(metrics.caloriesConsumed)}
+                        className="font-display text-2xl font-bold tracking-tight text-brand-text leading-tight"
+                      />
+                      <span className="text-xs font-semibold text-brand-muted">kcal</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <p className="font-display text-3xl font-bold tracking-tight text-brand-text">
-                  {Math.round(metrics.caloriesConsumed).toLocaleString()}
-                </p>
-                <p className="mt-1 text-sm text-brand-muted">
-                  of {Math.round(metrics.caloriesTarget).toLocaleString()} kcal
-                </p>
-                <p className="mt-2 text-xs font-medium text-brand-green">Logged for this day</p>
+
+                {/* Daily Target Stat */}
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-border dark:bg-zinc-700" />
+                  <div className="flex flex-col">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                      Daily Target
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <AnimatedValue
+                        value={Math.round(metrics.caloriesTarget)}
+                        className="font-display text-lg font-bold tracking-tight text-brand-muted leading-tight"
+                      />
+                      <span className="text-xs font-semibold text-brand-muted">kcal</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs font-medium text-brand-green">Logged for this day</p>
               </div>
             </div>
+
+            {/* Macro rows with swatches, rolling numbers and spring progress bars */}
             <div className="space-y-4 border-t border-brand-border pt-5">
               {macros.map((macro) => (
                 <div key={macro.label}>
                   <div className="mb-2 flex justify-between gap-3 text-sm">
-                    <span className="font-medium text-brand-text">{macro.label}</span>
-                    <span className="text-brand-muted">
-                      <strong className="text-brand-text">{Math.round(macro.consumed)}g</strong> /{' '}
-                      {Math.round(macro.target)}g
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: macro.color }}
+                      />
+                      <span className="font-medium text-brand-text">{macro.label}</span>
+                    </div>
+                    <span className="text-brand-muted font-mono text-xs flex items-center gap-1">
+                      <strong className="text-brand-text font-bold">
+                        <AnimatedValue value={Math.round(macro.consumed)} suffix="g" className="font-bold text-brand-text" />
+                      </strong>{' '}
+                      /{' '}
+                      <AnimatedValue value={Math.round(macro.target)} suffix="g" className="text-brand-muted" />
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-brand-border" aria-hidden="true">
-                    <div
+                  <div className="h-2 overflow-hidden rounded-full bg-brand-border/60 dark:bg-zinc-800" aria-hidden="true">
+                    <motion.div
                       className="h-full rounded-full"
-                      style={{
-                        background: macro.color,
+                      style={{ background: macro.color }}
+                      initial={{ width: 0 }}
+                      animate={{
                         width: `${Math.max(0, Math.min(100, (macro.consumed / Math.max(1, macro.target)) * 100))}%`,
                       }}
+                      transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
                     />
                   </div>
                 </div>
@@ -130,8 +173,12 @@ export function CockpitDashboard({
             )}
             <div className="flex items-center justify-between rounded-2xl bg-black/25 dark:bg-black/35 px-4 py-3 text-xs">
               <span className="font-medium text-brand-muted">Remaining budget</span>
-              <span className="font-mono font-bold text-brand-green">
-                {Math.max(0, Math.round(metrics.caloriesTarget - metrics.caloriesConsumed)).toLocaleString()} kcal
+              <span className="font-mono font-bold text-brand-green flex items-center gap-1">
+                <AnimatedValue
+                  value={Math.max(0, Math.round(metrics.caloriesTarget - metrics.caloriesConsumed))}
+                  suffix=" kcal"
+                  className="font-mono font-bold text-brand-green"
+                />
               </span>
             </div>
           </div>
