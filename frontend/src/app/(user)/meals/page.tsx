@@ -3,7 +3,6 @@
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -14,6 +13,7 @@ import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import LibraryMealCard from '@/features/meals/LibraryMealCard';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
+import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
   Sprout,
   Calendar,
@@ -148,15 +148,13 @@ export default function WeeklyPlanPage() {
     );
   }
 
-  if (isLoading) return <PortalLoadingState message="Analyzing weekly schedule..." />;
-
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
         {pendingReview && <ClinicalReviewBanner />}
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
-        {activeTab === 'plan' && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
+        {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Sprout className="w-5 h-5 text-brand-green" />
@@ -308,7 +306,7 @@ export default function WeeklyPlanPage() {
             )}
           </div>
         )}
-        {activeTab === 'plan' && displayedMealCount > 0 && (
+        {activeTab === 'plan' && !isLoading && displayedMealCount > 0 && (
           <section className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
             {[
               { label: 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
@@ -332,7 +330,7 @@ export default function WeeklyPlanPage() {
           </section>
         )}
 
-        {activeTab === 'plan' && displayedPlanDays.length > 0 && selectedPlanDay && (
+        {activeTab === 'plan' && !isLoading && displayedPlanDays.length > 0 && selectedPlanDay && (
           <section
             className="rounded-[26px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card"
             aria-label="Select a meal-plan day"
@@ -428,7 +426,9 @@ export default function WeeklyPlanPage() {
 
         {/* Conditional Content Rendering */}
         {activeTab === 'plan' &&
-          (groupedDays.length === 0 ? (
+          (isLoading ? (
+            <MealPlanSkeleton />
+          ) : groupedDays.length === 0 ? (
             pendingReview ? (
               <section className="flex flex-col gap-6 text-left" aria-label="Pending meal plan review">
                 {groupedPendingDays

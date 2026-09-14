@@ -76,8 +76,9 @@ export function useMealsWorkspace() {
   const [activeTab, setActiveTab] = useState<'plan' | 'history' | 'library'>('plan');
 
   // Meal Plan states
+  const hasPlanData = Boolean(cachedPlan && (cachedPlan.meals.length > 0 || cachedPlan.pendingReview));
   const [meals, setMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
-  const [isLoading, setIsLoading] = useState(!cachedPlan);
+  const [isLoading, setIsLoading] = useState(!hasPlanData);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
