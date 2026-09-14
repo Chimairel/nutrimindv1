@@ -82,6 +82,7 @@ export function CockpitDashboard({
               <DailyIntakeDonut
                 consumed={metrics.caloriesConsumed}
                 target={metrics.caloriesTarget}
+                provisional={metrics.provisionalCalories}
                 size={116}
               />
               <div className="space-y-3">
@@ -101,6 +102,25 @@ export function CockpitDashboard({
                     </div>
                   </div>
                 </div>
+
+                {/* Estimated Outside Meals Stat (if any) */}
+                {metrics.provisionalCalories > 0 && (
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                    <div className="flex flex-col">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400">
+                        Estimated (Outside)
+                      </p>
+                      <div className="flex items-baseline gap-1">
+                        <AnimatedValue
+                          value={Math.round(metrics.provisionalCalories)}
+                          className="font-display text-lg font-bold tracking-tight text-amber-500 dark:text-amber-400 leading-tight"
+                        />
+                        <span className="text-xs font-semibold text-amber-500/70 dark:text-amber-400/70">kcal</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Daily Target Stat */}
                 <div className="flex items-start gap-2.5">

@@ -93,6 +93,7 @@ describe('CockpitDashboard', () => {
     expect(screen.getByText('Protein')).toBeInTheDocument();
     expect(screen.getByText('Carbs')).toBeInTheDocument();
     expect(screen.getByText('Fat')).toBeInTheDocument();
+    expect(screen.getByText('Estimated (Outside)')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Weight & progress/ })).toHaveAttribute('href', '/progress');
   });
 });

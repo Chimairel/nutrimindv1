@@ -19,4 +19,21 @@ describe('DailyIntakeDonut', () => {
     render(<AnimatedValue value={100} suffix=" kcal" />);
     expect(screen.getByText(/100/)).toBeInTheDocument();
   });
+
+  it('renders provisional estimated calories with distinct indicator and aria-label', () => {
+    render(<DailyIntakeDonut consumed={800} target={2000} provisional={300} />);
+    const gauge = screen.getByRole('img', {
+      name: /Daily calorie intake: 40%, 800 of 2000 calories \(includes 300 estimated calories\)/i,
+    });
+    expect(gauge).toBeInTheDocument();
+    expect(screen.getByText(/Intake\*/)).toBeInTheDocument();
+  });
+
+  it('handles 100% estimated calories (all from outside meals)', () => {
+    render(<DailyIntakeDonut consumed={450} target={1800} provisional={450} />);
+    const gauge = screen.getByRole('img', {
+      name: /Daily calorie intake: 25%, 450 of 1800 calories \(includes 450 estimated calories\)/i,
+    });
+    expect(gauge).toBeInTheDocument();
+  });
 });

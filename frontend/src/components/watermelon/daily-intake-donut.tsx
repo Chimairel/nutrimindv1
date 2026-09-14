@@ -7,6 +7,7 @@ import NumberFlow from '@number-flow/react';
 export interface DailyIntakeDonutProps {
   consumed: number;
   target: number;
+  provisional?: number;
   className?: string;
   size?: number;
 }
@@ -34,6 +35,7 @@ export const AnimatedValue: React.FC<{
 export const DailyIntakeDonut: React.FC<DailyIntakeDonutProps> = ({
   consumed,
   target,
+  provisional = 0,
   className = '',
   size = 140,
 }) => {
@@ -41,28 +43,45 @@ export const DailyIntakeDonut: React.FC<DailyIntakeDonutProps> = ({
   const percent = Math.round((consumed / safeTarget) * 100);
   const isOverLimit = consumed > safeTarget;
 
+  // Breakdown: Estimated (outside meals) vs Verified (planned meals)
+  const estimatedCalories = Math.min(consumed, Math.max(0, provisional));
+  const verifiedCalories = Math.max(0, consumed - estimatedCalories);
+
   // SVG Geometry - radius 52, viewBox 140 x 140
   const R = 52;
   const C = 2 * Math.PI * R; // ~326.72
 
-  // Proportion calculations (0 to 1)
-  const pConsumed = Math.min(1, Math.max(0, consumed / safeTarget));
-  const pRemaining = Math.max(0, 1 - pConsumed);
+  // Total denominator (target, or total consumed if target exceeded)
+  const denom = Math.max(safeTarget, consumed);
+  const pVerified = verifiedCalories / denom;
+  const pEstimated = estimatedCalories / denom;
+  const pRemaining = Math.max(0, (safeTarget - consumed) / denom);
 
-  // Dynamic gap between consumed and remaining arc segments
-  const gap = 14;
-  const showGap = pConsumed > 0 && pRemaining > 0;
-  const actualGap = showGap ? gap : 0;
+  const hasVerified = pVerified > 0;
+  const hasEstimated = pEstimated > 0;
+  const hasRemaining = pRemaining > 0;
+  const activeSegments = (hasVerified ? 1 : 0) + (hasEstimated ? 1 : 0) + (hasRemaining ? 1 : 0);
 
-  const consumedLength = Math.max(0, pConsumed * C - actualGap);
-  const remainingLength = Math.max(0, pRemaining * C - actualGap);
+  // Dynamic gap between segments
+  const gap = activeSegments > 1 ? 12 : 0;
+
+  const verifiedLength = hasVerified ? Math.max(0.1, pVerified * C - gap) : 0;
+  const estimatedLength = hasEstimated ? Math.max(0.1, pEstimated * C - gap) : 0;
+  const remainingLength = hasRemaining ? Math.max(0.1, pRemaining * C - gap) : 0;
+
+  // Offsets along perimeter (starting from top, 0 clockwise)
+  const verifiedOffset = -(gap / 2);
+  const estimatedOffset = -(pVerified * C + gap / 2);
+  const remainingOffset = -((pVerified + pEstimated) * C + gap / 2);
 
   return (
     <div
       className={`relative flex shrink-0 items-center justify-center select-none ${className}`}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={`Daily calorie intake: ${percent}%, ${Math.round(consumed)} of ${Math.round(safeTarget)} calories`}
+      aria-label={`Daily calorie intake: ${percent}%, ${Math.round(consumed)} of ${Math.round(safeTarget)} calories${
+        estimatedCalories > 0 ? ` (includes ${Math.round(estimatedCalories)} estimated calories)` : ''
+      }`}
     >
       <svg
         width={size}
@@ -82,40 +101,63 @@ export const DailyIntakeDonut: React.FC<DailyIntakeDonutProps> = ({
           strokeWidth="12"
         />
 
-        {/* Remaining / Target arc (stroke width 12) */}
-        <motion.circle
-          cx="70"
-          cy="70"
-          r={R}
-          fill="none"
-          stroke="var(--brand-border)"
-          className="dark:stroke-zinc-700"
-          strokeWidth="12"
-          strokeLinecap={showGap ? 'round' : 'butt'}
-          initial={false}
-          animate={{
-            strokeDasharray: `${remainingLength} ${C}`,
-            strokeDashoffset: -(pConsumed * C + actualGap / 2),
-          }}
-          transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
-        />
+        {/* 1. Remaining / Target arc (stroke width 12) */}
+        {hasRemaining && (
+          <motion.circle
+            cx="70"
+            cy="70"
+            r={R}
+            fill="none"
+            stroke="var(--brand-border)"
+            className="dark:stroke-zinc-700"
+            strokeWidth="12"
+            strokeLinecap={activeSegments > 1 ? 'round' : 'butt'}
+            initial={false}
+            animate={{
+              strokeDasharray: `${remainingLength} ${C}`,
+              strokeDashoffset: remainingOffset,
+            }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+          />
+        )}
 
-        {/* Consumed arc (stroke width 18 - elevated thickness per Watermelon UI Returns Calculator preset) */}
-        <motion.circle
-          cx="70"
-          cy="70"
-          r={R}
-          fill="none"
-          stroke={isOverLimit ? '#ef4444' : 'var(--brand-green)'}
-          strokeWidth="18"
-          strokeLinecap="round"
-          initial={false}
-          animate={{
-            strokeDasharray: `${Math.max(0.1, consumedLength)} ${C}`,
-            strokeDashoffset: -(actualGap / 2),
-          }}
-          transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
-        />
+        {/* 2. Estimated / Outside Meals arc (Amber #f59e0b, stroke width 18) */}
+        {hasEstimated && (
+          <motion.circle
+            cx="70"
+            cy="70"
+            r={R}
+            fill="none"
+            stroke={isOverLimit && !hasVerified ? '#ef4444' : '#f59e0b'}
+            strokeWidth="18"
+            strokeLinecap="round"
+            initial={false}
+            animate={{
+              strokeDasharray: `${estimatedLength} ${C}`,
+              strokeDashoffset: estimatedOffset,
+            }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+          />
+        )}
+
+        {/* 3. Verified / Planned Meals arc (Emerald / Lime, stroke width 18) */}
+        {hasVerified && (
+          <motion.circle
+            cx="70"
+            cy="70"
+            r={R}
+            fill="none"
+            stroke={isOverLimit ? '#ef4444' : 'var(--brand-green)'}
+            strokeWidth="18"
+            strokeLinecap="round"
+            initial={false}
+            animate={{
+              strokeDasharray: `${verifiedLength} ${C}`,
+              strokeDashoffset: verifiedOffset,
+            }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+          />
+        )}
       </svg>
 
       {/* Center text with NumberFlow rolling percentage */}
@@ -123,11 +165,21 @@ export const DailyIntakeDonut: React.FC<DailyIntakeDonutProps> = ({
         <AnimatedValue
           value={percent}
           suffix="%"
-          className="font-display text-2xl font-black tracking-tight text-brand-text leading-none"
+          className={`font-display text-2xl font-black tracking-tight leading-none ${
+            isOverLimit ? 'text-status-error-text' : 'text-brand-text'
+          }`}
         />
-        <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-muted mt-1 leading-none">
-          Intake
-        </span>
+        <div className="flex items-center gap-1 mt-1">
+          {hasEstimated && (
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"
+              title="Includes estimated outside meals"
+            />
+          )}
+          <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-muted leading-none">
+            {hasEstimated ? 'Intake*' : 'Intake'}
+          </span>
+        </div>
       </div>
     </div>
   );
