@@ -11,8 +11,8 @@ export function ProfessionalGrid({ nutritionists }: { nutritionists: Nutritionis
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {nutritionists.map((nutritionist) => (
-        <Card key={nutritionist.id} className="p-5">
-          <div className="flex items-center gap-4">
+        <Card key={nutritionist.id} className="p-4 sm:p-5">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative shrink-0">
               <Avatar
                 name={nutritionist.user.name}
@@ -30,11 +30,11 @@ export function ProfessionalGrid({ nutritionists }: { nutritionists: Nutritionis
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-bold text-brand-text">{nutritionist.user.name}</h3>
               <p className="truncate text-xs text-brand-muted">{nutritionist.user.email}</p>
-              <p className="mt-2 break-all font-mono text-[9px] uppercase tracking-wider text-brand-muted">
+              <p className="mt-1.5 break-all font-mono text-[9px] uppercase tracking-wider text-brand-muted">
                 PRC {nutritionist.prcLicenseNumber}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="font-display text-xl font-black text-brand-green">{nutritionist.totalVerified}</p>
               <p className="text-[9px] uppercase tracking-wider text-brand-muted">meals verified</p>
             </div>

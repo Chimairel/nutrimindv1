@@ -249,7 +249,7 @@ export default function AvatarSettings({
             </Button>
           </div>
 
-          <div className="mt-5 flex items-center justify-between">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-brand-muted">
               Curated Filipino Avatars
             </span>
@@ -558,7 +558,7 @@ export default function AvatarSettings({
                 </div>
 
                 {/* Full Web Playground Link */}
-                <div className="flex items-center justify-between border-t border-brand-border/40 pt-2 text-[10px] text-brand-muted">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-brand-border/40 pt-2 text-[10px] text-brand-muted">
                   <span>
                     Live preview updates above. Click <strong>Save</strong> when satisfied!
                   </span>

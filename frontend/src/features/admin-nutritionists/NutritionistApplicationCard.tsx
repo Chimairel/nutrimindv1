@@ -124,17 +124,19 @@ export function NutritionistApplicationCard(props: Props) {
           </div>
         )}
         {!['APPROVED', 'REJECTED', 'ACTIVATED'].includes(application.status) && (
-          <div className="mt-5 flex flex-col gap-3 border-t border-brand-border/60 pt-5 sm:flex-row">
-            <Input
-              id={`reject-${application.id}`}
-              label="Rejection reason"
-              value={rejectionReason}
-              onChange={(event) => onRejectionReasonChange(application.id, event.target.value)}
-              placeholder="Required before rejecting"
-            />
+          <div className="mt-5 flex flex-col gap-3 border-t border-brand-border/60 pt-5 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <Input
+                id={`reject-${application.id}`}
+                label="Rejection reason"
+                value={rejectionReason}
+                onChange={(event) => onRejectionReasonChange(application.id, event.target.value)}
+                placeholder="Required before rejecting"
+              />
+            </div>
             <Button
               variant="danger"
-              className="self-end"
+              className="w-full sm:w-auto"
               disabled={!rejectionReason.trim()}
               onClick={() =>
                 void onAction(

@@ -85,11 +85,11 @@ export default function NutritionistProfilePage() {
       />
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-brand-border/60 pb-3">
+      <div className="flex flex-wrap sm:flex-nowrap gap-2 border-b border-brand-border/60 pb-3">
         <button
           type="button"
           onClick={() => setActiveTab('credentials')}
-          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
             activeTab === 'credentials'
               ? 'bg-brand-accent text-[#07100d] shadow-sm'
               : 'border border-brand-border/70 bg-brand-surface/70 text-brand-muted hover:text-brand-text'
@@ -102,7 +102,7 @@ export default function NutritionistProfilePage() {
         <button
           type="button"
           onClick={() => setActiveTab('avatar')}
-          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
             activeTab === 'avatar'
               ? 'bg-brand-accent text-[#07100d] shadow-sm'
               : 'border border-brand-border/70 bg-brand-surface/70 text-brand-muted hover:text-brand-text'
@@ -240,7 +240,7 @@ export default function NutritionistProfilePage() {
                 Patient View
               </span>
             </div>
-            <div className="flex items-start gap-4 pt-1">
+            <div className="flex flex-col items-center sm:flex-row sm:items-start text-center sm:text-left gap-4 pt-1">
               <div className="relative shrink-0">
                 <Avatar name={user?.name} seed={user?.image} size="lg" />
                 {profile?.isVerified && (
@@ -253,7 +253,7 @@ export default function NutritionistProfilePage() {
                 )}
               </div>
               <div className="min-w-0 flex-1 space-y-1.5 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <p className="font-display font-bold text-brand-text">{user?.name}</p>
                   {profile?.isVerified && (
                     <Badge variant="verified" className="text-[9px]">

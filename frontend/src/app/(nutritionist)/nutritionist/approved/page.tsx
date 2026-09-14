@@ -99,8 +99,8 @@ export default function NutritionistApprovedPage() {
                 key={meal.id}
                 className="p-5 border border-brand-green/20 hover:border-brand-green/40 transition-all duration-300"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       {type.icon}
                       <span className="text-xs font-extrabold tracking-wider text-brand-muted uppercase">
@@ -111,7 +111,7 @@ export default function NutritionistApprovedPage() {
                       </Badge>
                     </div>
 
-                    <h3 className="text-sm font-bold text-brand-text mb-2">{meal.mealName}</h3>
+                    <h3 className="text-sm font-bold text-brand-text mb-2 truncate">{meal.mealName}</h3>
 
                     {/* Macros */}
                     <div className="flex gap-2 flex-wrap mb-2">
@@ -165,7 +165,7 @@ export default function NutritionistApprovedPage() {
                   </div>
 
                   {/* Date */}
-                  <div className="text-right shrink-0">
+                  <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-start border-t border-brand-border/40 sm:border-0 pt-2.5 sm:pt-0 shrink-0 text-right">
                     <div className="text-[10px] text-brand-muted">
                       {isValidDate
                         ? reviewDate.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })

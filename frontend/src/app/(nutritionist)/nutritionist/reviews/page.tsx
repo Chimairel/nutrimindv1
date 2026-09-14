@@ -53,7 +53,7 @@ export default function ReviewsPage() {
   } = useNutritionistReviews();
 
   return (
-    <div className="m-3 flex h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-[30px] border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
+    <div className="m-2 sm:m-3 flex h-[calc(100%-1rem)] sm:h-[calc(100%-1.5rem)] w-[calc(100%-1rem)] sm:w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl sm:rounded-[30px] border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
       {/* Master Queue List Panel */}
       <div
         className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
@@ -566,13 +566,13 @@ export default function ReviewsPage() {
                   rows={2}
                   className="bg-brand-bg text-brand-text border border-brand-border rounded-xl px-4 py-3 text-xs w-full focus:outline-none focus:border-red-500 resize-none"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="primary"
                     onClick={handleReject}
                     isLoading={actionLoading === selectedMealId}
                     disabled={!rejectNote.trim()}
-                    className="text-xs px-6 py-2 bg-red-600 hover:bg-red-700 active:scale-[0.98]"
+                    className="w-full sm:w-auto text-xs px-6 py-2 bg-red-600 hover:bg-red-700 active:scale-[0.98]"
                   >
                     Confirm Rejection
                   </Button>
@@ -582,7 +582,7 @@ export default function ReviewsPage() {
                       setShowRejectForm(false);
                       setRejectNote('');
                     }}
-                    className="text-xs px-6 py-2"
+                    className="w-full sm:w-auto text-xs px-6 py-2"
                   >
                     Cancel
                   </Button>
@@ -592,14 +592,14 @@ export default function ReviewsPage() {
 
             {/* Action buttons footer */}
             {!showRejectForm && (
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center gap-2.5 pt-2 sm:gap-3">
                 {isEditing ? (
                   <>
                     <Button
                       variant="primary"
                       onClick={handleApprove}
                       isLoading={actionLoading === selectedMealId}
-                      className="text-xs px-8 py-2.5 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                     >
                       <Check className="w-4 h-4" />
                       <span>
@@ -608,7 +608,11 @@ export default function ReviewsPage() {
                           : 'Save & Approve'}
                       </span>
                     </Button>
-                    <Button variant="secondary" onClick={() => setIsEditing(false)} className="text-xs px-8 py-2.5">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsEditing(false)}
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 text-center justify-center"
+                    >
                       Cancel Edit
                     </Button>
                   </>
@@ -618,7 +622,7 @@ export default function ReviewsPage() {
                       variant="primary"
                       onClick={handleApprove}
                       isLoading={actionLoading === selectedMealId}
-                      className="text-xs px-8 py-2.5 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                     >
                       <Check className="w-4 h-4" />
                       <span>
@@ -630,7 +634,7 @@ export default function ReviewsPage() {
                     <Button
                       variant="secondary"
                       onClick={startEditing}
-                      className="text-xs px-8 py-2.5 flex items-center gap-1.5 border-brand-muted text-brand-muted hover:text-brand-text hover:border-brand-text active:scale-[0.98]"
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 border-brand-muted text-brand-muted hover:text-brand-text hover:border-brand-text active:scale-[0.98]"
                     >
                       <Edit className="w-4 h-4" />
                       <span>Edit & Approve</span>
@@ -638,7 +642,7 @@ export default function ReviewsPage() {
                     <Button
                       variant="secondary"
                       onClick={() => setShowRejectForm(true)}
-                      className="text-xs px-8 py-2.5 flex items-center gap-1.5 text-red-400 border-red-500/20 hover:bg-red-950/20 hover:border-red-500/40 active:scale-[0.98]"
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 text-red-400 border-red-500/20 hover:bg-red-950/20 hover:border-red-500/40 active:scale-[0.98]"
                     >
                       <X className="w-4 h-4" />
                       <span>Reject</span>

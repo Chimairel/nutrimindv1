@@ -152,29 +152,50 @@ export default function AdminUsersPage() {
         </div>
       ) : (
         <div className="portal-table-shell">
-          <div className="divide-y divide-brand-border md:hidden">
+          <div className="divide-y divide-brand-border/60 md:hidden">
             {users.map((user) => (
               <article key={user.id} className="space-y-3 p-4">
                 <div className="flex items-center gap-3">
                   <Avatar name={user.name} seed={user.image} size="md" />
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-semibold text-brand-text">{user.name}</h2>
-                    <p className="break-all text-sm text-brand-muted">{user.email}</p>
+                    <div className="flex items-center gap-2">
+                      <h2 className="truncate font-semibold text-brand-text">{user.name}</h2>
+                      <Badge
+                        variant={
+                          user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'
+                        }
+                        className="text-[9px]"
+                      >
+                        {user.role}
+                      </Badge>
+                    </div>
+                    <p className="break-all text-xs text-brand-muted">{user.email}</p>
                   </div>
                 </div>
-                <p className="text-sm text-brand-muted">
-                  {user.role} · {user.isSuspended ? 'Suspended' : 'Active'}
-                </p>
-                <p className="text-sm text-brand-muted">
-                  {user.emailVerified ? 'Email verified' : 'Email unverified'} ·{' '}
-                  {user.onboardingDone ? 'Onboarding complete' : 'Onboarding incomplete'}
-                </p>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      user.isSuspended
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        : 'bg-brand-green/10 text-brand-green border border-brand-green/20'
+                    }`}
+                  >
+                    {user.isSuspended ? 'Suspended' : 'Active'}
+                  </span>
+                  <span className="text-brand-muted">
+                    {user.emailVerified ? '✓ Verified' : '✕ Unverified'} ·{' '}
+                    {user.onboardingDone ? 'Onboarded' : 'Intake pending'}
+                  </span>
+                </div>
+
                 <Button
                   variant="secondary"
+                  className="w-full text-xs"
                   disabled={user.id === currentUser?.userId}
                   onClick={() => openAccessDialog(user)}
                 >
-                  {user.isSuspended ? 'Reinstate' : 'Suspend'} account
+                  {user.isSuspended ? 'Reinstate account' : 'Suspend account'}
                 </Button>
               </article>
             ))}
