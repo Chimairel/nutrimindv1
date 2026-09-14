@@ -27,6 +27,10 @@
   --kainara-logo-grad-mid: #0e9f6e;
   --kainara-logo-grad-end: #18b9d2;
 
+  /* ─── Skeleton Loading Tokens ─── */
+  --skeleton-bg: rgba(16, 32, 27, 0.085);
+  --skeleton-border: rgba(16, 32, 27, 0.045);
+
   /* ─── Grid Line Accent ─── */
   --grid-line: rgba(19, 78, 61, 0.055);
   --orb-green: rgba(55, 225, 162, 0.12);
@@ -89,6 +93,10 @@ html.dark {
   --kainara-logo-grad-start: #b8f45f;
   --kainara-logo-grad-mid: #2dd4bf;
   --kainara-logo-grad-end: #18b9d2;
+
+  /* ─── Skeleton Loading Tokens ─── */
+  --skeleton-bg: rgba(255, 255, 255, 0.09);
+  --skeleton-border: rgba(255, 255, 255, 0.04);
 
   /* ─── Grid Line Accent ─── */
   --grid-line: rgba(131, 236, 195, 0.035);

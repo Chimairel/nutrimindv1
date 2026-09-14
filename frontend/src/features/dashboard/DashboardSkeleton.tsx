@@ -1,4 +1,5 @@
 import React from 'react';
+import { ImageIcon } from 'lucide-react';
 import Skeleton from '@/components/ui/Skeleton';
 
 export function DashboardSkeleton() {
@@ -11,8 +12,8 @@ export function DashboardSkeleton() {
             key={i}
             className={`flex min-w-[76px] flex-1 flex-col items-center justify-center rounded-2xl border px-4 py-3 gap-1.5 ${
               i === 0
-                ? 'border-brand-accent/40 bg-brand-accent/10'
-                : 'border-transparent bg-brand-bgAlt/50'
+                ? 'border-brand-green/30 bg-brand-green/10 dark:border-brand-accent/40 dark:bg-brand-accent/10'
+                : 'border-brand-border/60 bg-brand-bgAlt/50 dark:border-transparent dark:bg-white/[0.02]'
             }`}
           >
             <Skeleton className="h-2.5 w-8 rounded" />
@@ -31,7 +32,7 @@ export function DashboardSkeleton() {
           </div>
 
           {/* SVG Ring circle placeholder */}
-          <div className="my-6 flex h-48 w-48 items-center justify-center rounded-full border-8 border-brand-border/40 bg-brand-surface">
+          <div className="my-6 flex h-48 w-48 items-center justify-center rounded-full border-8 border-brand-border/60 bg-brand-surface dark:border-brand-border/40">
             <div className="flex flex-col items-center gap-2">
               <Skeleton className="h-7 w-20 rounded" />
               <Skeleton className="h-3 w-14 rounded" />
@@ -61,7 +62,9 @@ export function DashboardSkeleton() {
               className="flex items-center justify-between rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm"
             >
               <div className="flex items-center gap-3.5">
-                <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+                <Skeleton className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">
+                  <ImageIcon className="h-5 w-5 text-brand-muted/30 dark:text-white/20" aria-hidden="true" />
+                </Skeleton>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <Skeleton className="h-3 w-16 rounded" />

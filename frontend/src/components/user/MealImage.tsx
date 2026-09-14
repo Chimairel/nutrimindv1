@@ -407,7 +407,7 @@ export default function MealImage({
     >
       {/* Subtle loading skeleton placeholder */}
       <div
-        className={`absolute inset-0 z-0 bg-brand-surface/90 motion-reduce:transition-none transition-opacity duration-300 ${
+        className={`absolute inset-0 z-0 bg-[#10201b]/[0.08] dark:bg-white/10 motion-reduce:transition-none transition-opacity duration-300 ${
           isLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse motion-reduce:animate-none'
         }`}
         aria-hidden="true"

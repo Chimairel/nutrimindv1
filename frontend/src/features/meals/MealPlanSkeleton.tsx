@@ -1,4 +1,5 @@
 import React from 'react';
+import { ImageIcon } from 'lucide-react';
 import Skeleton from '@/components/ui/Skeleton';
 
 export function MealPlanSkeleton() {
@@ -19,7 +20,7 @@ export function MealPlanSkeleton() {
       <section className="rounded-[26px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card">
         <div className="flex items-center gap-2">
           {/* Prev arrow button skeleton */}
-          <Skeleton className="h-12 w-12 shrink-0 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60" />
+          <Skeleton className="h-12 w-12 shrink-0 rounded-2xl border border-brand-border/70" />
 
           {/* 7-day pill skeletons */}
           <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
@@ -28,8 +29,8 @@ export function MealPlanSkeleton() {
                 key={i}
                 className={`flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border px-3 py-2.5 gap-1.5 ${
                   i === 0
-                    ? 'border-brand-accent/40 bg-brand-accent/10'
-                    : 'border-brand-border/40 bg-brand-bgAlt/40'
+                    ? 'border-brand-green/30 bg-brand-green/10 dark:border-brand-accent/40 dark:bg-brand-accent/10'
+                    : 'border-brand-border/60 bg-brand-bgAlt/50 dark:border-white/5 dark:bg-white/[0.02]'
                 }`}
               >
                 <Skeleton className="h-2.5 w-8 rounded" />
@@ -40,7 +41,7 @@ export function MealPlanSkeleton() {
           </div>
 
           {/* Next arrow button skeleton */}
-          <Skeleton className="h-12 w-12 shrink-0 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60" />
+          <Skeleton className="h-12 w-12 shrink-0 rounded-2xl border border-brand-border/70" />
         </div>
 
         {/* Date footer sub-bar */}
@@ -77,7 +78,9 @@ export function MealPlanSkeleton() {
             >
               <div>
                 {/* Image Placeholder */}
-                <Skeleton className="mb-3.5 h-36 w-full rounded-xl" />
+                <Skeleton className="mb-3.5 flex h-36 w-full items-center justify-center rounded-xl">
+                  <ImageIcon className="h-7 w-7 text-brand-muted/30 dark:text-white/20" aria-hidden="true" />
+                </Skeleton>
 
                 {/* Card Top Row: Meal type label & status badge */}
                 <div className="mb-2.5 flex items-center justify-between gap-3">

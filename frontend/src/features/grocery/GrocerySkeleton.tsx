@@ -13,8 +13,8 @@ export function GrocerySkeleton() {
       {/* 2. Search & Filter Bar Skeleton */}
       <section className="rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm backdrop-blur-xl">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <Skeleton className="h-11 w-full flex-1 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60" />
-          <div className="flex min-w-0 items-center gap-1 rounded-2xl bg-brand-bgAlt/70 p-1">
+          <Skeleton className="h-11 w-full flex-1 rounded-2xl border border-brand-border/70" />
+          <div className="flex min-w-0 items-center gap-1 rounded-2xl bg-brand-bgAlt/60 dark:bg-white/[0.04] p-1">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-9 w-16 rounded-xl" />
             ))}

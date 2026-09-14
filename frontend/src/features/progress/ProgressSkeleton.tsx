@@ -26,11 +26,11 @@ export function ProgressSkeleton() {
             <Skeleton className="h-4 w-4 rounded-full" />
             <Skeleton className="h-4 w-36 rounded" />
           </div>
-          <Skeleton className="h-8 w-36 rounded-xl border border-brand-border/60 bg-brand-bgAlt/50" />
+          <Skeleton className="h-8 w-36 rounded-xl border border-brand-border/60" />
         </div>
 
         {/* Chart Canvas Skeleton */}
-        <div className="flex h-48 w-full flex-col justify-between rounded-2xl border border-brand-border/60 bg-brand-surface/20 p-5">
+        <div className="flex h-48 w-full flex-col justify-between rounded-2xl border border-brand-border/60 bg-brand-bgAlt/30 dark:bg-brand-surface/20 p-5">
           <div className="flex justify-between">
             <Skeleton className="h-2.5 w-12 rounded" />
             <Skeleton className="h-2.5 w-12 rounded" />
