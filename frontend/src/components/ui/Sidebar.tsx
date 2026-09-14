@@ -53,7 +53,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [isRailHovered, setIsRailHovered] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -80,21 +79,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
   return (
     <aside
-      onMouseEnter={() => setIsRailHovered(true)}
-      onMouseLeave={() => setIsRailHovered(false)}
       className={`
-        relative z-30 hidden shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
+        relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
         bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white shadow-[0_28px_80px_rgba(1,8,5,0.32)]
         transition-all duration-300 ease-out md:flex
-        ${
-          collapsed
-            ? `self-start origin-top w-[68px] px-2 py-3.5 ${
-                isRailHovered
-                  ? 'h-full shadow-[0_32px_90px_rgba(1,8,5,0.48)]'
-                  : 'h-[97%] shadow-[0_28px_80px_rgba(1,8,5,0.32)]'
-              }`
-            : 'h-full w-[248px] p-4'
-        }
+        ${collapsed ? 'w-[68px] px-2 py-3.5' : 'w-[248px] p-4'}
         ${className}
       `}
     >
@@ -109,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           distance={85}
           baseSize={36}
           magnification={46}
-          className="relative z-10 flex h-full w-full flex-col items-center justify-between py-1"
+          className="relative z-10 flex h-full w-full flex-col items-center justify-start py-1"
           ariaLabel={`${user.role.toLowerCase()} navigation`}
         >
           {/* 1. TOP GROUP: Logo & Expand Toggle */}
@@ -133,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           {/* 2. CENTER GROUP: Navigation Tabs */}
           <nav
             id="nutrimind-sidebar-navigation"
-            className="my-auto flex shrink-0 flex-col items-center gap-1.5 py-2"
+            className="mt-6 flex shrink-0 flex-col items-center gap-3 py-1"
             aria-label={`${user.role.toLowerCase()} tabs`}
           >
             {navItems.map((item) => {
@@ -255,7 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
           <nav
             id="nutrimind-sidebar-navigation"
-            className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent"
+            className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent"
             aria-label={`${user.role.toLowerCase()} navigation`}
           >
             {navItems.map((item, index) => {
