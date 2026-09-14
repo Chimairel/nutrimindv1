@@ -182,6 +182,7 @@ export default function MealLocalityPreferenceControl({
             const isSelected = stopItem.stop === resolvedStop;
             const isUnlocked = stopItem.isAvailable;
             const Icon = stopItem.Icon;
+            const isLabeledStop = stopItem.stop === 1 || stopItem.stop === 3 || stopItem.stop === 5;
 
             return (
               <button
@@ -202,38 +203,65 @@ export default function MealLocalityPreferenceControl({
                 {/* Top Icon & Lock */}
                 <div className="flex w-full items-center justify-between">
                   <span className="font-mono text-[9px] font-black opacity-75">{stopItem.stop}</span>
-                  {isUnlocked ? (
-                    isSelected ? (
-                      <Check className="h-3 w-3" aria-hidden="true" />
+                  {isLabeledStop ? (
+                    isUnlocked ? (
+                      isSelected ? (
+                        <Check className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <Icon className="h-3 w-3 text-brand-green" aria-hidden="true" />
+                      )
                     ) : (
-                      <Icon className="h-3 w-3 text-brand-green" aria-hidden="true" />
+                      <LockKeyhole className="h-3 w-3 text-brand-muted/70" aria-hidden="true" />
                     )
-                  ) : (
+                  ) : isSelected ? (
+                    <Check className="h-3 w-3" aria-hidden="true" />
+                  ) : !isUnlocked ? (
                     <LockKeyhole className="h-3 w-3 text-brand-muted/70" aria-hidden="true" />
+                  ) : (
+                    <span className="h-3 w-3" />
                   )}
                 </div>
 
-                {/* Badge / Stop Type */}
-                <span className="line-clamp-1 text-[10px] font-extrabold leading-tight">{stopItem.badge}</span>
+                {isLabeledStop ? (
+                  <>
+                    {/* Badge / Stop Type */}
+                    <span className="line-clamp-1 text-[10px] font-extrabold leading-tight">{stopItem.badge}</span>
 
-                {/* Subtitle / Location Target */}
-                <span
-                  className={`line-clamp-1 text-[8px] font-semibold ${
-                    isSelected ? 'text-current opacity-85' : 'text-brand-muted'
-                  }`}
-                >
-                  {isUnlocked
-                    ? stopItem.stop === 1
-                      ? 'National'
-                      : stopItem.stop === 3
-                        ? cleanRegion || 'Region'
-                        : stopItem.stop === 5
-                          ? cleanProvince || 'Local'
-                          : 'Blend'
-                    : stopItem.stop <= 3
-                      ? 'Select region'
-                      : 'Select Province'}
-                </span>
+                    {/* Subtitle / Location Target */}
+                    <span
+                      className={`line-clamp-1 text-[8px] font-semibold ${
+                        isSelected ? 'text-current opacity-85' : 'text-brand-muted'
+                      }`}
+                    >
+                      {isUnlocked
+                        ? stopItem.stop === 1
+                          ? 'National'
+                          : stopItem.stop === 3
+                            ? cleanRegion || 'Region'
+                            : cleanProvince || 'Local'
+                        : stopItem.stop <= 3
+                          ? 'Select region'
+                          : 'Select Province'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {/* Unlabeled Stop (2 & 4) - Centered Icon Body */}
+                    <div className="flex flex-1 items-center justify-center my-auto">
+                      <Icon
+                        className={`h-4 w-4 transition-transform group-hover:scale-110 ${
+                          isSelected
+                            ? 'text-current'
+                            : isUnlocked
+                              ? 'text-brand-green opacity-90'
+                              : 'text-brand-muted/70'
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <div className="h-1" />
+                  </>
+                )}
               </button>
             );
           })}

@@ -175,10 +175,10 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
 
         {/* Dynamic Gradient Fill */}
         <motion.div
-          className="pointer-events-none absolute top-0 left-0 h-full rounded-full transition-all duration-300"
+          className="pointer-events-none absolute top-0 left-0 h-full rounded-full"
           style={{ background: colorSettings.gradient }}
           animate={{
-            width: `calc((${percentage} / 100) * (100% - 48px) + 48px)`,
+            width: `calc(${percentage}% + ${(1 - percentage / 100) * 48}px)`,
           }}
           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
         />
@@ -204,7 +204,7 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
         <motion.div
           className="pointer-events-none absolute top-0 z-40 flex h-12 w-12 items-center justify-center rounded-full"
           animate={{
-            left: `calc((${percentage} / 100) * (100% - 48px))`,
+            left: `calc(${percentage}% - ${(percentage / 100) * 48}px)`,
           }}
           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
         >
