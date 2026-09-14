@@ -3,10 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
+import KainaraLogo from '@/components/shared/KainaraLogo';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from '@/components/ui/motion';
 
@@ -112,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <DockLabel>Open sidebar</DockLabel>
               <DockIcon>
                 <div className="relative flex h-full w-full items-center justify-center">
-                  <BrainCircuit className="h-full w-full transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0" />
+                  <KainaraLogo className="h-full w-full p-0.5 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0" variant="solid" />
                   <PanelLeftOpen className="absolute h-full w-full scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100" />
                 </div>
               </DockIcon>
@@ -208,14 +209,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             <Link
               href={homeHref}
               className="flex min-w-0 items-center gap-3 outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-accent/40"
-              aria-label="NutriMind home"
+              aria-label="KAINARA home"
             >
               <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent text-[#07100d] shadow-neon">
-                <BrainCircuit className="h-5 w-5" />
+                <KainaraLogo className="h-6 w-6" variant="solid" />
                 <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
               </span>
               <span className="min-w-0">
-                <span className="block font-display text-[15px] font-extrabold tracking-[0.16em]">NUTRIMIND</span>
+                <span className="block font-display text-[15px] font-extrabold tracking-[0.16em]">KAINARA</span>
                 <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">
                   {roleLabel}
                 </span>

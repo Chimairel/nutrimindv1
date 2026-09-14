@@ -6,7 +6,7 @@ test('landing page exposes public entry points without console failures', async 
     if (message.type() === 'error') errors.push(message.text());
   });
   await page.goto('/');
-  await expect(page).toHaveTitle(/NutriMind/i);
+  await expect(page).toHaveTitle(/(KAINARA|NutriMind)/i);
   await expect(page.getByRole('link', { name: /get started/i })).toBeVisible();
   expect(errors).toEqual([]);
 });

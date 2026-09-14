@@ -23,6 +23,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
+import KainaraLogo from '@/components/shared/KainaraLogo';
 import { useAuth } from '@/hooks/useAuth';
 
 const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
@@ -494,11 +495,11 @@ export default function Home() {
 
       <footer className="border-t border-brand-border/70">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-5 py-8 text-xs text-brand-muted sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <div className="flex items-center gap-2 font-display font-extrabold tracking-[0.14em] text-brand-text">
-            <span className="h-2 w-2 rounded-full bg-brand-accent" />
-            NUTRIMIND
+          <div className="flex items-center gap-2.5 font-display font-extrabold tracking-[0.14em] text-brand-text">
+            <KainaraLogo size="sm" variant="gradient" />
+            KAINARA
           </div>
-          <p>© 2026 NutriMind. A Filipino nutrition capstone project.</p>
+          <p>© 2026 KAINARA. A Filipino nutrition capstone project.</p>
           <div className="flex gap-5">
             <Link href="/docs" className="transition hover:text-brand-green">
               Documentation

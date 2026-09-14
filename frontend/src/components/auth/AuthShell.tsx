@@ -3,12 +3,12 @@ import type { ReactNode } from 'react';
 import {
   ArrowLeft,
   ArrowUpRight,
-  BrainCircuit,
   CheckCircle2,
   ShieldCheck,
   Sparkles,
   UtensilsCrossed,
 } from 'lucide-react';
+import KainaraLogo from '@/components/shared/KainaraLogo';
 
 interface AuthShellProps {
   eyebrow: string;
@@ -40,13 +40,13 @@ export default function AuthShell({
           <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-brand-accent/10 blur-[90px]" />
 
           <div className="relative z-10 flex items-center justify-between">
-            <Link href="/" className="group flex items-center gap-3" aria-label="NutriMind home">
+            <Link href="/" className="group flex items-center gap-3" aria-label="KAINARA home">
               <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d] shadow-neon transition group-hover:-rotate-3">
-                <BrainCircuit className="h-5 w-5" />
+                <KainaraLogo className="h-6 w-6" variant="solid" />
                 <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#07100d] bg-brand-cyan" />
               </span>
               <span>
-                <span className="block font-display text-sm font-black tracking-[0.17em]">NUTRIMIND</span>
+                <span className="block font-display text-sm font-black tracking-[0.17em]">KAINARA</span>
                 <span className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/35">
                   Nutrition intelligence
                 </span>
@@ -114,11 +114,12 @@ export default function AuthShell({
               <Link
                 href="/"
                 className="flex min-w-0 items-center gap-2 font-display text-xs font-black tracking-[0.15em]"
+                aria-label="KAINARA home"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-accent text-[#07100d]">
-                  <BrainCircuit className="h-4 w-4" />
+                  <KainaraLogo className="h-5 w-5" variant="solid" />
                 </span>
-                NUTRIMIND
+                KAINARA
               </Link>
               <Link
                 href="/docs"

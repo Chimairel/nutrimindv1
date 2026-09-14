@@ -22,6 +22,11 @@
   --brand-black: #07100d;
   --brand-dark: #0a1512;
 
+  /* ─── KAINARA Logo Gradient (Light: Forest Jade) ─── */
+  --kainara-logo-grad-start: #08705b;
+  --kainara-logo-grad-mid: #0e9f6e;
+  --kainara-logo-grad-end: #18b9d2;
+
   /* ─── Grid Line Accent ─── */
   --grid-line: rgba(19, 78, 61, 0.055);
   --orb-green: rgba(55, 225, 162, 0.12);
@@ -79,6 +84,11 @@ html.dark {
   --brand-violet: #a892ff;
   --brand-black: #020504;
   --brand-dark: #040806;
+
+  /* ─── KAINARA Logo Gradient (Dark: Signature Neon) ─── */
+  --kainara-logo-grad-start: #b8f45f;
+  --kainara-logo-grad-mid: #2dd4bf;
+  --kainara-logo-grad-end: #18b9d2;
 
   /* ─── Grid Line Accent ─── */
   --grid-line: rgba(131, 236, 195, 0.035);
