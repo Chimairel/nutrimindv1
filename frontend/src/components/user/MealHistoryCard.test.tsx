@@ -19,13 +19,23 @@ const baseLog: MealHistoryLog = {
 };
 
 describe('MealHistoryCard', () => {
+  it('keeps skipped meals and their note editor available', async () => {
+    const onUpdateNotes = vi.fn().mockResolvedValue(undefined);
+    render(<MealHistoryCard log={{ ...baseLog, status: 'SKIPPED' }} onUpdateNotes={onUpdateNotes} />);
+    expect(screen.getByText('SKIPPED')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.change(screen.getByLabelText(/Personal Meal Notes/i), {
+      target: { value: 'Skipped because I was away.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Save Note/i }));
+    await waitFor(() => expect(onUpdateNotes).toHaveBeenCalledWith(baseLog.id, 'Skipped because I was away.'));
+  });
+
   it('renders category, meal title, macros, and existing note preview', () => {
     render(<MealHistoryCard log={baseLog} />);
 
     expect(screen.getByText('Breakfast')).toBeInTheDocument();
-    expect(
-      screen.getByText('Hearty Pandesal with Peanut Butter, Boiled Eggs, and Butter')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Hearty Pandesal with Peanut Butter, Boiled Eggs, and Butter')).toBeInTheDocument();
     expect(screen.getByText('859 kcal')).toBeInTheDocument();
     expect(screen.getByText('40g protein')).toBeInTheDocument();
     expect(screen.getByText(/Felt very energized after eating/i)).toBeInTheDocument();

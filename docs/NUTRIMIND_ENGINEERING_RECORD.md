@@ -3859,4 +3859,9 @@ This section is a continuity record for agreed future work. Every item below is 
   - Frontend test `UnloggedMealCatchUpCard.test.tsx`: verified render, 'Mark as Eaten' callback, and 'Skip' callback. All 25 test files and 90 unit tests pass.
   - Frontend Lint: `npm run lint` passed with 0 errors and 0 warnings.
 
+## 81. History consumed-intake correction (2026-09-15)
+
+- History day totals and activity-calendar calories now share `summarizeMealIntake`, which includes only `DONE` logs. All logs remain in day lists and activity counts, including skipped meals and their personal note editors. No visual styling changed.
+- Frontend verification: full `npm test` passed 133 tests across 34 files; an additional skipped-note regression then passed with all four MealHistoryCard tests. `npm run lint` passed without errors or warnings. Regressions cover mixed statuses, skipped-only intake, calendar selection/calories, and editing skipped-meal notes.
+- This entry covers the intake correction only; the separate authentication and broader UI-integration investigation remains in progress.
 

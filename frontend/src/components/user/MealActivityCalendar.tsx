@@ -1,5 +1,6 @@
 'use client';
 
+import { summarizeMealIntake } from '@/lib/meal-history-summary';
 import React, { useMemo, useState } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Lock, Sparkles } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
@@ -57,7 +58,7 @@ export default function MealActivityCalendar({
       const existing = map.get(key) || { count: 0, calories: 0 };
       map.set(key, {
         count: existing.count + 1,
-        calories: existing.calories + (log.calories || 0),
+        calories: existing.calories + summarizeMealIntake([log]).totalCalories,
       });
     });
     return map;

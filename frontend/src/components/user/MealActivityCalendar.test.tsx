@@ -34,15 +34,26 @@ const mockLogs: MealHistoryLog[] = [
 ];
 
 describe('MealActivityCalendar', () => {
-  it('renders the activity matrix and time range filter toggles', () => {
-    const handleSelect = vi.fn();
+  it('keeps skipped activity selectable while excluding its calories', () => {
+    const onSelect = vi.fn();
     render(
       <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey="2026-09-07"
-        onSelectDateKey={handleSelect}
+        logs={[mockLogs[0], { ...mockLogs[1], status: 'SKIPPED' }]}
+        selectedDateKey={null}
+        onSelectDateKey={onSelect}
       />
     );
+    const cell = screen.getByLabelText(/2026-09-07: 2 meals logged/i);
+    fireEvent.mouseEnter(cell);
+    expect(screen.getByText(/520 kcal/i)).toBeInTheDocument();
+    expect(screen.queryByText(/1160 kcal/i)).not.toBeInTheDocument();
+    fireEvent.click(cell);
+    expect(onSelect).toHaveBeenCalledWith('2026-09-07');
+  });
+
+  it('renders the activity matrix and time range filter toggles', () => {
+    const handleSelect = vi.fn();
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey="2026-09-07" onSelectDateKey={handleSelect} />);
 
     expect(screen.getByText('Activity Matrix')).toBeInTheDocument();
     expect(screen.getByText('Year')).toBeInTheDocument();
@@ -52,13 +63,7 @@ describe('MealActivityCalendar', () => {
 
   it('switches time ranges when filter buttons are clicked', () => {
     const handleSelect = vi.fn();
-    render(
-      <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey="2026-09-07"
-        onSelectDateKey={handleSelect}
-      />
-    );
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey="2026-09-07" onSelectDateKey={handleSelect} />);
 
     const monthButton = screen.getByText('Month');
     fireEvent.click(monthButton);
@@ -71,13 +76,7 @@ describe('MealActivityCalendar', () => {
 
   it('triggers onSelectDateKey when an active day cell is clicked', () => {
     const handleSelect = vi.fn();
-    render(
-      <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey={null}
-        onSelectDateKey={handleSelect}
-      />
-    );
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey={null} onSelectDateKey={handleSelect} />);
 
     const activeCell = screen.getByLabelText(/2026-09-07: 2 meals logged/i);
     expect(activeCell).toBeInTheDocument();
@@ -88,13 +87,7 @@ describe('MealActivityCalendar', () => {
 
   it('renders 3 months side-by-side with locked future month and disabled right chevron in Month view', () => {
     const handleSelect = vi.fn();
-    render(
-      <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey={null}
-        onSelectDateKey={handleSelect}
-      />
-    );
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey={null} onSelectDateKey={handleSelect} />);
 
     // Switch to Month view
     fireEvent.click(screen.getByText('Month'));
@@ -116,13 +109,7 @@ describe('MealActivityCalendar', () => {
 
   it('enables the next month chevron after navigating to previous months with left chevron', () => {
     const handleSelect = vi.fn();
-    render(
-      <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey={null}
-        onSelectDateKey={handleSelect}
-      />
-    );
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey={null} onSelectDateKey={handleSelect} />);
 
     // Switch to Month view
     fireEvent.click(screen.getByText('Month'));
@@ -148,13 +135,7 @@ describe('MealActivityCalendar', () => {
 
   it('allows clicking an active day cell in Month view to trigger onSelectDateKey', () => {
     const handleSelect = vi.fn();
-    render(
-      <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey={null}
-        onSelectDateKey={handleSelect}
-      />
-    );
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey={null} onSelectDateKey={handleSelect} />);
 
     // Switch to Month view
     fireEvent.click(screen.getByText('Month'));
@@ -169,13 +150,7 @@ describe('MealActivityCalendar', () => {
 
   it('renders all 12 month labels and locks future days in Year view', () => {
     const handleSelect = vi.fn();
-    render(
-      <MealActivityCalendar
-        logs={mockLogs}
-        selectedDateKey={null}
-        onSelectDateKey={handleSelect}
-      />
-    );
+    render(<MealActivityCalendar logs={mockLogs} selectedDateKey={null} onSelectDateKey={handleSelect} />);
 
     // Year view is the default timeRange
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

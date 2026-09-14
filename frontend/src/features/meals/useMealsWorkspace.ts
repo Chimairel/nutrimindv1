@@ -1,3 +1,4 @@
+import { summarizeMealIntake } from '@/lib/meal-history-summary';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
@@ -560,10 +561,7 @@ export function useMealsWorkspace() {
         const parsedDate = manilaDateFromKey(dateKey);
         const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
         const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric', year: 'numeric' });
-        const totalCalories = logsList.reduce((acc, curr) => acc + (curr.calories || 0), 0);
-        const totalProtein = logsList.reduce((acc, curr) => acc + (curr.proteinG || 0), 0);
-        const totalCarbs = logsList.reduce((acc, curr) => acc + (curr.carbsG || 0), 0);
-        const totalFat = logsList.reduce((acc, curr) => acc + (curr.fatG || 0), 0);
+        const { totalCalories, totalProtein, totalCarbs, totalFat } = summarizeMealIntake(logsList);
         return {
           dateKey,
           weekday,
