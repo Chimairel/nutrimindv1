@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
@@ -376,10 +376,6 @@ export default function DashboardPage() {
     );
   }
 
-  if (isLoading) {
-    return <PortalLoadingState message="Preparing your daily overview..." />;
-  }
-
   const activeDate = uniqueDates[selectedDayOffset] ?? new Date();
   const metrics = calculateDashboardMetrics({
     activeDate,
@@ -439,7 +435,9 @@ export default function DashboardPage() {
           }
         />
 
-        {currentMeals.length === 0 && !pendingReview ? (
+        {isLoading ? (
+          <DashboardSkeleton />
+        ) : currentMeals.length === 0 && !pendingReview ? (
           <div className="py-12">
             <EmptyState
               icon={<Utensils className="h-8 w-8 text-brand-green" />}

@@ -6,7 +6,7 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import GroceryCostSummary from '@/features/grocery/GroceryCostSummary';
 import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -145,10 +145,6 @@ export default function GroceryListPage() {
     }
   };
 
-  if (isLoading) {
-    return <PortalLoadingState message="Preparing grocery list..." />;
-  }
-
   const getGroupedItems = () => {
     if (!groceryList) return {};
     const grouped: Record<string, GroceryItem[]> = {};
@@ -265,8 +261,10 @@ export default function GroceryListPage() {
         </div>
       )}
 
-      {/* NO ACTIVE GROCERY LIST */}
-      {!groceryList ? (
+      {/* GROCERY CONTENT */}
+      {isLoading ? (
+        <GrocerySkeleton />
+      ) : !groceryList ? (
         <div className="py-12">
           <EmptyState
             icon={<ShoppingCart className="h-8 w-8 text-brand-green" />}

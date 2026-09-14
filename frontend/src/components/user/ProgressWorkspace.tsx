@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -98,10 +98,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     dailyCalorieTarget,
     fetchPageData,
   } = useProgressWorkspace(mode);
-
-  if (isLoading) {
-    return <PortalLoadingState message="Loading progress data..." />;
-  }
 
   // Custom SVG Weight Graph calculations
   const renderWeightGraph = () => {
@@ -372,7 +368,11 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         </div>
       )}
 
-      {activeSection === 'overview' && (
+      {isLoading ? (
+        <ProgressSkeleton />
+      ) : (
+        <>
+          {activeSection === 'overview' && (
         <>
           {/* WEIGHT LOGGER COLLAPSIBLE BLOCK */}
           {isLogFormOpen && (
@@ -866,6 +866,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             )}
           </Card>
         </div>
+      )}
+        </>
       )}
     </div>
   );
