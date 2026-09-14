@@ -47,7 +47,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
   if (pendingReview) {
     return (
       <section className="order-2 flex flex-col gap-6" aria-label="Pending meal review">
-        <ClinicalReviewBanner />
+        <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {pendingMeals.map((meal, index) => (
             <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} />

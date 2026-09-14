@@ -1,6 +1,13 @@
-import React from 'react';
-import { Apple, CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, UtensilsCrossed } from 'lucide-react';
+'use client';
+
+import React, { useState } from 'react';
+import { Apple, CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, Soup } from 'lucide-react';
+import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
+import MealImage from './MealImage';
+import type { PublicMealImage } from '@/types';
 
 export interface PendingMealPreview {
   mealName: string;
@@ -12,9 +19,12 @@ export interface PendingMealPreview {
   fatG: number;
   scheduledDate: string;
   ingredients: { ingredientName: string; category: string }[];
+  image?: PublicMealImage | null;
 }
 
 export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPreview }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const mealTypeStyles: Record<
     string,
     {
@@ -52,7 +62,7 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
 
   const typeStyle = mealTypeStyles[meal.mealType] ?? {
     label: meal.mealType.toLowerCase(),
-    icon: UtensilsCrossed,
+    icon: Soup,
     iconClassName: 'text-brand-green',
     iconSurfaceClassName: 'border-brand-green/20 bg-brand-green/10',
   };
@@ -62,129 +72,192 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
     month: 'short',
     day: 'numeric',
   });
-  const visibleIngredients = meal.ingredients.slice(0, 5);
-  const remainingIngredientCount = Math.max(0, meal.ingredients.length - visibleIngredients.length);
 
   return (
-    <article className="group relative flex h-full min-h-[360px] flex-col overflow-hidden rounded-[28px] border border-brand-border/70 bg-brand-surface text-left shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-green/30 hover:shadow-card-hover">
-      <div
-        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-accent via-brand-green to-brand-green/30"
-        aria-hidden="true"
-      />
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        aria-label={`Open ${meal.mealName} details`}
+        className="block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
+      >
+        <Card
+          interactive
+          className="border border-brand-border/70 bg-brand-surface h-full transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-green/30 hover:shadow-card-hover"
+          contentClassName="flex h-full flex-col justify-between p-4 sm:p-5"
+        >
+          {/* Card Top: Image */}
+          <MealImage
+            image={meal.image}
+            mealName={meal.mealName}
+            mealType={meal.mealType}
+            className="mb-3.5 h-36 w-full"
+            variant="compact"
+            ingredients={meal.ingredients}
+          />
 
-      <div className="flex items-start justify-between gap-3 px-5 pb-4 pt-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border ${typeStyle.iconSurfaceClassName}`}
-          >
-            <MealTypeIcon className={`h-5 w-5 ${typeStyle.iconClassName}`} />
+          {/* Card Meta Row: Meal Type & Pending Badge */}
+          <div className="flex items-center justify-between gap-3 mb-2.5">
+            <div className="flex items-center gap-2">
+              <MealTypeIcon className={`h-4 w-4 ${typeStyle.iconClassName}`} />
+              <span className="text-[10px] font-extrabold tracking-wider text-brand-muted uppercase">
+                {typeStyle.label}
+              </span>
+            </div>
+
+            <Badge
+              variant="pending"
+              showIcon={false}
+              className="text-[9px] font-extrabold py-0.5 px-2 bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-1 uppercase"
+            >
+              <Clock3 className="h-2.5 w-2.5" /> Pending
+            </Badge>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-brand-muted">{typeStyle.label}</p>
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-brand-muted">
-              <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>{scheduledDate}</span>
+
+          {/* Card Body: Meal Title & Compact Nutrition */}
+          <div className="flex-1 flex flex-col justify-between">
+            <h3 className="text-sm font-extrabold font-display tracking-tight leading-snug mb-1 text-brand-text line-clamp-2">
+              {meal.mealName}
+            </h3>
+
+            <div className="mt-3 flex items-center justify-between border-t border-brand-border/40 pt-2.5">
+              <span className="text-[11px] font-bold text-brand-muted">
+                {Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g P · {Math.round(meal.carbsG)}g C · {Math.round(meal.fatG)}g F
+              </span>
+              <span className="text-[11px] font-extrabold text-brand-green">View &rarr;</span>
             </div>
           </div>
-        </div>
-        <Badge variant="pending" className="shrink-0 px-2.5 py-1 text-[10px] font-bold">
-          Pending
-        </Badge>
-      </div>
+        </Card>
+      </button>
 
-      <div className="flex flex-1 flex-col px-5 pb-5">
-        <h3 className="font-display text-xl font-black leading-tight tracking-tight text-brand-text">
-          {meal.mealName}
-        </h3>
+      {/* Detailed Info Modal (Slug) */}
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={`${typeStyle.label} Details`} size="md">
+        <div className="flex flex-col gap-5 text-left select-none p-1">
+          <MealImage
+            image={meal.image}
+            mealName={meal.mealName}
+            mealType={meal.mealType}
+            className="h-48 sm:h-56 w-full rounded-2xl"
+            variant="hero"
+            ingredients={meal.ingredients}
+          />
 
-        {meal.description && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-brand-muted">{meal.description}</p>
-        )}
+          {/* Title & Metadata */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <MealTypeIcon className={`h-4 w-4 ${typeStyle.iconClassName}`} />
+                <span className="text-xs font-extrabold uppercase tracking-wider text-brand-muted">
+                  {typeStyle.label}
+                </span>
+                <span className="text-xs text-brand-muted">·</span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-brand-muted">
+                  <CalendarDays className="h-3 w-3" />
+                  {scheduledDate}
+                </span>
+              </div>
+              <h3 className="text-xl font-black font-display text-brand-text tracking-tight">{meal.mealName}</h3>
+            </div>
+            <Badge variant="pending" className="px-3 py-1 text-[10px] font-bold shrink-0">
+              Pending review
+            </Badge>
+          </div>
 
-        <div className="mt-5 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/55 p-3.5">
-          <div className="flex items-end justify-between gap-3 border-b border-brand-border/50 pb-3">
+          {meal.description && (
+            <p className="text-sm text-brand-muted leading-relaxed">{meal.description}</p>
+          )}
+
+          {/* Energy & Macro Breakdown Box */}
+          <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/55 p-4">
+            <div className="flex items-end justify-between gap-3 border-b border-brand-border/50 pb-3">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Estimated energy</p>
+                <p className="mt-1 font-display text-2xl font-black leading-none text-brand-text">
+                  {Math.round(meal.calories)}
+                  <span className="ml-1 text-xs font-bold uppercase tracking-wider text-brand-muted">kcal</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500">
+                <Clock3 className="h-4 w-4" />
+                Awaiting RND review
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+              <div
+                className="rounded-xl border p-2.5 text-center"
+                style={{ backgroundColor: 'var(--macro-protein-bg)', borderColor: 'var(--macro-protein-border)' }}
+              >
+                <span className="block font-display text-base font-black" style={{ color: 'var(--macro-protein)' }}>
+                  {Math.round(meal.proteinG)}g
+                </span>
+                <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
+                  Protein
+                </span>
+              </div>
+              <div
+                className="rounded-xl border p-2.5 text-center"
+                style={{ backgroundColor: 'var(--macro-carbs-bg)', borderColor: 'var(--macro-carbs-border)' }}
+              >
+                <span className="block font-display text-base font-black" style={{ color: 'var(--macro-carbs)' }}>
+                  {Math.round(meal.carbsG)}g
+                </span>
+                <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
+                  Carbs
+                </span>
+              </div>
+              <div
+                className="rounded-xl border p-2.5 text-center"
+                style={{ backgroundColor: 'var(--macro-fat-bg)', borderColor: 'var(--macro-fat-border)' }}
+              >
+                <span className="block font-display text-base font-black" style={{ color: 'var(--macro-fat)' }}>
+                  {Math.round(meal.fatG)}g
+                </span>
+                <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
+                  Fat
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Proposed Ingredients */}
+          {meal.ingredients && meal.ingredients.length > 0 && (
             <div>
-              <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">Estimated energy</p>
-              <p className="mt-1 font-display text-2xl font-black leading-none text-brand-text">
-                {Math.round(meal.calories)}
-                <span className="ml-1 text-[11px] font-bold uppercase tracking-wider text-brand-muted">kcal</span>
-              </p>
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-brand-muted mb-2.5">
+                Proposed Ingredients ({meal.ingredients.length})
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {meal.ingredients.map((ing, idx) => (
+                  <span
+                    key={`${ing.ingredientName}-${idx}`}
+                    className="rounded-full border border-brand-border/70 bg-brand-surface px-3 py-1 text-xs font-semibold text-brand-text"
+                  >
+                    {ing.ingredientName}
+                    {ing.category ? (
+                      <span className="ml-1 text-[10px] text-brand-muted font-normal">({ing.category})</span>
+                    ) : null}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-status-pending-text">
-              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-              Unverified
+          )}
+
+          {/* Clinical Review Notice Banner */}
+          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 flex items-start gap-3 text-xs text-brand-muted">
+            <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <strong className="text-brand-text block mb-0.5">Clinical Review in Progress</strong>
+              This recommendation is generated by NutriMind AI and is currently in preview while a PRC-licensed nutritionist verifies it. Logging, meal swaps, and groceries become active once approved.
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <div
-              className="rounded-xl border px-2 py-2 text-center"
-              style={{ backgroundColor: 'var(--macro-protein-bg)', borderColor: 'var(--macro-protein-border)' }}
-            >
-              <span className="block font-display text-sm font-black" style={{ color: 'var(--macro-protein)' }}>
-                {Math.round(meal.proteinG)}g
-              </span>
-              <span className="mt-0.5 block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
-                Protein
-              </span>
-            </div>
-            <div
-              className="rounded-xl border px-2 py-2 text-center"
-              style={{ backgroundColor: 'var(--macro-carbs-bg)', borderColor: 'var(--macro-carbs-border)' }}
-            >
-              <span className="block font-display text-sm font-black" style={{ color: 'var(--macro-carbs)' }}>
-                {Math.round(meal.carbsG)}g
-              </span>
-              <span className="mt-0.5 block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
-                Carbs
-              </span>
-            </div>
-            <div
-              className="rounded-xl border px-2 py-2 text-center"
-              style={{ backgroundColor: 'var(--macro-fat-bg)', borderColor: 'var(--macro-fat-border)' }}
-            >
-              <span className="block font-display text-sm font-black" style={{ color: 'var(--macro-fat)' }}>
-                {Math.round(meal.fatG)}g
-              </span>
-              <span className="mt-0.5 block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
-                Fat
-              </span>
-            </div>
+          <div className="mt-1 flex justify-end">
+            <Button variant="secondary" onClick={() => setIsOpen(false)} className="text-xs font-bold">
+              Close
+            </Button>
           </div>
         </div>
-
-        {visibleIngredients.length > 0 && (
-          <div className="mt-4">
-            <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-brand-muted">
-              Proposed ingredients
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {visibleIngredients.map((ingredient, index) => (
-                <span
-                  key={`${ingredient.ingredientName}-${index}`}
-                  className="max-w-full truncate rounded-full border border-brand-border/60 bg-brand-bg px-2.5 py-1 text-[10px] font-semibold text-brand-muted"
-                  title={ingredient.ingredientName}
-                >
-                  {ingredient.ingredientName}
-                </span>
-              ))}
-              {remainingIngredientCount > 0 && (
-                <span className="rounded-full border border-brand-green/20 bg-brand-green/5 px-2.5 py-1 text-[10px] font-bold text-brand-green">
-                  +{remainingIngredientCount} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-auto flex items-start gap-2.5 border-t border-status-pending-text/15 bg-status-pending-bg/35 px-5 py-3.5 text-status-pending-text">
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-        <p className="text-[10px] font-semibold leading-relaxed">
-          <span className="font-extrabold">Not nutritionist verified.</span> Logging, swaps, nutrition totals, and
-          groceries stay disabled until approval.
-        </p>
-      </div>
-    </article>
+      </Modal>
+    </>
   );
 }

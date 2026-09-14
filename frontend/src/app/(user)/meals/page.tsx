@@ -1,7 +1,6 @@
 'use client';
 
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import EmptyState from '@/components/shared/EmptyState';
@@ -152,7 +151,9 @@ export default function WeeklyPlanPage() {
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
-        {pendingReview && <ClinicalReviewBanner />}
+        {pendingReview && (
+          <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />
+        )}
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
@@ -211,32 +212,26 @@ export default function WeeklyPlanPage() {
             ) : undefined
           }
           actions={
-            activeTab === 'plan' ? (
-              pendingReview ? (
-                <Badge variant="pending" className="px-3 py-2">
-                  Pending verification
-                </Badge>
-              ) : (
-                <details className="relative">
-                  <summary className="cursor-pointer rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold">
-                    Plan options
-                  </summary>
-                  <div className="mt-2 max-w-xs rounded-xl border border-brand-border bg-brand-surface p-3">
-                    <p className="mb-3 text-xs text-brand-muted">
-                      Whole-plan replacement is available before shopping or logging. After that, choose individual meal
-                      swaps.
-                    </p>
-                    <Button
-                      variant="secondary"
-                      onClick={handleRegeneratePlan}
-                      className="flex items-center gap-1.5 text-xs font-bold"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Replace entire plan</span>
-                    </Button>
-                  </div>
-                </details>
-              )
+            activeTab === 'plan' && !pendingReview ? (
+              <details className="relative">
+                <summary className="cursor-pointer rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold">
+                  Plan options
+                </summary>
+                <div className="mt-2 max-w-xs rounded-xl border border-brand-border bg-brand-surface p-3">
+                  <p className="mb-3 text-xs text-brand-muted">
+                    Whole-plan replacement is available before shopping or logging. After that, choose individual meal
+                    swaps.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    onClick={handleRegeneratePlan}
+                    className="flex items-center gap-1.5 text-xs font-bold"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Replace entire plan</span>
+                  </Button>
+                </div>
+              </details>
             ) : undefined
           }
         />
@@ -453,9 +448,6 @@ export default function WeeklyPlanPage() {
                             <span className="mt-1 block text-[10px] font-bold text-brand-muted">{day.dateStr}</span>
                           </div>
                         </div>
-                        <Badge variant="pending" className="self-start px-3 py-1.5 text-[10px] md:self-auto">
-                          {day.mealsList.length} meals pending verification
-                        </Badge>
                       </div>
 
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -580,9 +572,6 @@ export default function WeeklyPlanPage() {
                             These meals remain visible as previews and cannot be logged or swapped until approved.
                           </p>
                         </div>
-                        <Badge variant="pending" className="self-start px-3 py-1.5 text-[10px] sm:self-auto">
-                          {day.mealsList.length} pending
-                        </Badge>
                       </div>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         {day.mealsList.map((meal, index) => (

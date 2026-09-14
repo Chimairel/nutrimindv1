@@ -408,7 +408,9 @@ export default function DashboardPage() {
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        {pendingReview && <ClinicalReviewBanner />}
+        {pendingReview && (
+          <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />
+        )}
 
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
