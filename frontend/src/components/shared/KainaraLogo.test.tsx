@@ -8,22 +8,33 @@ describe('KainaraLogo', () => {
     render(<KainaraLogo />);
     const logo = screen.getByRole('img', { name: 'KAINARA logo' });
     expect(logo).toBeInTheDocument();
-    expect(logo).toHaveAttribute('viewBox', '0 0 100 100');
+    expect(logo).toHaveAttribute('viewBox', '274 262 600 600');
+  });
+
+  it('renders multicolor variant by default with authentic brand palette', () => {
+    const { container } = render(<KainaraLogo />);
+    const paths = container.querySelectorAll('path');
+    expect(paths).toHaveLength(5);
+    expect(paths[0]).toHaveAttribute('fill', '#fbf8f1'); // Cream highlight
+    expect(paths[1]).toHaveAttribute('fill', '#264741'); // Deep Emerald hair
+    expect(paths[2]).toHaveAttribute('fill', '#efb48a'); // Peach skin
+    expect(paths[3]).toHaveAttribute('fill', '#f7a249'); // Mango gold
+    expect(paths[4]).toHaveAttribute('fill', '#e05f46'); // Coral terracotta
   });
 
   it('renders gradient variant with SVG defs and linearGradient', () => {
     const { container } = render(<KainaraLogo variant="gradient" />);
     const defs = container.querySelector('defs');
     const linearGradient = container.querySelector('linearGradient');
-    const path = container.querySelector('path');
+    const paths = container.querySelectorAll('path');
 
     expect(defs).toBeInTheDocument();
     expect(linearGradient).toBeInTheDocument();
-    expect(path).toBeInTheDocument();
+    expect(paths).toHaveLength(5);
 
     const gradId = linearGradient?.getAttribute('id');
     expect(gradId).toMatch(/^kainara-logo-grad-/);
-    expect(path?.getAttribute('fill')).toBe(`url(#${gradId})`);
+    expect(paths[1]?.getAttribute('fill')).toBe(`url(#${gradId})`);
 
     const stops = container.querySelectorAll('stop');
     expect(stops).toHaveLength(3);
@@ -33,10 +44,11 @@ describe('KainaraLogo', () => {
   it('renders solid variant with currentColor fill and no defs', () => {
     const { container } = render(<KainaraLogo variant="solid" className="text-emerald-600" />);
     const defs = container.querySelector('defs');
-    const path = container.querySelector('path');
+    const paths = container.querySelectorAll('path');
 
     expect(defs).not.toBeInTheDocument();
-    expect(path?.getAttribute('fill')).toBe('currentColor');
+    expect(paths).toHaveLength(5);
+    expect(paths[1]?.getAttribute('fill')).toBe('currentColor');
   });
 
   it('applies string size classes correctly', () => {

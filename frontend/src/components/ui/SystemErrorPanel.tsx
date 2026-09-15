@@ -42,9 +42,9 @@ export function SystemErrorPanel({
       {/* Top Header */}
       <header className="pointer-events-none relative z-20 flex w-full items-center justify-between p-6 sm:px-10 lg:px-16">
         <Link href="/" className="group pointer-events-auto flex items-center gap-3" aria-label="KAINARA home">
-          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d] shadow-neon transition group-hover:-rotate-3">
-            <KainaraLogo className="h-5 w-5" variant="solid" />
-            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full border-2 border-[#07100d] bg-brand-cyan" />
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/70 shadow-sm transition group-hover:-rotate-3">
+            <KainaraLogo className="h-6 w-6" />
+            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full border border-brand-border bg-brand-cyan" />
           </span>
           <span>
             <span className="block font-display text-sm font-black tracking-[0.17em]">KAINARA</span>

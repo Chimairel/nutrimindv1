@@ -23,8 +23,8 @@ export default function PublicHeader() {
     <header className="sticky top-0 z-50 border-b border-brand-border/60 bg-brand-bg/75 backdrop-blur-2xl">
       <div className="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
         <Link href="/" className="group flex items-center gap-3" aria-label="KAINARA home">
-          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d] shadow-neon transition-transform group-hover:-rotate-3 group-hover:scale-105">
-            <KainaraLogo className="h-6 w-6" variant="solid" />
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/70 shadow-sm transition-transform group-hover:-rotate-3 group-hover:scale-105">
+            <KainaraLogo className="h-7 w-7" />
             <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-brand-cyan" />
           </span>
           <span>
