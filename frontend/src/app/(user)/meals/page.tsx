@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
@@ -127,6 +128,32 @@ export default function WeeklyPlanPage() {
     completedMealCount,
     remainingSwapCount,
   } = workspace;
+
+  const { setSubTab } = useBreadcrumb();
+
+  // Read initial tab from URL if present
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['plan', 'history', 'library'].includes(tabParam.toLowerCase())) {
+      setActiveTab(tabParam.toLowerCase() as 'plan' | 'history' | 'library');
+    }
+  }, [setActiveTab]);
+
+  // Sync activeTab with breadcrumb and URL
+  useEffect(() => {
+    setSubTab(activeTab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (activeTab === 'plan') {
+        url.searchParams.delete('tab');
+      } else {
+        url.searchParams.set('tab', activeTab);
+      }
+      window.history.replaceState(null, '', url.pathname + url.search);
+    }
+  }, [activeTab, setSubTab]);
 
   const activePlanPillRef = useRef<HTMLButtonElement | null>(null);
 

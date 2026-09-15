@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import {
@@ -38,7 +38,7 @@ export const Breadcrumb1: React.FC<Breadcrumb1Props> = ({
 }) => {
   return (
     <Breadcrumb className={className}>
-      <BreadcrumbList className="border-brand-border/70 bg-brand-surface/90 text-xs w-full max-w-full justify-center rounded-2xl border px-2 py-1.5 shadow-sm sm:w-fit sm:justify-start sm:rounded-full sm:px-3">
+      <BreadcrumbList className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-medium text-brand-muted">
         {segments.map((segment, index) => (
           <BreadcrumbItem key={segment.label}>
             {'href' in segment && segment.href ? (

@@ -10,10 +10,12 @@ import { workspaceTools } from '@/lib/workspace-navigation';
 import { WorkspaceTools } from './WorkspaceTools';
 
 import Breadcrumb1, { type BreadcrumbSegment } from '@/components/watermelon/breadcrumb-1';
+import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
 
 const getBreadcrumbSegments = (
   pathname: string,
-  role: 'USER' | 'NUTRITIONIST' | 'ADMIN'
+  role: 'USER' | 'NUTRITIONIST' | 'ADMIN',
+  subTab?: string | null
 ): readonly BreadcrumbSegment[] => {
   if (role === 'USER') {
     if (pathname === '/dashboard') {
@@ -26,7 +28,18 @@ const getBreadcrumbSegments = (
       ];
     }
     if (pathname === '/meals') {
-      return [{ label: 'Meals', current: true }];
+      let tabLabel = 'Plan';
+      if (subTab) {
+        const s = subTab.toLowerCase();
+        if (s === 'history') tabLabel = 'History';
+        else if (s === 'library') tabLabel = 'Library';
+        else if (s === 'plan') tabLabel = 'Plan';
+        else tabLabel = subTab.charAt(0).toUpperCase() + subTab.slice(1);
+      }
+      return [
+        { label: 'Meals', href: '/meals' },
+        { label: tabLabel, current: true },
+      ];
     }
     if (pathname.startsWith('/meals/')) {
       return [
@@ -38,7 +51,19 @@ const getBreadcrumbSegments = (
       return [{ label: 'Groceries', current: true }];
     }
     if (pathname === '/progress') {
-      return [{ label: 'Progress', current: true }];
+      let tabLabel = 'Overview';
+      if (subTab) {
+        const s = subTab.toLowerCase();
+        if (s === 'history' || s === 'adherence') tabLabel = 'Adherence';
+        else if (s === 'profile') tabLabel = 'Profile';
+        else if (s === 'safety') tabLabel = 'Safety';
+        else if (s === 'overview') tabLabel = 'Overview';
+        else tabLabel = subTab.charAt(0).toUpperCase() + subTab.slice(1);
+      }
+      return [
+        { label: 'Progress', href: '/progress' },
+        { label: tabLabel, current: true },
+      ];
     }
     if (pathname === '/progress/reports') {
       return [
@@ -48,6 +73,12 @@ const getBreadcrumbSegments = (
     }
     if (pathname === '/profile') {
       return [{ label: 'Profile', current: true }];
+    }
+    if (pathname === '/profile/personal') {
+      return [
+        { label: 'Profile', href: '/profile' },
+        { label: 'Personal Details', current: true },
+      ];
     }
     if (pathname === '/profile/health') {
       return [
@@ -65,6 +96,12 @@ const getBreadcrumbSegments = (
       return [
         { label: 'Profile', href: '/profile' },
         { label: 'Premium Access', current: true },
+      ];
+    }
+    if (pathname === '/profile/security') {
+      return [
+        { label: 'Profile', href: '/profile' },
+        { label: 'Security & Privacy', current: true },
       ];
     }
     if (pathname === '/export') {
@@ -146,10 +183,11 @@ export const Navbar: React.FC = () => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
+  const { subTab } = useBreadcrumb();
 
   if (!user) return null;
 
-  const segments = getBreadcrumbSegments(pathname, user.role);
+  const segments = getBreadcrumbSegments(pathname, user.role, subTab);
 
   return (
     <header className="relative z-30 flex min-h-[60px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">

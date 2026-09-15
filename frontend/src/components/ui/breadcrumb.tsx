@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import Link from 'next/link';
 import { ChevronRight, MoreHorizontal } from 'lucide-react';
 
@@ -44,7 +44,7 @@ export const BreadcrumbLink = React.forwardRef<
     <Link
       ref={ref}
       href={href}
-      className={`transition-colors hover:text-brand-green dark:hover:text-brand-accent ${className}`}
+      className={`transition-colors hover:text-brand-text dark:hover:text-white ${className}`}
       {...props}
     />
   );
@@ -60,7 +60,7 @@ export const BreadcrumbPage = React.forwardRef<
     role="link"
     aria-disabled="true"
     aria-current="page"
-    className={`font-bold text-brand-text dark:text-white ${className}`}
+    className={`font-semibold text-brand-text dark:text-white ${className}`}
     {...props}
   />
 ));
@@ -74,10 +74,10 @@ export const BreadcrumbSeparator = ({
   <span
     role="presentation"
     aria-hidden="true"
-    className={`inline-flex items-center text-brand-muted/40 [&>svg]:h-3 [&>svg]:w-3 ${className}`}
+    className={`inline-flex items-center text-brand-muted/40 [&>svg]:h-3.5 [&>svg]:w-3.5 ${className}`}
     {...props}
   >
-    {children ?? <ChevronRight className="h-3 w-3" />}
+    {children ?? <ChevronRight className="h-3.5 w-3.5" />}
   </span>
 );
 BreadcrumbSeparator.displayName = 'BreadcrumbSeparator';

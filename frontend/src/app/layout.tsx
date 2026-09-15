@@ -3,6 +3,7 @@ import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono, Outfit } from 'next/font/go
 import './globals.css';
 import { AuthProvider } from '@/lib/context/AuthContext';
 import { ThemeProvider } from '@/lib/context/ThemeContext';
+import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -80,7 +81,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${dmSans.variable} ${plusJakartaSans.variable} ${outfit.variable} ${jetbrainsMono.variable} bg-brand-bg font-sans text-brand-text antialiased`}
       >
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <BreadcrumbProvider>{children}</BreadcrumbProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { User, HeartPulse, Soup, Crown, ShieldCheck, ChevronRight } from 'lucide-react';
+import { User, HeartPulse, Soup, Crown, ShieldCheck, ChevronRight, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
+import Button from '@/components/ui/Button';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 
 const sections = [
@@ -33,7 +34,7 @@ const sections = [
   },
 ];
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <div className="portal-page max-w-4xl space-y-5">
       <PortalPageHeader
@@ -65,6 +66,24 @@ export default function ProfilePage() {
           </Link>
         ))}
       </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.035] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-semibold text-sm text-brand-text">Account Session</h2>
+          <p className="mt-0.5 text-xs text-brand-muted">
+            Signed in as <span className="font-medium text-brand-text">{user?.email}</span>. Sign out of your account on this device.
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          onClick={() => void logout()}
+          className="flex shrink-0 items-center justify-center gap-2 border-red-500/25 px-5 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-red-500/30"
+        >
+          <LogOut className="h-4 w-4 stroke-[2.25]" />
+          Log out
+        </Button>
+      </div>
+
       <p className="text-sm text-brand-muted">
         A new allergy or condition? Update Health & goals whenever it changes. You do not need to wait for a weekly
         check-in.

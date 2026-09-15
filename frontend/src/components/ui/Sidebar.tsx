@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, HelpCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from '@/components/ui/motion';
+import HelpCenterModal from '@/components/shared/HelpCenterModal';
 
 interface SidebarProps {
   className?: string;
@@ -51,9 +52,10 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 
 
 export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -168,13 +170,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             <div className="h-px w-6 bg-white/[0.08] mb-0.5" />
 
             <DockItem
-              onClick={() => logout()}
-              aria-label="Log out"
-              className="text-red-500 hover:bg-red-500/15 hover:text-red-400 transition-colors duration-200"
+              onClick={() => setIsHelpOpen(true)}
+              aria-label="Help Center"
+              className="text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors duration-200"
             >
-              <DockLabel>Log out</DockLabel>
+              <DockLabel>Help Center</DockLabel>
               <DockIcon>
-                <LogOut className="stroke-[2.25] text-red-500 hover:text-red-400" />
+                <HelpCircle className="stroke-2" />
               </DockIcon>
             </DockItem>
 
@@ -313,18 +315,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
             <button
               type="button"
-              onClick={() => logout()}
-              aria-label="Log out"
-              className="group relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-red-500 outline-none transition hover:bg-red-500/15 hover:text-red-400 focus:ring-2 focus:ring-red-500/30"
+              onClick={() => setIsHelpOpen(true)}
+              aria-label="Help Center"
+              className="group relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/60 outline-none transition hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-brand-accent/30"
             >
-              <LogOut className="h-4 w-4 shrink-0 stroke-[2.25] text-red-500 transition-colors group-hover:text-red-400" />
-              <span className="text-xs font-semibold text-red-500 transition-colors group-hover:text-red-400">
-                Log out
+              <HelpCircle className="h-4 w-4 shrink-0 stroke-2 text-white/60 transition-colors group-hover:text-brand-accent" />
+              <span className="text-xs font-semibold text-white/75 transition-colors group-hover:text-white">
+                Help Center
               </span>
             </button>
           </div>
         </>
       )}
+      <HelpCenterModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </aside>
   );
 };

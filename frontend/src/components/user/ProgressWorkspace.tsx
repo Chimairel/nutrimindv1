@@ -1,6 +1,8 @@
 'use client';
 
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
 import Button from '@/components/ui/Button';
 import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import Card from '@/components/ui/Card';
@@ -98,6 +100,34 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     dailyCalorieTarget,
     fetchPageData,
   } = useProgressWorkspace(mode);
+
+  const { setSubTab } = useBreadcrumb();
+
+  // Read initial tab from URL if present
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['overview', 'history', 'adherence', 'profile', 'safety'].includes(tabParam.toLowerCase())) {
+      const mapped = tabParam.toLowerCase() === 'adherence' ? 'history' : (tabParam.toLowerCase() as typeof activeSection);
+      setActiveSection(mapped);
+    }
+  }, [setActiveSection]);
+
+  // Sync activeSection with breadcrumb and URL
+  useEffect(() => {
+    const label = activeSection === 'history' ? 'adherence' : activeSection;
+    setSubTab(label);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (activeSection === 'overview') {
+        url.searchParams.delete('tab');
+      } else {
+        url.searchParams.set('tab', label);
+      }
+      window.history.replaceState(null, '', url.pathname + url.search);
+    }
+  }, [activeSection, setSubTab]);
 
   // Custom SVG Weight Graph calculations
   const renderWeightGraph = () => {
