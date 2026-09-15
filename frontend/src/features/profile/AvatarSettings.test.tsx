@@ -10,7 +10,7 @@ const customImage = 'https://api.dicebear.com/10.x/open-peeps/svg?seed=Saved';
 
 describe('shared avatar editor', () => {
   it.each(['USER', 'NUTRITIONIST', 'ADMIN'] as const)(
-    'preserves a custom avatar and restores Google default for %s',
+    'preserves avatar selection, restores Google default, and updates session for %s',
     async (role) => {
       const user: UserSession = {
         userId: 'fixture',
@@ -27,13 +27,24 @@ describe('shared avatar editor', () => {
       const updateUserSession = vi.fn();
       vi.mocked(api.put).mockResolvedValue({ data: { success: true, data: { image: googleImage, googleImage } } });
       const { rerender } = render(<AvatarSettings user={user} updateUserSession={updateUserSession} />);
-      expect(screen.getByRole('textbox')).toHaveValue(customImage);
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Draft avatar' } });
+
+      // Seed input field and Avatar Studio must not exist
+      expect(screen.queryByRole('textbox')).toBeNull();
+      expect(screen.queryByText(/Interactive Avatar Studio/i)).toBeNull();
+
+      // Curated Filipino Avatars must exist
+      expect(screen.getByText(/Curated Filipino Avatars/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Default/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Chimay/ })).toBeInTheDocument();
+
+      // Switch visibility test
       rerender(<AvatarSettings user={user} updateUserSession={updateUserSession} visible={false} />);
       rerender(<AvatarSettings user={user} updateUserSession={updateUserSession} />);
-      expect(screen.getByRole('textbox')).toHaveValue('Draft avatar');
+
+      // Select Default and Save
       fireEvent.click(screen.getByRole('button', { name: /Default/ }));
-      fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Save Avatar/i }));
+
       await waitFor(() => expect(updateUserSession).toHaveBeenCalledWith({ image: googleImage, googleImage }));
       expect(api.put).toHaveBeenCalledWith('/user/profile/avatar', { image: 'Default' });
     }
