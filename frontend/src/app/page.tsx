@@ -8,17 +8,14 @@ import {
   ArrowUpRight,
   BookOpenText,
   BadgeCheck,
-  Bot,
   CircleDot,
   Database,
   Fingerprint,
   HeartPulse,
-  Leaf,
   ScanLine,
   ShieldCheck,
   Sparkles,
   Stethoscope,
-  Users,
   Video,
   WandSparkles,
 } from 'lucide-react';
@@ -101,10 +98,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden text-brand-text">
+    <div className="min-h-screen text-brand-text">
       <PublicHeader />
 
-      <main>
+      <main className="overflow-x-clip">
         <section className="relative">
           <div className="pointer-events-none absolute left-[8%] top-24 h-72 w-72 rounded-full bg-brand-green/10 blur-[110px]" />
           <div className="pointer-events-none absolute right-[7%] top-10 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[120px]" />
@@ -142,7 +139,7 @@ export default function Home() {
                   className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-brand-border/80 bg-brand-surface/65 px-6 text-sm font-bold text-brand-text backdrop-blur-xl transition hover:-translate-y-1 hover:border-brand-green/35"
                 >
                   <BookOpenText className="h-4 w-4 text-brand-green" />
-                  Read the build story
+                  Explore documentation
                   <ArrowUpRight className="h-3.5 w-3.5 text-brand-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               </div>
@@ -393,15 +390,15 @@ export default function Home() {
             <div className="p-8 sm:p-12 lg:p-16">
               <div className="eyebrow inline-flex items-center gap-2">
                 <BookOpenText className="h-3.5 w-3.5" />
-                Open project journal
+                Documentation & user guide
               </div>
               <h2 className="mt-6 max-w-xl font-display text-4xl font-black leading-[1.03] tracking-[-0.045em] sm:text-5xl">
-                See how the idea became a working capstone.
+                The complete guide to KAINARA.
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
-                Explore the problem framing, research direction, architecture decisions, design evolution, and the
-                people-centered thinking behind KAINARA. The documentation space is ready for the team&apos;s final
-                story, studies, and project media.
+                Discover the clinical safety standards, FNRI Philippine food database integration, Mifflin-St Jeor
+                macro algorithms, and nutritionist review workflows behind KAINARA. Browse step-by-step walkthroughs
+                and answers to frequently asked questions.
               </p>
               <Link
                 href="/docs"
@@ -415,22 +412,37 @@ export default function Home() {
             <div className="relative min-h-[420px] overflow-hidden bg-[#08110e] p-7 text-white futuristic-grid sm:p-10">
               <div className="absolute right-8 top-8 h-28 w-28 rounded-full bg-brand-cyan/15 blur-3xl" />
               <div className="relative grid h-full grid-cols-2 gap-4">
-                <div className="flex flex-col justify-end overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(150deg,rgba(184,244,95,0.18),rgba(255,255,255,0.02))] p-5">
-                  <Users className="h-7 w-7 text-brand-accent" />
-                  <p className="mt-16 font-display text-lg font-bold">Research & discovery</p>
-                  <p className="mt-2 text-xs leading-5 text-white/40">
-                    Placeholder space for interviews, surveys, and field notes.
+                <Link
+                  href="/docs#clinical-safety"
+                  className="group flex flex-col justify-end overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(150deg,rgba(184,244,95,0.18),rgba(255,255,255,0.02))] p-5 transition hover:border-brand-accent/40 hover:bg-white/[0.04]"
+                >
+                  <ShieldCheck className="h-7 w-7 text-brand-accent transition-transform group-hover:scale-110" />
+                  <p className="mt-16 font-display text-lg font-bold">Clinical safety & oversight</p>
+                  <p className="mt-2 text-xs leading-5 text-white/50">
+                    Contraindication checks, allergy gates, and verified RND approval workflows.
                   </p>
-                </div>
+                </Link>
                 <div className="grid gap-4">
-                  <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_70%_20%,rgba(34,211,238,0.22),transparent_45%),rgba(255,255,255,0.025)] p-5">
-                    <Bot className="h-6 w-6 text-brand-cyan" />
-                    <p className="mt-10 text-sm font-bold">System experiments</p>
-                  </div>
-                  <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_90%,rgba(139,92,246,0.22),transparent_48%),rgba(255,255,255,0.025)] p-5">
-                    <Leaf className="h-6 w-6 text-violet-300" />
-                    <p className="mt-10 text-sm font-bold">Design evolution</p>
-                  </div>
+                  <Link
+                    href="/docs#meal-planning"
+                    className="group rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_70%_20%,rgba(34,211,238,0.22),transparent_45%),rgba(255,255,255,0.025)] p-5 transition hover:border-brand-cyan/40 hover:bg-white/[0.04]"
+                  >
+                    <Database className="h-6 w-6 text-brand-cyan transition-transform group-hover:scale-110" />
+                    <p className="mt-8 text-sm font-bold">FNRI & macro engine</p>
+                    <p className="mt-1 text-[11px] leading-4 text-white/50">
+                      Mifflin-St Jeor TDEE & Filipino food composition.
+                    </p>
+                  </Link>
+                  <Link
+                    href="/docs#faqs"
+                    className="group rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_90%,rgba(139,92,246,0.22),transparent_48%),rgba(255,255,255,0.025)] p-5 transition hover:border-violet-400/40 hover:bg-white/[0.04]"
+                  >
+                    <Sparkles className="h-6 w-6 text-violet-300 transition-transform group-hover:scale-110" />
+                    <p className="mt-8 text-sm font-bold">User guides & FAQs</p>
+                    <p className="mt-1 text-[11px] leading-4 text-white/50">
+                      Starter bridge plans, meal swaps, and daily tracking.
+                    </p>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -471,7 +483,7 @@ export default function Home() {
             <KainaraLogo size="sm" variant="gradient" />
             KAINARA
           </div>
-          <p>© 2026 KAINARA. A Filipino nutrition capstone project.</p>
+          <p>© 2026 KAINARA. AI-assisted Filipino nutrition intelligence.</p>
           <div className="flex gap-5">
             <Link href="/docs" className="transition hover:text-brand-green">
               Documentation
