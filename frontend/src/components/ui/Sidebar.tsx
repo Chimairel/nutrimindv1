@@ -3,14 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, HelpCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, ArrowUpRight, HelpCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from '@/components/ui/motion';
-import HelpCenterModal from '@/components/shared/HelpCenterModal';
 
 interface SidebarProps {
   className?: string;
@@ -55,7 +54,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -169,16 +167,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pb-0.5">
             <div className="h-px w-6 bg-white/[0.08] mb-0.5" />
 
-            <DockItem
-              onClick={() => setIsHelpOpen(true)}
+            <a
+              href="/help"
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="Help Center"
-              className="text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors duration-200"
+              className="flex shrink-0 items-center justify-center outline-none"
             >
-              <DockLabel>Help Center</DockLabel>
-              <DockIcon>
-                <HelpCircle className="stroke-2" />
-              </DockIcon>
-            </DockItem>
+              <DockItem
+                className="text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors duration-200"
+              >
+                <DockLabel>Help Center</DockLabel>
+                <DockIcon>
+                  <HelpCircle className="stroke-2" />
+                </DockIcon>
+              </DockItem>
+            </a>
 
             <Link
               href={profileHref}
@@ -313,9 +317,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               </div>
             </Link>
 
-            <button
-              type="button"
-              onClick={() => setIsHelpOpen(true)}
+            <a
+              href="/help"
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="Help Center"
               className="group relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/60 outline-none transition hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-brand-accent/30"
             >
@@ -323,11 +328,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <span className="text-xs font-semibold text-white/75 transition-colors group-hover:text-white">
                 Help Center
               </span>
-            </button>
+              <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/30 transition-colors group-hover:text-white/70" />
+            </a>
           </div>
         </>
       )}
-      <HelpCenterModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </aside>
   );
 };

@@ -463,7 +463,7 @@ export default function Home() {
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
                 Explore the problem framing, research direction, architecture decisions, design evolution, and the
-                people-centered thinking behind NutriMind. The documentation space is ready for the team&apos;s final
+                people-centered thinking behind KAINARA. The documentation space is ready for the team&apos;s final
                 story, studies, and project media.
               </p>
               <Link

@@ -20,8 +20,8 @@ import {
 import PublicHeader from '@/components/shared/PublicHeader';
 
 export const metadata: Metadata = {
-  title: 'Project Documentation | NutriMind',
-  description: 'The research, design decisions, and development story behind NutriMind.',
+  title: 'Project Documentation | KAINARA',
+  description: 'The research, design decisions, and development story behind KAINARA.',
 };
 
 const chapters = [
@@ -76,7 +76,7 @@ export default function DocsPage() {
                   Project documentation · draft
                 </div>
                 <h1 className="mt-6 max-w-4xl font-display text-[clamp(3.2rem,7vw,7rem)] font-black leading-[0.9] tracking-[-0.065em]">
-                  The thinking behind <span className="text-gradient">NutriMind.</span>
+                  The thinking behind <span className="text-gradient">KAINARA.</span>
                 </h1>
               </div>
               <div className="border-l border-brand-border/70 pl-6">
@@ -139,7 +139,7 @@ export default function DocsPage() {
                 <p>
                   Many nutrition products make healthy eating feel geographically generic. Their suggestions can be
                   nutritionally impressive on paper yet culturally distant, expensive, or difficult to source in an
-                  ordinary Philippine routine. NutriMind began with a practical question: what would personalized
+                  ordinary Philippine routine. KAINARA began with a practical question: what would personalized
                   nutrition look like if Filipino context were a first-class input?
                 </p>
                 <p>
@@ -403,7 +403,7 @@ export default function DocsPage() {
 
       <footer className="border-t border-brand-border/70">
         <div className="mx-auto flex max-w-[1320px] flex-col gap-3 px-5 py-8 text-xs text-brand-muted sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <p className="font-display font-bold text-brand-text">NutriMind project documentation</p>
+          <p className="font-display font-bold text-brand-text">KAINARA project documentation</p>
           <p>Draft placeholders must be replaced with adviser-approved capstone evidence.</p>
         </div>
       </footer>

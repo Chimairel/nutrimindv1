@@ -65,6 +65,12 @@ export default function PublicHeader() {
           >
             Docs
           </Link>
+          <Link
+            href="/help"
+            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${pathname === '/help' ? 'bg-brand-accent text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'}`}
+          >
+            Help
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
