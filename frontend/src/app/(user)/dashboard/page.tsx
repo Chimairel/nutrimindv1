@@ -428,7 +428,7 @@ export default function DashboardPage() {
         {/* Permanent Top Greeting Header */}
         <PortalPageHeader
           icon={Sparkles}
-          eyebrow="Your daily workspace"
+          eyebrow="Daily overview"
           title={<>Mabuhay, {user?.name ? user.name.split(' ')[0] : 'Friend'}.</>}
           description="Your meals, daily intake, and next steps — all in one place."
           actions={

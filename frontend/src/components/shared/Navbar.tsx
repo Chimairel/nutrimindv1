@@ -11,6 +11,137 @@ import { WorkspaceTools } from './WorkspaceTools';
 
 import Breadcrumb1, { type BreadcrumbSegment } from '@/components/watermelon/breadcrumb-1';
 
+const getBreadcrumbSegments = (
+  pathname: string,
+  role: 'USER' | 'NUTRITIONIST' | 'ADMIN'
+): readonly BreadcrumbSegment[] => {
+  if (role === 'USER') {
+    if (pathname === '/dashboard') {
+      return [{ label: 'Dashboard', current: true }];
+    }
+    if (pathname.startsWith('/dashboard/')) {
+      return [
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Meal Details', current: true },
+      ];
+    }
+    if (pathname === '/meals') {
+      return [{ label: 'Meals', current: true }];
+    }
+    if (pathname.startsWith('/meals/')) {
+      return [
+        { label: 'Meals', href: '/meals' },
+        { label: 'Details', current: true },
+      ];
+    }
+    if (pathname === '/grocery') {
+      return [{ label: 'Groceries', current: true }];
+    }
+    if (pathname === '/progress') {
+      return [{ label: 'Progress', current: true }];
+    }
+    if (pathname === '/progress/reports') {
+      return [
+        { label: 'Progress', href: '/progress' },
+        { label: 'Reports', current: true },
+      ];
+    }
+    if (pathname === '/profile') {
+      return [{ label: 'Profile', current: true }];
+    }
+    if (pathname === '/profile/health') {
+      return [
+        { label: 'Profile', href: '/profile' },
+        { label: 'Health & Goals', current: true },
+      ];
+    }
+    if (pathname === '/profile/planning') {
+      return [
+        { label: 'Profile', href: '/profile' },
+        { label: 'Food & Planning', current: true },
+      ];
+    }
+    if (pathname === '/profile/membership') {
+      return [
+        { label: 'Profile', href: '/profile' },
+        { label: 'Premium Access', current: true },
+      ];
+    }
+    if (pathname === '/export') {
+      return [{ label: 'Exports', current: true }];
+    }
+    if (pathname === '/nutrition-report') {
+      return [{ label: 'Nutrition Report', current: true }];
+    }
+  }
+
+  if (role === 'NUTRITIONIST') {
+    if (pathname === '/nutritionist/reviews') {
+      return [{ label: 'Reviews', current: true }];
+    }
+    if (pathname.startsWith('/nutritionist/reviews/')) {
+      return [
+        { label: 'Reviews', href: '/nutritionist/reviews' },
+        { label: 'Plan Audit', current: true },
+      ];
+    }
+    if (pathname === '/nutritionist/outside-meals') {
+      return [{ label: 'Outside Meals', current: true }];
+    }
+    if (pathname === '/nutritionist/library') {
+      return [{ label: 'Meal Library', current: true }];
+    }
+    if (pathname === '/nutritionist/approved') {
+      return [{ label: 'Approved Archive', current: true }];
+    }
+    if (pathname === '/nutritionist/profile') {
+      return [{ label: 'Profile', current: true }];
+    }
+  }
+
+  if (role === 'ADMIN') {
+    if (pathname === '/admin/overview') {
+      return [{ label: 'Overview', current: true }];
+    }
+    if (pathname === '/admin/users') {
+      return [{ label: 'Users', current: true }];
+    }
+    if (pathname.startsWith('/admin/users/')) {
+      return [
+        { label: 'Users', href: '/admin/users' },
+        { label: 'User Details', current: true },
+      ];
+    }
+    if (pathname === '/admin/nutritionists') {
+      return [{ label: 'Nutritionists', current: true }];
+    }
+    if (pathname === '/admin/analytics') {
+      return [{ label: 'Analytics', current: true }];
+    }
+    if (pathname === '/admin/images') {
+      return [{ label: 'Media Library', current: true }];
+    }
+  }
+
+  const matchedTool = [...workspaceTools[role]]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'));
+
+  if (matchedTool) {
+    const isExact = pathname === matchedTool.href;
+    const toolLabel = matchedTool.label === 'Home' ? 'Dashboard' : matchedTool.label;
+    if (isExact) {
+      return [{ label: toolLabel, current: true }];
+    }
+    return [
+      { label: toolLabel, href: matchedTool.href },
+      { label: 'Details', current: true },
+    ];
+  }
+
+  return [{ label: 'Dashboard', current: true }];
+};
+
 export const Navbar: React.FC = () => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -18,33 +149,7 @@ export const Navbar: React.FC = () => {
 
   if (!user) return null;
 
-  const currentTool = [...workspaceTools[user.role]]
-    .sort((a, b) => b.href.length - a.href.length)
-    .find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'));
-
-  const homeHref =
-    user.role === 'ADMIN'
-      ? '/admin/overview'
-      : user.role === 'NUTRITIONIST'
-        ? '/nutritionist/reviews'
-        : '/dashboard';
-  const homeLabel =
-    user.role === 'ADMIN'
-      ? 'Control Center'
-      : user.role === 'NUTRITIONIST'
-        ? 'Clinical Portal'
-        : 'Dashboard';
-
-  const isHome = pathname === homeHref;
-  const segments: readonly BreadcrumbSegment[] = isHome || !currentTool
-    ? [
-        { label: 'KAINARA', href: homeHref },
-        { label: homeLabel, current: true },
-      ]
-    : [
-        { label: homeLabel, href: homeHref },
-        { label: currentTool.label, current: true },
-      ];
+  const segments = getBreadcrumbSegments(pathname, user.role);
 
   return (
     <header className="relative z-30 flex min-h-[60px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">
