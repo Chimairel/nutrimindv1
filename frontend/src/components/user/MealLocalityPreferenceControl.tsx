@@ -143,7 +143,7 @@ export default function MealLocalityPreferenceControl({
         Meal locality strength
       </legend>
       <p className="mb-5 text-xs leading-relaxed text-brand-muted">
-        Choose how strongly NutriMind should favor familiar meals. Safety, nutrition, and budget rules still come first.
+        Choose how strongly KAINARA should favor familiar meals. Safety, nutrition, and budget rules still come first.
       </p>
 
       <div className="rounded-[20px] border border-brand-border/80 bg-brand-bgAlt/45 p-4 shadow-inner sm:p-6">

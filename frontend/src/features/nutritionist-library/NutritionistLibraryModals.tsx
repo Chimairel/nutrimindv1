@@ -230,7 +230,7 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               This review applies only to revision{' '}
               <strong className="text-brand-text">{selectedMeal.safetyEvidenceRevision}</strong> of{' '}
               <strong className="text-brand-text">{selectedMeal.mealName}</strong>. It does not label the meal
-              universally safe. NutriMind will still compare each user&apos;s current restrictions before reuse.
+              universally safe. KAINARA will still compare each user&apos;s current restrictions before reuse.
             </div>
 
             <div>

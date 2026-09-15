@@ -154,7 +154,7 @@ export default function NutritionistApplyPage() {
         </div>
       </main>
       <footer className="border-t border-brand-border px-5 py-8 text-center text-xs text-brand-muted">
-        Need help? Contact the NutriMind administration team through your official application correspondence. ·{' '}
+        Need help? Contact the KAINARA administration team through your official application correspondence. ·{' '}
         <Link href="/" className="font-bold text-brand-green">
           Return home
         </Link>

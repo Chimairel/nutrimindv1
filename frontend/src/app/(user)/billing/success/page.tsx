@@ -54,10 +54,10 @@ export default function BillingSuccessPage() {
           {active && data?.current.access
             ? `Your one-time access is verified through ${formatExpiry(data.current.access.expiresAt)}. It will not renew automatically.`
             : needsReview
-              ? 'NutriMind could not finish automatic verification. Your access still follows the latest verified server record.'
+              ? 'KAINARA could not finish automatic verification. Your access still follows the latest verified server record.'
               : timedOut
                 ? 'Verification is taking longer than expected. No access was granted from this return page; you can check status again safely.'
-                : 'NutriMind is checking verified server records. This browser return cannot grant Premium.'}
+                : 'KAINARA is checking verified server records. This browser return cannot grant Premium.'}
         </p>
         {error && (
           <p className="mt-4 text-sm text-status-error-text" role="alert">

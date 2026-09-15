@@ -104,7 +104,7 @@ export default function MealPlanGenerationProgress({
           {isComplete ? 'Your meal plan is ready!' : 'Building your weekly meal plan'}
         </h1>
         <p className="mt-2 max-w-md text-xs leading-relaxed text-brand-muted sm:text-sm">
-          NutriMind is assembling a safe, practical plan around your nutrition profile.
+          KAINARA is assembling a safe, practical plan around your nutrition profile.
         </p>
 
         {/* Centered Progress Bar Section (Free from outer box) */}

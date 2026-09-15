@@ -66,7 +66,7 @@ export class NutritionistApplicationService {
       throw new Error('This PRC license number is already associated with an application.');
     }
     if (existingUser) throw new Error('An account already exists for this email address.');
-    if (existingProfile) throw new Error('This PRC license number is already registered with NutriMind.');
+    if (existingProfile) throw new Error('This PRC license number is already registered with KAINARA.');
 
     const application = await prisma.nutritionistApplication.create({
       data: {
@@ -310,7 +310,7 @@ export class NutritionistApplicationService {
       throw new Error('This nutritionist invitation is invalid or has already been used.');
     }
     if (!application.invitationExpiresAt || application.invitationExpiresAt.getTime() <= Date.now()) {
-      throw new Error('This nutritionist invitation has expired. Ask NutriMind for a new invitation.');
+      throw new Error('This nutritionist invitation has expired. Ask KAINARA for a new invitation.');
     }
 
     const passwordHash = await bcrypt.hash(password, 12);

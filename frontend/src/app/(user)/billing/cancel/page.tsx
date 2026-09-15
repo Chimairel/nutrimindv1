@@ -29,7 +29,7 @@ export default function BillingCancelPage() {
         <div className="mt-7 flex items-start gap-3 rounded-2xl bg-brand-bgAlt p-4 text-left text-xs text-brand-muted">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
           <p>
-            Closing or returning from PayMongo does not cancel, confirm, or create a NutriMind payment record by itself.
+            Closing or returning from PayMongo does not cancel, confirm, or create a KAINARA payment record by itself.
           </p>
         </div>
       </Card>

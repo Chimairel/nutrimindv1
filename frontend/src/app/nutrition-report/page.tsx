@@ -158,7 +158,7 @@ export default function NutritionReportPage() {
       const fileURL = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = fileURL;
-      link.setAttribute('download', `NutriMind_Nutrition_Report_${user?.name}.pdf`);
+      link.setAttribute('download', `KAINARA_Nutrition_Report_${user?.name}.pdf`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -452,7 +452,7 @@ export default function NutritionReportPage() {
           <div className="max-w-6xl w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
             <p className="text-[11px] md:text-xs text-brand-muted leading-relaxed max-w-2xl text-center md:text-left">
               By clicking acknowledge, you confirm that you have read our medical limitations disclaimers and understand
-              that NutriMind recommendations are AI-generated estimations.
+              that KAINARA recommendations are AI-generated estimations.
             </p>
             <Button
               variant="primary"

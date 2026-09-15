@@ -198,7 +198,7 @@ export class CheckinService {
                 userId,
                 title: 'Progress review recommended',
                 message:
-                  'Your recent trend and recorded adherence suggest that a nutritionist should review the next adjustment. NutriMind did not automatically change your calorie target from trend data alone.',
+                  'Your recent trend and recorded adherence suggest that a nutritionist should review the next adjustment. KAINARA did not automatically change your calorie target from trend data alone.',
                 type: NotificationType.REVIEW_REQUEST,
               },
             });

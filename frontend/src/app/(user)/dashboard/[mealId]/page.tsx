@@ -373,7 +373,7 @@ export default function MealDetailPage() {
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" aria-hidden="true" />
                     <span>
                       <strong>Representative photograph</strong> · Pictured preparation, garnish, or secondary
-                      ingredients may differ from the NutriMind recipe.
+                      ingredients may differ from the KAINARA recipe.
                     </span>
                   </p>
                 )}

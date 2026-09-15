@@ -110,7 +110,7 @@ export default function OnboardingStatsPage() {
     const parsedTargetWeight = parseFloat(targetWeight);
 
     if (isNaN(parsedAge) || parsedAge < 18 || parsedAge > 100) {
-      setError('NutriMind currently supports adults aged 18 to 100.');
+      setError('KAINARA currently supports adults aged 18 to 100.');
       return;
     }
     if (!biologicalSex) {

@@ -9,7 +9,6 @@ import {
   BookOpenText,
   BadgeCheck,
   Bot,
-  ChevronRight,
   CircleDot,
   Database,
   Fingerprint,
@@ -19,7 +18,6 @@ import {
   ShieldCheck,
   Sparkles,
   Stethoscope,
-  UtensilsCrossed,
   Users,
   Video,
   WandSparkles,
@@ -33,12 +31,6 @@ const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
   return '/dashboard';
 };
-
-const mealRows = [
-  { meal: 'Tortang talong bowl', meta: '412 kcal · high protein', state: 'Verified', color: 'bg-brand-accent' },
-  { meal: 'Sinigang na bangus', meta: '386 kcal · low sodium', state: 'Verified', color: 'bg-brand-cyan' },
-  { meal: 'Munggo garden plate', meta: '448 kcal · fiber rich', state: 'Review', color: 'bg-amber-400' },
-];
 
 const capabilities = [
   {
@@ -133,7 +125,7 @@ export default function Home() {
               </h1>
 
               <p className="mt-7 max-w-xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
-                NutriMind turns personal health context into culturally familiar meal plans, then keeps AI-generated
+                KAINARA turns personal health context into culturally familiar meal plans, then keeps AI-generated
                 meals inside a transparent nutritionist-review workflow.
               </p>
 
@@ -179,94 +171,39 @@ export default function Home() {
                   <HeartPulse className="h-3.5 w-3.5 text-brand-cyan" />
                   Health sync
                 </div>
-                <p className="mt-3 font-display text-2xl font-extrabold">1,840</p>
+                <p className="mt-3 font-display text-2xl font-extrabold">2,779</p>
                 <p className="text-[10px] text-white/40">daily kcal target</p>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full w-[68%] rounded-full bg-gradient-to-r from-brand-accent to-brand-cyan" />
                 </div>
               </div>
 
-              <div className="surface-panel futuristic-grid relative overflow-hidden rounded-[36px] p-3 shadow-card-lg sm:p-5">
+              <div className="surface-panel futuristic-grid relative overflow-hidden rounded-[36px] p-2.5 shadow-card-lg sm:p-4">
                 <div className="scan-line" />
-                <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#07100d] p-4 text-white sm:p-6">
-                  <div className="mb-7 flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/35">
-                        Illustrative preview · sample meals
-                      </p>
-                      <h2 className="mt-1 font-display text-xl font-bold">Your nutrition cockpit</h2>
+                <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#07100d] text-white shadow-2xl">
+                  {/* Browser Window Chrome */}
+                  <div className="flex items-center justify-between border-b border-white/10 bg-[#0a1410] px-4 py-3 sm:px-5">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]/90 shadow-sm" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]/90 shadow-sm" />
+                      <span className="ml-2 font-mono text-[10px] text-white/40">app.kainara.ph/dashboard</span>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-accent shadow-[0_0_10px_rgba(184,244,95,0.85)]" />
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/55">Demo</span>
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/60">Live Cockpit</span>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-[0.78fr_1.22fr]">
-                    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.035] p-5">
-                      <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-[conic-gradient(#b8f45f_0_68%,rgba(255,255,255,0.07)_68%_100%)] p-[10px] shadow-neon">
-                        <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[#09110e]">
-                          <span className="font-display text-4xl font-black tracking-tight">68%</span>
-                          <span className="mt-1 text-[9px] uppercase tracking-[0.18em] text-white/35">daily fuel</span>
-                        </div>
-                      </div>
-                      <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-                        {[
-                          ['P', '82g'],
-                          ['C', '146g'],
-                          ['F', '38g'],
-                        ].map(([name, value]) => (
-                          <div key={name} className="rounded-xl bg-white/[0.04] py-2">
-                            <span className="block font-mono text-[8px] text-white/30">{name}</span>
-                            <span className="mt-0.5 block text-[11px] font-bold">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      {mealRows.map((row, index) => (
-                        <div
-                          key={row.meal}
-                          className="group flex items-center gap-3 rounded-[20px] border border-white/[0.08] bg-white/[0.035] p-3.5 transition hover:bg-white/[0.065]"
-                        >
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.055] text-brand-accent">
-                            {index === 2 ? (
-                              <Leaf className="h-[18px] w-[18px]" />
-                            ) : (
-                              <UtensilsCrossed className="h-[18px] w-[18px]" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-bold text-white/90">{row.meal}</p>
-                            <p className="mt-1 text-[10px] text-white/35">{row.meta}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <span className={`h-1.5 w-1.5 rounded-full ${row.color}`} />
-                              <span className="font-mono text-[8px] uppercase tracking-wider text-white/45">
-                                {row.state}
-                              </span>
-                            </div>
-                            <ChevronRight className="ml-auto mt-2 h-3.5 w-3.5 text-white/20 transition group-hover:translate-x-0.5 group-hover:text-white/60" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {[
-                      ['Hydration', '6 / 8'],
-                      ['Fiber', '24g'],
-                      ['Plan streak', '5 days'],
-                      ['Check-in', 'Friday'],
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-3 py-3">
-                        <p className="text-[9px] text-white/30">{label}</p>
-                        <p className="mt-1 text-xs font-bold text-white/75">{value}</p>
-                      </div>
-                    ))}
+                  {/* Actual Dashboard Screenshot */}
+                  <div className="relative overflow-hidden bg-[#07100d]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/dashboard-actual.png"
+                      alt="Actual KAINARA Nutrition Cockpit Dashboard"
+                      className="w-full h-auto object-cover object-top transition duration-500 hover:scale-[1.01]"
+                      loading="eager"
+                    />
                   </div>
                 </div>
               </div>
@@ -298,7 +235,7 @@ export default function Home() {
               </h2>
             </div>
             <p className="max-w-xl text-sm leading-7 text-brand-muted lg:ml-auto lg:text-base">
-              NutriMind connects the everyday user experience with a nutritionist review loop and an administrative
+              KAINARA connects the everyday user experience with a nutritionist review loop and an administrative
               verification layer. Each role sees the same nutrition system from the perspective that matters to them.
             </p>
           </div>
@@ -396,7 +333,7 @@ export default function Home() {
                 Help keep AI-assisted nutrition accountable.
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-white/50 sm:text-base">
-                Apply online from anywhere in the Philippines to join NutriMind&apos;s professional review team. Every
+                Apply online from anywhere in the Philippines to join KAINARA&apos;s professional review team. Every
                 application goes through credential screening and a one-on-one verification call before access is
                 granted.
               </p>
@@ -425,7 +362,7 @@ export default function Home() {
                 {
                   icon: Video,
                   title: 'One-on-one verification',
-                  text: 'Choose available schedules, then meet online with a NutriMind administrator.',
+                  text: 'Choose available schedules, then meet online with a KAINARA administrator.',
                 },
                 {
                   icon: ShieldCheck,

@@ -191,7 +191,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
           <div className="border-b border-brand-border/60 px-5 py-4 sm:px-6">
             <h2 className="font-display text-base font-black text-brand-text">Account information</h2>
             <p className="mt-1 text-xs text-brand-muted">
-              Update the name and email shown across your NutriMind workspace.
+              Update the name and email shown across your KAINARA workspace.
             </p>
           </div>
           <div className="p-5 sm:p-6">
@@ -354,7 +354,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             <Input
               id="delete-account-confirmation"
               name="confirmation"
-              label="Type DELETE MY NUTRIMIND ACCOUNT"
+              label="Type DELETE MY KAINARA ACCOUNT"
               value={deletionConfirmation}
               onChange={(event) => setDeletionConfirmation(event.target.value)}
               required
@@ -363,7 +363,11 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               <Button
                 variant="danger"
                 type="submit"
-                disabled={isDeleting || deletionConfirmation !== 'DELETE MY NUTRIMIND ACCOUNT'}
+                disabled={
+                  isDeleting ||
+                  (deletionConfirmation !== 'DELETE MY KAINARA ACCOUNT' &&
+                    deletionConfirmation !== 'DELETE MY NUTRIMIND ACCOUNT')
+                }
               >
                 {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
               </Button>

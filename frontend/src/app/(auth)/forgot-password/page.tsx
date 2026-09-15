@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
       description={
         success
           ? 'If the account exists, a secure reset link is on its way.'
-          : 'Enter the email connected to your NutriMind account.'
+          : 'Enter the email connected to your KAINARA account.'
       }
       heroTitle={
         <>

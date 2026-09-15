@@ -67,7 +67,7 @@ export default function NutritionExportPage() {
     const url = URL.createObjectURL(response.data);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'nutrimind-account-export.json';
+    anchor.download = 'kainara-account-export.json';
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -210,7 +210,7 @@ export default function NutritionExportPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-serif">
-              NUTRIMIND NUTRITION SUMMARY
+              KAINARA NUTRITION SUMMARY
             </h1>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
               Personal profile, current meal plan, and review status
@@ -381,7 +381,7 @@ export default function NutritionExportPage() {
           </h2>
           <p className="mt-2 text-xs leading-relaxed text-amber-900">
             The saved AI guidance was generated for an older health profile, so it is intentionally excluded from this
-            export. Regenerate it in NutriMind before relying on its recommendations.
+            export. Regenerate it in KAINARA before relying on its recommendations.
           </p>
         </div>
       )}
@@ -455,7 +455,7 @@ export default function NutritionExportPage() {
       {/* ================================================================= */}
       <div className="mt-12 pt-8 border-t border-slate-200 text-left page-break-inside-avoid">
         <p className="text-[10px] leading-relaxed text-slate-500">
-          This user-generated export summarizes information stored in NutriMind. It is not a prescription, diagnosis,
+          This user-generated export summarizes information stored in KAINARA. It is not a prescription, diagnosis,
           official medical record, or proof of nutritionist verification. Review labels apply only to the individual
           meal records shown and should not be interpreted as universal medical suitability.
         </p>

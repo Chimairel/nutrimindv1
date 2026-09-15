@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="text-xl font-bold tracking-tight text-brand-text mb-2 font-display">Something went wrong</h2>
           <p className="text-sm text-brand-muted leading-relaxed mb-6 max-w-sm">
-            NutriMind encountered an unexpected layout crash. Please try refreshing or clearing state.
+            KAINARA encountered an unexpected layout crash. Please try refreshing or clearing state.
           </p>
           {this.state.error && (
             <div className="w-full bg-brand-bgAlt border border-brand-border rounded-xl p-3 mb-6 font-mono text-[11px] text-left overflow-x-auto text-status-error-text max-h-36">

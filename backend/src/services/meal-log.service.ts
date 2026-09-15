@@ -346,7 +346,7 @@ export class MealLogService {
           nutritionStatus: OutsideMealNutritionStatus.USER_REPORTED,
           compatibilityStatus: OutsideMealCompatibilityStatus.INSUFFICIENT_EVIDENCE,
           includedInTotals: true,
-          warnings: ['User-reported nutrition-label or menu values; NutriMind has not independently verified them.'],
+          warnings: ['User-reported nutrition-label or menu values; KAINARA has not independently verified them.'],
         },
         restrictions
       );

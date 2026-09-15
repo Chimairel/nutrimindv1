@@ -110,7 +110,7 @@ export default function NutritionistInvitationPage() {
           <span className="text-brand-accent">Human judgment.</span>
         </>
       }
-      heroDescription="Your NutriMind nutritionist workspace connects verified professional decisions to a transparent meal-review history."
+      heroDescription="Your KAINARA nutritionist workspace connects verified professional decisions to a transparent meal-review history."
       footer={
         <Link href="/nutritionist-apply" className="font-bold text-brand-green">
           Track your application

@@ -40,7 +40,7 @@ export class UserPrivacyService {
     if (!user) throw new Error('Account not found.');
 
     return {
-      format: 'NutriMind Account Export',
+      format: 'KAINARA Account Export',
       schemaVersion: 1,
       exportedAt: new Date().toISOString(),
       data: user,

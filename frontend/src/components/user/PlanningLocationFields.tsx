@@ -60,7 +60,7 @@ export default function PlanningLocationFields({
         Meal-planning location
       </legend>
       <p className="mb-4 text-xs leading-relaxed text-brand-muted">
-        Start typing to search. NutriMind stores only your Region and Province/HUC—never a street address.
+        Start typing to search. KAINARA stores only your Region and Province/HUC—never a street address.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Input

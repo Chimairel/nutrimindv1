@@ -267,16 +267,16 @@ export default function OnboardingTosPage() {
           <div className="w-full h-48 overflow-y-auto bg-brand-bgAlt border border-brand-border rounded-xl p-4 text-xs text-brand-muted leading-relaxed mb-6">
             <h4 className="font-bold text-brand-text mb-2">1. AI NUTRITION-PLANNING LIMITATIONS</h4>
             <p className="mb-4">
-              NutriMind uses software calculations, FNRI food data, and Google Gemini-generated content to prepare
+              KAINARA uses software calculations, FNRI food data, and Google Gemini-generated content to prepare
               nutrition reports and meal suggestions. These outputs are estimates awaiting the review states shown in
               the application. They are not a diagnosis, prescription, or replacement for a physician or Registered
               Nutritionist-Dietitian.
             </p>
             <h4 className="font-bold text-brand-text mb-2">2. HEALTH DATA PRIVACY & COMPLIANCE</h4>
             <p className="mb-4">
-              NutriMind stores the profile and health information you provide to calculate targets, apply safety
+              KAINARA stores the profile and health information you provide to calculate targets, apply safety
               restrictions, generate reports and meal plans, and support nutritionist review. Selected profile and
-              health details are transmitted to Google Gemini when AI generation is required. NutriMind does not sell
+              health details are transmitted to Google Gemini when AI generation is required. KAINARA does not sell
               this information. Read this notice before consenting to processing under the{' '}
               <strong>Philippine Data Privacy Act of 2012 (R.A. 10173)</strong>.
             </p>
@@ -319,7 +319,7 @@ export default function OnboardingTosPage() {
               id="healthDataProcessing"
               checked={healthDataProcessing}
               onCheckedChange={(checked) => setHealthDataProcessing(!!checked)}
-              label="I explicitly consent to NutriMind processing my health profile and sending the necessary profile details to Google Gemini when AI-generated reports or meals are required."
+              label="I explicitly consent to KAINARA processing my health profile and sending the necessary profile details to Google Gemini when AI-generated reports or meals are required."
               error={error !== null && !healthDataProcessing}
             />
 

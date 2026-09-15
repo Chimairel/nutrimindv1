@@ -71,18 +71,18 @@ async function captureTestMail(message: CapturedMail): Promise<boolean> {
  */
 export async function sendVerificationEmail(to: string, otp: string, userName: string): Promise<void> {
   if (await captureTestMail({ type: 'EMAIL_VERIFICATION', to, token: otp })) return;
-  const subject = `🧠 NutriMind — Verify Your Email Address`;
+  const subject = `🧠 KAINARA — Verify Your Email Address`;
   const html = `
     <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0d0d0d; color: #e0e0e0; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <span style="font-size: 48px;">🧠</span>
-        <h1 style="color: #52B788; font-size: 24px; margin: 8px 0 0;">NutriMind</h1>
+        <h1 style="color: #52B788; font-size: 24px; margin: 8px 0 0;">KAINARA</h1>
         <p style="color: #888; font-size: 13px;">AI-Powered Nutrition Planning</p>
       </div>
       
       <p style="font-size: 15px; line-height: 1.6;">Hi <strong>${userName}</strong>,</p>
       <p style="font-size: 15px; line-height: 1.6;">
-        Welcome to NutriMind! Please verify your email address by entering the code below:
+        Welcome to KAINARA! Please verify your email address by entering the code below:
       </p>
       
       <div style="text-align: center; margin: 32px 0;">
@@ -97,14 +97,14 @@ export async function sendVerificationEmail(to: string, otp: string, userName: s
       
       <hr style="border: none; border-top: 1px solid #333; margin: 24px 0;" />
       <p style="font-size: 11px; color: #555; text-align: center;">
-        If you didn't create a NutriMind account, you can safely ignore this email.
+        If you didn't create a KAINARA account, you can safely ignore this email.
       </p>
     </div>
   `;
 
   try {
     await getTransporter().sendMail({
-      from: `"NutriMind" <${getFromAddress()}>`,
+      from: `"KAINARA" <${getFromAddress()}>`,
       to,
       subject,
       html,
@@ -123,13 +123,13 @@ export async function sendPasswordResetEmail(to: string, resetToken: string, use
   if (await captureTestMail({ type: 'PASSWORD_RESET', to, token: resetToken })) return;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
-  const subject = `🔐 NutriMind — Password Reset Request`;
+  const subject = `🔐 KAINARA — Password Reset Request`;
   const html = `
     <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0d0d0d; color: #e0e0e0; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <span style="font-size: 48px;">🔐</span>
         <h1 style="color: #52B788; font-size: 24px; margin: 8px 0 0;">Password Reset</h1>
-        <p style="color: #888; font-size: 13px;">NutriMind Account Security</p>
+        <p style="color: #888; font-size: 13px;">KAINARA Account Security</p>
       </div>
       
       <p style="font-size: 15px; line-height: 1.6;">Hi <strong>${userName}</strong>,</p>
@@ -160,7 +160,7 @@ export async function sendPasswordResetEmail(to: string, resetToken: string, use
 
   try {
     await getTransporter().sendMail({
-      from: `"NutriMind" <${getFromAddress()}>`,
+      from: `"KAINARA" <${getFromAddress()}>`,
       to,
       subject,
       html,
@@ -181,23 +181,23 @@ export async function sendNutritionistInvitationEmail(
   if (await captureTestMail({ type: 'NUTRITIONIST_INVITATION', to, token: invitationToken })) return;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const invitationLink = `${frontendUrl}/nutritionist-invitation?token=${encodeURIComponent(invitationToken)}`;
-  const subject = 'NutriMind — Your nutritionist application was approved';
+  const subject = 'KAINARA — Your nutritionist application was approved';
   const html = `
     <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background: #07100d; color: #e8f3ec; border-radius: 16px;">
-      <h1 style="color: #b8f45f; font-size: 24px; margin: 0 0 20px;">Welcome to NutriMind</h1>
+      <h1 style="color: #b8f45f; font-size: 24px; margin: 0 0 20px;">Welcome to KAINARA</h1>
       <p style="font-size: 15px; line-height: 1.7;">Hi <strong>${escapeHtml(applicantName)}</strong>,</p>
       <p style="font-size: 15px; line-height: 1.7;">Your professional application and verification call have been approved. Create your private password to activate your nutritionist workspace.</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${invitationLink}" style="display: inline-block; background: #b8f45f; color: #07100d; font-weight: 700; padding: 14px 28px; border-radius: 12px; text-decoration: none;">Activate nutritionist account</a>
       </div>
-      <p style="font-size: 13px; color: #9aaba2;">This private invitation expires in 72 hours. If it expires, contact NutriMind so an administrator can issue a new one.</p>
+      <p style="font-size: 13px; color: #9aaba2;">This private invitation expires in 72 hours. If it expires, contact KAINARA so an administrator can issue a new one.</p>
       <p style="font-size: 11px; color: #718079; word-break: break-all;">${invitationLink}</p>
     </div>
   `;
 
   try {
     await getTransporter().sendMail({
-      from: `"NutriMind" <${getFromAddress()}>`,
+      from: `"KAINARA" <${getFromAddress()}>`,
       to,
       subject,
       html,

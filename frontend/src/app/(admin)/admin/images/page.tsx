@@ -269,7 +269,7 @@ export default function AdminMealImagesPage() {
                   value={form.licenseCode}
                   onChange={(e) => setForm({ ...form, licenseCode: e.target.value })}
                 >
-                  <option value="OWNED">Owned by NutriMind</option>
+                  <option value="OWNED">Owned by KAINARA</option>
                   <option value="GENERATED">AI generated</option>
                   <option value="CC0">CC0</option>
                   <option value="PUBLIC_DOMAIN">Public domain</option>
@@ -286,7 +286,7 @@ export default function AdminMealImagesPage() {
             />
             <Input
               label="Creator / owner"
-              placeholder="NutriMind or photographer name"
+              placeholder="KAINARA or photographer name"
               value={form.creator}
               onChange={(e) => setForm({ ...form, creator: e.target.value })}
             />

@@ -182,7 +182,7 @@ router.delete(
   validateZodBody(
     z.object({
       password: z.string().min(8).max(128),
-      confirmation: z.literal('DELETE MY NUTRIMIND ACCOUNT'),
+      confirmation: z.union([z.literal('DELETE MY KAINARA ACCOUNT'), z.literal('DELETE MY NUTRIMIND ACCOUNT')]),
     })
   ),
   async (req: AuthenticatedRequest, res: Response) => {

@@ -85,7 +85,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
         isOpen={isOpen}
         onClose={() => {}} // Force them to choose
         title="Weekly Check-in Due"
-        description="It's time for your weekly NutriMind check-in! Let's ensure your meal plan remains accurate for your current progress."
+        description="It's time for your weekly KAINARA check-in! Let's ensure your meal plan remains accurate for your current progress."
       >
         <div className="flex flex-col gap-6 py-4 text-center">
           <p className="text-sm text-brand-muted">
@@ -112,7 +112,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
       isOpen={isOpen}
       onClose={() => setStep('PROMPT')}
       title="Update Check-in Details"
-      description="Update your current metrics. NutriMind will use them for the next scheduled plan without discarding your active approved week."
+      description="Update your current metrics. KAINARA will use them for the next scheduled plan without discarding your active approved week."
     >
       <div className="flex flex-col gap-5 py-2">
         {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}

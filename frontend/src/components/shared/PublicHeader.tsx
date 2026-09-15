@@ -38,30 +38,30 @@ export default function PublicHeader() {
         </Link>
 
         <nav
-          className="hidden items-center gap-1 rounded-2xl border border-brand-border/60 bg-brand-surface/55 p-1 backdrop-blur-xl md:flex"
+          className="hidden items-center gap-7 md:flex"
           aria-label="Public navigation"
         >
           <Link
             href="/#platform"
-            className="rounded-xl px-4 py-2 text-xs font-semibold text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text"
+            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
           >
             Platform
           </Link>
           <Link
             href="/#process"
-            className="rounded-xl px-4 py-2 text-xs font-semibold text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text"
+            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
           >
             How it works
           </Link>
           <Link
             href="/#nutritionists"
-            className="rounded-xl px-4 py-2 text-xs font-semibold text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text"
+            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
           >
             For nutritionists
           </Link>
           <Link
             href="/docs"
-            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${pathname === '/docs' ? 'bg-brand-accent text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'}`}
+            className={`text-xs font-semibold transition hover:text-brand-text ${pathname === '/docs' ? 'font-bold text-brand-accent' : 'text-brand-muted'}`}
           >
             Docs
           </Link>

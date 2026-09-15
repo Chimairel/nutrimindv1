@@ -42,7 +42,7 @@ export function ApplicationSidebar() {
         </div>
       </details>
       <p className="hidden lg:block mt-4 text-[11px] leading-5 text-white/60">
-        Submitting an application does not grant access or guarantee employment. NutriMind administrators review every
+        Submitting an application does not grant access or guarantee employment. KAINARA administrators review every
         applicant.
       </p>
     </aside>

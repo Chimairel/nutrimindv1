@@ -123,7 +123,7 @@ export default function ResetPasswordPage() {
     <AuthShell
       eyebrow="Secure reset"
       title="Choose a new password"
-      description="Create new credentials for your NutriMind workspace."
+      description="Create new credentials for your KAINARA workspace."
       heroTitle={
         <>
           Restore access.

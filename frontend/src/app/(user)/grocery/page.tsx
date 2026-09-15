@@ -135,7 +135,7 @@ export default function GroceryListPage() {
       const fileURL = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = fileURL;
-      link.setAttribute('download', `NutriMind_Grocery_List_${groceryList?.weekLabel || 'Current'}.pdf`);
+      link.setAttribute('download', `KAINARA_Grocery_List_${groceryList?.weekLabel || 'Current'}.pdf`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

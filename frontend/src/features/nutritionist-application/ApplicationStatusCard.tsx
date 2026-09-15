@@ -24,7 +24,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
       {application.status === 'REJECTED' ? (
         <div className="mt-6 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm text-status-error-text">
           {application.decisionReason ||
-            'The administrator recorded a final decision. Contact NutriMind if you need clarification.'}
+            'The administrator recorded a final decision. Contact KAINARA if you need clarification.'}
         </div>
       ) : (
         <div className="mt-7 grid gap-3 sm:grid-cols-6">
@@ -68,7 +68,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
         <p className="mt-6 text-sm leading-6 text-brand-muted">
           {application.invitationSentAt
             ? 'Check your email for the private activation link. It expires after 72 hours.'
-            : 'Your application is approved, but invitation delivery is still pending. Contact NutriMind administration for a new invitation.'}
+            : 'Your application is approved, but invitation delivery is still pending. Contact KAINARA administration for a new invitation.'}
         </p>
       )}
     </div>
