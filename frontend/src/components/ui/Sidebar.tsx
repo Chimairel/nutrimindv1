@@ -101,13 +101,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               type="button"
               onClick={toggleCollapse}
               aria-label="Open sidebar"
-              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white shadow-sm outline-none transition-transform duration-200 hover:scale-105 hover:border-white/20 hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-brand-accent/40"
+              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-2xl outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-accent/40"
             >
               <div className="relative flex h-full w-full items-center justify-center">
                 <KainaraLogo
-                  className="h-8 w-8 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
+                  className="h-12 w-12 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
                 />
-                <PanelLeftOpen className="absolute h-6 w-6 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-brand-accent" />
+                <PanelLeftOpen className="absolute h-7 w-7 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-brand-accent" />
               </div>
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0" />
               <SidebarTooltip id="sidebar-open-tooltip" label="Open sidebar" placement="side" />
@@ -210,12 +210,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <div className="relative flex items-center justify-between gap-3 px-1 pb-5">
             <Link
               href={homeHref}
-              className="flex min-w-0 items-center gap-3 outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-accent/40"
+              className="group/logo flex min-w-0 items-center gap-3 outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-accent/40"
               aria-label="KAINARA home"
             >
-              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-sm">
-                <KainaraLogo className="h-8 w-8" />
-                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center transition-transform duration-200 group-hover/logo:scale-105">
+                <KainaraLogo className="h-11 w-11" />
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
               </span>
               <span className="min-w-0">
                 <span className="block font-display text-[16px] font-extrabold tracking-[0.16em]">KAINARA</span>

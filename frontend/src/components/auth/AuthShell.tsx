@@ -38,9 +38,9 @@ export default function AuthShell({
 
           <div className="pointer-events-none relative z-10 flex items-center justify-between">
             <Link href="/" className="group pointer-events-auto flex items-center gap-3" aria-label="KAINARA home">
-              <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-sm transition group-hover:-rotate-3">
-                <KainaraLogo className="h-7 w-7" />
-                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#07100d] bg-brand-cyan" />
+              <span className="relative flex h-11 w-11 items-center justify-center transition group-hover:-rotate-3">
+                <KainaraLogo className="h-11 w-11" />
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#07100d] bg-brand-cyan" />
               </span>
               <span>
                 <span className="block font-display text-sm font-black tracking-[0.17em]">KAINARA</span>
@@ -113,8 +113,8 @@ export default function AuthShell({
                 className="flex min-w-0 items-center gap-2 font-display text-xs font-black tracking-[0.15em]"
                 aria-label="KAINARA home"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border/70 bg-brand-surface/70">
-                  <KainaraLogo className="h-6 w-6" />
+                <span className="flex h-8 w-8 items-center justify-center">
+                  <KainaraLogo className="h-8 w-8" />
                 </span>
                 KAINARA
               </Link>
