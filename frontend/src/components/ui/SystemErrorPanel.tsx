@@ -43,7 +43,9 @@ export function SystemErrorPanel({
       <header className="pointer-events-none relative z-20 flex w-full items-center justify-between p-6 sm:px-10 lg:px-16">
         <Link href="/" className="group pointer-events-auto flex items-center gap-3" aria-label="KAINARA home">
           <span className="relative flex h-10 w-10 items-center justify-center transition group-hover:-rotate-3">
-            <KainaraLogo className="h-10 w-10" />
+            <span className="flex h-full w-full items-center justify-center rounded-full overflow-hidden">
+              <KainaraLogo className="h-10 w-10" />
+            </span>
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-brand-border bg-brand-cyan" />
           </span>
           <span>

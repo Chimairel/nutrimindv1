@@ -24,7 +24,9 @@ export default function PublicHeader() {
       <div className="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
         <Link href="/" className="group flex items-center gap-3" aria-label="KAINARA home">
           <span className="relative flex h-10 w-10 items-center justify-center transition-transform group-hover:-rotate-3 group-hover:scale-105">
-            <KainaraLogo className="h-10 w-10" />
+            <span className="flex h-full w-full items-center justify-center rounded-full overflow-hidden">
+              <KainaraLogo className="h-10 w-10" />
+            </span>
             <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-brand-cyan" />
           </span>
           <span>

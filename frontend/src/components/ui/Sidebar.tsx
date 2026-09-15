@@ -101,9 +101,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               type="button"
               onClick={toggleCollapse}
               aria-label="Open sidebar"
-              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-2xl outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-accent/40"
+              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-full outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-accent/40"
             >
-              <div className="relative flex h-full w-full items-center justify-center">
+              <div className="relative flex h-full w-full items-center justify-center rounded-full overflow-hidden">
                 <KainaraLogo
                   className="h-12 w-12 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
                 />
@@ -214,7 +214,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               aria-label="KAINARA home"
             >
               <span className="relative flex h-11 w-11 shrink-0 items-center justify-center transition-transform duration-200 group-hover/logo:scale-105">
-                <KainaraLogo className="h-11 w-11" />
+                <span className="flex h-full w-full items-center justify-center rounded-full overflow-hidden">
+                  <KainaraLogo className="h-11 w-11" />
+                </span>
                 <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan" />
               </span>
               <span className="min-w-0">
