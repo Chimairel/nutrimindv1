@@ -49,7 +49,7 @@ export const KainaraLogo: React.FC<KainaraLogoProps> = ({
 
   return (
     <svg
-      viewBox="274 262 600 600"
+      viewBox="290 318 450 450"
       width={isNumericSize ? size : undefined}
       height={isNumericSize ? size : undefined}
       className={`shrink-0 select-none ${sizeClass} ${className}`.trim()}

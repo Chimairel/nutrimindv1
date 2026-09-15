@@ -8,7 +8,7 @@ describe('KainaraLogo', () => {
     render(<KainaraLogo />);
     const logo = screen.getByRole('img', { name: 'KAINARA logo' });
     expect(logo).toBeInTheDocument();
-    expect(logo).toHaveAttribute('viewBox', '274 262 600 600');
+    expect(logo).toHaveAttribute('viewBox', '290 318 450 450');
   });
 
   it('renders multicolor variant by default with authentic brand palette', () => {
