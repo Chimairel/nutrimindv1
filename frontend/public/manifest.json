@@ -1,11 +1,11 @@
 {
-  "name": "NutriMind",
-  "short_name": "NutriMind",
+  "name": "KAINARA",
+  "short_name": "KAINARA",
   "description": "AI-Powered Nutrition Planning for Filipinos — Personalized meal plans, clinical nutrition reports, and health tracking.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d0d",
-  "theme_color": "#0d0d0d",
+  "background_color": "#060b09",
+  "theme_color": "#060b09",
   "orientation": "portrait-primary",
   "icons": [
     {

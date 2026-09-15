@@ -40,6 +40,15 @@ export const metadata: Metadata = {
     'AI-powered, culturally aware meal planning validated against the FNRI Philippine Food Composition Table. Personalized nutrition for health-conscious Filipinos.',
   keywords: ['nutrition', 'meal planning', 'Filipino food', 'FNRI', 'diet', 'health', 'AI nutrition', 'KAINARA'],
   authors: [{ name: 'KAINARA Team' }],
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icons/icon-192.png',
+  },
   manifest: '/manifest.json',
   openGraph: {
     title: 'KAINARA | AI Nutrition & Meal Planning',

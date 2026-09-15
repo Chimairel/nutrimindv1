@@ -73,7 +73,7 @@ export default function LoginPage() {
       heroDescription="Return to a workspace where weekly meals, daily progress, and transparent review states move together."
       footer={
         <>
-          New to NutriMind?{' '}
+          New to KAINARA?{' '}
           <Link href="/register" className="font-bold text-brand-green transition hover:text-brand-cyan">
             Create an account
           </Link>

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Account access | NutriMind',
-  description: 'Securely access your NutriMind nutrition workspace.',
+  title: 'Account access | KAINARA',
+  description: 'Securely access your KAINARA nutrition workspace.',
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
