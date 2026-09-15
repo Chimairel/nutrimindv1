@@ -15,6 +15,23 @@ const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   return '/dashboard';
 };
 
+const getAuthenticatedHome = (user: {
+  role: 'USER' | 'NUTRITIONIST' | 'ADMIN';
+  emailVerified: boolean;
+  onboardingDone?: boolean;
+  onboardingNextPath?: string | null;
+  tosAccepted?: boolean;
+  reportAcknowledged?: boolean;
+}) => {
+  if (!user.emailVerified) return '/verify-email';
+  if (user.role === 'ADMIN') return '/admin/overview';
+  if (user.role === 'NUTRITIONIST') return '/nutritionist/reviews';
+  if (!user.onboardingDone) return user.onboardingNextPath || '/onboarding/stats';
+  if (!user.tosAccepted) return '/onboarding/tos';
+  if (!user.reportAcknowledged) return '/nutrition-report';
+  return '/dashboard';
+};
+
 /**
  * RouteGuard is a layout wrapper component that enforces roles,
  * authentication statuses, and system completion parameters before loading pages.
@@ -65,7 +82,10 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     if (!user && !isPublicRoute) {
       redirectTarget = '/login';
     } else if (user) {
-      if (!user.emailVerified && !isVerifyPage && !isPublicRoute) {
+      const isEntryRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
+      if (isEntryRoute) {
+        redirectTarget = getAuthenticatedHome(user);
+      } else if (!user.emailVerified && !isVerifyPage && !isPublicRoute) {
         redirectTarget = '/verify-email';
       } else if (isVerifyPage && user.emailVerified) {
         redirectTarget = getRoleHome(user.role);

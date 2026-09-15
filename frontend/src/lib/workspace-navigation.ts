@@ -21,9 +21,9 @@ import type { LucideIcon } from 'lucide-react';
 export type WorkspaceRole = 'USER' | 'NUTRITIONIST' | 'ADMIN';
 export type WorkspaceTool = { label: string; href: string; description: string; group: string; icon: LucideIcon };
 export const workspaceLabels: Record<WorkspaceRole, string> = {
-  USER: 'Personal workspace',
-  NUTRITIONIST: 'Nutritionist workspace',
-  ADMIN: 'Administrator workspace',
+  USER: 'Personal portal',
+  NUTRITIONIST: 'Clinical portal',
+  ADMIN: 'Control center',
 };
 export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
   USER: [

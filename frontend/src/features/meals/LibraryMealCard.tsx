@@ -6,13 +6,12 @@ import { formatManilaDate } from '@/lib/manila-date';
 export default function LibraryMealCard({
   meal,
   meals,
-  planView,
   onSwap,
   onVerifier,
 }: {
   meal: SwapOption;
   meals: MealPlan[];
-  planView: 'current' | 'next';
+  planView?: 'current' | 'next';
   onSwap: (id: string, meal: SwapOption) => Promise<void>;
   onVerifier: (verifier: PublicVerifier) => void;
 }) {
@@ -40,7 +39,7 @@ export default function LibraryMealCard({
         Protein {meal.proteinG} g · Carbs {meal.carbsG} g · Fat {meal.fatG} g
       </p>
       <label className="block text-xs font-semibold">
-        Use in your {planView === 'next' ? 'next-week' : 'current'} plan
+        Swap into your meal plan
         <select
           aria-label={'Choose slot for ' + meal.mealName}
           value=""

@@ -96,7 +96,11 @@ export default function PublicHeader() {
               >
                 <span className="sm:hidden">{isPendingVerification ? 'Verify' : 'Open'}</span>
                 <span className="hidden sm:inline">
-                  {isPendingVerification ? 'Continue verification' : 'Open workspace'}
+                  {isPendingVerification
+                    ? 'Continue verification'
+                    : user.role === 'USER'
+                      ? 'Go to Dashboard'
+                      : 'Open Portal'}
                 </span>
                 <ArrowUpRight className="hidden h-3.5 w-3.5 sm:block" />
               </Link>

@@ -331,7 +331,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               ] as const)
             : ([
                 ['overview', 'Overview', TrendingUp],
-                ['history', 'Adherence', ClipboardList],
+                ['history', 'Daily Adherence', ClipboardList],
               ] as const)
           ).map(([value, label, Icon]) => (
             <button
@@ -812,69 +812,163 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           )}
 
           {/* ADHERENCE CALENDAR BLOCK */}
-          {activeSection === 'history' && (
-            <div className="text-left">
-              <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
-                <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
-                  <BarChart3 className="w-4 h-4 text-brand-green" />
-                  <span>Historical Calorie Adherence</span>
-                </h3>
+          {activeSection === 'history' && (() => {
+            const logs = history?.dailyNutritionLogs || [];
+            const averageAdherence =
+              logs.length > 0
+                ? Math.round(logs.reduce((acc, curr) => acc + curr.adherencePct, 0) / logs.length)
+                : null;
+            const onTargetDays = logs.filter(
+              (log) => log.adherencePct >= 90 && log.adherencePct <= 110
+            ).length;
 
-                {history?.dailyNutritionLogs.length === 0 ? (
-                  <div className="p-8 text-center border border-dashed border-brand-border rounded-xl text-brand-muted text-xs font-bold flex items-center justify-center gap-1.5">
-                    <BarChart3 className="w-4 h-4 text-brand-green shrink-0" />
-                    <span>Yesterday&apos;s adherence scores compile automatically overnight</span>
+            return (
+              <div className="text-left space-y-6">
+                {/* Educational Banner */}
+                <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                      <Lightbulb className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-extrabold text-brand-text font-display">
+                        Understanding Calorie Adherence
+                      </h4>
+                      <p className="text-xs text-brand-muted leading-relaxed">
+                        Daily adherence measures how closely your total food intake matched your prescribed metabolic target.
+                        Scores compile automatically every night based on meals you mark as eaten on your daily dashboard.
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          90%–110%: Target Achieved
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          70%–89%: Acceptable Buffer
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                          &lt;70% or &gt;110%: Off Track
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
-                          <th className="pb-3 px-3">Date</th>
-                          <th className="pb-3 px-3">Calories Consumed</th>
-                          <th className="pb-3 px-3">Daily Target</th>
-                          <th className="pb-3 px-3 text-center">Adherence</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {history?.dailyNutritionLogs.map((log) => {
-                          let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
-                          if (log.adherencePct < 70) badgeVar = 'rejected';
-                          else if (log.adherencePct < 90) badgeVar = 'pending';
+                </div>
 
-                          return (
-                            <tr
-                              key={log.id}
-                              className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150"
-                            >
-                              <td className="py-3 px-3 font-semibold">
-                                {new Date(log.logDate).toLocaleDateString(undefined, {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })}
-                              </td>
-                              <td className="py-3 px-3 font-bold text-brand-text">
-                                {Math.round(log.totalCalories)} kcal
-                              </td>
-                              <td className="py-3 px-3 font-bold text-brand-muted">
-                                {Math.round(log.targetCalories)} kcal
-                              </td>
-                              <td className="py-3 px-3 text-center">
-                                <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
-                                  {Math.round(log.adherencePct)}% Adherence
-                                </Badge>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                {/* Summary Metric Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-brand-muted">Average Consistency</span>
+                      <BarChart3 className="h-4 w-4 text-brand-green" />
+                    </div>
+                    <p className="mt-3 font-display text-2xl font-black text-brand-text">
+                      {averageAdherence !== null ? `${averageAdherence}%` : '--'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-brand-muted">Across all logged days</p>
                   </div>
-                )}
-              </Card>
-            </div>
-          )}
+
+                  <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-brand-muted">Optimal Target Days</span>
+                      <CheckCircle className="h-4 w-4 text-brand-green" />
+                    </div>
+                    <p className="mt-3 font-display text-2xl font-black text-brand-text">
+                      {logs.length > 0 ? `${onTargetDays} / ${logs.length}` : '--'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-brand-muted">Days within 90%–110% zone</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-brand-muted">Logged Days</span>
+                      <Activity className="h-4 w-4 text-brand-cyan" />
+                    </div>
+                    <p className="mt-3 font-display text-2xl font-black text-brand-text">
+                      {logs.length}
+                    </p>
+                    <p className="mt-1 text-[11px] text-brand-muted">Historical compilations</p>
+                  </div>
+                </div>
+
+                {/* Table or Empty State Card */}
+                <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
+                  <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
+                    <BarChart3 className="w-4 h-4 text-brand-green" />
+                    <span>Daily Intake Log History</span>
+                  </h3>
+
+                  {logs.length === 0 ? (
+                    <div className="p-8 text-center border border-dashed border-brand-border rounded-2xl text-brand-muted flex flex-col items-center justify-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
+                        <BarChart3 className="w-6 h-6" />
+                      </div>
+                      <div className="max-w-md">
+                        <h4 className="text-sm font-bold text-brand-text">No Overnight Adherence Records Yet</h4>
+                        <p className="mt-1 text-xs text-brand-muted leading-relaxed">
+                          Adherence scores compile automatically overnight from your logged meals.
+                          Mark today&apos;s scheduled meals as eaten or log outside meals to record your first score.
+                        </p>
+                      </div>
+                      <Link
+                        href="/dashboard"
+                        className="mt-2 inline-flex items-center gap-2 rounded-xl bg-brand-accent px-4 py-2 text-xs font-extrabold text-[#07100d] shadow-sm hover:brightness-105"
+                      >
+                        Go to Today&apos;s Dashboard
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
+                            <th className="pb-3 px-3">Date</th>
+                            <th className="pb-3 px-3">Calories Consumed</th>
+                            <th className="pb-3 px-3">Daily Target</th>
+                            <th className="pb-3 px-3 text-center">Adherence</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {logs.map((log) => {
+                            let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
+                            if (log.adherencePct < 70 || log.adherencePct > 110) badgeVar = 'rejected';
+                            else if (log.adherencePct < 90) badgeVar = 'pending';
+
+                            return (
+                              <tr
+                                key={log.id}
+                                className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150"
+                              >
+                                <td className="py-3 px-3 font-semibold">
+                                  {new Date(log.logDate).toLocaleDateString(undefined, {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </td>
+                                <td className="py-3 px-3 font-bold text-brand-text">
+                                  {Math.round(log.totalCalories)} kcal
+                                </td>
+                                <td className="py-3 px-3 font-bold text-brand-muted">
+                                  {Math.round(log.targetCalories)} kcal
+                                </td>
+                                <td className="py-3 px-3 text-center">
+                                  <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
+                                    {Math.round(log.adherencePct)}% Adherence
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            );
+          })()}
         </>
       )}
     </div>

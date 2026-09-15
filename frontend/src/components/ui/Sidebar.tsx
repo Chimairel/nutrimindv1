@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     user.role === 'NUTRITIONIST' ? '/nutritionist/profile' : user.role === 'USER' ? '/profile' : '/admin/overview';
   const profileActive = pathname === profileHref || pathname.startsWith(`${profileHref}/`);
   const roleLabel =
-    user.role === 'NUTRITIONIST' ? 'Clinical portal' : user.role === 'ADMIN' ? 'Control center' : 'Personal workspace';
+    user.role === 'NUTRITIONIST' ? 'Clinical portal' : user.role === 'ADMIN' ? 'Control center' : 'Personal portal';
 
   return (
     <aside
@@ -244,7 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           </div>
 
           <div className="mb-3 flex items-center justify-between px-3">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Workspace</span>
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Navigation</span>
             <Activity className="h-3.5 w-3.5 text-brand-cyan/60" />
           </div>
 

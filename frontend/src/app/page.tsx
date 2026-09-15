@@ -1,6 +1,8 @@
 'use client';
 
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -70,14 +72,41 @@ const capabilities = [
 ];
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      const destination = !user.emailVerified
+        ? '/verify-email'
+        : user.role === 'ADMIN'
+          ? '/admin/overview'
+          : user.role === 'NUTRITIONIST'
+            ? '/nutritionist/reviews'
+            : !user.onboardingDone
+              ? (user.onboardingNextPath || '/onboarding/stats')
+              : !user.tosAccepted
+                ? '/onboarding/tos'
+                : !user.reportAcknowledged
+                  ? '/nutrition-report'
+                  : '/dashboard';
+      router.replace(destination);
+    }
+  }, [user, isLoading, router]);
+
   const isPendingVerification = Boolean(user && !user.emailVerified);
   const workspaceHref = user ? (isPendingVerification ? '/verify-email' : getRoleHome(user.role)) : '/register';
   const workspaceLabel = user
     ? isPendingVerification
       ? 'Continue email verification'
-      : 'Open my workspace'
+      : user.role === 'USER'
+        ? 'Go to Dashboard'
+        : 'Open Portal'
     : 'Build my nutrition profile';
+
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen overflow-hidden text-brand-text">
@@ -486,7 +515,13 @@ export default function Home() {
               href={workspaceHref}
               className="relative mt-7 inline-flex min-h-[52px] items-center gap-3 rounded-2xl bg-[#07100d] px-6 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 lg:mt-0"
             >
-              {user ? (isPendingVerification ? 'Continue verification' : 'Return to workspace') : 'Start onboarding'}
+              {user
+                ? isPendingVerification
+                  ? 'Continue verification'
+                  : user.role === 'USER'
+                    ? 'Go to Dashboard'
+                    : 'Open Portal'
+                : 'Start onboarding'}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

@@ -48,7 +48,7 @@ const HISTORY_SOURCE_OPTIONS: SelectOption[] = [
   },
   {
     value: 'SYSTEM_GENERATED',
-    label: 'NutriMind',
+    label: 'KAINARA',
     icon: <ShieldCheck className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />,
   },
   {
@@ -277,27 +277,6 @@ export default function WeeklyPlanPage() {
           ))}
         </nav>
 
-        {activeTab !== 'history' && (
-          <div className="mb-4 flex items-center gap-3">
-            {(['current', 'next'] as const).map((view) => (
-              <button
-                key={view}
-                type="button"
-                disabled={isRegenerating || isLoading}
-                aria-pressed={workspace.planView === view}
-                onClick={() => workspace.setPlanView(view)}
-                className="rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold aria-pressed:bg-brand-green aria-pressed:text-white"
-              >
-                {view === 'current' ? 'This week' : 'Next week · Premium'}
-              </button>
-            ))}
-            {workspace.planView === 'next' && (
-              <span className="text-xs text-brand-muted">
-                Prepare one upcoming cycle. Meals still need review before use.
-              </span>
-            )}
-          </div>
-        )}
         {activeTab === 'plan' && !isLoading && displayedMealCount > 0 && (
           <section className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
             {[

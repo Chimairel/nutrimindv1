@@ -6,8 +6,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/lib/context/ThemeContext';
 import NotificationDropdown from '@/components/shared/NotificationDropdown';
 import { usePathname } from 'next/navigation';
-import { workspaceLabels, workspaceTools } from '@/lib/workspace-navigation';
+import { workspaceTools } from '@/lib/workspace-navigation';
 import { WorkspaceTools } from './WorkspaceTools';
+
+import Breadcrumb1, { type BreadcrumbSegment } from '@/components/watermelon/breadcrumb-1';
 
 export const Navbar: React.FC = () => {
   const { user } = useAuth();
@@ -16,15 +18,38 @@ export const Navbar: React.FC = () => {
 
   if (!user) return null;
 
+  const currentTool = [...workspaceTools[user.role]]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'));
+
+  const homeHref =
+    user.role === 'ADMIN'
+      ? '/admin/overview'
+      : user.role === 'NUTRITIONIST'
+        ? '/nutritionist/reviews'
+        : '/dashboard';
+  const homeLabel =
+    user.role === 'ADMIN'
+      ? 'Control Center'
+      : user.role === 'NUTRITIONIST'
+        ? 'Clinical Portal'
+        : 'Dashboard';
+
+  const isHome = pathname === homeHref;
+  const segments: readonly BreadcrumbSegment[] = isHome || !currentTool
+    ? [
+        { label: 'KAINARA', href: homeHref },
+        { label: homeLabel, current: true },
+      ]
+    : [
+        { label: homeLabel, href: homeHref },
+        { label: currentTool.label, current: true },
+      ];
+
   return (
     <header className="relative z-30 flex min-h-[60px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">
-      <div className="min-w-0">
-        <p className="hidden text-xs text-brand-muted sm:block">{workspaceLabels[user.role]}</p>
-        <p className="truncate text-sm font-bold text-brand-text">
-          {[...workspaceTools[user.role]]
-            .sort((a, b) => b.href.length - a.href.length)
-            .find((tool) => pathname === tool.href || pathname.startsWith(tool.href + '/'))?.label || 'NutriMind'}
-        </p>
+      <div className="min-w-0 flex items-center">
+        <Breadcrumb1 segments={segments} />
       </div>
       <div className="ml-auto flex items-center gap-2">
         <WorkspaceTools role={user.role} />

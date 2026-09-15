@@ -5,7 +5,7 @@ import { Select } from './Select';
 
 const options = [
   { value: 'All', label: 'All Sources' },
-  { value: 'SYSTEM_GENERATED', label: 'NutriMind' },
+  { value: 'SYSTEM_GENERATED', label: 'KAINARA' },
   { value: 'USER_LOGGED', label: 'Outside Meal' },
   { value: 'USER_SWAPPED', label: 'Swapped' },
 ];
@@ -27,7 +27,7 @@ describe('Select Component', () => {
     fireEvent.click(trigger);
 
     expect(screen.getByRole('listbox')).toBeInTheDocument();
-    expect(screen.getByText('NutriMind')).toBeInTheDocument();
+    expect(screen.getByText('KAINARA')).toBeInTheDocument();
     expect(screen.getByText('Outside Meal')).toBeInTheDocument();
     expect(screen.getByText('Swapped')).toBeInTheDocument();
   });
@@ -68,7 +68,7 @@ describe('Select Component', () => {
     fireEvent.keyDown(trigger, { key: 'Enter' });
     expect(screen.getByRole('listbox')).toBeInTheDocument();
 
-    // Arrow down to "NutriMind"
+    // Arrow down to "KAINARA"
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
 
     // Press Enter to select

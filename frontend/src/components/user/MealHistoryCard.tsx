@@ -136,7 +136,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
             </span>
             {log.source === 'SYSTEM_GENERATED' && (
               <span className="rounded bg-brand-green/10 px-1.5 py-0.5 font-mono text-[8px] font-extrabold uppercase tracking-wider text-brand-green dark:bg-brand-accent/15 dark:text-brand-accent">
-                NutriMind
+                KAINARA
               </span>
             )}
             {log.source === 'USER_LOGGED' && (

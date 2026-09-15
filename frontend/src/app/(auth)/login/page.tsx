@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -14,7 +15,8 @@ import AuthShell from '@/components/auth/AuthShell';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +24,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   useEffect(() => setIsReady(true), []);
+
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      const destination = !user.emailVerified
+        ? '/verify-email'
+        : user.role === 'ADMIN'
+          ? '/admin/overview'
+          : user.role === 'NUTRITIONIST'
+            ? '/nutritionist/reviews'
+            : !user.onboardingDone
+              ? (user.onboardingNextPath || '/onboarding/stats')
+              : !user.tosAccepted
+                ? '/onboarding/tos'
+                : !user.reportAcknowledged
+                  ? '/nutrition-report'
+                  : '/dashboard';
+      router.replace(destination);
+    }
+  }, [user, isAuthLoading, router]);
+
+  if (user) {
+    return null;
+  }
 
   const clearFieldError = (field: LoginField) => {
     setFieldErrors((current) => {
