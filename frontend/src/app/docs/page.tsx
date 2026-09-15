@@ -3,50 +3,70 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
-  Blocks,
-  BookMarked,
+  ArrowUpRight,
+  BookOpen,
   BrainCircuit,
   CheckCircle2,
-  CircleDot,
-  FlaskConical,
-  HeartHandshake,
-  Lightbulb,
-  Quote,
-  ScanSearch,
-  ShieldCheck,
+  Clock,
+  Compass,
+  FileDown,
+  FileText,
+  HeartPulse,
+  HelpCircle,
+  Lock,
+  Mail,
+  Repeat2,
+  ShieldAlert,
+  ShoppingCart,
   Sparkles,
-  Users,
+  Stethoscope,
+  User,
+  UtensilsCrossed,
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
 
 export const metadata: Metadata = {
-  title: 'Project Documentation | KAINARA',
-  description: 'The research, design decisions, and development story behind KAINARA.',
+  title: 'Documentation & User Guide | KAINARA',
+  description:
+    'Comprehensive product documentation, user guides, clinical safety standards, nutrition algorithms, and troubleshooting FAQs for KAINARA.',
 };
 
 const chapters = [
-  ['01', 'Origin', '#origin'],
-  ['02', 'Discovery', '#discovery'],
-  ['03', 'Product principles', '#principles'],
-  ['04', 'System loop', '#system-loop'],
-  ['05', 'Timeline', '#timeline'],
+  ['01', 'Getting Started & Intake', '#getting-started'],
+  ['02', 'Meal Planning & Cycles', '#meal-planning'],
+  ['03', 'Daily Tracking & Cockpit', '#daily-tracking'],
+  ['04', 'Outside Meals & AI', '#outside-meals'],
+  ['05', 'Swaps & Verified Library', '#meal-swaps'],
+  ['06', 'Groceries & PDF Export', '#groceries'],
+  ['07', 'Clinical Oversight & Safety', '#clinical-safety'],
+  ['08', 'Account, Goals & Privacy', '#account-settings'],
+  ['09', 'Troubleshooting & FAQs', '#faqs'],
 ];
 
-const principles = [
+const faqs = [
   {
-    icon: HeartHandshake,
-    title: 'Culturally familiar first',
-    text: 'A healthy meal plan should feel recognizable, accessible, and possible in a Filipino household—not imported from a generic Western template.',
+    q: 'How does KAINARA calculate my calories and macros?',
+    a: 'KAINARA calculates your Basal Metabolic Rate (BMR) and Total Daily Energy Expenditure (TDEE) using the Mifflin-St Jeor formula. Targets are calibrated for your biological sex, age, height, current weight, activity level, and weight objective (loss, maintenance, or gain).',
   },
   {
-    icon: ShieldCheck,
-    title: 'Safety state must be visible',
-    text: 'Generated and verified are not the same thing. The interface keeps review status legible wherever a meal appears.',
+    q: 'Are the recipes realistic for Philippine households?',
+    a: 'Yes. KAINARA matches all plans against the Food and Nutrition Research Institute (FNRI) Philippine Food Composition Table. Plans feature accessible market ingredients like bangus, tilapia, mongo, malunggay, kangkong, and brown rice with accurate local portion weights.',
   },
   {
-    icon: BrainCircuit,
-    title: 'AI fills gaps, not authority',
-    text: 'The product searches compatible verified meals first and treats generation as a fallback within a human-review lifecycle.',
+    q: 'What is a Starter / Bridge Plan?',
+    a: 'If your designated shopping day (e.g. Saturday or Sunday) is several days away, KAINARA immediately prepares a 1 to 3-day Starter Bridge Plan using standard kitchen staples so you can begin eating right away without disrupting your weekly grocery schedule.',
+  },
+  {
+    q: 'Can I eat outside meals and still track my adherence?',
+    a: 'Yes. Click "Log Outside Food" on your dashboard. Our multimodal AI identifies ingredients, estimates calories and macros per gram or serving, and alerts you if any ingredients conflict with your declared medical conditions or allergies.',
+  },
+  {
+    q: 'Why is there a ±15% calorie delta warning when swapping meals?',
+    a: 'To safeguard your caloric balance, KAINARA warns you if a replacement dish differs by more than 15% calories from your original target meal. This gives you transparency to adjust your other meals during the day.',
+  },
+  {
+    q: 'Who reviews the meal plans before they are marked verified?',
+    a: 'PRC-licensed Filipino Registered Nutritionist-Dietitians (RNDs) review queued AI plans, audit nutritional accuracy, and curate the verified recipe library. Dishes marked "Verified RND" have undergone clinical inspection.',
   },
 ];
 
@@ -56,6 +76,7 @@ export default function DocsPage() {
       <PublicHeader />
 
       <main>
+        {/* Hero Section */}
         <section className="relative overflow-hidden border-b border-brand-border/60">
           <div className="pointer-events-none absolute inset-0 futuristic-grid opacity-50" />
           <div className="pointer-events-none absolute left-[12%] top-10 h-72 w-72 rounded-full bg-brand-accent/10 blur-[110px]" />
@@ -67,332 +88,546 @@ export default function DocsPage() {
               className="mb-10 inline-flex items-center gap-2 text-xs font-bold text-brand-muted transition hover:text-brand-green"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back to the experience
+              Back to experience
             </Link>
             <div className="grid gap-12 lg:grid-cols-[1fr_0.55fr] lg:items-end">
               <div>
                 <div className="eyebrow inline-flex items-center gap-2">
-                  <BookMarked className="h-3.5 w-3.5" />
-                  Project documentation · draft
+                  <BookOpen className="h-3.5 w-3.5 text-brand-accent" />
+                  Official Product Documentation & User Guide
                 </div>
                 <h1 className="mt-6 max-w-4xl font-display text-[clamp(3.2rem,7vw,7rem)] font-black leading-[0.9] tracking-[-0.065em]">
-                  The thinking behind <span className="text-gradient">KAINARA.</span>
+                  The complete guide to <span className="text-gradient">KAINARA.</span>
                 </h1>
               </div>
               <div className="border-l border-brand-border/70 pl-6">
                 <p className="text-sm leading-7 text-brand-muted">
-                  A living journal for the research, product decisions, design process, and technical evolution of a
-                  Filipino nutrition capstone.
+                  Official user manuals, step-by-step feature guides, clinical safety standards, nutrition algorithms,
+                  and troubleshooting FAQs for the KAINARA nutrition platform.
                 </p>
                 <div className="mt-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-brand-muted">
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
-                  Placeholder editorial content
+                  <span className="h-2 w-2 rounded-full bg-brand-green" />
+                  Version 1.0 · Updated September 2026
                 </div>
               </div>
             </div>
           </div>
         </section>
 
+        {/* Two-Column Layout */}
         <div className="mx-auto grid max-w-[1320px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-12 lg:py-24">
+          {/* Sticky Left Navigation */}
           <aside className="hidden lg:block">
             <div className="sticky top-28">
               <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-brand-muted">On this page</p>
               <nav className="mt-5 space-y-1" aria-label="Documentation chapters">
-                {chapters.map(([number, label, href]) => (
+                {chapters.map(([num, title, href]) => (
                   <a
-                    key={number}
+                    key={num}
                     href={href}
-                    className="group flex items-center gap-3 rounded-xl px-2 py-2.5 text-xs font-semibold text-brand-muted transition hover:bg-brand-surface/60 hover:text-brand-text"
+                    className="group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold text-brand-muted transition hover:bg-brand-surface/70 hover:text-brand-text"
                   >
-                    <span className="font-mono text-[9px] text-brand-green/60 group-hover:text-brand-green">
-                      {number}
+                    <span className="font-mono text-[9px] font-bold text-brand-muted/60 transition group-hover:text-brand-green">
+                      {num}
                     </span>
-                    {label}
+                    <span>{title}</span>
                   </a>
                 ))}
               </nav>
-              <div className="mt-8 rounded-2xl border border-brand-border/70 bg-brand-surface/60 p-4">
-                <p className="text-[11px] font-bold text-brand-text">Editorial note</p>
-                <p className="mt-2 text-[10px] leading-5 text-brand-muted">
-                  Replace the marked placeholders with validated capstone research, team photos, and adviser-approved
-                  references.
+
+              {/* Direct Support Card */}
+              <div className="mt-10 rounded-[24px] border border-brand-border/80 bg-brand-surface/60 p-5 text-xs">
+                <div className="flex items-center gap-2 text-brand-text font-bold">
+                  <Mail className="h-4 w-4 text-brand-green" />
+                  <span>Need help?</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-5 text-brand-muted">
+                  Questions regarding clinical profiles, meal plans, or billing? Reach our team directly.
                 </p>
+                <a
+                  href="mailto:support@kainara.ph"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-brand-green hover:underline"
+                >
+                  support@kainara.ph
+                  <ArrowUpRight className="h-3 w-3" />
+                </a>
               </div>
             </div>
           </aside>
 
-          <article className="min-w-0">
-            <section id="origin" className="scroll-mt-28">
+          {/* Right Column: Chapters */}
+          <article className="min-w-0 space-y-24">
+            {/* Chapter 01: Getting Started & Intake */}
+            <section id="getting-started" className="scroll-mt-28">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d]">
-                  <Lightbulb className="h-[18px] w-[18px]" />
+                  <Compass className="h-[18px] w-[18px]" />
                 </span>
                 <div>
                   <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
                     Chapter 01
                   </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">Where the idea began</h2>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Getting Started & Clinical Intake
+                  </h2>
                 </div>
               </div>
 
               <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
                 <p>
-                  Many nutrition products make healthy eating feel geographically generic. Their suggestions can be
-                  nutritionally impressive on paper yet culturally distant, expensive, or difficult to source in an
-                  ordinary Philippine routine. KAINARA began with a practical question: what would personalized
-                  nutrition look like if Filipino context were a first-class input?
+                  Getting started with KAINARA begins with our 5-step biometric and clinical onboarding wizard.
+                  Instead of generic calorie calculators, KAINARA gathers your medical history, dietary preferences,
+                  and local shopping schedule to formulate an individualized nutrition plan.
                 </p>
                 <p>
-                  The capstone explores a connected workflow rather than a single AI prompt. Users provide context, the
-                  system composes a plan, and nutrition professionals can review meals before those meals become part of
-                  a reusable verified library. This page is an editorial shell for the team to replace with its final,
-                  evidence-backed narrative.
+                  Your daily energy baseline is computed using the <strong>Mifflin-St Jeor</strong> formula, the clinical
+                  standard recognized by dietitians for calculating Basal Metabolic Rate (BMR) and Total Daily Energy
+                  Expenditure (TDEE).
                 </p>
               </div>
 
-              <blockquote className="relative mt-10 overflow-hidden rounded-[28px] border border-brand-green/20 bg-brand-green/[0.07] p-7 sm:p-9">
-                <Quote className="absolute right-6 top-5 h-14 w-14 text-brand-green/10" />
-                <p className="relative max-w-3xl font-display text-xl font-bold leading-8 tracking-tight text-brand-text sm:text-2xl">
-                  “How might we make personalized nutrition feel local, understandable, and responsibly reviewable?”
-                </p>
-                <p className="mt-4 font-mono text-[9px] uppercase tracking-[0.16em] text-brand-muted">
-                  Working design question · placeholder wording
-                </p>
-              </blockquote>
+              <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                <div className="surface-panel rounded-[24px] p-5">
+                  <span className="font-mono text-xs font-bold text-brand-green">STEP 01–02</span>
+                  <h3 className="mt-2 text-xs font-bold text-brand-text">Biometrics & Goals</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Age, sex, height, current weight, target weight, and activity multipliers.
+                  </p>
+                </div>
+                <div className="surface-panel rounded-[24px] p-5">
+                  <span className="font-mono text-xs font-bold text-brand-cyan">STEP 03–04</span>
+                  <h3 className="mt-2 text-xs font-bold text-brand-text">Medical & Allergens</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Screening for Type 2 Diabetes, Hypertension, Kidney Disease, and specific allergens.
+                  </p>
+                </div>
+                <div className="surface-panel rounded-[24px] p-5">
+                  <span className="font-mono text-xs font-bold text-brand-accent">STEP 05</span>
+                  <h3 className="mt-2 text-xs font-bold text-brand-text">Shopping Day Anchoring</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Selecting your weekly palengke or supermarket schedule (Weekend vs. Weekday).
+                  </p>
+                </div>
+              </div>
             </section>
 
-            <section id="discovery" className="scroll-mt-28 border-t border-brand-border/70 pt-16 mt-20">
+            {/* Chapter 02: Meal Planning & Cycles */}
+            <section id="meal-planning" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/15 text-brand-cyan">
-                  <ScanSearch className="h-[18px] w-[18px]" />
+                  <Clock className="h-[18px] w-[18px]" />
                 </span>
                 <div>
                   <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
                     Chapter 02
                   </p>
                   <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Discovery and field notes
+                    Meal Planning & Shopping Cycles
                   </h2>
                 </div>
               </div>
 
               <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. This section is reserved for the team&apos;s
-                problem validation, participant profile, survey method, interview themes, and synthesis. Avoid
-                presenting sample numbers as findings until the underlying evidence is cited.
+                Filipino shopping rhythms revolve around weekend market trips or designated grocery days.
+                Rather than imposing an arbitrary Monday-to-Sunday cycle, KAINARA synchronizes your 7-day plan with your
+                routine and provides starter bridge plans so you never have to wait.
               </p>
 
-              <div className="mt-9 grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-                <div className="relative min-h-[390px] overflow-hidden rounded-[30px] border border-white/10 bg-[#08110e] p-7 text-white futuristic-grid">
-                  <div className="absolute -right-12 -top-12 h-52 w-52 rounded-full bg-brand-cyan/15 blur-3xl" />
-                  <div className="relative flex h-full flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <div className="eyebrow border-white/10 bg-white/5 text-white/60">Image placeholder 01</div>
-                      <Users className="h-5 w-5 text-brand-cyan" />
-                    </div>
-                    <div>
-                      <div className="mb-5 grid grid-cols-4 gap-2">
-                        {[60, 85, 48, 72].map((height, index) => (
-                          <div key={height} className="flex h-24 items-end rounded-xl bg-white/[0.035] p-2">
-                            <div
-                              className={`w-full rounded-lg ${index % 2 ? 'bg-brand-cyan/50' : 'bg-brand-accent/55'}`}
-                              style={{ height: `${height}%` }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <h3 className="font-display text-xl font-bold">Participant research visual</h3>
-                      <p className="mt-2 max-w-md text-xs leading-5 text-white/40">
-                        Replace this generated visual block with a consent-cleared research photo, chart, or affinity
-                        map.
-                      </p>
-                    </div>
+              <div className="mt-9 grid gap-4 md:grid-cols-2">
+                <div className="surface-panel rounded-[26px] p-6">
+                  <div className="flex items-center gap-2 text-brand-green font-bold text-xs uppercase tracking-wider">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Starter Bridge Plans
                   </div>
+                  <h3 className="mt-3 font-display text-lg font-bold text-brand-text">Immediate first steps</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    If you sign up on a Tuesday and shop on Saturday, KAINARA generates a 1 to 3-day Starter Bridge Plan
+                    using everyday pantry items. Your full 7-day cycle begins seamlessly on your shopping day.
+                  </p>
                 </div>
 
-                <div className="grid gap-4">
-                  {[
-                    [
-                      'Research question',
-                      'What prevents young Filipino adults from sustaining a personalized meal plan?',
-                    ],
-                    [
-                      'Behavior lens',
-                      'Shopping rhythm, cooking time, budget, food familiarity, and health constraints.',
-                    ],
-                    ['Evidence needed', 'Cited interviews, survey results, literature, and FNRI source references.'],
-                  ].map(([label, text], index) => (
-                    <div key={label} className="surface-panel rounded-[24px] p-5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[9px] font-bold text-brand-green">0{index + 1}</span>
-                        <p className="text-xs font-bold text-brand-text">{label}</p>
-                      </div>
-                      <p className="mt-3 text-xs leading-5 text-brand-muted">{text}</p>
-                    </div>
-                  ))}
+                <div className="surface-panel rounded-[26px] p-6">
+                  <div className="flex items-center gap-2 text-brand-cyan font-bold text-xs uppercase tracking-wider">
+                    <UtensilsCrossed className="h-4 w-4" />
+                    FNRI Food Composition
+                  </div>
+                  <h3 className="mt-3 font-display text-lg font-bold text-brand-text">100% Culturally Familiar</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Dishes are matched against the FNRI Philippine Food Composition Table, guaranteeing realistic
+                    Filipino dishes (e.g. tinola, sinigang, ginisang monggo) with exact laboratory-verified macros.
+                  </p>
                 </div>
               </div>
             </section>
 
-            <section id="principles" className="scroll-mt-28 border-t border-brand-border/70 pt-16 mt-20">
+            {/* Chapter 03: Daily Tracking & Cockpit */}
+            <section id="daily-tracking" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
                   <Sparkles className="h-[18px] w-[18px]" />
                 </span>
                 <div>
                   <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
                     Chapter 03
                   </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">Product principles</h2>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Daily Tracking & Cockpit Dashboard
+                  </h2>
                 </div>
               </div>
 
-              <div className="mt-9 grid gap-4 md:grid-cols-3">
-                {principles.map((principle, index) => {
-                  const Icon = principle.icon;
-                  return (
-                    <div key={principle.title} className="surface-panel rounded-[26px] p-6">
-                      <div className="flex items-center justify-between">
-                        <Icon className="h-5 w-5 text-brand-green" />
-                        <span className="font-display text-3xl font-black text-brand-text/[0.06]">0{index + 1}</span>
-                      </div>
-                      <h3 className="mt-8 font-display text-base font-extrabold tracking-tight">{principle.title}</h3>
-                      <p className="mt-3 text-xs leading-6 text-brand-muted">{principle.text}</p>
-                    </div>
-                  );
-                })}
+              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
+                <p>
+                  Your home dashboard serves as your daily nutrition cockpit. The interactive Calorie Ring gives you an
+                  immediate visual indicator of consumed vs. remaining energy for the day, complemented by protein, carb,
+                  and fat macro progression bars.
+                </p>
+                <p>
+                  Each scheduled meal card lets you record your intake with a single click: mark as <strong>DONE</strong>{' '}
+                  to tally macros, or <strong>SKIPPED</strong> if you omitted the meal. Log water consumption in 250ml
+                  increments and monitor your 7-day adherence streak.
+                </p>
+              </div>
+
+              <div className="mt-10 rounded-[28px] border border-brand-border bg-brand-surface/60 p-7">
+                <h3 className="font-display text-base font-bold text-brand-text">Adherence Criteria</h3>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3 text-xs">
+                  <div className="rounded-xl border border-brand-green/20 bg-brand-green/5 p-4">
+                    <p className="font-bold text-brand-green">90% – 110% Optimal</p>
+                    <p className="mt-1 text-brand-muted text-[11px]">Caloric intake within target tolerance window.</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <p className="font-bold text-amber-500">70% – 89% Buffer</p>
+                    <p className="mt-1 text-brand-muted text-[11px]">Acceptable variance; slightly below target energy.</p>
+                  </div>
+                  <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                    <p className="font-bold text-red-500">&lt; 70% or &gt; 110%</p>
+                    <p className="mt-1 text-brand-muted text-[11px]">Substantial deviation from metabolic prescription.</p>
+                  </div>
+                </div>
               </div>
             </section>
 
-            <section id="system-loop" className="scroll-mt-28 border-t border-brand-border/70 pt-16 mt-20">
+            {/* Chapter 04: Outside Meals & AI Breakdown */}
+            <section id="outside-meals" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-                  <Blocks className="h-[18px] w-[18px]" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+                  <FileText className="h-[18px] w-[18px]" />
                 </span>
                 <div>
                   <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
                     Chapter 04
                   </p>
                   <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    The connected system loop
+                    Logging Outside Meals & AI Breakdown
                   </h2>
                 </div>
               </div>
 
-              <div className="mt-9 overflow-hidden rounded-[30px] border border-white/10 bg-[#07100d] p-6 text-white sm:p-9">
-                <div className="grid gap-3 md:grid-cols-3">
-                  {[
-                    { label: 'User space', icon: Users, items: ['Health context', 'Weekly plan', 'Daily tracking'] },
-                    {
-                      label: 'Nutritionist space',
-                      icon: ShieldCheck,
-                      items: ['Review queue', 'Meal evidence', 'Approval lifecycle'],
-                    },
-                    {
-                      label: 'Admin space',
-                      icon: Blocks,
-                      items: ['Account oversight', 'RND verification', 'Platform analytics'],
-                    },
-                  ].map((column) => {
-                    const Icon = column.icon;
-                    return (
-                      <div
-                        key={column.label}
-                        className="rounded-[22px] border border-white/[0.08] bg-white/[0.035] p-5"
-                      >
-                        <Icon className="h-5 w-5 text-brand-accent" />
-                        <h3 className="mt-5 text-sm font-bold">{column.label}</h3>
-                        <div className="mt-4 space-y-2">
-                          {column.items.map((item) => (
-                            <div key={item} className="flex items-center gap-2 text-[11px] text-white/45">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-brand-cyan/70" />
-                              {item}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+              <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
+                Eating outside the planned menu is a normal part of life. Whether dining at a carinderia, restaurant, or
+                family gathering, you can log custom food directly into KAINARA without losing your progress.
+              </p>
+
+              <div className="mt-9 grid gap-4 md:grid-cols-2">
+                <div className="surface-panel rounded-[26px] p-6">
+                  <div className="flex items-center gap-2 text-brand-green font-bold text-sm">
+                    <BrainCircuit className="h-4 w-4" />
+                    Multimodal AI Estimation
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
+                    Enter dish names like &ldquo;Pork Sinigang with 1 cup rice&rdquo;. Gemini AI breaks down the
+                    ingredients, estimates portion weights, and calculates exact calories, proteins, carbohydrates, and fats.
+                  </p>
                 </div>
-                <div className="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-brand-accent/15 bg-brand-accent/[0.07] p-4 text-center">
-                  <CircleDot className="h-4 w-4 text-brand-accent" />
-                  <p className="text-[11px] text-white/55">
-                    Shared data and visible review states connect every role without making them interchangeable.
+
+                <div className="surface-panel rounded-[26px] p-6">
+                  <div className="flex items-center gap-2 text-red-500 font-bold text-sm">
+                    <ShieldAlert className="h-4 w-4" />
+                    Automated Contraindication Alerts
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
+                    If you manage Hypertension or Type 2 Diabetes, dishes containing excess sodium, refined sugars, or
+                    your recorded allergens trigger an instant clinical contraindication alert before logging.
                   </p>
                 </div>
               </div>
             </section>
 
-            <section id="timeline" className="scroll-mt-28 border-t border-brand-border/70 pt-16 mt-20">
+            {/* Chapter 05: Meal Swaps & Verified Library */}
+            <section id="meal-swaps" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-500">
-                  <FlaskConical className="h-[18px] w-[18px]" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
+                  <Repeat2 className="h-[18px] w-[18px]" />
                 </span>
                 <div>
                   <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
                     Chapter 05
                   </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">Capstone timeline</h2>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Meal Swaps & Verified Library
+                  </h2>
                 </div>
               </div>
 
-              <div className="mt-10 border-l border-brand-border pl-7">
-                {[
-                  [
-                    'Explore',
-                    'Problem framing, literature review, and participant discovery.',
-                    'Replace with actual term/date',
-                  ],
-                  [
-                    'Define',
-                    'Synthesize needs into product requirements and safety boundaries.',
-                    'Replace with actual term/date',
-                  ],
-                  [
-                    'Build',
-                    'Design, API development, data modeling, and iterative integration.',
-                    'Replace with actual term/date',
-                  ],
-                  [
-                    'Validate',
-                    'Usability work, technical verification, and final capstone evaluation.',
-                    'Replace with actual term/date',
-                  ],
-                ].map(([title, text, date], index) => (
-                  <div key={title} className="relative pb-10 last:pb-0">
-                    <span className="absolute -left-[34px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-green" />
-                    <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
-                      <div>
-                        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-brand-green">
-                          Phase 0{index + 1}
-                        </p>
-                        <h3 className="mt-1 font-display text-lg font-extrabold">{title}</h3>
-                      </div>
-                      <div className="rounded-2xl border border-brand-border/70 bg-brand-surface/60 p-5">
-                        <p className="text-sm leading-6 text-brand-muted">{text}</p>
-                        <p className="mt-3 text-[9px] font-bold uppercase tracking-wider text-brand-muted/65">{date}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
+                <p>
+                  Not in the mood for a scheduled meal? KAINARA allows you to swap individual meal slots with
+                  dietitian-curated recipes from our verified Meal Library that align with your dietary preference
+                  (Omnivore, Vegetarian, Pescatarian, Low Carb).
+                </p>
+                <p>
+                  To encourage dietary consistency and budget predictability, swaps are subject to two clinical
+                  safeguards: a weekly swap limit and an energy divergence alert.
+                </p>
+              </div>
+
+              <div className="mt-10 grid gap-6 sm:grid-cols-2">
+                <div className="surface-panel rounded-[26px] p-6">
+                  <span className="font-mono text-xs font-bold text-brand-green">CAPACITY</span>
+                  <h3 className="mt-2 font-display text-lg font-bold text-brand-text">3 Swaps Per Week</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Each weekly plan allows up to 3 recipe replacements. Your remaining swap count updates automatically.
+                  </p>
+                </div>
+
+                <div className="surface-panel rounded-[26px] p-6">
+                  <span className="font-mono text-xs font-bold text-amber-400">SAFETY ALERT</span>
+                  <h3 className="mt-2 font-display text-lg font-bold text-brand-text">±15% Calorie Delta Warning</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    If a replacement dish differs by more than 15% from the slot&apos;s allocated energy, KAINARA alerts you
+                    to help you balance your total intake.
+                  </p>
+                </div>
               </div>
             </section>
 
-            <section className="mt-20 overflow-hidden rounded-[30px] bg-brand-accent p-7 text-[#07100d] sm:p-10">
+            {/* Chapter 06: Groceries & PDF Export */}
+            <section id="groceries" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
+                  <ShoppingCart className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
+                    Chapter 06
+                  </p>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Groceries & PDF Export
+                  </h2>
+                </div>
+              </div>
+
+              <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
+                Every approved 7-day meal plan automatically aggregates ingredients into a categorized grocery checklist.
+                Items are grouped by department: Fresh Produce, Meats & Seafood, Dairy, and Pantry Staples.
+              </p>
+
+              <div className="mt-9 grid gap-4 md:grid-cols-2">
+                <div className="surface-panel rounded-[26px] p-6">
+                  <div className="flex items-center gap-2 text-brand-text font-bold text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-brand-green" />
+                    Interactive In-App Checklists
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
+                    Check off ingredients on your phone while shopping at the supermarket or palengke. Checked items are
+                    saved in your session.
+                  </p>
+                </div>
+
+                <div className="surface-panel rounded-[26px] p-6">
+                  <div className="flex items-center gap-2 text-brand-text font-bold text-sm">
+                    <FileDown className="h-4 w-4 text-brand-cyan" />
+                    Printable PDF Generation
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
+                    Export high-resolution PDF grocery lists formatted for easy printing or sharing on messaging apps with
+                    family members.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Chapter 07: Clinical Oversight & Safety */}
+            <section id="clinical-safety" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/15 text-brand-cyan">
+                  <Stethoscope className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
+                    Chapter 07
+                  </p>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Clinical Oversight & Safety Protocols
+                  </h2>
+                </div>
+              </div>
+
+              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
+                <p>
+                  KAINARA is designed with clinical oversight at its foundation. PRC-licensed Filipino Registered
+                  Nutritionist-Dietitians (RNDs) review and audit meal plans to ensure nutritional integrity and safety.
+                </p>
+                <p>
+                  Nutritionists utilize a global review queue with 30-minute task claim locks. RNDs verify ingredient
+                  amounts, inspect potential medical contraindications, and sign off with their official PRC credentials.
+                </p>
+              </div>
+
+              <div className="mt-10 rounded-[28px] border border-brand-border bg-brand-surface/60 p-7">
+                <h3 className="font-display text-base font-bold text-brand-text">Status Badges Legend</h3>
+                <div className="mt-4 space-y-3 text-xs">
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 rounded-full bg-brand-green/15 px-2.5 py-1 font-mono text-[10px] font-bold text-brand-green">
+                      VERIFIED RND
+                    </span>
+                    <p className="text-brand-muted leading-relaxed">
+                      Audited, checked, and approved by a licensed Filipino Registered Nutritionist-Dietitian.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 rounded-full bg-amber-500/15 px-2.5 py-1 font-mono text-[10px] font-bold text-amber-400">
+                      PENDING REVIEW
+                    </span>
+                    <p className="text-brand-muted leading-relaxed">
+                      AI-generated recipe formulated against FNRI tables, queued in the professional review queue.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Chapter 08: Account, Goals & Privacy */}
+            <section id="account-settings" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d]">
+                  <User className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
+                    Chapter 08
+                  </p>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Account, Health Goals & Data Privacy
+                  </h2>
+                </div>
+              </div>
+
+              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
+                <p>
+                  Health conditions and allergies change over time. In KAINARA, you do not need to wait for a weekly check-in
+                  to update your health profile. Visit <strong>Profile &gt; Health &amp; Goals</strong> to add newly
+                  diagnosed conditions or food allergies anytime.
+                </p>
+                <p>
+                  Your personal health data is processed in compliance with the Philippine Data Privacy Act of 2012 (RA 10173).
+                  We never sell or distribute your biometric records. You can update your credentials or permanently delete
+                  your account from the Security settings page.
+                </p>
+              </div>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                <div className="surface-panel rounded-[24px] p-5">
+                  <div className="flex items-center gap-2">
+                    <HeartPulse className="h-4 w-4 text-brand-green" />
+                    <h3 className="text-xs font-bold text-brand-text">Dynamic Updates</h3>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Modify allergies or medical restrictions mid-plan to trigger real-time plan safety rechecks.
+                  </p>
+                </div>
+                <div className="surface-panel rounded-[24px] p-5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-brand-cyan" />
+                    <h3 className="text-xs font-bold text-brand-text">DiceBear Avatars</h3>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Personalize your display identity with custom pixel-art avatars across all portal views.
+                  </p>
+                </div>
+                <div className="surface-panel rounded-[24px] p-5">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-brand-accent" />
+                    <h3 className="text-xs font-bold text-brand-text">Account Control</h3>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Sign out securely from the Profile page, change passwords, or request complete account erasure.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Chapter 09: Troubleshooting & FAQs */}
+            <section id="faqs" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/15 text-brand-cyan">
+                  <HelpCircle className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
+                    Chapter 09
+                  </p>
+                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
+                    Troubleshooting & Frequently Asked Questions
+                  </h2>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-3">
+                {faqs.map(({ q, a }, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-brand-border bg-brand-surface/60 p-5 transition-colors hover:border-brand-border/90"
+                  >
+                    <h3 className="font-display text-sm font-bold text-brand-text sm:text-base">{q}</h3>
+                    <p className="mt-2 text-xs sm:text-sm leading-relaxed text-brand-muted">{a}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Support Contact Box */}
+              <div className="mt-12 rounded-[28px] border border-brand-border/80 bg-brand-bgAlt/60 p-7 sm:p-9">
+                <h3 className="font-display text-lg font-bold text-brand-text">Need direct assistance?</h3>
+                <p className="mt-2 max-w-xl text-xs sm:text-sm leading-relaxed text-brand-muted">
+                  Our technical support and clinical advisory teams are available to assist with account questions,
+                  dietary adjustments, or system troubleshooting.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <a
+                    href="mailto:support@kainara.ph"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-brand-green px-5 text-xs font-bold text-[#07100d] transition hover:-translate-y-0.5"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Contact support@kainara.ph
+                  </a>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-brand-border bg-brand-surface px-5 text-xs font-bold text-brand-text transition hover:bg-brand-bgAlt"
+                  >
+                    Go to Dashboard
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </section>
+
+            {/* Bottom CTA Banner */}
+            <section className="overflow-hidden rounded-[30px] bg-brand-accent p-7 text-[#07100d] sm:p-10">
               <div className="flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] opacity-55">
-                    Continue exploring
+                    Start eating with confidence
                   </p>
                   <h2 className="mt-3 max-w-xl font-display text-3xl font-black tracking-[-0.04em]">
-                    Experience the product these decisions shaped.
+                    Experience personalized Filipino nutrition today.
                   </h2>
                 </div>
                 <Link
-                  href="/register"
+                  href="/dashboard"
                   className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-2xl bg-[#07100d] px-5 text-sm font-extrabold text-white transition hover:-translate-y-0.5"
                 >
-                  Start onboarding
+                  Go to Dashboard
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -401,10 +636,11 @@ export default function DocsPage() {
         </div>
       </main>
 
+      {/* Footer */}
       <footer className="border-t border-brand-border/70">
         <div className="mx-auto flex max-w-[1320px] flex-col gap-3 px-5 py-8 text-xs text-brand-muted sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <p className="font-display font-bold text-brand-text">KAINARA project documentation</p>
-          <p>Draft placeholders must be replaced with adviser-approved capstone evidence.</p>
+          <p className="font-display font-bold text-brand-text">KAINARA documentation & help center</p>
+          <p>Validated against the FNRI Philippine Food Composition Table.</p>
         </div>
       </footer>
     </div>

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, ArrowUpRight, HelpCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, ArrowUpRight, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
@@ -168,18 +168,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             <div className="h-px w-6 bg-white/[0.08] mb-0.5" />
 
             <a
-              href="/help"
+              href="/docs"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Help Center"
+              aria-label="Docs & Help"
               className="flex shrink-0 items-center justify-center outline-none"
             >
               <DockItem
                 className="text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors duration-200"
               >
-                <DockLabel>Help Center</DockLabel>
+                <DockLabel>Docs & Help</DockLabel>
                 <DockIcon>
-                  <HelpCircle className="stroke-2" />
+                  <BookOpen className="stroke-2" />
                 </DockIcon>
               </DockItem>
             </a>
@@ -318,15 +318,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             </Link>
 
             <a
-              href="/help"
+              href="/docs"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Help Center"
+              aria-label="Docs & Help"
               className="group relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/60 outline-none transition hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-brand-accent/30"
             >
-              <HelpCircle className="h-4 w-4 shrink-0 stroke-2 text-white/60 transition-colors group-hover:text-brand-accent" />
+              <BookOpen className="h-4 w-4 shrink-0 stroke-2 text-white/60 transition-colors group-hover:text-brand-accent" />
               <span className="text-xs font-semibold text-white/75 transition-colors group-hover:text-white">
-                Help Center
+                Docs & Help
               </span>
               <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/30 transition-colors group-hover:text-white/70" />
             </a>
