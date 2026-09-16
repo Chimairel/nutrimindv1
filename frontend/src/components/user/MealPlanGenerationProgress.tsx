@@ -87,10 +87,7 @@ export default function MealPlanGenerationProgress({
       <div className="relative mx-auto flex w-full max-w-lg flex-col items-center text-center">
         {/* Animated KAINARA Logo with Soft Ambient Pulsing Glow Aura */}
         <div className="relative mb-6 flex h-20 w-20 items-center justify-center">
-          <div
-            className="absolute inset-0 rounded-full bg-brand-green/25 blur-2xl animate-pulse"
-            aria-hidden="true"
-          />
+          <div className="absolute inset-0 rounded-full bg-brand-green/25 blur-2xl animate-pulse" aria-hidden="true" />
           <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-green/30 bg-gradient-to-b from-brand-green/15 to-brand-green/5 text-brand-green shadow-lg backdrop-blur-sm">
             <motion.div
               animate={{

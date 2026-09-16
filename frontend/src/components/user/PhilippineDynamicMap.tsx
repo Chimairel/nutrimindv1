@@ -28,7 +28,7 @@ const REGION_COORDINATES: Record<string, RegionFocus> = {
   'Ilocos Region': { islandGroup: 'LUZON', cx: 155, cy: 95, zoom: 2.4 },
   'Cagayan Valley': { islandGroup: 'LUZON', cx: 205, cy: 95, zoom: 2.4 },
   'Central Luzon': { islandGroup: 'LUZON', cx: 175, cy: 145, zoom: 2.5 },
-  'CALABARZON': { islandGroup: 'LUZON', cx: 185, cy: 195, zoom: 2.5 },
+  CALABARZON: { islandGroup: 'LUZON', cx: 185, cy: 195, zoom: 2.5 },
   'MIMAROPA Region': { islandGroup: 'LUZON', cx: 145, cy: 235, zoom: 2.2 },
   'Bicol Region': { islandGroup: 'LUZON', cx: 235, cy: 215, zoom: 2.4 },
   // Visayas
@@ -40,8 +40,8 @@ const REGION_COORDINATES: Record<string, RegionFocus> = {
   'Zamboanga Peninsula': { islandGroup: 'MINDANAO', cx: 165, cy: 375, zoom: 2.5 },
   'Northern Mindanao': { islandGroup: 'MINDANAO', cx: 245, cy: 360, zoom: 2.5 },
   'Davao Region': { islandGroup: 'MINDANAO', cx: 275, cy: 405, zoom: 2.6 },
-  'SOCCSKSARGEN': { islandGroup: 'MINDANAO', cx: 235, cy: 430, zoom: 2.5 },
-  'Caraga': { islandGroup: 'MINDANAO', cx: 285, cy: 345, zoom: 2.5 },
+  SOCCSKSARGEN: { islandGroup: 'MINDANAO', cx: 235, cy: 430, zoom: 2.5 },
+  Caraga: { islandGroup: 'MINDANAO', cx: 285, cy: 345, zoom: 2.5 },
   'Bangsamoro Autonomous Region in Muslim Mindanao': { islandGroup: 'MINDANAO', cx: 205, cy: 400, zoom: 2.4 },
 };
 
@@ -193,7 +193,13 @@ export default function PhilippineDynamicMap({
             {/* Northern Luzon & Cordillera */}
             <path
               d="M 160,40 L 195,45 L 215,75 L 225,120 L 205,145 L 180,165 L 155,150 L 145,100 L 155,60 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'LUZON' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'LUZON'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'LUZON' && !isNational ? '#b8f45f' : '#10b981'}
               strokeWidth={highlightedGroup === 'LUZON' ? 1.8 : 1}
               filter={highlightedGroup === 'LUZON' ? 'url(#emeraldGlow)' : undefined}
@@ -201,28 +207,52 @@ export default function PhilippineDynamicMap({
             {/* Central Luzon & NCR / Southern Tagalog */}
             <path
               d="M 155,155 L 185,160 L 200,185 L 190,215 L 175,205 L 160,185 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'LUZON' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'LUZON'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'LUZON' && !isNational ? '#b8f45f' : '#10b981'}
               strokeWidth={1}
             />
             {/* Bicol Peninsula */}
             <path
               d="M 200,195 L 235,205 L 255,235 L 245,255 L 225,245 L 210,215 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'LUZON' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'LUZON'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'LUZON' && !isNational ? '#b8f45f' : '#10b981'}
               strokeWidth={1}
             />
             {/* Mindoro & Marinduque */}
             <path
               d="M 145,210 L 165,215 L 160,250 L 135,245 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'LUZON' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'LUZON'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke="#10b981"
               strokeWidth={1}
             />
             {/* Palawan Archipelago */}
             <path
               d="M 115,260 L 130,270 L 95,340 L 75,370 L 65,360 L 95,310 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'LUZON' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'LUZON'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke="#10b981"
               strokeWidth={1}
             />
@@ -238,21 +268,39 @@ export default function PhilippineDynamicMap({
             {/* Western Visayas (Panay & Guimaras) */}
             <path
               d="M 180,255 L 205,250 L 210,275 L 185,285 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'VISAYAS' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'VISAYAS'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'VISAYAS' ? '#b8f45f' : '#10b981'}
               strokeWidth={highlightedGroup === 'VISAYAS' ? 1.8 : 1}
             />
             {/* Negros Island */}
             <path
               d="M 205,280 L 220,285 L 215,330 L 195,320 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'VISAYAS' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'VISAYAS'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'VISAYAS' ? '#b8f45f' : '#10b981'}
               strokeWidth={highlightedGroup === 'VISAYAS' ? 1.8 : 1}
             />
             {/* Central Visayas (Cebu & Bohol) */}
             <path
               d="M 230,265 L 242,268 L 238,315 L 228,305 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'VISAYAS' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'VISAYAS'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'VISAYAS' ? '#b8f45f' : '#10b981'}
               strokeWidth={highlightedGroup === 'VISAYAS' ? 2 : 1}
               filter={highlightedGroup === 'VISAYAS' ? 'url(#limeGlow)' : undefined}
@@ -262,20 +310,38 @@ export default function PhilippineDynamicMap({
               cx="252"
               cy="295"
               r="9"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'VISAYAS' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'VISAYAS'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'VISAYAS' ? '#b8f45f' : '#10b981'}
               strokeWidth={1}
             />
             {/* Eastern Visayas (Samar & Leyte) */}
             <path
               d="M 260,225 L 285,235 L 280,270 L 255,255 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'VISAYAS' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'VISAYAS'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'VISAYAS' ? '#b8f45f' : '#10b981'}
               strokeWidth={1}
             />
             <path
               d="M 260,265 L 275,270 L 265,310 L 250,295 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'VISAYAS' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'VISAYAS'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'VISAYAS' ? '#b8f45f' : '#10b981'}
               strokeWidth={1}
             />
@@ -291,7 +357,13 @@ export default function PhilippineDynamicMap({
             {/* Main Mindanao Landmass */}
             <path
               d="M 205,340 L 255,335 L 295,350 L 305,410 L 285,450 L 245,460 L 210,430 L 200,380 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'MINDANAO' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'MINDANAO'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'MINDANAO' && !isNational ? '#b8f45f' : '#10b981'}
               strokeWidth={highlightedGroup === 'MINDANAO' ? 1.8 : 1}
               filter={highlightedGroup === 'MINDANAO' ? 'url(#emeraldGlow)' : undefined}
@@ -299,7 +371,13 @@ export default function PhilippineDynamicMap({
             {/* Zamboanga Peninsula */}
             <path
               d="M 195,365 L 165,370 L 150,400 L 175,405 L 195,385 Z"
-              fill={isNational ? 'url(#nationalGrad)' : highlightedGroup === 'MINDANAO' ? 'url(#regionGrad)' : 'url(#baseIslandGrad)'}
+              fill={
+                isNational
+                  ? 'url(#nationalGrad)'
+                  : highlightedGroup === 'MINDANAO'
+                    ? 'url(#regionGrad)'
+                    : 'url(#baseIslandGrad)'
+              }
               stroke={highlightedGroup === 'MINDANAO' && !isNational ? '#b8f45f' : '#10b981'}
               strokeWidth={1}
             />

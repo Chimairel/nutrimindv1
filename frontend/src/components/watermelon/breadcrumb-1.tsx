@@ -32,19 +32,14 @@ const defaultSegments: readonly BreadcrumbSegment[] = [
   { label: 'Meals', current: true },
 ] as const;
 
-export const Breadcrumb1: React.FC<Breadcrumb1Props> = ({
-  segments = defaultSegments,
-  className = '',
-}) => {
+export const Breadcrumb1: React.FC<Breadcrumb1Props> = ({ segments = defaultSegments, className = '' }) => {
   return (
     <Breadcrumb className={className}>
       <BreadcrumbList className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-medium text-brand-muted">
         {segments.map((segment, index) => (
           <BreadcrumbItem key={segment.label}>
             {'href' in segment && segment.href ? (
-              <BreadcrumbLink href={segment.href}>
-                {segment.label}
-              </BreadcrumbLink>
+              <BreadcrumbLink href={segment.href}>{segment.label}</BreadcrumbLink>
             ) : (
               <BreadcrumbPage>{segment.label}</BreadcrumbPage>
             )}

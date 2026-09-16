@@ -238,7 +238,9 @@ export default function ReviewsPage() {
                 <div className="flex items-center gap-3.5 border-b border-brand-border pb-3">
                   <Avatar name={detailData.user.name} size="lg" />
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">User Health Profile</h2>
+                    <h2 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+                      User Health Profile
+                    </h2>
                     <h3 className="truncate text-base font-extrabold text-brand-text mt-0.5">{detailData.user.name}</h3>
                     <p className="text-xs text-brand-muted">
                       {detailData.user.age} yrs • {detailData.user.sex}

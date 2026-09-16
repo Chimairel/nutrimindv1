@@ -1,16 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  Check,
-  Plus,
-  X,
-  ShieldAlert,
-  Activity,
-  Ban,
-  Stethoscope,
-} from 'lucide-react';
+import { AlertTriangle, Check, Plus, X, ShieldAlert, Activity, Ban, Stethoscope } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -49,7 +40,11 @@ const domainConfig: Record<
   CONDITION: { title: 'Medical Conditions', subtitle: 'Diagnosed health considerations', icon: Stethoscope },
   ALLERGY: { title: 'Food Allergies', subtitle: 'Immune reactions (peanuts, shellfish...)', icon: ShieldAlert },
   INTOLERANCE: { title: 'Intolerances', subtitle: 'Digestive sensitivities (lactose, gluten...)', icon: Activity },
-  AVOIDED_INGREDIENT: { title: 'Foods to Avoid', subtitle: 'Personal or religious exclusions (pork, beef...)', icon: Ban },
+  AVOIDED_INGREDIENT: {
+    title: 'Foods to Avoid',
+    subtitle: 'Personal or religious exclusions (pork, beef...)',
+    icon: Ban,
+  },
 };
 
 const stateLabel: Record<SafetySupportState, string> = {
@@ -170,17 +165,13 @@ export default function StructuredSafetyIntake({
         } else {
           const isAlreadySelected = updatedInputs.some(
             (entry) =>
-              entry.domain === activeDomain &&
-              entry.provenance === 'PREDEFINED' &&
-              entry.value === matchedOption.code
+              entry.domain === activeDomain && entry.provenance === 'PREDEFINED' && entry.value === matchedOption.code
           );
           if (isAlreadySelected) {
             alreadySelectedCommonNames.push(matchedOption.displayName);
           } else {
             // Remove 'NONE' if present and select the predefined option
-            updatedInputs = updatedInputs.filter(
-              (entry) => !(entry.domain === activeDomain && entry.value === 'NONE')
-            );
+            updatedInputs = updatedInputs.filter((entry) => !(entry.domain === activeDomain && entry.value === 'NONE'));
             updatedInputs.push({
               domain: activeDomain,
               value: matchedOption.code,
@@ -192,17 +183,13 @@ export default function StructuredSafetyIntake({
       } else {
         // Custom entry
         const isDuplicate = updatedInputs.some(
-          (entry) =>
-            entry.domain === activeDomain &&
-            entry.value.toLowerCase() === norm
+          (entry) => entry.domain === activeDomain && entry.value.toLowerCase() === norm
         );
         if (isDuplicate) {
           duplicateCustomCount++;
         } else {
           // Remove 'NONE' if present and add custom entry
-          updatedInputs = updatedInputs.filter(
-            (entry) => !(entry.domain === activeDomain && entry.value === 'NONE')
-          );
+          updatedInputs = updatedInputs.filter((entry) => !(entry.domain === activeDomain && entry.value === 'NONE'));
           updatedInputs.push({
             domain: activeDomain,
             value: text,
@@ -524,8 +511,8 @@ export default function StructuredSafetyIntake({
             <div className="flex gap-2 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/10 p-3 text-xs text-status-pending-text">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>
-                Some entries require individual review. They will remain active and will route automatic compatibility to
-                nutritionist review.
+                Some entries require individual review. They will remain active and will route automatic compatibility
+                to nutritionist review.
               </span>
             </div>
           )}

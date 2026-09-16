@@ -10,11 +10,7 @@ interface ThemeToggleProps {
   variant?: 'default' | 'hero';
 }
 
-export const ThemeToggle: React.FC<ThemeToggleProps> = ({
-  className = '',
-  size = 'md',
-  variant = 'default',
-}) => {
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '', size = 'md', variant = 'default' }) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -44,8 +40,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     `,
   };
 
-  const moonColorClass =
-    variant === 'hero' ? 'text-slate-100 hover:text-white' : 'text-brand-text';
+  const moonColorClass = variant === 'hero' ? 'text-slate-100 hover:text-white' : 'text-brand-text';
 
   const sunColorClass = 'text-amber-400 hover:text-amber-300';
 

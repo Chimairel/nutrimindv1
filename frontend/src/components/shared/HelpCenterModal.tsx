@@ -111,8 +111,7 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({ isOpen, onClos
     return HELP_ITEMS.filter((item) => {
       const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
       const q = searchQuery.toLowerCase().trim();
-      const matchesQuery =
-        !q || item.question.toLowerCase().includes(q) || item.answer.toLowerCase().includes(q);
+      const matchesQuery = !q || item.question.toLowerCase().includes(q) || item.answer.toLowerCase().includes(q);
       return matchesCategory && matchesQuery;
     });
   }, [searchQuery, activeCategory]);
@@ -166,7 +165,8 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({ isOpen, onClos
         <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
           {filteredItems.length === 0 ? (
             <div className="py-8 text-center text-xs text-brand-muted">
-              No matching help topics found. Try searching for &ldquo;swap&rdquo;, &ldquo;logging&rdquo;, or &ldquo;FNRI&rdquo;.
+              No matching help topics found. Try searching for &ldquo;swap&rdquo;, &ldquo;logging&rdquo;, or
+              &ldquo;FNRI&rdquo;.
             </div>
           ) : (
             filteredItems.map((item) => {

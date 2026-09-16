@@ -268,8 +268,8 @@ export default function BillingPage() {
       <div className="mt-6 flex items-start gap-3 rounded-2xl border border-brand-border/70 bg-brand-surface/70 p-5 text-sm text-brand-muted">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-green" />
         <p>
-          Checkout returns never activate Premium by themselves. Access appears only after KAINARA verifies the
-          payment on the server.
+          Checkout returns never activate Premium by themselves. Access appears only after KAINARA verifies the payment
+          on the server.
         </p>
       </div>
     </div>

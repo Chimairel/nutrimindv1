@@ -24,9 +24,7 @@ export const OnboardingProgressSlider: React.FC<OnboardingProgressSliderProps> =
         <span className="font-mono text-[11px] text-brand-muted">
           Step {clampedStep} of {totalSteps}
         </span>
-        <span className="font-mono text-[11px] text-brand-green">
-          {percentage}% Completed
-        </span>
+        <span className="font-mono text-[11px] text-brand-green">{percentage}% Completed</span>
       </div>
 
       {/* Adaptive Slider Track without white dots */}
@@ -64,9 +62,7 @@ export const OnboardingProgressSlider: React.FC<OnboardingProgressSliderProps> =
               boxShadow: '0 3px 14px rgba(119, 89, 232, 0.55)',
             }}
           >
-            <span className="font-mono text-xs font-black text-brand-black dark:text-white">
-              {clampedStep}
-            </span>
+            <span className="font-mono text-xs font-black text-brand-black dark:text-white">{clampedStep}</span>
           </div>
         </motion.div>
       </div>

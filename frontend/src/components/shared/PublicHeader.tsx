@@ -37,20 +37,11 @@ export default function PublicHeader() {
           </span>
         </Link>
 
-        <nav
-          className="hidden items-center gap-7 md:flex"
-          aria-label="Public navigation"
-        >
-          <Link
-            href="/#platform"
-            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
-          >
+        <nav className="hidden items-center gap-7 md:flex" aria-label="Public navigation">
+          <Link href="/#platform" className="text-xs font-semibold text-brand-muted transition hover:text-brand-text">
             Platform
           </Link>
-          <Link
-            href="/#process"
-            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
-          >
+          <Link href="/#process" className="text-xs font-semibold text-brand-muted transition hover:text-brand-text">
             How it works
           </Link>
           <Link

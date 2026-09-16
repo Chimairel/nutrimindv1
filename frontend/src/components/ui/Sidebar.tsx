@@ -104,9 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-full outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-accent/40"
             >
               <div className="relative flex h-full w-full items-center justify-center rounded-full overflow-hidden">
-                <KainaraLogo
-                  className="h-12 w-12 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0"
-                />
+                <KainaraLogo className="h-12 w-12 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0" />
                 <PanelLeftOpen className="absolute h-7 w-7 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-brand-accent" />
               </div>
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0" />
@@ -130,85 +128,83 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               className="flex shrink-0 flex-col items-center gap-3 py-1"
               aria-label={`${user.role.toLowerCase()} tabs`}
             >
-            {navItems.map((item) => {
-              const active =
-                pathname === item.href ||
-                pathname.startsWith(`${item.href}/`) ||
-                (item.href === '/nutritionist/reviews' &&
-                  ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-label={item.label}
-                  aria-current={active ? 'page' : undefined}
-                  className="flex shrink-0 items-center justify-center outline-none"
-                >
-                  <DockItem
-                    active={active}
-                    className={`transition-colors duration-200 ${
-                      active
-                        ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon'
-                        : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
-                    }`}
+              {navItems.map((item) => {
+                const active =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`) ||
+                  (item.href === '/nutritionist/reviews' &&
+                    ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-label={item.label}
+                    aria-current={active ? 'page' : undefined}
+                    className="flex shrink-0 items-center justify-center outline-none"
                   >
-                    <DockLabel>{item.label}</DockLabel>
-                    <DockIcon>
-                      <Icon className={active ? 'stroke-[2.5]' : 'stroke-2'} />
-                    </DockIcon>
-                  </DockItem>
-                </Link>
-              );
-            })}
-          </nav>
+                    <DockItem
+                      active={active}
+                      className={`transition-colors duration-200 ${
+                        active
+                          ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon'
+                          : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      <DockLabel>{item.label}</DockLabel>
+                      <DockIcon>
+                        <Icon className={active ? 'stroke-[2.5]' : 'stroke-2'} />
+                      </DockIcon>
+                    </DockItem>
+                  </Link>
+                );
+              })}
+            </nav>
 
-          {/* 3. BOTTOM GROUP: Secondary actions (Logout) & Profile Avatar */}
-          <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pb-0.5">
-            <div className="h-px w-6 bg-white/[0.08] mb-0.5" />
+            {/* 3. BOTTOM GROUP: Secondary actions (Logout) & Profile Avatar */}
+            <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pb-0.5">
+              <div className="h-px w-6 bg-white/[0.08] mb-0.5" />
 
-            <a
-              href="/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Docs & Help"
-              className="flex shrink-0 items-center justify-center outline-none"
-            >
-              <DockItem
-                className="text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors duration-200"
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Docs & Help"
+                className="flex shrink-0 items-center justify-center outline-none"
               >
-                <DockLabel>Docs & Help</DockLabel>
-                <DockIcon>
-                  <BookOpen className="stroke-2" />
-                </DockIcon>
-              </DockItem>
-            </a>
+                <DockItem className="text-white/60 hover:bg-white/[0.08] hover:text-white transition-colors duration-200">
+                  <DockLabel>Docs & Help</DockLabel>
+                  <DockIcon>
+                    <BookOpen className="stroke-2" />
+                  </DockIcon>
+                </DockItem>
+              </a>
 
-            <Link
-              href={profileHref}
-              aria-label={`Profile: ${user.name}`}
-              aria-current={profileActive ? 'page' : undefined}
-              className="flex shrink-0 items-center justify-center outline-none"
-            >
-              <DockItem
-                active={profileActive}
-                className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
-                  profileActive ? 'ring-2 ring-brand-accent shadow-neon' : 'hover:ring-2 hover:ring-white/30'
-                }`}
+              <Link
+                href={profileHref}
+                aria-label={`Profile: ${user.name}`}
+                aria-current={profileActive ? 'page' : undefined}
+                className="flex shrink-0 items-center justify-center outline-none"
               >
-                <DockLabel>Profile · {user.name}</DockLabel>
-                <DockAvatar>
-                  <Avatar
-                    size="sm"
-                    src={user.image}
-                    fallbackText={user.name}
-                    className="!h-full !w-full rounded-full"
-                  />
-                </DockAvatar>
-              </DockItem>
-            </Link>
-          </div>
-        </Dock>
+                <DockItem
+                  active={profileActive}
+                  className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
+                    profileActive ? 'ring-2 ring-brand-accent shadow-neon' : 'hover:ring-2 hover:ring-white/30'
+                  }`}
+                >
+                  <DockLabel>Profile · {user.name}</DockLabel>
+                  <DockAvatar>
+                    <Avatar
+                      size="sm"
+                      src={user.image}
+                      fallbackText={user.name}
+                      className="!h-full !w-full rounded-full"
+                    />
+                  </DockAvatar>
+                </DockItem>
+              </Link>
+            </div>
+          </Dock>
         </div>
       ) : (
         <>

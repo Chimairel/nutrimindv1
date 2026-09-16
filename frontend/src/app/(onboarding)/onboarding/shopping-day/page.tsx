@@ -98,7 +98,6 @@ export default function OnboardingShoppingDayPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-
             {/* Exact day cards */}
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {options.map((opt) => {

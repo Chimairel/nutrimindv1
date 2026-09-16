@@ -42,9 +42,7 @@ export default function PlanningLocationFields({
   const provinceHucOptions = useMemo(
     () =>
       options.provinceHucs.filter(
-        (option) =>
-          !canonicalRegion.trim() ||
-          option.regionName.toLowerCase() === canonicalRegion.trim().toLowerCase()
+        (option) => !canonicalRegion.trim() || option.regionName.toLowerCase() === canonicalRegion.trim().toLowerCase()
       ),
     [options.provinceHucs, canonicalRegion]
   );

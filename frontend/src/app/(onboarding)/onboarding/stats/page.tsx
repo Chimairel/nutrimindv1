@@ -426,9 +426,7 @@ export default function OnboardingStatsPage() {
                           {item.desc}
                         </p>
                       </div>
-                      {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />
-                      )}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />}
                     </button>
                   );
                 })}

@@ -138,7 +138,8 @@ export class UserProfileService {
           },
         });
         const changed =
-          !existing || Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
+          !existing ||
+          Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
         return changed ? advanceProfileRevision(tx, userId) : profile;
       },
       { maxWait: 10000, timeout: 30000 }

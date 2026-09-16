@@ -155,9 +155,7 @@ export default function OnboardingPreferencesPage() {
                           {item.desc}
                         </p>
                       </div>
-                      {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />
-                      )}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />}
                     </button>
                   );
                 })}
@@ -166,7 +164,9 @@ export default function OnboardingPreferencesPage() {
 
             {/* Carb preference */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Carb Intake Target</label>
+              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
+                Carb Intake Target
+              </label>
               <div className="grid grid-cols-3 gap-2.5">
                 {carbList.map((item) => {
                   const isSelected = carb === item.value;
@@ -188,7 +188,9 @@ export default function OnboardingPreferencesPage() {
                       <span className={`shrink-0 ${isSelected ? 'text-white dark:text-black' : 'text-brand-green'}`}>
                         {item.icon}
                       </span>
-                      <span className={`text-xs font-bold ${isSelected ? 'text-white dark:text-black' : 'text-brand-text'}`}>
+                      <span
+                        className={`text-xs font-bold ${isSelected ? 'text-white dark:text-black' : 'text-brand-text'}`}
+                      >
                         {item.label}
                       </span>
                     </button>

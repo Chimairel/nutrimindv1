@@ -175,14 +175,14 @@ export default function DocsPage() {
 
               <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
                 <p>
-                  Getting started with KAINARA begins with our 5-step biometric and clinical onboarding wizard.
-                  Instead of generic calorie calculators, KAINARA gathers your medical history, dietary preferences,
-                  and local shopping schedule to formulate an individualized nutrition plan.
+                  Getting started with KAINARA begins with our 5-step biometric and clinical onboarding wizard. Instead
+                  of generic calorie calculators, KAINARA gathers your medical history, dietary preferences, and local
+                  shopping schedule to formulate an individualized nutrition plan.
                 </p>
                 <p>
-                  Your daily energy baseline is computed using the <strong>Mifflin-St Jeor</strong> formula, the clinical
-                  standard recognized by dietitians for calculating Basal Metabolic Rate (BMR) and Total Daily Energy
-                  Expenditure (TDEE).
+                  Your daily energy baseline is computed using the <strong>Mifflin-St Jeor</strong> formula, the
+                  clinical standard recognized by dietitians for calculating Basal Metabolic Rate (BMR) and Total Daily
+                  Energy Expenditure (TDEE).
                 </p>
               </div>
 
@@ -228,9 +228,9 @@ export default function DocsPage() {
               </div>
 
               <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
-                Filipino shopping rhythms revolve around weekend market trips or designated grocery days.
-                Rather than imposing an arbitrary Monday-to-Sunday cycle, KAINARA synchronizes your 7-day plan with your
-                routine and provides starter bridge plans so you never have to wait.
+                Filipino shopping rhythms revolve around weekend market trips or designated grocery days. Rather than
+                imposing an arbitrary Monday-to-Sunday cycle, KAINARA synchronizes your 7-day plan with your routine and
+                provides starter bridge plans so you never have to wait.
               </p>
 
               <div className="mt-9 grid gap-4 md:grid-cols-2">
@@ -279,13 +279,13 @@ export default function DocsPage() {
               <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
                 <p>
                   Your home dashboard serves as your daily nutrition cockpit. The interactive Calorie Ring gives you an
-                  immediate visual indicator of consumed vs. remaining energy for the day, complemented by protein, carb,
-                  and fat macro progression bars.
+                  immediate visual indicator of consumed vs. remaining energy for the day, complemented by protein,
+                  carb, and fat macro progression bars.
                 </p>
                 <p>
-                  Each scheduled meal card lets you record your intake with a single click: mark as <strong>DONE</strong>{' '}
-                  to tally macros, or <strong>SKIPPED</strong> if you omitted the meal. Log water consumption in 250ml
-                  increments and monitor your 7-day adherence streak.
+                  Each scheduled meal card lets you record your intake with a single click: mark as{' '}
+                  <strong>DONE</strong> to tally macros, or <strong>SKIPPED</strong> if you omitted the meal. Log water
+                  consumption in 250ml increments and monitor your 7-day adherence streak.
                 </p>
               </div>
 
@@ -298,11 +298,15 @@ export default function DocsPage() {
                   </div>
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                     <p className="font-bold text-amber-500">70% – 89% Buffer</p>
-                    <p className="mt-1 text-brand-muted text-[11px]">Acceptable variance; slightly below target energy.</p>
+                    <p className="mt-1 text-brand-muted text-[11px]">
+                      Acceptable variance; slightly below target energy.
+                    </p>
                   </div>
                   <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
                     <p className="font-bold text-red-500">&lt; 70% or &gt; 110%</p>
-                    <p className="mt-1 text-brand-muted text-[11px]">Substantial deviation from metabolic prescription.</p>
+                    <p className="mt-1 text-brand-muted text-[11px]">
+                      Substantial deviation from metabolic prescription.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -337,7 +341,8 @@ export default function DocsPage() {
                   </div>
                   <p className="mt-3 text-xs leading-relaxed text-brand-muted">
                     Enter dish names like &ldquo;Pork Sinigang with 1 cup rice&rdquo;. Gemini AI breaks down the
-                    ingredients, estimates portion weights, and calculates exact calories, proteins, carbohydrates, and fats.
+                    ingredients, estimates portion weights, and calculates exact calories, proteins, carbohydrates, and
+                    fats.
                   </p>
                 </div>
 
@@ -387,7 +392,8 @@ export default function DocsPage() {
                   <span className="font-mono text-xs font-bold text-brand-green">CAPACITY</span>
                   <h3 className="mt-2 font-display text-lg font-bold text-brand-text">3 Swaps Per Week</h3>
                   <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Each weekly plan allows up to 3 recipe replacements. Your remaining swap count updates automatically.
+                    Each weekly plan allows up to 3 recipe replacements. Your remaining swap count updates
+                    automatically.
                   </p>
                 </div>
 
@@ -395,8 +401,8 @@ export default function DocsPage() {
                   <span className="font-mono text-xs font-bold text-amber-400">SAFETY ALERT</span>
                   <h3 className="mt-2 font-display text-lg font-bold text-brand-text">±15% Calorie Delta Warning</h3>
                   <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    If a replacement dish differs by more than 15% from the slot&apos;s allocated energy, KAINARA alerts you
-                    to help you balance your total intake.
+                    If a replacement dish differs by more than 15% from the slot&apos;s allocated energy, KAINARA alerts
+                    you to help you balance your total intake.
                   </p>
                 </div>
               </div>
@@ -419,8 +425,8 @@ export default function DocsPage() {
               </div>
 
               <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
-                Every approved 7-day meal plan automatically aggregates ingredients into a categorized grocery checklist.
-                Items are grouped by department: Fresh Produce, Meats & Seafood, Dairy, and Pantry Staples.
+                Every approved 7-day meal plan automatically aggregates ingredients into a categorized grocery
+                checklist. Items are grouped by department: Fresh Produce, Meats & Seafood, Dairy, and Pantry Staples.
               </p>
 
               <div className="mt-9 grid gap-4 md:grid-cols-2">
@@ -441,8 +447,8 @@ export default function DocsPage() {
                     Printable PDF Generation
                   </div>
                   <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-                    Export high-resolution PDF grocery lists formatted for easy printing or sharing on messaging apps with
-                    family members.
+                    Export high-resolution PDF grocery lists formatted for easy printing or sharing on messaging apps
+                    with family members.
                   </p>
                 </div>
               </div>
@@ -471,7 +477,8 @@ export default function DocsPage() {
                 </p>
                 <p>
                   Nutritionists utilize a global review queue with 30-minute task claim locks. RNDs verify ingredient
-                  amounts, inspect potential medical contraindications, and sign off with their official PRC credentials.
+                  amounts, inspect potential medical contraindications, and sign off with their official PRC
+                  credentials.
                 </p>
               </div>
 
@@ -516,14 +523,14 @@ export default function DocsPage() {
 
               <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
                 <p>
-                  Health conditions and allergies change over time. In KAINARA, you do not need to wait for a weekly check-in
-                  to update your health profile. Visit <strong>Profile &gt; Health &amp; Goals</strong> to add newly
-                  diagnosed conditions or food allergies anytime.
+                  Health conditions and allergies change over time. In KAINARA, you do not need to wait for a weekly
+                  check-in to update your health profile. Visit <strong>Profile &gt; Health &amp; Goals</strong> to add
+                  newly diagnosed conditions or food allergies anytime.
                 </p>
                 <p>
-                  Your personal health data is processed in compliance with the Philippine Data Privacy Act of 2012 (RA 10173).
-                  We never sell or distribute your biometric records. You can update your credentials or permanently delete
-                  your account from the Security settings page.
+                  Your personal health data is processed in compliance with the Philippine Data Privacy Act of 2012 (RA
+                  10173). We never sell or distribute your biometric records. You can update your credentials or
+                  permanently delete your account from the Security settings page.
                 </p>
               </div>
 

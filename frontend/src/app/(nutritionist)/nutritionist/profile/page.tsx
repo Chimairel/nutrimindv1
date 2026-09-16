@@ -177,7 +177,9 @@ export default function NutritionistProfilePage() {
             </div>
             <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
               <span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span>
-              <span className="mt-2 block font-display text-2xl font-black text-brand-green">{profile?.totalVerified}</span>
+              <span className="mt-2 block font-display text-2xl font-black text-brand-green">
+                {profile?.totalVerified}
+              </span>
             </div>
           </Card>
 
@@ -236,9 +238,7 @@ export default function NutritionistProfilePage() {
           <Card className="space-y-4 p-6">
             <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
               <p className="portal-section-label">Public Review Attribution Preview</p>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-brand-muted">
-                Patient View
-              </span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-brand-muted">Patient View</span>
             </div>
             <div className="flex flex-col items-center sm:flex-row sm:items-start text-center sm:text-left gap-4 pt-1">
               <div className="relative shrink-0">
@@ -265,14 +265,15 @@ export default function NutritionistProfilePage() {
                   PRC {profile?.prcLicenseNumber || 'Not available'}
                 </p>
                 <p className="text-xs text-brand-muted">
-                  Valid until {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
+                  Valid until{' '}
+                  {profile?.prcLicenseExpiry
+                    ? new Date(profile.prcLicenseExpiry).toLocaleDateString()
+                    : 'Not available'}
                 </p>
                 <p className="text-xs font-semibold text-brand-text">
                   {profile?.specialization || 'General Clinical Nutrition'}
                 </p>
-                <p className="text-xs leading-relaxed text-brand-muted">
-                  {profile?.bio || 'No introduction provided'}
-                </p>
+                <p className="text-xs leading-relaxed text-brand-muted">{profile?.bio || 'No introduction provided'}</p>
                 <p className="pt-2 text-[10px] text-brand-muted/80">
                   Users view these professional credentials whenever you approve or review their meal plans.
                 </p>
@@ -283,11 +284,7 @@ export default function NutritionistProfilePage() {
       ) : (
         <div className="space-y-6">
           {user && (
-            <AvatarSettings
-              visible={activeTab === 'avatar'}
-              user={user}
-              updateUserSession={updateUserSession}
-            />
+            <AvatarSettings visible={activeTab === 'avatar'} user={user} updateUserSession={updateUserSession} />
           )}
         </div>
       )}

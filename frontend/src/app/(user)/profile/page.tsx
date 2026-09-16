@@ -97,7 +97,8 @@ export default function ProfilePage() {
         <div>
           <h2 className="font-semibold text-sm text-brand-text">Account Session</h2>
           <p className="mt-0.5 text-xs text-brand-muted">
-            Signed in as <span className="font-medium text-brand-text">{user?.email}</span>. Sign out of your account on this device.
+            Signed in as <span className="font-medium text-brand-text">{user?.email}</span>. Sign out of your account on
+            this device.
           </p>
         </div>
         <Button

@@ -10,28 +10,22 @@ export const Breadcrumb = React.forwardRef<
 >(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />);
 Breadcrumb.displayName = 'Breadcrumb';
 
-export const BreadcrumbList = React.forwardRef<
-  HTMLOListElement,
-  React.ComponentPropsWithoutRef<'ol'>
->(({ className = '', ...props }, ref) => (
-  <ol
-    ref={ref}
-    className={`flex flex-wrap items-center gap-1.5 break-words text-xs text-brand-muted ${className}`}
-    {...props}
-  />
-));
+export const BreadcrumbList = React.forwardRef<HTMLOListElement, React.ComponentPropsWithoutRef<'ol'>>(
+  ({ className = '', ...props }, ref) => (
+    <ol
+      ref={ref}
+      className={`flex flex-wrap items-center gap-1.5 break-words text-xs text-brand-muted ${className}`}
+      {...props}
+    />
+  )
+);
 BreadcrumbList.displayName = 'BreadcrumbList';
 
-export const BreadcrumbItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentPropsWithoutRef<'li'>
->(({ className = '', ...props }, ref) => (
-  <li
-    ref={ref}
-    className={`inline-flex items-center gap-1.5 ${className}`}
-    {...props}
-  />
-));
+export const BreadcrumbItem = React.forwardRef<HTMLLIElement, React.ComponentPropsWithoutRef<'li'>>(
+  ({ className = '', ...props }, ref) => (
+    <li ref={ref} className={`inline-flex items-center gap-1.5 ${className}`} {...props} />
+  )
+);
 BreadcrumbItem.displayName = 'BreadcrumbItem';
 
 export const BreadcrumbLink = React.forwardRef<
@@ -51,26 +45,21 @@ export const BreadcrumbLink = React.forwardRef<
 });
 BreadcrumbLink.displayName = 'BreadcrumbLink';
 
-export const BreadcrumbPage = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentPropsWithoutRef<'span'>
->(({ className = '', ...props }, ref) => (
-  <span
-    ref={ref}
-    role="link"
-    aria-disabled="true"
-    aria-current="page"
-    className={`font-semibold text-brand-text dark:text-white ${className}`}
-    {...props}
-  />
-));
+export const BreadcrumbPage = React.forwardRef<HTMLSpanElement, React.ComponentPropsWithoutRef<'span'>>(
+  ({ className = '', ...props }, ref) => (
+    <span
+      ref={ref}
+      role="link"
+      aria-disabled="true"
+      aria-current="page"
+      className={`font-semibold text-brand-text dark:text-white ${className}`}
+      {...props}
+    />
+  )
+);
 BreadcrumbPage.displayName = 'BreadcrumbPage';
 
-export const BreadcrumbSeparator = ({
-  children,
-  className = '',
-  ...props
-}: React.ComponentProps<'span'>) => (
+export const BreadcrumbSeparator = ({ children, className = '', ...props }: React.ComponentProps<'span'>) => (
   <span
     role="presentation"
     aria-hidden="true"
@@ -82,10 +71,7 @@ export const BreadcrumbSeparator = ({
 );
 BreadcrumbSeparator.displayName = 'BreadcrumbSeparator';
 
-export const BreadcrumbEllipsis = ({
-  className = '',
-  ...props
-}: React.ComponentProps<'span'>) => (
+export const BreadcrumbEllipsis = ({ className = '', ...props }: React.ComponentProps<'span'>) => (
   <span
     role="presentation"
     aria-hidden="true"

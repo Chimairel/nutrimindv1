@@ -122,9 +122,7 @@ export default function OnboardingTosPage() {
     {
       title: 'Medical conditions',
       editPath: '/onboarding/conditions?from=review',
-      items: [
-        ['Conditions', joinStructuredSelections(profile?.safetyEntries, 'CONDITION', legacyConditions)],
-      ],
+      items: [['Conditions', joinStructuredSelections(profile?.safetyEntries, 'CONDITION', legacyConditions)]],
     },
     {
       title: 'Food safety',
@@ -286,7 +284,8 @@ export default function OnboardingTosPage() {
               onCheckedChange={(checked) => setMedicalDisclaimer(!!checked)}
               label={
                 <span className="text-xs text-brand-text leading-relaxed">
-                  I understand that AI-generated meal plans are NOT medical advice. If managing chronic conditions, I agree to follow our{' '}
+                  I understand that AI-generated meal plans are NOT medical advice. If managing chronic conditions, I
+                  agree to follow our{' '}
                   <a
                     href="/docs"
                     target="_blank"
@@ -294,7 +293,8 @@ export default function OnboardingTosPage() {
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
                   >
                     Clinical Guidelines & Disclaimers
-                  </a>.
+                  </a>
+                  .
                 </span>
               }
               error={error !== null && !medicalDisclaimer}
@@ -306,7 +306,8 @@ export default function OnboardingTosPage() {
               onCheckedChange={(checked) => setHealthDataProcessing(!!checked)}
               label={
                 <span className="text-xs text-brand-text leading-relaxed">
-                  I explicitly consent to KAINARA processing my health data and transmitting required meal parameters to Google Gemini under the Philippine Data Privacy Act of 2012 (R.A. 10173). Learn more in our{' '}
+                  I explicitly consent to KAINARA processing my health data and transmitting required meal parameters to
+                  Google Gemini under the Philippine Data Privacy Act of 2012 (R.A. 10173). Learn more in our{' '}
                   <a
                     href="/docs"
                     target="_blank"
@@ -314,7 +315,8 @@ export default function OnboardingTosPage() {
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
                   >
                     Data Protection Notice
-                  </a>.
+                  </a>
+                  .
                 </span>
               }
               error={error !== null && !healthDataProcessing}
@@ -348,7 +350,8 @@ export default function OnboardingTosPage() {
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
                   >
                     Privacy Policy
-                  </a>.
+                  </a>
+                  .
                 </span>
               }
               error={error !== null && !privacyPolicy}

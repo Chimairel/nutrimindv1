@@ -161,17 +161,14 @@ export function NutritionistLibraryModals({ workspace }: Props) {
 
       {/* Verifier Profile Modal */}
       {selectedVerifier && activeModal === 'verifier' && (
-        <Modal
-          isOpen={true}
-          onClose={() => setActiveModal(null)}
-          title="Nutritionist Profile"
-          size="md"
-        >
+        <Modal isOpen={true} onClose={() => setActiveModal(null)} title="Nutritionist Profile" size="md">
           <div className="space-y-4">
             <div className="flex items-center gap-3.5 border-b border-brand-border/60 pb-3">
               <Avatar name={selectedVerifier.user.name} size="lg" />
               <div className="min-w-0 flex-1">
-                <h3 className="truncate font-display text-base font-black text-brand-text">{selectedVerifier.user.name}</h3>
+                <h3 className="truncate font-display text-base font-black text-brand-text">
+                  {selectedVerifier.user.name}
+                </h3>
                 <p className="font-mono text-xs font-bold text-brand-green">PRC {selectedVerifier.prcLicenseNumber}</p>
                 <p className="text-xs text-brand-muted">{selectedVerifier.specialization || 'General Nutrition'}</p>
               </div>

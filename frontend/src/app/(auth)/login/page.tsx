@@ -34,7 +34,7 @@ export default function LoginPage() {
           : user.role === 'NUTRITIONIST'
             ? '/nutritionist/reviews'
             : !user.onboardingDone
-              ? (user.onboardingNextPath || '/onboarding/stats')
+              ? user.onboardingNextPath || '/onboarding/stats'
               : !user.tosAccepted
                 ? '/onboarding/tos'
                 : !user.reportAcknowledged

@@ -22,11 +22,7 @@ export const BreadcrumbProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSubTab(null);
   }, [pathname]);
 
-  return (
-    <BreadcrumbContext.Provider value={{ subTab, setSubTab }}>
-      {children}
-    </BreadcrumbContext.Provider>
-  );
+  return <BreadcrumbContext.Provider value={{ subTab, setSubTab }}>{children}</BreadcrumbContext.Provider>;
 };
 
 export const useBreadcrumb = () => useContext(BreadcrumbContext);
