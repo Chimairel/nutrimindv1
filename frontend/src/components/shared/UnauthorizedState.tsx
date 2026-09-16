@@ -36,24 +36,24 @@ export default function UnauthorizedState({
   variant = 'card',
   className = '',
   imageAlt = 'Access Restricted',
-  imageSize = 280,
+  imageSize = 380,
 }: UnauthorizedStateProps) {
   const containerClass =
     variant === 'page'
-      ? 'flex min-h-[70vh] w-full items-center justify-center px-4 py-8'
-      : 'w-full py-6 sm:py-10 flex items-center justify-center';
+      ? 'flex min-h-[75vh] w-full items-center justify-center px-4 py-8'
+      : 'w-full py-8 sm:py-12 flex items-center justify-center';
 
   return (
     <div className={containerClass}>
       <div
-        className={`flex w-full max-w-4xl flex-col items-center justify-center gap-6 sm:gap-10 md:flex-row md:items-center md:justify-center ${className}`}
+        className={`flex w-full max-w-5xl flex-col items-center justify-center gap-8 sm:gap-12 md:flex-row md:items-center md:justify-center ${className}`}
         aria-label={typeof title === 'string' ? title : 'Access Restricted'}
       >
         {/* Left: Floating Graphic */}
         <div className="relative shrink-0 flex items-center justify-center">
           <div
-            className="relative flex items-center justify-center transition-transform hover:scale-105 duration-500 ease-out"
-            style={{ width: imageSize, height: imageSize }}
+            className="relative flex items-center justify-center transition-transform hover:scale-105 duration-500 ease-out w-64 h-64 sm:w-80 sm:h-80 md:w-[360px] md:h-[360px] lg:w-[400px] lg:h-[400px]"
+            style={imageSize !== 380 ? { width: imageSize, height: imageSize } : undefined}
           >
             <Image
               src="/logo/unauthorized.svg"
@@ -61,15 +61,15 @@ export default function UnauthorizedState({
               width={imageSize}
               height={imageSize}
               priority
-              className="h-full w-full object-contain drop-shadow-[0_20px_35px_rgba(0,0,0,0.45)]"
+              className="h-full w-full object-contain drop-shadow-[0_25px_45px_rgba(0,0,0,0.5)]"
             />
           </div>
         </div>
 
         {/* Right: Text & Actions */}
-        <div className="flex max-w-lg flex-col items-center text-center md:items-start md:text-left">
+        <div className="flex max-w-xl flex-col items-center text-center md:items-start md:text-left">
           {eyebrow && (
-            <span className="mb-3 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-extrabold uppercase tracking-wider text-amber-500">
+            <span className="mb-3.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-1.5 font-mono text-xs font-extrabold uppercase tracking-wider text-amber-500">
               {eyebrow}
             </span>
           )}
