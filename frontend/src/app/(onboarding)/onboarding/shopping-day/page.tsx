@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import Progress from '@/components/ui/Progress';
+import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import { ShoppingDayOfWeek } from '@/types';
 import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -61,21 +61,15 @@ export default function OnboardingShoppingDayPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 flex flex-col items-center justify-center select-none relative">
+    <div className="min-h-screen bg-brand-bg text-brand-text px-4 py-6 sm:px-6 sm:py-8 flex flex-col items-center justify-center select-none relative">
       <div className="absolute top-[20%] left-[50%] translate-x-[-50%] h-[300px] w-[300px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
 
-      <div className="w-full max-w-xl flex flex-col gap-6">
-        {/* Progress */}
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 5 of 6</span>
-            <span className="text-brand-green">83% Completed</span>
-          </div>
-          <Progress value={83} className="bg-brand-border/40" />
-        </div>
+      <div className="w-full max-w-xl flex flex-col gap-4">
+        {/* Progress Slider */}
+        <OnboardingProgressSlider currentStep={5} totalSteps={6} />
 
-        <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
-          <div className="flex flex-col gap-1 mb-8">
+        <Card className="p-5 sm:p-7 glass-panel shadow-2xl border-brand-border/80">
+          <div className="flex flex-col gap-1 mb-4">
             <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">
               GROCERY SHOPPING DAY
             </h2>
@@ -86,13 +80,13 @@ export default function OnboardingShoppingDayPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Back button */}
             <button
               type="button"
@@ -104,7 +98,7 @@ export default function OnboardingShoppingDayPage() {
             </button>
 
             {/* Exact day cards */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {options.map((opt) => {
                 const isSelected = selected === opt.value;
                 return (
@@ -115,32 +109,42 @@ export default function OnboardingShoppingDayPage() {
                     id={`shopping-day-${opt.value}`}
                     onClick={() => setSelected(opt.value)}
                     className={`
-                      flex items-center gap-3 px-4 py-4 rounded-xl border-2 text-left transition-all duration-200 outline-none
+                      flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-left transition-all duration-200 outline-none
                       ${
                         isSelected
-                          ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
-                          : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
+                          ? 'border-brand-green/70 bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black shadow-md font-bold'
+                          : 'border-brand-border/70 bg-brand-bgAlt/50 text-brand-text hover:bg-brand-border/40'
                       }
                     `}
                   >
                     <span
-                      className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-brand-border/30 text-brand-green'}`}
+                      className={`p-2 rounded-lg flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? 'bg-white/20 dark:bg-black/10 text-white dark:text-brand-black'
+                          : 'bg-brand-border/30 text-brand-green'
+                      }`}
                     >
                       {opt.icon}
                     </span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h4
-                        className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}
+                        className={`text-xs sm:text-sm font-bold tracking-wide ${
+                          isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'
+                        }`}
                       >
                         {opt.title}
                       </h4>
-                      <p className={`text-[11px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}>
+                      <p
+                        className={`text-[11px] mt-0.5 truncate sm:whitespace-normal ${
+                          isSelected ? 'text-white/85 dark:text-brand-black/80' : 'text-brand-muted'
+                        }`}
+                      >
                         {opt.desc}
                       </p>
                     </div>
                     {isSelected && (
-                      <span className="text-white text-sm font-bold bg-white/20 h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-white stroke-[3px]" />
+                      <span className="text-white dark:text-brand-black bg-white/20 dark:bg-black/10 h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3px]" />
                       </span>
                     )}
                   </button>
@@ -149,7 +153,7 @@ export default function OnboardingShoppingDayPage() {
             </div>
 
             {/* Info note */}
-            <div className="mt-2 p-3 rounded-xl bg-brand-bgAlt/40 border border-brand-border/40">
+            <div className="mt-1 p-2.5 rounded-xl bg-brand-bgAlt/40 border border-brand-border/40">
               <p className="text-[11px] text-brand-muted leading-relaxed flex items-start gap-1.5">
                 <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                 <span>
@@ -163,7 +167,7 @@ export default function OnboardingShoppingDayPage() {
             <Button
               type="submit"
               variant="primary"
-              className="w-full py-3.5 mt-3 text-sm font-bold tracking-wide"
+              className="w-full py-3 mt-1 text-sm font-bold tracking-wide"
               isLoading={isLoading}
               disabled={isHydrating}
             >

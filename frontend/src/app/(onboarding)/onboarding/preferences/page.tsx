@@ -4,9 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
-import Progress from '@/components/ui/Progress';
+import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import { DietaryPreference, CarbPreference } from '@/types';
 import { Egg, Apple, Wheat, Check, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -83,37 +82,31 @@ export default function OnboardingPreferencesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 flex flex-col items-center justify-center select-none relative">
+    <div className="min-h-screen bg-brand-bg text-brand-text p-4 sm:p-6 flex flex-col items-center justify-center select-none relative">
       <div className="absolute top-[20%] left-[50%] translate-x-[-50%] h-[300px] w-[300px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
 
-      <div className="w-full max-w-xl flex flex-col gap-6">
-        {/* Onboarding progress bar */}
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 2 of 6</span>
-            <span className="text-brand-green">33% Completed</span>
-          </div>
-          <Progress value={33} className="bg-brand-border/40" />
-        </div>
+      <div className="w-full max-w-xl flex flex-col gap-4 my-auto">
+        {/* Onboarding progress slider */}
+        <OnboardingProgressSlider currentStep={2} totalSteps={6} />
 
-        <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
-          <div className="flex flex-col gap-1 mb-8">
-            <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">
+        <Card className="p-5 sm:p-6 glass-panel shadow-2xl border-brand-border/80">
+          <div className="flex flex-col gap-1 mb-3">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
               DIETARY PREFERENCES
             </h2>
             <p className="text-xs text-brand-muted">
-              Select your food guidelines and cooking background to tailor the AI recommendations.
+              Select your food guidelines and meal planning preferences to tailor the AI recommendations.
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+            <div className="mb-3 p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Back button */}
             <button
               type="button"
@@ -125,9 +118,9 @@ export default function OnboardingPreferencesPage() {
             </button>
 
             {/* Dietary Preference Selector */}
-            <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">Dietary Pattern</label>
-              <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Dietary Pattern</label>
+              <div className="grid grid-cols-2 gap-2">
                 {dietaryList.map((item) => {
                   const isSelected = dietary === item.value;
                   return (
@@ -137,27 +130,33 @@ export default function OnboardingPreferencesPage() {
                       aria-pressed={isSelected}
                       onClick={() => setDietary(item.value)}
                       className={`
-                        flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
+                        flex items-center justify-between px-3 py-2 rounded-xl border-2 text-left transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
                     >
-                      <div>
+                      <div className="min-w-0 pr-1">
                         <h4
-                          className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}
+                          className={`text-xs sm:text-sm font-bold tracking-wide ${
+                            isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'
+                          }`}
                         >
                           {item.label}
                         </h4>
                         <p
-                          className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}
+                          className={`text-[10px] mt-0.5 leading-tight truncate ${
+                            isSelected ? 'text-white/85 dark:text-brand-black/80' : 'text-brand-muted'
+                          }`}
                         >
                           {item.desc}
                         </p>
                       </div>
-                      {isSelected && <Check className="w-4 h-4 text-white stroke-[3px] shrink-0" />}
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-white dark:text-brand-black stroke-[3px] shrink-0" />
+                      )}
                     </button>
                   );
                 })}
@@ -165,9 +164,9 @@ export default function OnboardingPreferencesPage() {
             </div>
 
             {/* Carb preference */}
-            <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">Carb Intake Target</label>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Carb Intake Target</label>
+              <div className="grid grid-cols-3 gap-2.5">
                 {carbList.map((item) => {
                   const isSelected = carb === item.value;
                   return (
@@ -177,34 +176,25 @@ export default function OnboardingPreferencesPage() {
                       aria-pressed={isSelected}
                       onClick={() => setCarb(item.value)}
                       className={`
-                        flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all duration-200 outline-none
+                        flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-xl border-2 text-center transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >
-                      <span className="shrink-0">{item.icon}</span>
-                      <span className="text-xs font-bold">{item.label}</span>
+                      <span className={`shrink-0 ${isSelected ? 'text-white dark:text-brand-black' : 'text-brand-green'}`}>
+                        {item.icon}
+                      </span>
+                      <span className={`text-xs font-bold ${isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'}`}>
+                        {item.label}
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
-
-            {/* Food Culture */}
-            <Input
-              id="culture"
-              label="Cooking Style / Food Culture"
-              type="text"
-              placeholder="Filipino, Ilocano, Visayan, etc."
-              value={culture}
-              onChange={(e) => setCulture(e.target.value)}
-              disabled={isLoading}
-              maxLength={80}
-              helperText="Describe your regional preferences so the AI can prioritize local ingredients (e.g. malunggay, ampalaya, kangkong)."
-            />
 
             <PlanningLocationFields
               level={planningLevel}
@@ -221,7 +211,7 @@ export default function OnboardingPreferencesPage() {
             <Button
               type="submit"
               variant="primary"
-              className="w-full py-3.5 mt-4 text-sm font-bold tracking-wide"
+              className="w-full py-3 mt-2 text-sm font-bold tracking-wide"
               isLoading={isLoading}
               disabled={isHydrating}
             >

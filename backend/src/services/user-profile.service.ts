@@ -75,56 +75,59 @@ export class UserProfileService {
         (safeData as Record<string, unknown>)[field] = data[field];
       }
     }
-    return prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const existing = await tx.userProfile.findUnique({
-        where: { userId },
-      });
-      const effectiveLevel =
-        safeData.planningGeographyLevel ?? existing?.planningGeographyLevel ?? ConsumptionGeographyLevel.NATIONAL;
-      const effectiveRegion =
-        safeData.planningRegionName !== undefined ? safeData.planningRegionName : existing?.planningRegionName;
-      const effectiveProvinceHuc =
-        safeData.planningProvinceHucName !== undefined
-          ? safeData.planningProvinceHucName
-          : existing?.planningProvinceHucName;
-      const requestedLocality =
-        safeData.mealLocalityPreference ?? existing?.mealLocalityPreference ?? MealLocalityPreference.NATIONAL;
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const existing = await tx.userProfile.findUnique({
+          where: { userId },
+        });
+        const effectiveLevel =
+          safeData.planningGeographyLevel ?? existing?.planningGeographyLevel ?? ConsumptionGeographyLevel.NATIONAL;
+        const effectiveRegion =
+          safeData.planningRegionName !== undefined ? safeData.planningRegionName : existing?.planningRegionName;
+        const effectiveProvinceHuc =
+          safeData.planningProvinceHucName !== undefined
+            ? safeData.planningProvinceHucName
+            : existing?.planningProvinceHucName;
+        const requestedLocality =
+          safeData.mealLocalityPreference ?? existing?.mealLocalityPreference ?? MealLocalityPreference.NATIONAL;
 
-      if (effectiveLevel === ConsumptionGeographyLevel.NATIONAL || !effectiveRegion) {
-        safeData.planningRegionName = null;
-        safeData.planningProvinceHucName = null;
-        safeData.mealLocalityPreference = MealLocalityPreference.NATIONAL;
-      } else if (effectiveLevel === ConsumptionGeographyLevel.REGION || !effectiveProvinceHuc) {
-        safeData.planningProvinceHucName = null;
-        safeData.mealLocalityPreference =
-          requestedLocality === MealLocalityPreference.LOCAL ||
-          requestedLocality === MealLocalityPreference.REGIONAL_LOCAL
-            ? MealLocalityPreference.REGIONAL
-            : requestedLocality;
-      } else {
-        safeData.mealLocalityPreference = requestedLocality;
-      }
+        if (effectiveLevel === ConsumptionGeographyLevel.NATIONAL || !effectiveRegion) {
+          safeData.planningRegionName = null;
+          safeData.planningProvinceHucName = null;
+          safeData.mealLocalityPreference = MealLocalityPreference.NATIONAL;
+        } else if (effectiveLevel === ConsumptionGeographyLevel.REGION || !effectiveProvinceHuc) {
+          safeData.planningProvinceHucName = null;
+          safeData.mealLocalityPreference =
+            requestedLocality === MealLocalityPreference.LOCAL ||
+            requestedLocality === MealLocalityPreference.REGIONAL_LOCAL
+              ? MealLocalityPreference.REGIONAL
+              : requestedLocality;
+        } else {
+          safeData.mealLocalityPreference = requestedLocality;
+        }
 
-      const profile = await tx.userProfile.upsert({
-        where: { userId },
-        update: safeData,
-        create: {
-          userId,
-          ...safeData,
-        },
-      });
-      await tx.healthProfileRevision.create({
-        data: {
-          userId,
-          revisionType: HealthProfileRevisionType.BODY_DIET_UPDATED,
-          snapshot: safeData as Prisma.InputJsonObject,
-        },
-      });
-      const changed =
-        !existing || Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
-      return changed ? advanceProfileRevision(tx, userId) : profile;
-    });
+        const profile = await tx.userProfile.upsert({
+          where: { userId },
+          update: safeData,
+          create: {
+            userId,
+            ...safeData,
+          },
+        });
+        await tx.healthProfileRevision.create({
+          data: {
+            userId,
+            revisionType: HealthProfileRevisionType.BODY_DIET_UPDATED,
+            snapshot: safeData as Prisma.InputJsonObject,
+          },
+        });
+        const changed =
+          !existing || Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
+        return changed ? advanceProfileRevision(tx, userId) : profile;
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
   }
 
   /**
@@ -217,13 +220,16 @@ export class UserProfileService {
     });
 
     // 3. Persist targets and flag onboarding as complete
-    await prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const current = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
-      if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
-      if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) await advanceProfileRevision(tx, userId);
-      await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const current = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+        if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
+        if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) await advanceProfileRevision(tx, userId);
+        await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
 
     return {
       dailyCalorieTarget: calculations.dailyCalorieTarget,

@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import Progress from '@/components/ui/Progress';
+import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import Checkbox from '@/components/ui/Checkbox';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -177,33 +177,27 @@ export default function OnboardingTosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 flex flex-col items-center justify-center select-none relative">
+    <div className="min-h-screen bg-brand-bg text-brand-text px-4 py-6 sm:px-6 sm:py-8 flex flex-col items-center justify-center select-none relative">
       <div className="absolute top-[20%] left-[50%] translate-x-[-50%] h-[300px] w-[300px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
 
-      <div className="w-full max-w-xl flex flex-col gap-6">
+      <div className="w-full max-w-xl flex flex-col gap-4">
         {/* Onboarding progress */}
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 6 of 6</span>
-            <span className="text-brand-green">100% Completed</span>
-          </div>
-          <Progress value={100} className="bg-brand-border/40" />
-        </div>
+        <OnboardingProgressSlider currentStep={6} totalSteps={6} />
 
-        <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
-          <section aria-labelledby="onboarding-review-heading" className="mb-8">
-            <div className="mb-4 flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-green/25 bg-brand-green/10 text-brand-green">
-                <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
+        <Card className="p-5 sm:p-7 glass-panel shadow-2xl border-brand-border/80">
+          <section aria-labelledby="onboarding-review-heading" className="mb-5">
+            <div className="mb-3 flex items-start gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-green/25 bg-brand-green/10 text-brand-green">
+                <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
               </div>
               <div>
                 <h1
                   id="onboarding-review-heading"
-                  className="font-display text-xl font-extrabold tracking-tight text-brand-text"
+                  className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-brand-text"
                 >
                   Review your onboarding details
                 </h1>
-                <p className="mt-1 text-xs leading-relaxed text-brand-muted">
+                <p className="mt-0.5 text-xs leading-relaxed text-brand-muted">
                   Confirm the information used for your calorie target, safety checks, nutrition report, and meal-plan
                   recommendations before giving consent.
                 </p>
@@ -212,37 +206,37 @@ export default function OnboardingTosPage() {
 
             {isHydrating ? (
               <div
-                className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 px-4 py-6 text-center text-xs text-brand-muted"
+                className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 px-4 py-4 text-center text-xs text-brand-muted"
                 role="status"
               >
                 Loading your saved onboarding details…
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {reviewSections.map((section) => (
-                  <div key={section.title} className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/45 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h2 className="text-xs font-extrabold uppercase tracking-[0.12em] text-brand-text">
+                  <div key={section.title} className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/45 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <h2 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-text">
                         {section.title}
                       </h2>
                       <button
                         type="button"
                         onClick={() => router.push(section.editPath)}
-                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-brand-green transition-colors hover:bg-brand-green/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold text-brand-green transition-colors hover:bg-brand-green/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
                         aria-label={`Edit ${section.title.toLowerCase()}`}
                       >
-                        <Pencil className="h-3 w-3" aria-hidden="true" />
+                        <Pencil className="h-2.5 w-2.5" aria-hidden="true" />
                         Edit
                       </button>
                     </div>
-                    <dl className="space-y-2">
+                    <dl className="space-y-1.5">
                       {section.items.map(([label, value]) => (
                         <div
                           key={label}
-                          className="flex items-start justify-between gap-4 border-t border-brand-border/35 pt-2 first:border-0 first:pt-0"
+                          className="flex items-start justify-between gap-3 border-t border-brand-border/35 pt-1.5 first:border-0 first:pt-0"
                         >
-                          <dt className="text-[11px] text-brand-muted">{label}</dt>
-                          <dd className="max-w-[62%] text-right text-[11px] font-semibold leading-relaxed text-brand-text">
+                          <dt className="text-[10px] text-brand-muted">{label}</dt>
+                          <dd className="max-w-[62%] text-right text-[10px] font-semibold leading-relaxed text-brand-text">
                             {value}
                           </dd>
                         </div>
@@ -254,49 +248,23 @@ export default function OnboardingTosPage() {
             )}
           </section>
 
-          <div className="flex flex-col gap-1 mb-6">
-            <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">
+          <div className="flex flex-col gap-0.5 mb-4">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
               LEGAL TERMS & PROTECTION
             </h2>
             <p className="text-xs text-brand-muted">
-              Please review our clinical guidelines, medical disclaimers, and data protection terms.
-            </p>
-          </div>
-
-          {/* Terms Scrollbox */}
-          <div className="w-full h-48 overflow-y-auto bg-brand-bgAlt border border-brand-border rounded-xl p-4 text-xs text-brand-muted leading-relaxed mb-6">
-            <h4 className="font-bold text-brand-text mb-2">1. AI NUTRITION-PLANNING LIMITATIONS</h4>
-            <p className="mb-4">
-              KAINARA uses software calculations, FNRI food data, and Google Gemini-generated content to prepare
-              nutrition reports and meal suggestions. These outputs are estimates awaiting the review states shown in
-              the application. They are not a diagnosis, prescription, or replacement for a physician or Registered
-              Nutritionist-Dietitian.
-            </p>
-            <h4 className="font-bold text-brand-text mb-2">2. HEALTH DATA PRIVACY & COMPLIANCE</h4>
-            <p className="mb-4">
-              KAINARA stores the profile and health information you provide to calculate targets, apply safety
-              restrictions, generate reports and meal plans, and support nutritionist review. Selected profile and
-              health details are transmitted to Google Gemini when AI generation is required. KAINARA does not sell
-              this information. Read this notice before consenting to processing under the{' '}
-              <strong>Philippine Data Privacy Act of 2012 (R.A. 10173)</strong>.
-            </p>
-            <h4 className="font-bold text-brand-text mb-2">3. MEDICAL CONSULTATION DISCLAIMER</h4>
-            <p>
-              If you suffer from chronic conditions (such as severe renal failure, heart diseases, or high-risk
-              pregnancies), you must consult a licensed Registered Nutritionist-Dietitian (RND) or Physician (MD) before
-              implementing our generated layouts. You acknowledge that you use our recommendations entirely at your own
-              risk.
+              Please review our clinical guidelines, medical disclaimers, and data protection terms below.
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
             {/* Back button */}
             <button
               type="button"
@@ -311,7 +279,19 @@ export default function OnboardingTosPage() {
               id="medicalDisclaimer"
               checked={medicalDisclaimer}
               onCheckedChange={(checked) => setMedicalDisclaimer(!!checked)}
-              label="I understand that AI-generated meal plans are NOT medical advice and should not replace consultation with a physician or RND."
+              label={
+                <span className="text-xs text-brand-text leading-relaxed">
+                  I understand that AI-generated meal plans are NOT medical advice. If managing chronic conditions, I agree to follow our{' '}
+                  <a
+                    href="/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+                  >
+                    Clinical Guidelines & Disclaimers
+                  </a>.
+                </span>
+              }
               error={error !== null && !medicalDisclaimer}
             />
 
@@ -319,27 +299,60 @@ export default function OnboardingTosPage() {
               id="healthDataProcessing"
               checked={healthDataProcessing}
               onCheckedChange={(checked) => setHealthDataProcessing(!!checked)}
-              label="I explicitly consent to KAINARA processing my health profile and sending the necessary profile details to Google Gemini when AI-generated reports or meals are required."
+              label={
+                <span className="text-xs text-brand-text leading-relaxed">
+                  I explicitly consent to KAINARA processing my health data and transmitting required meal parameters to Google Gemini under the Philippine Data Privacy Act of 2012 (R.A. 10173). Learn more in our{' '}
+                  <a
+                    href="/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+                  >
+                    Data Protection Notice
+                  </a>.
+                </span>
+              }
               error={error !== null && !healthDataProcessing}
             />
 
-            <p className="rounded-xl border border-brand-border/50 bg-brand-bgAlt/40 px-4 py-3 text-[11px] leading-relaxed text-brand-muted">
+            <div className="rounded-xl border border-brand-border/50 bg-brand-bgAlt/40 px-3 py-2 text-[10px] leading-relaxed text-brand-muted">
               Consent versions: Terms {profile?.onboardingStatus?.currentTermsVersion || 'loading'} · Privacy{' '}
               {profile?.onboardingStatus?.currentPrivacyVersion || 'loading'}
-            </p>
+            </div>
 
             <Checkbox
               id="privacyPolicy"
               checked={privacyPolicy}
               onCheckedChange={(checked) => setPrivacyPolicy(!!checked)}
-              label="I agree to the Terms of Service, Privacy Policy, and authorize processing of my health data in compliance with R.A. 10173."
+              label={
+                <span className="text-xs text-brand-text leading-relaxed">
+                  I agree to the{' '}
+                  <a
+                    href="/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+                  >
+                    Terms of Service
+                  </a>{' '}
+                  and{' '}
+                  <a
+                    href="/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+                  >
+                    Privacy Policy
+                  </a>.
+                </span>
+              }
               error={error !== null && !privacyPolicy}
             />
 
             <Button
               type="submit"
               variant="primary"
-              className="w-full py-4 mt-4 text-sm font-bold tracking-wide"
+              className="w-full py-3 mt-2 text-sm font-bold tracking-wide"
               disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || isHydrating}
               isLoading={isLoading}
             >

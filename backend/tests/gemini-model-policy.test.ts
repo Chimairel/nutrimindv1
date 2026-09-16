@@ -4,10 +4,10 @@ import { buildGeminiGenerationConfig, GEMINI_MODEL_SEQUENCE } from '../src/domai
 
 test('[TEST-150] Gemini fallback policy uses explicit current GA model IDs', () => {
   assert.deepEqual(GEMINI_MODEL_SEQUENCE, [
-    'gemini-3.8-flash',
     'gemini-3.7-flash',
-    'gemini-3.6-flash',
     'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-3.6-flash',
   ]);
   assert.equal(new Set(GEMINI_MODEL_SEQUENCE).size, GEMINI_MODEL_SEQUENCE.length);
   assert.ok(GEMINI_MODEL_SEQUENCE.every((model) => !model.includes('preview')));

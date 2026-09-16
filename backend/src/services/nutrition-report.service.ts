@@ -105,7 +105,7 @@ export class NutritionReportService {
         (f) =>
           `- ${f.name} [Category: ${f.category || 'N/A'}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g]`
       )
-      .slice(0, 130)
+      .slice(0, 35)
       .join('\n');
 
     // 3. Compile prompt constraints

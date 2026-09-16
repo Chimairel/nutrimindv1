@@ -71,8 +71,13 @@ export default function NutritionReportPage() {
     const fetchReport = async () => {
       setIsLoading(true);
       try {
-        // Fetch profile data for the summary card
-        const profileRes = await api.get('/user/profile');
+        // Parallelize fetching profile, history, and existing report
+        const [profileRes, historyRes, getRes] = await Promise.all([
+          api.get('/user/profile'),
+          api.get('/user/nutrition-report/history').catch(() => ({ data: { data: [] } })),
+          api.get('/user/nutrition-report').catch(() => ({ data: null })),
+        ]);
+
         if (profileRes.data?.success) {
           const p = profileRes.data.data;
           const structuredConditions = extractStructuredRestrictions(p.safetyEntries, 'condition');
@@ -86,18 +91,18 @@ export default function NutritionReportPage() {
           });
         }
 
-        const historyRes = await api.get('/user/nutrition-report/history');
-        setHistory(historyRes.data.data || []);
+        setHistory(historyRes.data?.data || []);
+
         // Try getting existing report first
-        const getRes = await api.get('/user/nutrition-report');
-        if (getRes.data && getRes.data.success && getRes.data.data && !getRes.data.data.isStale) {
+        if (getRes?.data && getRes.data.success && getRes.data.data && !getRes.data.data.isStale) {
           setReport(getRes.data.data);
         } else {
           // If none exists, trigger a generation
           const genRes = await api.post('/user/nutrition-report/generate');
           if (genRes.data && genRes.data.success) {
             setReport(genRes.data.data);
-            setHistory((await api.get('/user/nutrition-report/history')).data.data || []);
+            const freshHistory = await api.get('/user/nutrition-report/history').catch(() => ({ data: { data: [] } }));
+            setHistory(freshHistory.data?.data || []);
           } else {
             setError('Failed to load your nutrition report.');
           }

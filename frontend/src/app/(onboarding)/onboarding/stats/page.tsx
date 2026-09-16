@@ -6,7 +6,7 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
-import Progress from '@/components/ui/Progress';
+import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import { Goal, ActivityLevel } from '@/types';
 import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -183,39 +183,35 @@ export default function OnboardingStatsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-6 flex flex-col items-center justify-center select-none relative">
+    <div className="min-h-screen bg-brand-bg text-brand-text p-4 sm:p-6 flex flex-col items-center justify-center select-none relative">
       <div className="absolute top-[20%] left-[50%] translate-x-[-50%] h-[300px] w-[300px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
 
-      <div className="w-full max-w-xl flex flex-col gap-6">
-        {/* Onboarding progress */}
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-bold text-brand-muted tracking-widest uppercase">
-            <span>Step 1 of 6</span>
-            <span className="text-brand-green">17% Completed</span>
-          </div>
-          <Progress value={17} className="bg-brand-border/40" />
-        </div>
+      <div className="w-full max-w-xl flex flex-col gap-4 my-auto">
+        {/* Onboarding progress slider */}
+        <OnboardingProgressSlider currentStep={1} totalSteps={6} />
 
-        <Card className="p-8 glass-panel shadow-2xl border-brand-border/80">
-          <div className="flex flex-col gap-1 mb-8">
-            <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">PERSONAL METRICS</h2>
+        <Card className="p-5 sm:p-6 glass-panel shadow-2xl border-brand-border/80">
+          <div className="flex flex-col gap-1 mb-3">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
+              PERSONAL METRICS
+            </h2>
             <p className="text-xs text-brand-muted">
               Specify your primary fitness objective and body stats to calculate your targets.
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+            <div className="mb-3 p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
               <span className="leading-tight">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Goal Chips */}
-            <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">Primary Goal</label>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Primary Goal</label>
+              <div className="grid grid-cols-2 gap-2.5">
                 {goalsList.map((item) => {
                   const isSelected = goal === item.value;
                   return (
@@ -225,10 +221,10 @@ export default function OnboardingStatsPage() {
                       aria-pressed={isSelected}
                       onClick={() => handleGoalChange(item.value)}
                       className={`
-                        flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 outline-none
+                        flex items-center gap-2 px-3.5 py-2.5 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
@@ -241,15 +237,15 @@ export default function OnboardingStatsPage() {
               </div>
             </div>
 
-            <fieldset className="flex flex-col gap-2.5">
-              <legend className="text-sm font-bold tracking-wide text-brand-text/90">
+            <fieldset className="flex flex-col gap-2">
+              <legend className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
                 Biological sex used for energy calculation
               </legend>
-              <p className="text-xs leading-relaxed text-brand-muted">
+              <p className="text-[11px] leading-relaxed text-brand-muted">
                 This input is required by the Mifflin–St Jeor equation and is used only for nutrition-target
                 calculations.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {(['MALE', 'FEMALE'] as const).map((value) => {
                   const selected = biologicalSex === value;
                   return (
@@ -258,7 +254,11 @@ export default function OnboardingStatsPage() {
                       type="button"
                       aria-pressed={selected}
                       onClick={() => setBiologicalSex(value)}
-                      className={`rounded-xl border-2 px-4 py-3 text-sm font-bold transition ${selected ? 'border-brand-border bg-brand-green text-white' : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'}`}
+                      className={`rounded-xl border-2 px-3.5 py-2.5 text-xs sm:text-sm font-bold transition outline-none ${
+                        selected
+                          ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                          : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
+                      }`}
                     >
                       {value === 'MALE' ? 'Male' : 'Female'}
                     </button>
@@ -268,7 +268,7 @@ export default function OnboardingStatsPage() {
             </fieldset>
 
             {/* Inputs Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <Input
                 id="age"
                 label="Age (Years)"
@@ -302,17 +302,16 @@ export default function OnboardingStatsPage() {
                 value={weight}
                 onChange={(e) => {
                   setWeight(e.target.value);
-                  // Keep target weight in sync for MAINTAIN goal
                   if (goal === 'MAINTAIN') setTargetWeight(e.target.value);
                 }}
                 disabled={isLoading}
               />
 
               {/* Target Weight — smart field with live goal-aware validation */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1">
                 <label
                   htmlFor="targetWeight"
-                  className={`text-sm font-bold tracking-wide ${
+                  className={`text-xs sm:text-sm font-bold tracking-wide ${
                     goal === 'MAINTAIN' ? 'text-brand-muted' : 'text-brand-text/90'
                   }`}
                 >
@@ -329,7 +328,7 @@ export default function OnboardingStatsPage() {
                   onChange={(e) => setTargetWeight(e.target.value)}
                   disabled={isLoading || goal === 'MAINTAIN'}
                   className={`
-                    w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 outline-none
+                    w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-medium transition-all duration-200 outline-none
                     bg-brand-bgAlt/50 text-brand-text
                     ${
                       goal === 'MAINTAIN'
@@ -342,7 +341,6 @@ export default function OnboardingStatsPage() {
                     }
                   `}
                 />
-                {/* Hint text below the field */}
                 <p
                   className={`text-[10px] font-semibold leading-tight ${
                     goal === 'MAINTAIN'
@@ -360,9 +358,11 @@ export default function OnboardingStatsPage() {
             </div>
 
             {/* Activity Level Selector */}
-            <div className="flex flex-col gap-2.5">
-              <label className="text-sm font-bold tracking-wide text-brand-text/90">Daily Activity Level</label>
-              <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
+                Daily Activity Level
+              </label>
+              <div className="grid grid-cols-2 gap-2">
                 {activityLevelsList.map((item) => {
                   const isSelected = activityLevel === item.value;
                   return (
@@ -372,27 +372,33 @@ export default function OnboardingStatsPage() {
                       aria-pressed={isSelected}
                       onClick={() => setActivityLevel(item.value)}
                       className={`
-                        flex items-center justify-between px-5 py-3 rounded-xl border-2 text-left transition-all duration-200 outline-none
+                        flex items-center justify-between px-3 py-2 rounded-xl border-2 text-left transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white shadow-lg shadow-brand-green/5'
+                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
                     >
-                      <div>
+                      <div className="min-w-0 pr-1">
                         <h4
-                          className={`text-sm font-bold tracking-wide ${isSelected ? 'text-white' : 'text-brand-text'}`}
+                          className={`text-xs sm:text-sm font-bold tracking-wide ${
+                            isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'
+                          }`}
                         >
                           {item.label}
                         </h4>
                         <p
-                          className={`text-xs mt-0.5 leading-tight ${isSelected ? 'text-white/80' : 'text-brand-muted'}`}
+                          className={`text-[10px] mt-0.5 leading-tight truncate ${
+                            isSelected ? 'text-white/85 dark:text-brand-black/80' : 'text-brand-muted'
+                          }`}
                         >
                           {item.desc}
                         </p>
                       </div>
-                      {isSelected && <Check className="w-4 h-4 text-white stroke-[3px] shrink-0" />}
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-white dark:text-brand-black stroke-[3px] shrink-0" />
+                      )}
                     </button>
                   );
                 })}
@@ -402,7 +408,7 @@ export default function OnboardingStatsPage() {
             <Button
               type="submit"
               variant="primary"
-              className="w-full py-3.5 mt-4 text-sm font-bold tracking-wide"
+              className="w-full py-3 mt-2 text-sm font-bold tracking-wide"
               isLoading={isLoading}
               disabled={isHydrating}
             >
