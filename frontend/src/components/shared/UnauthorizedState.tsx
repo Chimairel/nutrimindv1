@@ -36,27 +36,23 @@ export default function UnauthorizedState({
   variant = 'card',
   className = '',
   imageAlt = 'Access Restricted',
-  imageSize = 220,
+  imageSize = 280,
 }: UnauthorizedStateProps) {
   const containerClass =
     variant === 'page'
       ? 'flex min-h-[70vh] w-full items-center justify-center px-4 py-8'
-      : 'w-full my-6 flex items-center justify-center';
-
-  const cardClass = `surface-panel flex w-full max-w-xl flex-col items-center justify-center rounded-[30px] border border-brand-border/70 bg-brand-surface/75 p-6 text-center shadow-card backdrop-blur-md sm:p-10 ${className}`;
+      : 'w-full py-6 sm:py-10 flex items-center justify-center';
 
   return (
     <div className={containerClass}>
-      <section className={cardClass} aria-label={typeof title === 'string' ? title : 'Access Restricted'}>
-        {eyebrow && (
-          <span className="mb-4 inline-flex items-center rounded-full border border-status-pending-text/30 bg-status-pending-bg/15 px-3 py-1 font-mono text-[11px] font-extrabold uppercase tracking-wider text-status-pending-text">
-            {eyebrow}
-          </span>
-        )}
-
-        <div className="relative mb-6 flex items-center justify-center">
+      <div
+        className={`flex w-full max-w-4xl flex-col items-center justify-center gap-6 sm:gap-10 md:flex-row md:items-center md:justify-center ${className}`}
+        aria-label={typeof title === 'string' ? title : 'Access Restricted'}
+      >
+        {/* Left: Floating Graphic */}
+        <div className="relative shrink-0 flex items-center justify-center">
           <div
-            className="relative flex items-center justify-center overflow-hidden"
+            className="relative flex items-center justify-center transition-transform hover:scale-105 duration-500 ease-out"
             style={{ width: imageSize, height: imageSize }}
           >
             <Image
@@ -65,62 +61,71 @@ export default function UnauthorizedState({
               width={imageSize}
               height={imageSize}
               priority
-              className="h-full w-full object-contain drop-shadow-sm"
+              className="h-full w-full object-contain drop-shadow-[0_20px_35px_rgba(0,0,0,0.45)]"
             />
           </div>
         </div>
 
-        <h2 className="mb-2.5 font-display text-xl sm:text-2xl font-black tracking-tight text-brand-text">
-          {title}
-        </h2>
+        {/* Right: Text & Actions */}
+        <div className="flex max-w-lg flex-col items-center text-center md:items-start md:text-left">
+          {eyebrow && (
+            <span className="mb-3 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-extrabold uppercase tracking-wider text-amber-500">
+              {eyebrow}
+            </span>
+          )}
 
-        <p className="mb-8 max-w-md text-xs sm:text-sm leading-relaxed text-brand-muted">
-          {description}
-        </p>
+          <h2 className="mb-3 font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-brand-text">
+            {title}
+          </h2>
 
-        {(action || secondaryAction) && (
-          <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
-            {action && (
-              action.href ? (
-                <Link href={action.href} className="w-full sm:w-auto">
-                  <Button variant="primary" className={`w-full sm:min-w-[180px] ${action.className || ''}`}>
+          <p className="mb-6 text-sm sm:text-base leading-relaxed text-brand-muted">
+            {description}
+          </p>
+
+          {(action || secondaryAction) && (
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 w-full sm:w-auto">
+              {action && (
+                action.href ? (
+                  <Link href={action.href} className="w-full sm:w-auto">
+                    <Button variant="primary" className={`w-full sm:min-w-[180px] ${action.className || ''}`}>
+                      {action.label}
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={action.onClick}
+                    className={`w-full sm:w-auto sm:min-w-[180px] ${action.className || ''}`}
+                  >
                     {action.label}
                   </Button>
-                </Link>
-              ) : (
-                <Button
-                  variant="primary"
-                  onClick={action.onClick}
-                  className={`w-full sm:w-auto sm:min-w-[180px] ${action.className || ''}`}
-                >
-                  {action.label}
-                </Button>
-              )
-            )}
+                )
+              )}
 
-            {secondaryAction && (
-              secondaryAction.href ? (
-                <Link href={secondaryAction.href} className="w-full sm:w-auto">
+              {secondaryAction && (
+                secondaryAction.href ? (
+                  <Link href={secondaryAction.href} className="w-full sm:w-auto">
+                    <Button
+                      variant="secondary"
+                      className={`w-full sm:w-auto sm:min-w-[140px] ${secondaryAction.className || ''}`}
+                    >
+                      {secondaryAction.label}
+                    </Button>
+                  </Link>
+                ) : (
                   <Button
                     variant="secondary"
+                    onClick={secondaryAction.onClick}
                     className={`w-full sm:w-auto sm:min-w-[140px] ${secondaryAction.className || ''}`}
                   >
                     {secondaryAction.label}
                   </Button>
-                </Link>
-              ) : (
-                <Button
-                  variant="secondary"
-                  onClick={secondaryAction.onClick}
-                  className={`w-full sm:w-auto sm:min-w-[140px] ${secondaryAction.className || ''}`}
-                >
-                  {secondaryAction.label}
-                </Button>
-              )
-            )}
-          </div>
-        )}
-      </section>
+                )
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
