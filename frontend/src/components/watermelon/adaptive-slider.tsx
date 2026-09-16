@@ -22,6 +22,7 @@ export interface AdaptiveSliderProps {
   stops?: SliderStop[];
   onChange?: (value: number) => void;
   disabled?: boolean;
+  hideDots?: boolean;
   className?: string;
   'aria-label'?: string;
   'aria-valuetext'?: string;
@@ -68,6 +69,7 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
   maxAllowed = 5,
   onChange,
   disabled = false,
+  hideDots = false,
   className = '',
   'aria-label': ariaLabel = 'Meal locality strength',
   'aria-valuetext': ariaValueText,
@@ -153,25 +155,27 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
       {/* Track Container */}
       <div className="group relative flex h-12 w-full items-center overflow-hidden rounded-full border border-brand-border/70 bg-[#f1f3f5] transition-colors dark:border-white/10 dark:bg-neutral-900/90">
         {/* 5 Dots along track */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-5 transition-colors sm:px-6">
-          {Array.from({ length: totalStops }).map((_, i) => {
-            const stopNum = min + i;
-            const isUnlocked = stopNum <= maxAllowed;
-            const isFilled = stopNum <= clampedValue;
-            return (
-              <div
-                key={i}
-                className={`z-30 h-2 w-2 rounded-full transition-all duration-200 ${
-                  isFilled
-                    ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]'
-                    : isUnlocked
-                      ? 'bg-brand-border/90 dark:bg-neutral-600'
-                      : 'bg-brand-border/40 dark:bg-neutral-800 opacity-40'
-                }`}
-              />
-            );
-          })}
-        </div>
+        {!hideDots && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-5 transition-colors sm:px-6">
+            {Array.from({ length: totalStops }).map((_, i) => {
+              const stopNum = min + i;
+              const isUnlocked = stopNum <= maxAllowed;
+              const isFilled = stopNum <= clampedValue;
+              return (
+                <div
+                  key={i}
+                  className={`z-30 h-2 w-2 rounded-full transition-all duration-200 ${
+                    isFilled
+                      ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]'
+                      : isUnlocked
+                        ? 'bg-brand-border/90 dark:bg-neutral-600'
+                        : 'bg-brand-border/40 dark:bg-neutral-800 opacity-40'
+                  }`}
+                />
+              );
+            })}
+          </div>
+        )}
 
         {/* Dynamic Gradient Fill */}
         <motion.div

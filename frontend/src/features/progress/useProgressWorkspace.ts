@@ -84,6 +84,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [isSavingBiometrics, setIsSavingBiometrics] = useState(false);
   const [biometricsSuccess, setBiometricsSuccess] = useState<string | null>(null);
   const [biometricsError, setBiometricsError] = useState<string | null>(null);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
 
   const [healthSuccess, setHealthSuccess] = useState<string | null>(null);
 
@@ -209,6 +210,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           profileData: profileUpdate.data.data,
         });
         writeSessionResource(ownerId, 'user-profile', profileUpdate.data.data);
+        setShowRegenerateModal(true);
       }
     } catch (err: unknown) {
       setBiometricsError(getApiErrorMessage(err, 'Failed to update biometrics.'));
@@ -380,6 +382,8 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     isSavingBiometrics,
     biometricsSuccess,
     biometricsError,
+    showRegenerateModal,
+    setShowRegenerateModal,
     healthSuccess,
     setHealthSuccess,
     isLogFormOpen,

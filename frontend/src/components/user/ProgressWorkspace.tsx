@@ -8,6 +8,7 @@ import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import PlanningLocationFields from '@/components/user/PlanningLocationFields';
@@ -18,6 +19,7 @@ import {
   TrendingUp,
   Plus,
   CheckCircle,
+  CheckCircle2,
   AlertTriangle,
   Lightbulb,
   BarChart3,
@@ -28,6 +30,8 @@ import {
   Check,
   Activity,
   ClipboardList,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 
 import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
@@ -79,6 +83,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     isSavingBiometrics,
     biometricsSuccess,
     biometricsError,
+    showRegenerateModal,
+    setShowRegenerateModal,
     healthSuccess,
     setHealthSuccess,
     isLogFormOpen,
@@ -787,6 +793,15 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                     </div>
                   </>
                 )}
+                {/* Plan Cycle & Regeneration Notice */}
+                <div className="flex items-start gap-3 rounded-2xl border border-brand-green/25 bg-brand-green/[0.06] p-4 text-xs leading-relaxed text-brand-muted mt-2">
+                  <Sparkles className="h-4 w-4 shrink-0 text-brand-green mt-0.5" />
+                  <div>
+                    <strong className="text-brand-text block mb-0.5">Plan Cycle Notice</strong>
+                    Changes made here will take effect starting on your next weekly meal cycle, or immediately if you choose to regenerate your current week&apos;s meal plan.
+                  </div>
+                </div>
+
                 <div className="flex justify-end mt-2">
                   <Button
                     variant="primary"
@@ -1001,6 +1016,49 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           })()}
         </>
       )}
+
+      {/* Regeneration prompt modal after saving profile details */}
+      <Modal
+        isOpen={showRegenerateModal}
+        onClose={() => setShowRegenerateModal(false)}
+        title="Profile Details Saved"
+        description="Your health context and planning preferences have been updated."
+        size="md"
+        footer={
+          <div className="flex w-full flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
+            <Button
+              variant="secondary"
+              onClick={() => setShowRegenerateModal(false)}
+              className="text-xs font-bold w-full sm:w-auto"
+            >
+              OK
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setShowRegenerateModal(false);
+                router.push('/meals?regenerate=true');
+              }}
+              className="text-xs font-bold flex items-center justify-center gap-2 w-full sm:w-auto shadow-md"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Regenerate Plan</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-4 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-brand-green shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed text-brand-muted">
+              <strong className="text-brand-text block mb-1">When will your changes take effect?</strong>
+              Any changes you made will automatically start to affect your <strong>next weekly meal plan cycle</strong>.
+              <br className="mb-2" />
+              If you want your <strong>current week&apos;s plan</strong> to immediately match your new goals, calories, or preferences, click <strong>Regenerate Plan</strong>.
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

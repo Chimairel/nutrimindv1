@@ -411,40 +411,58 @@ export function useMealsWorkspace() {
   };
 
   // Triggers full 7-day meal plan regeneration
-  const handleRegeneratePlan = async () => {
-    if (pendingReview) return;
+  const handleRegeneratePlan = useCallback(
+    async (options?: { replaceExisting?: boolean; skipConfirm?: boolean }) => {
+      if (pendingReview) return;
 
-    if (planView === 'current' && meals.length > 0) {
-      if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
-        return;
-    }
+      if (planView === 'current' && meals.length > 0 && !options?.skipConfirm) {
+        if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
+          return;
+      }
 
-    setIsRegenerating(true);
-    regenerationProgress.begin('Preparing a replacement weekly plan.');
-    setError(null);
+      setIsRegenerating(true);
+      regenerationProgress.begin('Preparing a replacement weekly plan.');
+      setError(null);
+      try {
+        if (planView === 'next') {
+          await api.post('/user/meals/next/generate', {});
+          await fetchMeals();
+          regenerationProgress.complete('Next week is ready for review.');
+          return;
+        }
+        const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
+        if (res.data && res.data.success) {
+          regenerationProgress.complete('Your replacement plan is ready for review.');
+          applyCurrentPlan({
+            meals: res.data.data.meals,
+            pendingReview: res.data.data.pendingReview ?? null,
+            swapsUsed: 0,
+            swapCap,
+          });
+        }
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.'));
+      } finally {
+        setIsRegenerating(false);
+      }
+    },
+    [pendingReview, planView, meals.length, regenerationProgress, fetchMeals, applyCurrentPlan, swapCap]
+  );
+
+  const autoRegeneratedRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || autoRegeneratedRef.current) return;
     try {
-      if (planView === 'next') {
-        await api.post('/user/meals/next/generate', {});
-        await fetchMeals();
-        regenerationProgress.complete('Next week is ready for review.');
-        return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('regenerate') === 'true') {
+        autoRegeneratedRef.current = true;
+        window.history.replaceState({}, '', window.location.pathname);
+        handleRegeneratePlan({ replaceExisting: true, skipConfirm: true });
       }
-      const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
-      if (res.data && res.data.success) {
-        regenerationProgress.complete('Your replacement plan is ready for review.');
-        applyCurrentPlan({
-          meals: res.data.data.meals,
-          pendingReview: res.data.data.pendingReview ?? null,
-          swapsUsed: 0,
-          swapCap,
-        });
-      }
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.'));
-    } finally {
-      setIsRegenerating(false);
+    } catch {
+      // Safe fallback in non-browser environments
     }
-  };
+  }, [handleRegeneratePlan]);
 
   const handleHistorySearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
