@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
+import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
@@ -14,6 +15,7 @@ import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
   Sprout,
@@ -83,6 +85,7 @@ const HISTORY_STATUS_OPTIONS: SelectOption[] = [
 ];
 
 export default function WeeklyPlanPage() {
+  const { user } = useAuth();
   const workspace = useMealsWorkspace();
   const {
     activeTab,
@@ -178,6 +181,18 @@ export default function WeeklyPlanPage() {
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
         {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />}
+
+        {((user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+          (error && error.toLowerCase().includes('nutrition report'))) && (
+          <AnnouncementBanner
+            title="Action required:"
+            message="Acknowledge your nutrition report before using this feature."
+            action={{
+              label: 'View Nutrition Report',
+              href: '/profile/nutrition-report',
+            }}
+          />
+        )}
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
@@ -416,7 +431,7 @@ export default function WeeklyPlanPage() {
           </section>
         )}
 
-        {error && (
+        {error && !error.toLowerCase().includes('nutrition report') && (
           <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
             <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
             <span>{error}</span>
