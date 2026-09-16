@@ -9,13 +9,12 @@ import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
-import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Calendar, Plus, AlertTriangle, Soup, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, AlertTriangle, Soup, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
@@ -407,17 +406,7 @@ export default function DashboardPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />}
 
-        {(user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-        (error && error.toLowerCase().includes('nutrition report')) ? (
-          <AnnouncementBanner
-            title="Action required:"
-            message="Acknowledge your nutrition report before using this feature."
-            action={{
-              label: 'View Nutrition Report',
-              href: '/profile/nutrition-report',
-            }}
-          />
-        ) : error ? (
+        {error && !error.toLowerCase().includes('nutrition report') ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -428,8 +417,6 @@ export default function DashboardPage() {
 
         {/* Permanent Top Greeting Header */}
         <PortalPageHeader
-          icon={Sparkles}
-          eyebrow="Daily overview"
           title={<>Mabuhay, {user?.name ? user.name.split(' ')[0] : 'Friend'}.</>}
           description="Your meals, daily intake, and next steps — all in one place."
           actions={

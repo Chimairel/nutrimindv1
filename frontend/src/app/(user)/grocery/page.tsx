@@ -9,7 +9,6 @@ import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
@@ -224,8 +223,6 @@ export default function GroceryListPage() {
     <div className="portal-page max-w-5xl text-brand-text">
       {/* HEADER SECTION */}
       <PortalPageHeader
-        icon={ShoppingCart}
-        eyebrow="Plan companion"
         title="Groceries"
         description="Shopping-cycle totals with purchased amounts and what remains to buy."
         className="mb-6"
@@ -261,17 +258,7 @@ export default function GroceryListPage() {
           </button>
         ))}
       </div>
-      {isReportPending ? (
-        <AnnouncementBanner
-          className="mb-6"
-          title="Action required:"
-          message="Acknowledge your nutrition report before using this feature."
-          action={{
-            label: 'View Nutrition Report',
-            href: '/profile/nutrition-report',
-          }}
-        />
-      ) : error ? (
+      {error && !error.toLowerCase().includes('nutrition report') ? (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
           <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
           <span>{error}</span>

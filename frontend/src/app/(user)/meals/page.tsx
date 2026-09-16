@@ -15,7 +15,6 @@ import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
-import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
@@ -189,16 +188,6 @@ export default function WeeklyPlanPage() {
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
         {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />}
 
-        {isReportPending && (
-          <AnnouncementBanner
-            title="Action required:"
-            message="Acknowledge your nutrition report before using this feature."
-            action={{
-              label: 'View Nutrition Report',
-              href: '/profile/nutrition-report',
-            }}
-          />
-        )}
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
@@ -222,14 +211,6 @@ export default function WeeklyPlanPage() {
 
         {/* Header Block */}
         <PortalPageHeader
-          icon={activeTab === 'plan' && isStarterPlan ? Sprout : activeTab === 'history' ? History : BookOpen}
-          eyebrow={
-            activeTab === 'plan'
-              ? 'Personal meal intelligence'
-              : activeTab === 'history'
-                ? 'Nutrition timeline'
-                : 'Verified collection'
-          }
           title={
             activeTab === 'plan'
               ? isStarterPlan
