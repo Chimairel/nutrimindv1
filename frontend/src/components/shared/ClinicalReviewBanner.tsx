@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 
 interface ClinicalReviewBannerProps {
   className?: string;
@@ -21,13 +22,12 @@ export default function ClinicalReviewBanner({
     ) : null;
 
   return (
-    <aside
-      aria-label="Clinical review announcement"
-      className={`w-full rounded-2xl bg-[#8c3b00] px-4 py-2.5 text-center text-xs font-medium text-white shadow-sm sm:text-sm flex flex-wrap items-center justify-center gap-1.5 ${className}`}
-    >
-      <span className="font-bold">Your plan is in clinical review.</span>
-      {countBadge}
-      <span className="text-white/90">{message}</span>
-    </aside>
+    <AnnouncementBanner
+      ariaLabel="Clinical review announcement"
+      title="Your plan is in clinical review."
+      badge={countBadge}
+      message={message}
+      className={className}
+    />
   );
 }

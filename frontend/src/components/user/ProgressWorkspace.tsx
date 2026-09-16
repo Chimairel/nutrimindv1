@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import PlanningLocationFields from '@/components/user/PlanningLocationFields';
 import MealLocalityPreferenceControl from '@/components/user/MealLocalityPreferenceControl';
@@ -385,27 +386,29 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         }
       />
 
-      {error && (
+      {error && error.toLowerCase().includes('nutrition report') ? (
+        <AnnouncementBanner
+          className="mb-6"
+          title="Action required:"
+          message="Acknowledge your nutrition report before using this feature."
+          action={{
+            label: 'View Nutrition Report',
+            href: '/profile/nutrition-report',
+          }}
+        />
+      ) : error ? (
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-4 text-status-error-text">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {error.toLowerCase().includes('nutrition report') && (
-              <Link
-                href="/profile/nutrition-report"
-                className="inline-flex items-center justify-center rounded-xl bg-brand-green px-3 py-1.5 text-xs font-bold text-[#07100d] shadow-neon hover:brightness-105 transition-all"
-              >
-                View Nutrition Report
-              </Link>
-            )}
             <Button variant="secondary" onClick={() => fetchPageData()} className="h-8 px-3 text-xs">
               Retry
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {mode !== 'planning' && (
         <nav

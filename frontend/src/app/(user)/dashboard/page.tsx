@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -10,6 +9,7 @@ import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
@@ -406,22 +406,24 @@ export default function DashboardPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />}
 
-        {error && (
+        {(user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+        (error && error.toLowerCase().includes('nutrition report')) ? (
+          <AnnouncementBanner
+            title="Action required:"
+            message="Acknowledge your nutrition report before using this feature."
+            action={{
+              label: 'View Nutrition Report',
+              href: '/profile/nutrition-report',
+            }}
+          />
+        ) : error ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
-            {error.toLowerCase().includes('nutrition report') && (
-              <Link
-                href="/profile/nutrition-report"
-                className="inline-flex items-center justify-center rounded-xl bg-brand-green px-3 py-1.5 text-xs font-bold text-[#07100d] shadow-neon hover:brightness-105 transition-all shrink-0"
-              >
-                View Nutrition Report
-              </Link>
-            )}
           </div>
-        )}
+        ) : null}
 
         {/* Permanent Top Greeting Header */}
         <PortalPageHeader
