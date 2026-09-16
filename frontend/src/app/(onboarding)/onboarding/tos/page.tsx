@@ -173,8 +173,8 @@ export default function OnboardingTosPage() {
       // 3. Refresh Auth session context to pull new onboardingDone & tosAccepted parameters
       await refreshSession();
 
-      // 4. Redirect to the newly generated Nutrition Report screen
-      router.push('/nutrition-report');
+      // 4. Redirect to the dashboard
+      router.push('/dashboard');
     } catch (err) {
       setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
     } finally {
@@ -361,7 +361,7 @@ export default function OnboardingTosPage() {
               disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || isHydrating}
               isLoading={isLoading}
             >
-              Complete Onboarding & Generate Report
+              Complete Onboarding & Go to Dashboard
             </Button>
           </form>
         </Card>

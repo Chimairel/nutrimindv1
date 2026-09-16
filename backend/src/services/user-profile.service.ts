@@ -227,6 +227,30 @@ export class UserProfileService {
         if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
         if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) await advanceProfileRevision(tx, userId);
         await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
+
+        // Upsert baseline nutrition report with acknowledgedAt so user is immediately ready for dashboard
+        const now = new Date();
+        await tx.nutritionReport.upsert({
+          where: { userId },
+          create: {
+            userId,
+            profileRevision: current.revision,
+            isStale: false,
+            version: 1,
+            acknowledgedAt: now,
+            generalSummary: `Initial nutritional baseline established. Daily calorie target: ${calculations.dailyCalorieTarget} kcal based on your biometric profile and health goals.`,
+            foodsToAvoid: [],
+            foodsToLimit: [],
+            foodsRecommended: [],
+            drinksGuidance: ['Stay hydrated with at least 8 glasses (2-2.5L) of water daily.'],
+            basedOnConditions: user.healthConditions.map((c) => c.condition),
+            basedOnAllergies: user.allergies.map((a) => a.allergen),
+          },
+          update: {
+            acknowledgedAt: now,
+            isStale: false,
+          },
+        });
       },
       { maxWait: 10000, timeout: 30000 }
     );

@@ -204,20 +204,7 @@ export default function DashboardPage() {
     currentPlanRequestInFlight.current = true;
     setError(null);
     try {
-      let res = await api.get('/user/meals/current');
-      const hasCurrentPlan = (res.data?.data?.length ?? 0) > 0 || Boolean(res.data?.meta?.pendingReview);
-      if (!hasCurrentPlan) {
-        beginGenerationProgress('Checking the current meal-plan cycle.');
-        setIsGenerating(true);
-        try {
-          const rolloverRes = await api.post('/user/meals/rollover');
-          if (rolloverRes.data?.data?.rolledOver) {
-            res = await api.get('/user/meals/current');
-          }
-        } finally {
-          setIsGenerating(false);
-        }
-      }
+      const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -232,7 +219,7 @@ export default function DashboardPage() {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan, beginGenerationProgress]);
+  }, [applyCurrentPlan]);
 
   const checkCheckinStatus = useCallback(async () => {
     try {

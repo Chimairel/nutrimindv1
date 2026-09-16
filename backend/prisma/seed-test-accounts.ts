@@ -87,11 +87,82 @@ async function main() {
       verifiedByAdminId: admin.id,
     },
   });
-  console.log('   └─ NutritionistProfile ready (verified, PRC-RND-NM-0001)\n');
+  // ── TEST REGULAR USER (NO MEAL PLAN) ──
+  const userPassword = await bcrypt.hash('Password123!', 12);
+  const testUser = await prisma.user.upsert({
+    where: { email: 'testuser@gmail.com' },
+    update: {
+      passwordHash: userPassword,
+      emailVerified: true,
+      onboardingDone: true,
+      tosAccepted: true,
+    },
+    create: {
+      name: 'Maria Santos',
+      email: 'testuser@gmail.com',
+      passwordHash: userPassword,
+      role: Role.USER,
+      emailVerified: true,
+      onboardingDone: true,
+      tosAccepted: true,
+      tosAcceptedAt: new Date(),
+    },
+  });
+
+  await prisma.userProfile.upsert({
+    where: { userId: testUser.id },
+    update: {
+      age: 26,
+      heightCm: 162,
+      weightKg: 58,
+      biologicalSex: 'FEMALE',
+      goal: 'MAINTAIN',
+      activityLevel: 'LIGHTLY_ACTIVE',
+      dailyCalorieTarget: 1850,
+      shoppingDayGroup: 'WEEKEND',
+      shoppingDayOfWeek: 6,
+    },
+    create: {
+      userId: testUser.id,
+      age: 26,
+      heightCm: 162,
+      weightKg: 58,
+      biologicalSex: 'FEMALE',
+      goal: 'MAINTAIN',
+      activityLevel: 'LIGHTLY_ACTIVE',
+      dailyCalorieTarget: 1850,
+      shoppingDayGroup: 'WEEKEND',
+      shoppingDayOfWeek: 6,
+    },
+  });
+
+  await prisma.nutritionReport.upsert({
+    where: { userId: testUser.id },
+    update: {
+      acknowledgedAt: new Date(),
+      isStale: false,
+    },
+    create: {
+      userId: testUser.id,
+      profileRevision: 0,
+      isStale: false,
+      version: 1,
+      acknowledgedAt: new Date(),
+      generalSummary: 'Baseline profile ready. Target: 1,850 kcal/day.',
+      foodsToAvoid: [],
+      foodsToLimit: [],
+      foodsRecommended: [],
+      drinksGuidance: ['Stay hydrated with 8 glasses of water daily.'],
+      basedOnConditions: [],
+      basedOnAllergies: [],
+    },
+  });
+  console.log(`✅ TEST USER account ready: testuser@gmail.com / Password123! (id: ${testUser.id})\n`);
 
   console.log('🎉 Done! You can now log in with:');
   console.log('   ADMIN:        admin@gmail.com / Admin123');
   console.log('   NUTRITIONIST: nutritionist@gmail.com / Nutritionist123');
+  console.log('   USER:         testuser@gmail.com / Password123!');
 }
 
 main()
