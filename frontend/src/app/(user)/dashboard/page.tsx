@@ -10,6 +10,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
+import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
@@ -445,6 +446,17 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <DashboardSkeleton />
+        ) : ((user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+            (error && error.toLowerCase().includes('nutrition report'))) ? (
+          <UnauthorizedState
+            eyebrow="Action Required"
+            title="Nutrition Report Pending"
+            description="Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed."
+            action={{
+              label: 'View Nutrition Report',
+              href: '/profile/nutrition-report',
+            }}
+          />
         ) : currentMeals.length === 0 && !pendingReview ? (
           <div className="py-12">
             <EmptyState

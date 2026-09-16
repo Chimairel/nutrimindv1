@@ -1,10 +1,8 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import Button from '@/components/ui/Button';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import UnauthorizedState from '@/components/shared/UnauthorizedState';
 
 const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   if (role === 'ADMIN') return '/admin/overview';
@@ -14,7 +12,7 @@ const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
 
 /**
  * Unauthorized Page — shown when a user tries to access a route
- * their role doesn't have permission for (e.g., USER trying /admin).
+ * their role doesn't have permission for (e.g., USER trying /nutritionist or /admin).
  */
 export default function UnauthorizedPage() {
   const { user } = useAuth();
@@ -22,36 +20,21 @@ export default function UnauthorizedPage() {
   const primaryLabel = user ? 'Return to Workspace' : 'Go to Login';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-bg px-4">
-      <div className="text-center max-w-md">
-        {/* Icon */}
-        <ShieldAlert className="w-16 h-16 text-status-error-text mx-auto mb-6" />
-
-        {/* Heading */}
-        <h1 className="text-3xl font-extrabold text-brand-text font-display mb-3">Access Denied</h1>
-
-        {/* Description */}
-        <p className="text-brand-muted text-sm mb-8 leading-relaxed">
-          You don&apos;t have permission to access this page. This area is restricted to a different account role. If
-          you believe this is a mistake, please contact support.
-        </p>
-
-        {/* Actions */}
-        <div className="flex flex-col gap-3 items-center">
-          <Link href={primaryHref} className="w-full max-w-[220px]">
-            <Button variant="primary" className="w-full">
-              {primaryLabel}
-            </Button>
-          </Link>
-          <button
-            onClick={() => window.history.back()}
-            className="text-brand-muted hover:text-brand-green text-sm transition-colors cursor-pointer flex items-center gap-1.5 justify-center"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Go Back</span>
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-brand-bg px-4 py-8">
+      <UnauthorizedState
+        variant="page"
+        eyebrow="Access Restricted"
+        title="Access Denied"
+        description="You don't have permission to access this page. This area is restricted to a different account role. If you believe this is a mistake, please contact support."
+        action={{
+          label: primaryLabel,
+          href: primaryHref,
+        }}
+        secondaryAction={{
+          label: 'Go Back',
+          onClick: () => window.history.back(),
+        }}
+      />
     </div>
   );
 }

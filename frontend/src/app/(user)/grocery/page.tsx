@@ -10,6 +10,7 @@ import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
+import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
@@ -214,6 +215,11 @@ export default function GroceryListPage() {
     });
   };
 
+  const isReportPending = Boolean(
+    (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+      (error && error.toLowerCase().includes('nutrition report'))
+  );
+
   return (
     <div className="portal-page max-w-5xl text-brand-text">
       {/* HEADER SECTION */}
@@ -255,8 +261,7 @@ export default function GroceryListPage() {
           </button>
         ))}
       </div>
-      {((user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-      (error && error.toLowerCase().includes('nutrition report'))) ? (
+      {isReportPending ? (
         <AnnouncementBanner
           className="mb-6"
           title="Action required:"
@@ -276,6 +281,16 @@ export default function GroceryListPage() {
       {/* GROCERY CONTENT */}
       {isLoading ? (
         <GrocerySkeleton />
+      ) : isReportPending ? (
+        <UnauthorizedState
+          eyebrow="Action Required"
+          title="Nutrition Report Pending"
+          description="Please review and acknowledge your personalized nutrition report before grocery checklists can be generated."
+          action={{
+            label: 'View Nutrition Report',
+            href: '/profile/nutrition-report',
+          }}
+        />
       ) : !groceryList ? (
         <div className="py-12">
           <EmptyState

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import Button from '@/components/ui/Button';
 import { AlertTriangle, ArrowLeft, Ban, CheckCircle, Download, GlassWater } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -119,6 +120,29 @@ export default function NutritionExportPage() {
 
   if (isLoading) {
     return <PortalLoadingState className="bg-[#0d1b15]" message="Preparing Nutrition Summary..." />;
+  }
+
+  const isReportPending = Boolean(
+    (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+      (error && error.toLowerCase().includes('nutrition report'))
+  );
+
+  if (isReportPending) {
+    return (
+      <div className="portal-page select-none pb-32 text-brand-text">
+        <div className="mx-auto flex max-w-4xl flex-col gap-6">
+          <UnauthorizedState
+            eyebrow="Action Required"
+            title="Nutrition Report Pending"
+            description="Please review and acknowledge your personalized nutrition report before exporting your meal plan and clinical summary."
+            action={{
+              label: 'View Nutrition Report',
+              href: '/profile/nutrition-report',
+            }}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error) {

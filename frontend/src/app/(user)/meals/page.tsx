@@ -16,6 +16,7 @@ import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
+import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
   Sprout,
@@ -176,14 +177,19 @@ export default function WeeklyPlanPage() {
     );
   }
 
+  const isReportPending = Boolean(
+    (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+      (error && error.toLowerCase().includes('nutrition report')) ||
+      (historyError && historyError.toLowerCase().includes('nutrition report'))
+  );
+
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
         {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />}
 
-        {((user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-          (error && error.toLowerCase().includes('nutrition report'))) && (
+        {isReportPending && (
           <AnnouncementBanner
             title="Action required:"
             message="Acknowledge your nutrition report before using this feature."
@@ -442,6 +448,16 @@ export default function WeeklyPlanPage() {
         {activeTab === 'plan' &&
           (isLoading ? (
             <MealPlanSkeleton />
+          ) : isReportPending ? (
+            <UnauthorizedState
+              eyebrow="Action Required"
+              title="Nutrition Report Pending"
+              description="Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed."
+              action={{
+                label: 'View Nutrition Report',
+                href: '/profile/nutrition-report',
+              }}
+            />
           ) : groupedDays.length === 0 ? (
             pendingReview ? (
               <section className="flex flex-col gap-6 text-left" aria-label="Pending meal plan review">
@@ -603,7 +619,17 @@ export default function WeeklyPlanPage() {
           ))}
 
         {activeTab === 'history' &&
-          (() => {
+          (isReportPending ? (
+            <UnauthorizedState
+              eyebrow="Action Required"
+              title="Nutrition Report Pending"
+              description="Please review and acknowledge your personalized nutrition report before viewing your meal history."
+              action={{
+                label: 'View Nutrition Report',
+                href: '/profile/nutrition-report',
+              }}
+            />
+          ) : (() => {
             const historyDays = groupHistoryByDate();
             const effectiveDateKey =
               selectedHistoryDateKey || (historyDays.length > 0 ? historyDays[0].dateKey : getManilaDateKey());
@@ -877,9 +903,22 @@ export default function WeeklyPlanPage() {
                 )}
               </div>
             );
-          })()}
+          })())}
 
-        {activeTab === 'library' && <MealLibraryPanel workspace={workspace} />}
+        {activeTab === 'library' &&
+          (isReportPending ? (
+            <UnauthorizedState
+              eyebrow="Action Required"
+              title="Nutrition Report Pending"
+              description="Please review and acknowledge your personalized nutrition report before browsing the meal library."
+              action={{
+                label: 'View Nutrition Report',
+                href: '/profile/nutrition-report',
+              }}
+            />
+          ) : (
+            <MealLibraryPanel workspace={workspace} />
+          ))}
       </div>
 
       <MealsWorkspaceModals workspace={workspace} />
