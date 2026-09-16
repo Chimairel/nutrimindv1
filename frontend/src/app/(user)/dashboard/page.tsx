@@ -199,14 +199,23 @@ export default function DashboardPage() {
     }
   }, [ownerId]);
 
+  const isReportPending = Boolean(
+    (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
+      (error && error.toLowerCase().includes('nutrition report'))
+  );
+
   // Load active plan meals
   const fetchCurrentPlan = useCallback(async () => {
     if (currentPlanRequestInFlight.current) return;
+    if (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) {
+      setIsLoading(false);
+      return;
+    }
     currentPlanRequestInFlight.current = true;
-    setError(null);
     try {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
+        setError(null);
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
@@ -220,7 +229,7 @@ export default function DashboardPage() {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan]);
+  }, [applyCurrentPlan, user]);
 
   const checkCheckinStatus = useCallback(async () => {
     try {
@@ -433,8 +442,7 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <DashboardSkeleton />
-        ) : ((user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-            (error && error.toLowerCase().includes('nutrition report'))) ? (
+        ) : isReportPending ? (
           <UnauthorizedState
             eyebrow="Action Required"
             title="Nutrition Report Pending"

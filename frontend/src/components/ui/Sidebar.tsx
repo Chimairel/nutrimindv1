@@ -82,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     <aside
       className={`
         relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
-        bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white shadow-[0_28px_80px_rgba(1,8,5,0.32)]
+        bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white floating-sidebar-shadow
         transition-all duration-300 ease-out md:flex
         ${collapsed ? 'w-[68px] px-2 py-3.5' : 'w-[248px] p-4'}
         ${className}

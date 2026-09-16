@@ -61,13 +61,13 @@ export default function UnauthorizedState({
               width={imageSize}
               height={imageSize}
               priority
-              className="h-full w-full object-contain drop-shadow-[0_25px_45px_rgba(0,0,0,0.5)]"
+              className="h-full w-full object-contain floating-glow-graphic"
             />
           </div>
         </div>
 
         {/* Right: Text & Actions */}
-        <div className="flex max-w-xl flex-col items-center text-center md:items-start md:text-left">
+        <div className="flex max-w-xl flex-col items-center text-center md:items-start md:text-left floating-glow-text">
           {eyebrow && (
             <span className="mb-3.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-1.5 font-mono text-xs font-extrabold uppercase tracking-wider text-amber-500">
               {eyebrow}

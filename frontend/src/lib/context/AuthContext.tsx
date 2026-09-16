@@ -55,9 +55,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           googleImage,
+          userProfile,
           nutritionReport,
           onboardingStatus,
         } = response.data.data;
+
+        const isReportAcknowledged = Boolean(
+          nutritionReport?.acknowledgedAt &&
+            !nutritionReport?.isStale &&
+            (nutritionReport?.profileRevision === undefined ||
+              userProfile?.revision === undefined ||
+              nutritionReport?.profileRevision === userProfile?.revision)
+        );
+
         const refreshedUser: UserSession = {
           userId: id,
           name,
@@ -68,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           googleImage,
-          reportAcknowledged: !!nutritionReport?.acknowledgedAt && !nutritionReport?.isStale,
+          reportAcknowledged: isReportAcknowledged,
           onboardingNextPath: onboardingStatus?.nextPath,
         };
 

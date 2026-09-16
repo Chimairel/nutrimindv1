@@ -330,6 +330,7 @@ export class UserProfileService {
             acknowledgedAt: true,
             isStale: true,
             version: true,
+            profileRevision: true,
           },
         },
         accounts: {

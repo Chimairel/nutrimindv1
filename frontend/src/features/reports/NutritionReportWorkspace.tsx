@@ -98,10 +98,19 @@ export default function NutritionReportPage() {
         setHistory(historyRes.data?.data || []);
 
         // Try getting existing report first
-        if (getRes?.data && getRes.data.success && getRes.data.data && !getRes.data.data.isStale) {
+        const activeRevision = profileRes.data?.data?.userProfile?.revision;
+        const existingReport = getRes?.data?.data;
+        const isReportFresh =
+          existingReport &&
+          !existingReport.isStale &&
+          (activeRevision === undefined ||
+            existingReport.profileRevision === undefined ||
+            existingReport.profileRevision === activeRevision);
+
+        if (getRes?.data && getRes.data.success && isReportFresh) {
           setReport(getRes.data.data);
         } else {
-          // If none exists, trigger a generation
+          // If none exists, is stale, or out of sync with current profile revision, trigger a generation
           const genRes = await api.post('/user/nutrition-report/generate');
           if (genRes.data && genRes.data.success) {
             setReport(genRes.data.data);
