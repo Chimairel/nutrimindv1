@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           googleImage,
-          reportAcknowledged: !!nutritionReport?.acknowledgedAt,
+          reportAcknowledged: !!nutritionReport?.acknowledgedAt && !nutritionReport?.isStale,
           onboardingNextPath: onboardingStatus?.nextPath,
         };
 
@@ -168,8 +168,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.replace(currentUser.onboardingNextPath || '/onboarding/stats');
       } else if (!currentUser.tosAccepted) {
         router.replace('/onboarding/tos');
-      } else if (!currentUser.reportAcknowledged) {
-        router.replace('/nutrition-report');
       } else {
         router.replace('/dashboard');
       }

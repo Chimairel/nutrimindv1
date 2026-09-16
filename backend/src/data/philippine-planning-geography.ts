@@ -121,17 +121,52 @@ export const PSGC_PLANNING_GEOGRAPHY = {
 
 export const PSGC_REGIONS = PSGC_PLANNING_GEOGRAPHY.regions.map((region) => region.name);
 
+export const REGION_DESIGNATIONS: Record<string, string> = {
+  'National Capital Region': 'NCR (National Capital Region)',
+  'Cordillera Administrative Region': 'CAR (Cordillera Administrative Region)',
+  'Ilocos Region': 'Region I (Ilocos Region)',
+  'Cagayan Valley': 'Region II (Cagayan Valley)',
+  'Central Luzon': 'Region III (Central Luzon)',
+  'CALABARZON': 'Region IV-A (CALABARZON)',
+  'MIMAROPA Region': 'MIMAROPA (Southwestern Tagalog)',
+  'Bicol Region': 'Region V (Bicol Region)',
+  'Western Visayas': 'Region VI (Western Visayas)',
+  'Central Visayas': 'Region VII (Central Visayas)',
+  'Eastern Visayas': 'Region VIII (Eastern Visayas)',
+  'Zamboanga Peninsula': 'Region IX (Zamboanga Peninsula)',
+  'Northern Mindanao': 'Region X (Northern Mindanao)',
+  'Davao Region': 'Region XI (Davao Region)',
+  'SOCCSKSARGEN': 'Region XII (SOCCSKSARGEN)',
+  'Caraga': 'Region XIII (Caraga)',
+  'Bangsamoro Autonomous Region in Muslim Mindanao': 'BARMM (Bangsamoro Autonomous Region)',
+  'Negros Island Region': 'NIR (Negros Island Region)',
+};
+
+export function getCanonicalRegionName(value: string): string | null {
+  const key = value.trim().toLocaleLowerCase('en-PH');
+  for (const name of PSGC_REGIONS) {
+    if (name.toLocaleLowerCase('en-PH') === key) return name;
+    const designation = REGION_DESIGNATIONS[name];
+    if (designation && designation.toLocaleLowerCase('en-PH') === key) return name;
+  }
+  return null;
+}
+
+export function formatRegionWithNumber(name: string): string {
+  return REGION_DESIGNATIONS[name] || name;
+}
+
 export const PSGC_PROVINCE_HUCS = PSGC_PLANNING_GEOGRAPHY.regions.flatMap((region) =>
   region.provinceHucs.map((name) => ({ name, regionName: region.name }))
 );
 
 export function isPsgcRegion(value: string): boolean {
-  const key = value.trim().toLocaleLowerCase('en-PH');
-  return PSGC_REGIONS.some((name) => name.toLocaleLowerCase('en-PH') === key);
+  return getCanonicalRegionName(value) !== null;
 }
 
 export function isPsgcProvinceHucForRegion(regionName: string, provinceHucName: string): boolean {
-  const regionKey = regionName.trim().toLocaleLowerCase('en-PH');
+  const canonical = getCanonicalRegionName(regionName) || regionName;
+  const regionKey = canonical.trim().toLocaleLowerCase('en-PH');
   const localityKey = provinceHucName.trim().toLocaleLowerCase('en-PH');
   return PSGC_PROVINCE_HUCS.some(
     (item) =>

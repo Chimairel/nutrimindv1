@@ -73,12 +73,10 @@ export default function Home() {
           : user.role === 'NUTRITIONIST'
             ? '/nutritionist/reviews'
             : !user.onboardingDone
-              ? (user.onboardingNextPath || '/onboarding/stats')
+              ? user.onboardingNextPath || '/onboarding/stats'
               : !user.tosAccepted
                 ? '/onboarding/tos'
-                : !user.reportAcknowledged
-                  ? '/nutrition-report'
-                  : '/dashboard';
+                : '/dashboard';
       router.replace(destination);
     }
   }, [user, isLoading, router]);
@@ -122,8 +120,8 @@ export default function Home() {
               </h1>
 
               <p className="mt-4 md:mt-7 max-w-xl text-sm leading-6 md:text-base md:leading-7 text-brand-muted sm:text-lg sm:leading-8">
-                KAINARA turns personal health context into culturally familiar meal plans, then keeps AI-generated
-                meals inside a transparent nutritionist-review workflow.
+                KAINARA turns personal health context into culturally familiar meal plans, then keeps AI-generated meals
+                inside a transparent nutritionist-review workflow.
               </p>
 
               <div className="mt-6 md:mt-9 flex flex-col gap-3 sm:flex-row">
@@ -396,9 +394,9 @@ export default function Home() {
                 The complete guide to KAINARA.
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
-                Discover the clinical safety standards, FNRI Philippine food database integration, Mifflin-St Jeor
-                macro algorithms, and nutritionist review workflows behind KAINARA. Browse step-by-step walkthroughs
-                and answers to frequently asked questions.
+                Discover the clinical safety standards, FNRI Philippine food database integration, Mifflin-St Jeor macro
+                algorithms, and nutritionist review workflows behind KAINARA. Browse step-by-step walkthroughs and
+                answers to frequently asked questions.
               </p>
               <Link
                 href="/docs"
@@ -464,13 +462,7 @@ export default function Home() {
               href={workspaceHref}
               className="relative mt-7 inline-flex min-h-[52px] items-center gap-3 rounded-2xl bg-[#07100d] px-6 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 lg:mt-0"
             >
-              {user
-                ? isPendingVerification
-                  ? 'Continue verification'
-                  : user.role === 'USER'
-                    ? 'Go to Dashboard'
-                    : 'Open Portal'
-                : 'Start onboarding'}
+              Start onboarding
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

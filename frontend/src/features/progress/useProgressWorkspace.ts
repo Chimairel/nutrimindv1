@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import type { UserProfileData } from '@/hooks/useProfile';
 import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
+import { getCanonicalRegionName } from '@/lib/philippine-regions';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health' | 'planning';
@@ -43,7 +44,7 @@ interface ProgressPageSnapshot {
 
 export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, updateUserSession } = useAuth();
   const ownerId = user?.userId;
   const cachedPage = readSessionResource<ProgressPageSnapshot>(ownerId, 'user-progress-page');
   const cachedProfile = cachedPage?.profileData?.userProfile;
@@ -59,7 +60,9 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [age, setAge] = useState(String(cachedProfile?.age || ''));
   const [heightCm, setHeightCm] = useState(String(cachedProfile?.heightCm || ''));
   const [weightKg, setWeightKg] = useState(String(cachedProfile?.weightKg || ''));
-  const [targetWeightKg, setTargetWeightKg] = useState(String(cachedProfile?.targetWeightKg || ''));
+  const [targetWeightKg, setTargetWeightKg] = useState(
+    String(cachedProfile?.targetWeightKg ?? (cachedProfile?.goal === 'MAINTAIN' ? cachedProfile?.weightKg : '') ?? '')
+  );
   const [biologicalSex, setBiologicalSex] = useState(cachedProfile?.biologicalSex || 'MALE');
   const [goal, setGoal] = useState(cachedProfile?.goal || 'MAINTAIN');
   const [activityLevel, setActivityLevel] = useState(cachedProfile?.activityLevel || 'SEDENTARY');
@@ -100,7 +103,15 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const fetchPageData = useCallback(async () => {
     setError(null);
     try {
-      const [historyRes, profileRes] = await Promise.all([api.get('/user/progress/history'), api.get('/user/profile')]);
+      const [historyRes, profileRes] = await Promise.all([
+        mode === 'progress'
+          ? api.get('/user/progress/history').catch((err: unknown) => {
+              setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
+              return { data: { success: false, data: null } };
+            })
+          : Promise.resolve({ data: { success: false, data: null } }),
+        api.get('/user/profile'),
+      ]);
 
       const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;
       const nextProfile = profileRes.data?.success ? (profileRes.data.data as ProfileDetails) : null;
@@ -117,7 +128,13 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           setAge(String(data.userProfile.age || ''));
           setHeightCm(String(data.userProfile.heightCm || ''));
           setWeightKg(String(data.userProfile.weightKg || ''));
-          setTargetWeightKg(String(data.userProfile.targetWeightKg || ''));
+          setTargetWeightKg(
+            String(
+              data.userProfile.targetWeightKg ??
+                (data.userProfile.goal === 'MAINTAIN' ? data.userProfile.weightKg : '') ??
+                ''
+            )
+          );
           setBiologicalSex(data.userProfile.biologicalSex || 'MALE');
           setGoal(data.userProfile.goal || 'MAINTAIN');
           setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
@@ -147,13 +164,13 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     } finally {
       setIsLoading(false);
     }
-  }, [ownerId]);
+  }, [ownerId, mode]);
 
   useEffect(() => {
-    if (user) {
+    if (ownerId) {
       fetchPageData();
     }
-  }, [user, fetchPageData]);
+  }, [ownerId, fetchPageData]);
 
   useEffect(() => {
     if (!ownerId || (!history && !profileData)) return;
@@ -179,30 +196,79 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     setBiometricsSuccess(null);
 
     try {
-      // 1. Save general profile stats
-      const profileUpdate = await api.put('/user/profile', {
-        age: parseInt(age),
-        heightCm: parseFloat(heightCm),
-        weightKg: parseFloat(weightKg),
-        targetWeightKg: parseFloat(targetWeightKg),
-        biologicalSex,
-        goal,
-        activityLevel,
+      // 1. Save profile stats and shopping day preference in a single call
+      const resolvedLevel: PlanningGeographyLevel = planningProvinceHucName?.trim()
+        ? 'PROVINCE_HUC'
+        : planningRegionName?.trim()
+          ? 'REGION'
+          : 'NATIONAL';
+
+      const canonicalRegion = planningRegionName?.trim() ? getCanonicalRegionName(planningRegionName) : null;
+
+      const payload: Record<string, unknown> = {
         dietaryPreference,
         carbPreference,
-        foodCulture,
-        planningGeographyLevel,
-        planningRegionName: planningGeographyLevel === 'NATIONAL' ? null : planningRegionName.trim(),
-        planningProvinceHucName: planningGeographyLevel === 'PROVINCE_HUC' ? planningProvinceHucName.trim() : null,
+        planningGeographyLevel: resolvedLevel,
+        planningRegionName: resolvedLevel === 'NATIONAL' ? null : canonicalRegion,
+        planningProvinceHucName: resolvedLevel === 'PROVINCE_HUC' ? planningProvinceHucName.trim() : null,
         mealLocalityPreference,
-      });
-
-      // 2. Save the exact shopping day preference
-      await api.post('/user/onboarding/shopping-day', {
         shoppingDayOfWeek,
-      });
+      };
+
+      const parsedAge = parseInt(age, 10);
+      if (Number.isFinite(parsedAge) && parsedAge >= 18) {
+        payload.age = parsedAge;
+      } else if (profileData?.userProfile?.age) {
+        payload.age = profileData.userProfile.age;
+      }
+
+      const parsedHeight = parseFloat(heightCm);
+      if (Number.isFinite(parsedHeight) && parsedHeight > 0) {
+        payload.heightCm = parsedHeight;
+      } else if (profileData?.userProfile?.heightCm) {
+        payload.heightCm = profileData.userProfile.heightCm;
+      }
+
+      const parsedWeight = parseFloat(weightKg);
+      if (Number.isFinite(parsedWeight) && parsedWeight > 0) {
+        payload.weightKg = parsedWeight;
+      } else if (profileData?.userProfile?.weightKg) {
+        payload.weightKg = profileData.userProfile.weightKg;
+      }
+
+      const effectiveGoal = goal || profileData?.userProfile?.goal || 'MAINTAIN';
+      payload.goal = effectiveGoal;
+
+      const effectiveWeight = (payload.weightKg as number | undefined) ?? profileData?.userProfile?.weightKg ?? 60;
+      const parsedTargetWeight = parseFloat(targetWeightKg);
+
+      if (effectiveGoal === 'MAINTAIN') {
+        payload.targetWeightKg = effectiveWeight;
+      } else if (Number.isFinite(parsedTargetWeight) && parsedTargetWeight >= 30) {
+        payload.targetWeightKg = parsedTargetWeight;
+      } else if (profileData?.userProfile?.targetWeightKg) {
+        payload.targetWeightKg = profileData.userProfile.targetWeightKg;
+      } else {
+        payload.targetWeightKg = effectiveWeight;
+      }
+
+      if (biologicalSex) {
+        payload.biologicalSex = biologicalSex;
+      } else if (profileData?.userProfile?.biologicalSex) {
+        payload.biologicalSex = profileData.userProfile.biologicalSex;
+      }
+
+      if (activityLevel) {
+        payload.activityLevel = activityLevel;
+      } else if (profileData?.userProfile?.activityLevel) {
+        payload.activityLevel = profileData.userProfile.activityLevel;
+      }
+
+      const profileUpdate = await api.put('/user/profile', payload);
 
       if (profileUpdate.data && profileUpdate.data.success) {
+        const savedReport = profileUpdate.data.data.nutritionReport;
+        updateUserSession({ reportAcknowledged: !!savedReport?.acknowledgedAt && !savedReport?.isStale });
         setBiometricsSuccess('Biometrics and dietary preferences updated successfully! Calorie budget recalculated.');
         setProfileData(profileUpdate.data.data);
         writeSessionResource(ownerId, 'user-progress-page', {

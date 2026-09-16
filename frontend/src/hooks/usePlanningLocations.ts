@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
+import { getCanonicalRegionName } from '@/lib/philippine-regions';
 
 export interface PlanningLocationOptions {
   regions: string[];
@@ -31,12 +32,13 @@ export function usePlanningLocations() {
 }
 
 export function validPlanningLocation(options: PlanningLocationOptions, region: string, province: string) {
+  const canonical = getCanonicalRegionName(region) || region;
   const matches = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-  const regionValid = options.regions.some((name) => matches(name, region));
+  const regionValid = options.regions.some((name) => matches(name, canonical));
   return {
     regionValid,
     provinceValid:
       regionValid &&
-      options.provinceHucs.some((item) => matches(item.regionName, region) && matches(item.name, province)),
+      options.provinceHucs.some((item) => matches(item.regionName, canonical) && matches(item.name, province)),
   };
 }

@@ -17,17 +17,19 @@ vi.mock('@/lib/axios', () => ({
 }));
 
 describe('MealLocalityPreferenceControl', () => {
-  it('restores both persisted blend stops and submits distinct preferences', async () => {
+  it('restores persisted stop and submits distinct preferences across the 3 stops', async () => {
     const onChange = vi.fn();
     const props = { regionName: 'Central Visayas', provinceHucName: 'Cebu City', onChange };
-    const { rerender } = render(<MealLocalityPreferenceControl {...props} value="NATIONAL_REGIONAL" />);
+    const { rerender } = render(<MealLocalityPreferenceControl {...props} value="NATIONAL" />);
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'National-Regional blend' })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'Philippines' })).toHaveAttribute('aria-pressed', 'true')
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Regional-Local blend' }));
-    expect(onChange).toHaveBeenCalledWith('REGIONAL_LOCAL');
-    rerender(<MealLocalityPreferenceControl {...props} value="REGIONAL_LOCAL" />);
-    expect(screen.getByRole('button', { name: 'Regional-Local blend' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Central Visayas' }));
+    expect(onChange).toHaveBeenCalledWith('REGIONAL');
+    rerender(<MealLocalityPreferenceControl {...props} value="REGIONAL" />);
+    expect(screen.getByRole('button', { name: 'Central Visayas' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Cebu City' }));
+    expect(onChange).toHaveBeenCalledWith('LOCAL');
   });
 
   it('shows the three dynamic stops and supports keyboard changes', async () => {
@@ -46,7 +48,7 @@ describe('MealLocalityPreferenceControl', () => {
     expect(screen.getByRole('button', { name: 'Philippines' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cebu City' })).toBeInTheDocument();
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenCalledWith('REGIONAL_LOCAL');
+    expect(onChange).toHaveBeenCalledWith('LOCAL');
   });
 
   it('locks invalid typed names and provinces outside the chosen region', async () => {

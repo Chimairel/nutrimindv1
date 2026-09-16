@@ -51,6 +51,7 @@ export const onboardingProfileSchema = z
     planningRegionName: z.string().trim().min(1).max(120).nullable().optional(),
     planningProvinceHucName: z.string().trim().min(1).max(160).nullable().optional(),
     mealLocalityPreference: mealLocalityPreferenceSchema.optional(),
+    shoppingDayOfWeek: z.coerce.number().int().min(0).max(6).optional(),
   })
   .strict()
   .superRefine((data, ctx) => {

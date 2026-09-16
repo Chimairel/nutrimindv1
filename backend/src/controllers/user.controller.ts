@@ -76,7 +76,6 @@ export class UserController {
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user?.onboardingDone) {
-        await UserService.completeOnboarding(userId);
         await UserService.runSafetyRecheck(userId);
       }
 

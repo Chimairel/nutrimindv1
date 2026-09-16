@@ -82,8 +82,29 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
   // Calculate percentage (0% to 100%)
   const percentage = ((clampedValue - min) / (max - min)) * 100;
 
-  // NutriMind branded adaptive gradients across 5 stops
+  // NutriMind branded adaptive gradients across stops
   const colorSettings = useMemo(() => {
+    if (max === 3) {
+      switch (clampedValue) {
+        case 1:
+          return {
+            gradient: 'linear-gradient(to right, #08705b, #10b981)',
+            thumbGlow: 'rgba(16, 185, 129, 0.4)',
+          };
+        case 2:
+          return {
+            gradient: 'linear-gradient(to right, #08705b, #14b8a6, #b8f45f)',
+            thumbGlow: 'rgba(24, 185, 210, 0.45)',
+          };
+        case 3:
+        default:
+          return {
+            gradient: 'linear-gradient(to right, #10b981, #b8f45f, #7759e8)',
+            thumbGlow: 'rgba(184, 244, 95, 0.55)',
+          };
+      }
+    }
+
     switch (clampedValue) {
       case 1:
         // Stop 1: National — NutriMind Green
@@ -117,7 +138,7 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
           thumbGlow: 'rgba(119, 89, 232, 0.55)',
         };
     }
-  }, [clampedValue]);
+  }, [clampedValue, max]);
 
   const handleSliderChange = (e: ChangeEvent<HTMLInputElement>) => {
     const nextVal = Number(e.target.value);

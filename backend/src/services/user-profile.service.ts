@@ -14,6 +14,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { evaluateOnboardingStatus } from '@/domain/onboarding.policy';
+import { getCanonicalRegionName } from '@/data/philippine-planning-geography';
 
 interface ProfileUpdateData {
   age?: number;
@@ -30,6 +31,7 @@ interface ProfileUpdateData {
   planningRegionName?: string | null;
   planningProvinceHucName?: string | null;
   mealLocalityPreference?: MealLocalityPreference;
+  shoppingDayOfWeek?: number;
 }
 
 type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
@@ -74,6 +76,19 @@ export class UserProfileService {
       if (data[field] !== undefined) {
         (safeData as Record<string, unknown>)[field] = data[field];
       }
+    }
+
+    if (data.shoppingDayOfWeek !== undefined) {
+      const day = Number(data.shoppingDayOfWeek);
+      if (Number.isInteger(day) && day >= 0 && day <= 6) {
+        (safeData as Record<string, unknown>).shoppingDayOfWeek = day;
+        (safeData as Record<string, unknown>).shoppingDayGroup = day === 0 || day === 6 ? 'WEEKEND' : 'WEEKDAY';
+      }
+    }
+
+    if (safeData.planningRegionName) {
+      const canonical = getCanonicalRegionName(safeData.planningRegionName);
+      if (canonical) safeData.planningRegionName = canonical;
     }
     return prisma.$transaction(
       async (tx) => {

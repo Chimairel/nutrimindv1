@@ -248,7 +248,7 @@ export default function WeeklyPlanPage() {
                   </p>
                   <Button
                     variant="secondary"
-                    onClick={handleRegeneratePlan}
+                    onClick={() => handleRegeneratePlan()}
                     className="flex items-center gap-1.5 text-xs font-bold"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />

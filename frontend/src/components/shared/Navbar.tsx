@@ -107,6 +107,12 @@ const getBreadcrumbSegments = (
     if (pathname === '/export') {
       return [{ label: 'Exports', current: true }];
     }
+    if (pathname === '/profile/nutrition-report') {
+      return [
+        { label: 'Profile', href: '/profile' },
+        { label: 'Nutrition Guidance', current: true },
+      ];
+    }
     if (pathname === '/nutrition-report') {
       return [{ label: 'Nutrition Report', current: true }];
     }

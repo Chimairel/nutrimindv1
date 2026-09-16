@@ -28,7 +28,6 @@ const getAuthenticatedHome = (user: {
   if (user.role === 'NUTRITIONIST') return '/nutritionist/reviews';
   if (!user.onboardingDone) return user.onboardingNextPath || '/onboarding/stats';
   if (!user.tosAccepted) return '/onboarding/tos';
-  if (!user.reportAcknowledged) return '/nutrition-report';
   return '/dashboard';
 };
 
@@ -42,7 +41,7 @@ const getAuthenticatedHome = (user: {
  * 3. Does role match route? No → /unauthorized
  * 4. Is onboarding done? No → /onboarding/stats
  * 5. Is ToS accepted? No → /onboarding/tos
- * 6. Is report acknowledged? No → /nutrition-report
+ * Report acknowledgment gates meal actions on the server, not access to profile/history.
  */
 export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
@@ -61,7 +60,6 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
-  const isNutritionReportPage = pathname.startsWith('/nutrition-report');
   const isAdminRoute = pathname.startsWith('/admin');
   const isNutritionistRoute = pathname.startsWith('/nutritionist');
   const isUserRoute = [
@@ -96,12 +94,10 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       } else if (isUserRoute && user.role !== 'USER') {
         redirectTarget = '/unauthorized';
       } else if (!isPublicRoute && user.role === 'USER') {
-        if (!user.onboardingDone && !isOnboardingPage && !isNutritionReportPage) {
+        if (!user.onboardingDone && !isOnboardingPage) {
           redirectTarget = user.onboardingNextPath || '/onboarding/stats';
-        } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isNutritionReportPage) {
+        } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos')) {
           redirectTarget = '/onboarding/tos';
-        } else if (user.onboardingDone && user.tosAccepted && !user.reportAcknowledged && !isNutritionReportPage) {
-          redirectTarget = '/nutrition-report';
         }
       }
     }

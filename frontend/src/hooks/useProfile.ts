@@ -44,7 +44,7 @@ export interface UserProfileData {
   healthConditions: string[];
   allergies: string[];
   safetyEntries: SafetyProfileEntry[];
-  nutritionReport: { id: string; generatedAt: string; acknowledgedAt?: string } | null;
+  nutritionReport: { id: string; generatedAt: string; acknowledgedAt?: string; isStale?: boolean } | null;
   onboardingStatus?: {
     nextPath: string;
     readyToComplete: boolean;

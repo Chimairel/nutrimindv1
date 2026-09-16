@@ -152,18 +152,33 @@ router.post(
   UserController.acknowledgeReport
 );
 
-// Every normal USER feature below this point requires the complete account
-// readiness chain. Frontend guards remain UX only.
-router.use(requireReadyUser);
-
 /**
  * Profile and Account Settings
+ * Users must be able to correct the profile that makes a report stale.
  */
-router.put('/profile', validateZodBody(onboardingProfileSchema), UserController.updateProfile);
-router.put('/profile/conditions', validateZodBody(onboardingConditionsSchema), UserController.updateConditions);
-router.put('/profile/allergies', validateZodBody(onboardingAllergiesSchema), UserController.updateAllergies);
-router.put('/profile/safety', validateZodBody(profileSafetySchema), UserController.updateSafetyProfile);
-router.put('/profile/settings', UserController.updateAccountSettings);
+router.put('/profile', requireReportEligible, validateZodBody(onboardingProfileSchema), UserController.updateProfile);
+router.put(
+  '/profile/conditions',
+  requireReportEligible,
+  validateZodBody(onboardingConditionsSchema),
+  UserController.updateConditions
+);
+router.put(
+  '/profile/allergies',
+  requireReportEligible,
+  validateZodBody(onboardingAllergiesSchema),
+  UserController.updateAllergies
+);
+router.put(
+  '/profile/safety',
+  requireReportEligible,
+  validateZodBody(profileSafetySchema),
+  UserController.updateSafetyProfile
+);
+router.put('/profile/settings', requireReportEligible, UserController.updateAccountSettings);
+
+// Meal-related actions retain the complete readiness chain.
+router.use(requireReadyUser);
 
 router.get('/account/export', async (req: AuthenticatedRequest, res: Response) => {
   try {

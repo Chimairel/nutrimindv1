@@ -33,8 +33,50 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
-
+import { Select } from '@/components/ui/Select';
 import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
+
+const DIETARY_OPTIONS = [
+  { value: 'OMNIVORE', label: 'Omnivore' },
+  { value: 'VEGETARIAN', label: 'Vegetarian' },
+  { value: 'VEGAN', label: 'Vegan' },
+  { value: 'PESCATARIAN', label: 'Pescatarian' },
+];
+
+const CARB_OPTIONS = [
+  { value: 'LOW', label: 'Low Carb' },
+  { value: 'MODERATE', label: 'Moderate Carb' },
+  { value: 'HIGH', label: 'High Carb' },
+];
+
+const SHOPPING_DAY_OPTIONS = [
+  { value: '0', label: 'Sunday (Monday - Sunday plan)' },
+  { value: '1', label: 'Monday (Tuesday - Monday plan)' },
+  { value: '2', label: 'Tuesday (Wednesday - Tuesday plan)' },
+  { value: '3', label: 'Wednesday (Thursday - Wednesday plan)' },
+  { value: '4', label: 'Thursday (Friday - Thursday plan)' },
+  { value: '5', label: 'Friday (Saturday - Friday plan)' },
+  { value: '6', label: 'Saturday (Sunday - Saturday plan)' },
+];
+
+const BIOLOGICAL_SEX_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+];
+
+const GOAL_OPTIONS = [
+  { value: 'LOSE_WEIGHT', label: 'Lose Weight' },
+  { value: 'GAIN_WEIGHT', label: 'Gain Weight' },
+  { value: 'MAINTAIN', label: 'Maintain Weight' },
+  { value: 'BUILD_MUSCLE', label: 'Build Muscle' },
+];
+
+const ACTIVITY_OPTIONS = [
+  { value: 'SEDENTARY', label: 'Sedentary (Little/no exercise)' },
+  { value: 'LIGHTLY_ACTIVE', label: 'Lightly Active (1-3 days/week)' },
+  { value: 'ACTIVE', label: 'Active (3-5 days/week)' },
+  { value: 'VERY_ACTIVE', label: 'Very Active (6-7 days/week)' },
+];
 
 export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorkspaceMode }) {
   const {
@@ -43,6 +85,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setActiveSection,
     history,
     profileData,
+    user,
     setProfileData,
     isLoading,
     error,
@@ -68,8 +111,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setDietaryPreference,
     carbPreference,
     setCarbPreference,
-    foodCulture,
-    setFoodCulture,
     planningGeographyLevel,
     setPlanningGeographyLevel,
     planningRegionName,
@@ -115,7 +156,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     if (tabParam && ['overview', 'history', 'adherence', 'profile', 'safety'].includes(tabParam.toLowerCase())) {
-      const mapped = tabParam.toLowerCase() === 'adherence' ? 'history' : (tabParam.toLowerCase() as typeof activeSection);
+      const mapped =
+        tabParam.toLowerCase() === 'adherence' ? 'history' : (tabParam.toLowerCase() as typeof activeSection);
       setActiveSection(mapped);
     }
   }, [setActiveSection]);
@@ -344,14 +386,24 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       />
 
       {error && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-4 text-status-error-text">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-4 text-status-error-text">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <Button variant="secondary" onClick={() => fetchPageData()} className="h-8 px-3 text-xs">
-            Retry
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {error.toLowerCase().includes('nutrition report') && (
+              <Link
+                href="/profile/nutrition-report"
+                className="inline-flex items-center justify-center rounded-xl bg-brand-green px-3 py-1.5 text-xs font-bold text-[#07100d] shadow-neon hover:brightness-105 transition-all"
+              >
+                View Nutrition Report
+              </Link>
+            )}
+            <Button variant="secondary" onClick={() => fetchPageData()} className="h-8 px-3 text-xs">
+              Retry
+            </Button>
+          </div>
         </div>
       )}
 
@@ -394,13 +446,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         <div className="p-4 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
           <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
           <span>{weightSuccess}</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
-          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-          <span>{error}</span>
         </div>
       )}
 
@@ -648,15 +693,12 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         >
                           Biological Sex
                         </label>
-                        <select
+                        <Select
                           id="profile-biological-sex"
                           value={biologicalSex}
-                          onChange={(e) => setBiologicalSex(e.target.value)}
-                          className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                        >
-                          <option value="MALE">Male</option>
-                          <option value="FEMALE">Female</option>
-                        </select>
+                          onChange={setBiologicalSex}
+                          options={BIOLOGICAL_SEX_OPTIONS}
+                        />
                       </div>
                       <div>
                         <label
@@ -665,17 +707,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         >
                           Primary Goal
                         </label>
-                        <select
-                          id="profile-goal"
-                          value={goal}
-                          onChange={(e) => setGoal(e.target.value)}
-                          className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                        >
-                          <option value="LOSE_WEIGHT">Lose Weight</option>
-                          <option value="GAIN_WEIGHT">Gain Weight</option>
-                          <option value="MAINTAIN">Maintain Weight</option>
-                          <option value="BUILD_MUSCLE">Build Muscle</option>
-                        </select>
+                        <Select id="profile-goal" value={goal} onChange={setGoal} options={GOAL_OPTIONS} />
                       </div>
                       <div>
                         <label
@@ -684,24 +716,20 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         >
                           Activity Level
                         </label>
-                        <select
+                        <Select
                           id="profile-activity"
                           value={activityLevel}
-                          onChange={(e) => setActivityLevel(e.target.value)}
-                          className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                        >
-                          <option value="SEDENTARY">Sedentary (Little/no exercise)</option>
-                          <option value="LIGHTLY_ACTIVE">Lightly Active (1-3 days/week)</option>
-                          <option value="ACTIVE">Active (3-5 days/week)</option>
-                          <option value="VERY_ACTIVE">Very Active (6-7 days/week)</option>
-                        </select>
+                          onChange={setActivityLevel}
+                          options={ACTIVITY_OPTIONS}
+                        />
                       </div>
                     </div>
                   </>
                 )}
                 {mode === 'planning' && (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Top Row: Dietary, Carb, and Grocery Shopping Day (3 Columns) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label
                           htmlFor="profile-diet"
@@ -709,17 +737,12 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         >
                           Dietary Preference
                         </label>
-                        <select
+                        <Select
                           id="profile-diet"
                           value={dietaryPreference}
-                          onChange={(e) => setDietaryPreference(e.target.value)}
-                          className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                        >
-                          <option value="OMNIVORE">Omnivore</option>
-                          <option value="VEGETARIAN">Vegetarian</option>
-                          <option value="VEGAN">Vegan</option>
-                          <option value="PESCATARIAN">Pescatarian</option>
-                        </select>
+                          onChange={setDietaryPreference}
+                          options={DIETARY_OPTIONS}
+                        />
                       </div>
                       <div>
                         <label
@@ -728,26 +751,32 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         >
                           Carb Preference
                         </label>
-                        <select
+                        <Select
                           id="profile-carb"
                           value={carbPreference}
-                          onChange={(e) => setCarbPreference(e.target.value)}
-                          className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                        >
-                          <option value="LOW">Low Carb</option>
-                          <option value="MODERATE">Moderate Carb</option>
-                          <option value="HIGH">High Carb</option>
-                        </select>
+                          onChange={setCarbPreference}
+                          options={CARB_OPTIONS}
+                        />
                       </div>
-                      <Input
-                        id="profile-food-culture"
-                        label="Cooking/Food Culture"
-                        type="text"
-                        value={foodCulture}
-                        onChange={(e) => setFoodCulture(e.target.value)}
-                        placeholder="e.g. Filipino, Asian"
-                      />
-                      <div className="md:col-span-2">
+                      <div>
+                        <label
+                          htmlFor="profile-shopping-day"
+                          className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
+                        >
+                          Grocery Shopping Day
+                        </label>
+                        <Select
+                          id="profile-shopping-day"
+                          value={String(shoppingDayOfWeek)}
+                          onChange={(val) => setShoppingDayOfWeek(Number(val))}
+                          options={SHOPPING_DAY_OPTIONS}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location & Dynamic Locality Map (2 Columns) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-1">
+                      <div>
                         <PlanningLocationFields
                           level={planningGeographyLevel}
                           regionName={planningRegionName}
@@ -759,7 +788,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                           idPrefix="profile-planning-location"
                         />
                       </div>
-                      <div className="md:col-span-2">
+                      <div>
                         <MealLocalityPreferenceControl
                           value={mealLocalityPreference}
                           regionName={planningRegionName}
@@ -767,28 +796,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                           onChange={setMealLocalityPreference}
                           disabled={isSavingBiometrics}
                         />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="profile-shopping-day"
-                          className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
-                        >
-                          Grocery Shopping Day
-                        </label>
-                        <select
-                          id="profile-shopping-day"
-                          value={shoppingDayOfWeek}
-                          onChange={(e) => setShoppingDayOfWeek(Number(e.target.value))}
-                          className="w-full rounded-xl bg-brand-bgAlt border border-brand-border px-4 py-2.5 text-sm text-brand-text focus:border-brand-green outline-none"
-                        >
-                          <option value={0}>Sunday (Monday - Sunday plan)</option>
-                          <option value={1}>Monday (Tuesday - Monday plan)</option>
-                          <option value={2}>Tuesday (Wednesday - Tuesday plan)</option>
-                          <option value={3}>Wednesday (Thursday - Wednesday plan)</option>
-                          <option value={4}>Thursday (Friday - Thursday plan)</option>
-                          <option value={5}>Friday (Saturday - Friday plan)</option>
-                          <option value={6}>Saturday (Sunday - Saturday plan)</option>
-                        </select>
                       </div>
                     </div>
                   </>
@@ -798,7 +805,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                   <Sparkles className="h-4 w-4 shrink-0 text-brand-green mt-0.5" />
                   <div>
                     <strong className="text-brand-text block mb-0.5">Plan Cycle Notice</strong>
-                    Changes made here will take effect starting on your next weekly meal cycle, or immediately if you choose to regenerate your current week&apos;s meal plan.
+                    Changes made here will take effect starting on your next weekly meal cycle, or immediately if you
+                    choose to regenerate your current week&apos;s meal plan.
                   </div>
                 </div>
 
@@ -846,7 +854,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                       : 'Your safety settings are already up to date.'
                   );
                   if (changed) {
-                    router.push('/nutrition-report');
+                    router.push('/profile/nutrition-report');
                     return;
                   }
                   const response = await api.get('/user/profile');
@@ -857,163 +865,161 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           )}
 
           {/* ADHERENCE CALENDAR BLOCK */}
-          {activeSection === 'history' && (() => {
-            const logs = history?.dailyNutritionLogs || [];
-            const averageAdherence =
-              logs.length > 0
-                ? Math.round(logs.reduce((acc, curr) => acc + curr.adherencePct, 0) / logs.length)
-                : null;
-            const onTargetDays = logs.filter(
-              (log) => log.adherencePct >= 90 && log.adherencePct <= 110
-            ).length;
+          {activeSection === 'history' &&
+            (() => {
+              const logs = history?.dailyNutritionLogs || [];
+              const averageAdherence =
+                logs.length > 0
+                  ? Math.round(logs.reduce((acc, curr) => acc + curr.adherencePct, 0) / logs.length)
+                  : null;
+              const onTargetDays = logs.filter((log) => log.adherencePct >= 90 && log.adherencePct <= 110).length;
 
-            return (
-              <div className="text-left space-y-6">
-                {/* Educational Banner */}
-                <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
-                      <Lightbulb className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-extrabold text-brand-text font-display">
-                        Understanding Calorie Adherence
-                      </h4>
-                      <p className="text-xs text-brand-muted leading-relaxed">
-                        Daily adherence measures how closely your total food intake matched your prescribed metabolic target.
-                        Scores compile automatically every night based on meals you mark as eaten on your daily dashboard.
-                      </p>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          90%–110%: Target Achieved
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                          70%–89%: Acceptable Buffer
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                          &lt;70% or &gt;110%: Off Track
-                        </span>
+              return (
+                <div className="text-left space-y-6">
+                  {/* Educational Banner */}
+                  <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
+                    <div className="flex items-start gap-3.5">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                        <Lightbulb className="h-5 w-5" />
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Summary Metric Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-brand-muted">Average Consistency</span>
-                      <BarChart3 className="h-4 w-4 text-brand-green" />
-                    </div>
-                    <p className="mt-3 font-display text-2xl font-black text-brand-text">
-                      {averageAdherence !== null ? `${averageAdherence}%` : '--'}
-                    </p>
-                    <p className="mt-1 text-[11px] text-brand-muted">Across all logged days</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-brand-muted">Optimal Target Days</span>
-                      <CheckCircle className="h-4 w-4 text-brand-green" />
-                    </div>
-                    <p className="mt-3 font-display text-2xl font-black text-brand-text">
-                      {logs.length > 0 ? `${onTargetDays} / ${logs.length}` : '--'}
-                    </p>
-                    <p className="mt-1 text-[11px] text-brand-muted">Days within 90%–110% zone</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-brand-muted">Logged Days</span>
-                      <Activity className="h-4 w-4 text-brand-cyan" />
-                    </div>
-                    <p className="mt-3 font-display text-2xl font-black text-brand-text">
-                      {logs.length}
-                    </p>
-                    <p className="mt-1 text-[11px] text-brand-muted">Historical compilations</p>
-                  </div>
-                </div>
-
-                {/* Table or Empty State Card */}
-                <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
-                  <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
-                    <BarChart3 className="w-4 h-4 text-brand-green" />
-                    <span>Daily Intake Log History</span>
-                  </h3>
-
-                  {logs.length === 0 ? (
-                    <div className="p-8 text-center border border-dashed border-brand-border rounded-2xl text-brand-muted flex flex-col items-center justify-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-                        <BarChart3 className="w-6 h-6" />
-                      </div>
-                      <div className="max-w-md">
-                        <h4 className="text-sm font-bold text-brand-text">No Overnight Adherence Records Yet</h4>
-                        <p className="mt-1 text-xs text-brand-muted leading-relaxed">
-                          Adherence scores compile automatically overnight from your logged meals.
-                          Mark today&apos;s scheduled meals as eaten or log outside meals to record your first score.
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-extrabold text-brand-text font-display">
+                          Understanding Calorie Adherence
+                        </h4>
+                        <p className="text-xs text-brand-muted leading-relaxed">
+                          Daily adherence measures how closely your total food intake matched your prescribed metabolic
+                          target. Scores compile automatically every night based on meals you mark as eaten on your
+                          daily dashboard.
                         </p>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            90%–110%: Target Achieved
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            70%–89%: Acceptable Buffer
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                            &lt;70% or &gt;110%: Off Track
+                          </span>
+                        </div>
                       </div>
-                      <Link
-                        href="/dashboard"
-                        className="mt-2 inline-flex items-center gap-2 rounded-xl bg-brand-accent px-4 py-2 text-xs font-extrabold text-[#07100d] shadow-sm hover:brightness-105"
-                      >
-                        Go to Today&apos;s Dashboard
-                      </Link>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
-                            <th className="pb-3 px-3">Date</th>
-                            <th className="pb-3 px-3">Calories Consumed</th>
-                            <th className="pb-3 px-3">Daily Target</th>
-                            <th className="pb-3 px-3 text-center">Adherence</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {logs.map((log) => {
-                            let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
-                            if (log.adherencePct < 70 || log.adherencePct > 110) badgeVar = 'rejected';
-                            else if (log.adherencePct < 90) badgeVar = 'pending';
+                  </div>
 
-                            return (
-                              <tr
-                                key={log.id}
-                                className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150"
-                              >
-                                <td className="py-3 px-3 font-semibold">
-                                  {new Date(log.logDate).toLocaleDateString(undefined, {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric',
-                                  })}
-                                </td>
-                                <td className="py-3 px-3 font-bold text-brand-text">
-                                  {Math.round(log.totalCalories)} kcal
-                                </td>
-                                <td className="py-3 px-3 font-bold text-brand-muted">
-                                  {Math.round(log.targetCalories)} kcal
-                                </td>
-                                <td className="py-3 px-3 text-center">
-                                  <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
-                                    {Math.round(log.adherencePct)}% Adherence
-                                  </Badge>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-brand-muted">Average Consistency</span>
+                        <BarChart3 className="h-4 w-4 text-brand-green" />
+                      </div>
+                      <p className="mt-3 font-display text-2xl font-black text-brand-text">
+                        {averageAdherence !== null ? `${averageAdherence}%` : '--'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-brand-muted">Across all logged days</p>
                     </div>
-                  )}
-                </Card>
-              </div>
-            );
-          })()}
+
+                    <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-brand-muted">Optimal Target Days</span>
+                        <CheckCircle className="h-4 w-4 text-brand-green" />
+                      </div>
+                      <p className="mt-3 font-display text-2xl font-black text-brand-text">
+                        {logs.length > 0 ? `${onTargetDays} / ${logs.length}` : '--'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-brand-muted">Days within 90%–110% zone</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-brand-muted">Logged Days</span>
+                        <Activity className="h-4 w-4 text-brand-cyan" />
+                      </div>
+                      <p className="mt-3 font-display text-2xl font-black text-brand-text">{logs.length}</p>
+                      <p className="mt-1 text-[11px] text-brand-muted">Historical compilations</p>
+                    </div>
+                  </div>
+
+                  {/* Table or Empty State Card */}
+                  <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
+                    <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-5 font-display flex items-center gap-1.5">
+                      <BarChart3 className="w-4 h-4 text-brand-green" />
+                      <span>Daily Intake Log History</span>
+                    </h3>
+
+                    {logs.length === 0 ? (
+                      <div className="p-8 text-center border border-dashed border-brand-border rounded-2xl text-brand-muted flex flex-col items-center justify-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
+                          <BarChart3 className="w-6 h-6" />
+                        </div>
+                        <div className="max-w-md">
+                          <h4 className="text-sm font-bold text-brand-text">No Overnight Adherence Records Yet</h4>
+                          <p className="mt-1 text-xs text-brand-muted leading-relaxed">
+                            Adherence scores compile automatically overnight from your logged meals. Mark today&apos;s
+                            scheduled meals as eaten or log outside meals to record your first score.
+                          </p>
+                        </div>
+                        <Link
+                          href="/dashboard"
+                          className="mt-2 inline-flex items-center gap-2 rounded-xl bg-brand-accent px-4 py-2 text-xs font-extrabold text-[#07100d] shadow-sm hover:brightness-105"
+                        >
+                          Go to Today&apos;s Dashboard
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
+                              <th className="pb-3 px-3">Date</th>
+                              <th className="pb-3 px-3">Calories Consumed</th>
+                              <th className="pb-3 px-3">Daily Target</th>
+                              <th className="pb-3 px-3 text-center">Adherence</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {logs.map((log) => {
+                              let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
+                              if (log.adherencePct < 70 || log.adherencePct > 110) badgeVar = 'rejected';
+                              else if (log.adherencePct < 90) badgeVar = 'pending';
+
+                              return (
+                                <tr
+                                  key={log.id}
+                                  className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150"
+                                >
+                                  <td className="py-3 px-3 font-semibold">
+                                    {new Date(log.logDate).toLocaleDateString(undefined, {
+                                      weekday: 'short',
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })}
+                                  </td>
+                                  <td className="py-3 px-3 font-bold text-brand-text">
+                                    {Math.round(log.totalCalories)} kcal
+                                  </td>
+                                  <td className="py-3 px-3 font-bold text-brand-muted">
+                                    {Math.round(log.targetCalories)} kcal
+                                  </td>
+                                  <td className="py-3 px-3 text-center">
+                                    <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
+                                      {Math.round(log.adherencePct)}% Adherence
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              );
+            })()}
         </>
       )}
 
@@ -1028,21 +1034,23 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           <div className="flex w-full flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
             <Button
               variant="secondary"
-              onClick={() => setShowRegenerateModal(false)}
-              className="text-xs font-bold w-full sm:w-auto"
-            >
-              OK
-            </Button>
-            <Button
-              variant="primary"
               onClick={() => {
                 setShowRegenerateModal(false);
-                router.push('/meals?regenerate=true');
+                router.push(
+                  user?.reportAcknowledged ? '/meals?regenerate=true' : '/profile/nutrition-report?next=regenerate'
+                );
               }}
-              className="text-xs font-bold flex items-center justify-center gap-2 w-full sm:w-auto shadow-md"
+              className="text-xs font-bold flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Regenerate Plan</span>
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => setShowRegenerateModal(false)}
+              className="text-xs font-bold w-full sm:w-auto shadow-md"
+            >
+              OK
             </Button>
           </div>
         }
@@ -1052,9 +1060,10 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             <CheckCircle2 className="h-5 w-5 text-brand-green shrink-0 mt-0.5" />
             <div className="text-xs leading-relaxed text-brand-muted">
               <strong className="text-brand-text block mb-1">When will your changes take effect?</strong>
-              Any changes you made will automatically start to affect your <strong>next weekly meal plan cycle</strong>.
+              Your saved preferences apply to future planning. Existing meals are checked again for safety.
               <br className="mb-2" />
-              If you want your <strong>current week&apos;s plan</strong> to immediately match your new goals, calories, or preferences, click <strong>Regenerate Plan</strong>.
+              To request a new plan, click <strong>Regenerate Plan</strong>. If your guidance needs updating, you will
+              review and acknowledge it first.
             </div>
           </div>
         </div>

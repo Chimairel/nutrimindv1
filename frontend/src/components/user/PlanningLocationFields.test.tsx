@@ -32,7 +32,7 @@ describe('PlanningLocationFields', () => {
     );
 
     expect(screen.getByRole('group', { name: 'Meal-planning location' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Region' })).toHaveValue('Central Visayas');
+    expect(screen.getByRole('combobox', { name: 'Region' })).toHaveValue('Region VII (Central Visayas)');
     expect(screen.getByRole('combobox', { name: 'Province / highly urbanized city' })).toHaveValue('Cebu City');
     expect(screen.queryByRole('combobox', { name: 'Evidence area' })).not.toBeInTheDocument();
     expect(await screen.findByText(/PSA PSGC 2Q 2026/i)).toBeInTheDocument();

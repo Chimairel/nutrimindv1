@@ -4,6 +4,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import Input from '@/components/ui/Input';
 import type { PlanningGeographyLevel } from '@/types';
 import { usePlanningLocations, validPlanningLocation } from '@/hooks/usePlanningLocations';
+import { formatRegionDisplay, searchMatchesRegion, getCanonicalRegionName } from '@/lib/philippine-regions';
 import { ChevronDown, Check } from 'lucide-react';
 
 interface PlanningLocationFieldsProps {
@@ -29,7 +30,8 @@ export default function PlanningLocationFields({
   required = false,
 }: PlanningLocationFieldsProps) {
   const { options, error } = usePlanningLocations();
-  const { regionValid } = validPlanningLocation(options, regionName, provinceHucName);
+  const canonicalRegion = getCanonicalRegionName(regionName) || regionName;
+  const { regionValid } = validPlanningLocation(options, canonicalRegion, provinceHucName);
 
   const [isRegionOpen, setIsRegionOpen] = useState(false);
   const [isProvinceOpen, setIsProvinceOpen] = useState(false);
@@ -40,14 +42,16 @@ export default function PlanningLocationFields({
   const provinceHucOptions = useMemo(
     () =>
       options.provinceHucs.filter(
-        (option) => !regionName.trim() || option.regionName.toLowerCase() === regionName.trim().toLowerCase()
+        (option) =>
+          !canonicalRegion.trim() ||
+          option.regionName.toLowerCase() === canonicalRegion.trim().toLowerCase()
       ),
-    [options.provinceHucs, regionName]
+    [options.provinceHucs, canonicalRegion]
   );
 
   const filteredRegions = useMemo(() => {
     if (!regionName.trim()) return options.regions;
-    return options.regions.filter((r) => r.toLowerCase().includes(regionName.trim().toLowerCase()));
+    return options.regions.filter((r) => searchMatchesRegion(regionName, r));
   }, [options.regions, regionName]);
 
   const filteredProvinces = useMemo(() => {
@@ -75,10 +79,11 @@ export default function PlanningLocationFields({
 
   const handleRegionChange = (value: string) => {
     onRegionNameChange(value);
+    const canonical = getCanonicalRegionName(value) || value;
     const currentProvinceStillMatches = options.provinceHucs.some(
       (option) =>
         option.name.toLowerCase() === provinceHucName.trim().toLowerCase() &&
-        option.regionName.toLowerCase() === value.trim().toLowerCase()
+        option.regionName.toLowerCase() === canonical.trim().toLowerCase()
     );
     if (provinceHucName && !currentProvinceStillMatches) onProvinceHucNameChange('');
     onLevelChange(value.trim() ? 'REGION' : 'NATIONAL');
@@ -90,7 +95,7 @@ export default function PlanningLocationFields({
   };
 
   const selectRegion = (value: string) => {
-    handleRegionChange(value);
+    handleRegionChange(formatRegionDisplay(value));
     setIsRegionOpen(false);
   };
 
@@ -116,7 +121,7 @@ export default function PlanningLocationFields({
             role="combobox"
             aria-expanded={isRegionOpen}
             aria-autocomplete="list"
-            value={regionName}
+            value={isRegionOpen ? regionName : formatRegionDisplay(regionName)}
             onFocus={() => setIsRegionOpen(true)}
             onChange={(event) => {
               handleRegionChange(event.target.value);
@@ -146,7 +151,7 @@ export default function PlanningLocationFields({
             <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-white/10 dark:bg-[#121e18] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] scrollbar-thin">
               <ul role="listbox" className="space-y-0.5">
                 {filteredRegions.map((region) => {
-                  const isSelected = region.toLowerCase() === regionName.trim().toLowerCase();
+                  const isSelected = region.toLowerCase() === canonicalRegion.toLowerCase();
                   return (
                     <li
                       key={region}
@@ -159,7 +164,7 @@ export default function PlanningLocationFields({
                           : 'text-brand-text/90 hover:bg-brand-bgAlt/80 dark:text-white/80 dark:hover:bg-white/[0.06]'
                       }`}
                     >
-                      <span className="truncate">{region}</span>
+                      <span className="truncate">{formatRegionDisplay(region)}</span>
                       {isSelected && (
                         <Check
                           className="h-3.5 w-3.5 shrink-0 text-brand-green dark:text-brand-accent"
