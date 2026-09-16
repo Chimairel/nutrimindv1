@@ -52,7 +52,7 @@ export default function AuthShell({
                 </span>
               </span>
             </Link>
-            <ThemeToggle size="md" />
+            <ThemeToggle size="md" variant="hero" />
           </div>
 
           <div className="pointer-events-none relative z-10 my-auto max-w-2xl py-12">
