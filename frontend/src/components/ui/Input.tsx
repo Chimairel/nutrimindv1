@@ -30,9 +30,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const describedBy = [ariaDescribedBy, messageId].filter(Boolean).join(' ') || undefined;
 
     return (
-      <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full flex-col gap-1 sm:gap-2">
         {label && (
-          <label htmlFor={resolvedId} className="font-display text-xs font-bold tracking-wide text-brand-text/90">
+          <label htmlFor={resolvedId} className="font-display text-[11px] sm:text-xs font-bold tracking-wide text-brand-text/90">
             {label}
           </label>
         )}
@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={error ? true : ariaInvalid}
           data-validation-state={resolvedValidationState}
           className={`
-            w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text shadow-sm outline-none backdrop-blur-md placeholder:text-brand-muted/60
+            w-full rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3.5 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-brand-text shadow-sm outline-none backdrop-blur-md placeholder:text-brand-muted/60
             transition-all duration-200
             hover:border-brand-green/25 focus:bg-brand-surface focus:ring-4
             disabled:opacity-40 disabled:cursor-not-allowed

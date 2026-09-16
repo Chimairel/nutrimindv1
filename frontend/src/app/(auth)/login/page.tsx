@@ -105,9 +105,9 @@ export default function LoginPage() {
         </>
       }
     >
-      <AuthFormPrelude googleLabel="signin_with" error={error} />
+      <AuthFormPrelude googleLabel="signin_with" error={error} compact />
 
-      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-4" noValidate>
         <Input
           id="email"
           label="Email address"
@@ -140,7 +140,7 @@ export default function LoginPage() {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-xs font-semibold text-brand-muted transition hover:text-brand-green"
+            className="text-[11px] font-semibold text-brand-muted transition hover:text-brand-green sm:text-xs"
           >
             Forgot your password?
           </Link>
@@ -149,7 +149,7 @@ export default function LoginPage() {
           type="submit"
           variant="primary"
           size="lg"
-          className="mt-1 w-full"
+          className="mt-0.5 w-full min-h-11 sm:min-h-12 text-sm"
           isLoading={isLoading}
           disabled={!isReady}
         >

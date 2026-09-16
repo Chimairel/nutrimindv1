@@ -106,9 +106,9 @@ export default function Home() {
           <div className="pointer-events-none absolute left-[8%] top-24 h-72 w-72 rounded-full bg-brand-green/10 blur-[110px]" />
           <div className="pointer-events-none absolute right-[7%] top-10 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[120px]" />
 
-          <div className="mx-auto grid min-h-[calc(100vh-74px)] max-w-[1440px] items-center gap-14 px-5 py-16 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:px-12 lg:py-20">
+          <div className="mx-auto grid min-h-[calc(100vh-74px)] max-w-[1440px] items-center gap-8 md:gap-10 lg:gap-14 px-5 py-12 sm:px-8 md:grid-cols-[0.92fr_1.08fr] lg:px-12 lg:py-20">
             <div className="relative z-10 max-w-2xl">
-              <div className="eyebrow mb-6 inline-flex items-center gap-2">
+              <div className="eyebrow mb-4 md:mb-6 inline-flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-cyan opacity-60" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-cyan" />
@@ -116,27 +116,27 @@ export default function Home() {
                 AI-assisted Filipino nutrition
               </div>
 
-              <h1 className="font-display text-[clamp(3.4rem,7vw,7.2rem)] font-black leading-[0.88] tracking-[-0.065em] text-brand-text">
+              <h1 className="font-display text-[clamp(2.5rem,5vw,7.2rem)] font-black leading-[0.9] lg:leading-[0.88] tracking-[-0.065em] text-brand-text">
                 Eat with
                 <span className="text-gradient block pb-2">intention.</span>
               </h1>
 
-              <p className="mt-7 max-w-xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
+              <p className="mt-4 md:mt-7 max-w-xl text-sm leading-6 md:text-base md:leading-7 text-brand-muted sm:text-lg sm:leading-8">
                 KAINARA turns personal health context into culturally familiar meal plans, then keeps AI-generated
                 meals inside a transparent nutritionist-review workflow.
               </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-6 md:mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={workspaceHref}
-                  className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-1 hover:brightness-105"
+                  className="group flex min-h-12 md:min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-5 md:px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-1 hover:brightness-105"
                 >
                   {workspaceLabel}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link
                   href="/docs"
-                  className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-brand-border/80 bg-brand-surface/65 px-6 text-sm font-bold text-brand-text backdrop-blur-xl transition hover:-translate-y-1 hover:border-brand-green/35"
+                  className="group flex min-h-12 md:min-h-14 items-center justify-center gap-3 rounded-2xl border border-brand-border/80 bg-brand-surface/65 px-5 md:px-6 text-sm font-bold text-brand-text backdrop-blur-xl transition hover:-translate-y-1 hover:border-brand-green/35"
                 >
                   <BookOpenText className="h-4 w-4 text-brand-green" />
                   Explore documentation
@@ -144,17 +144,17 @@ export default function Home() {
                 </Link>
               </div>
 
-              <div className="mt-10 grid max-w-xl grid-cols-3 gap-3 border-t border-brand-border/70 pt-6">
+              <div className="mt-8 md:mt-10 grid max-w-xl grid-cols-3 gap-3 border-t border-brand-border/70 pt-5 md:pt-6">
                 {[
                   ['7 days', 'Structured plans'],
                   ['3 roles', 'Connected review'],
                   ['Visible', 'Safety status'],
                 ].map(([value, label]) => (
                   <div key={label}>
-                    <p className="font-display text-lg font-extrabold tracking-tight text-brand-text sm:text-xl">
+                    <p className="font-display text-base md:text-lg font-extrabold tracking-tight text-brand-text sm:text-xl">
                       {value}
                     </p>
-                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-muted">
+                    <p className="mt-1 text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-muted">
                       {label}
                     </p>
                   </div>
@@ -162,7 +162,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-[700px] lg:ml-auto">
+            <div className="relative mx-auto w-full max-w-[700px] md:ml-auto">
               <div className="absolute -left-8 top-24 z-20 hidden w-44 animate-float-slow rounded-2xl border border-brand-green/20 bg-[#0b1511]/90 p-4 text-white shadow-card-lg backdrop-blur-xl sm:block">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/45">
                   <HeartPulse className="h-3.5 w-3.5 text-brand-cyan" />
