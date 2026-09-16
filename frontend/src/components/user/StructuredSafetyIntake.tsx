@@ -279,7 +279,7 @@ export default function StructuredSafetyIntake({
                 onClick={() => togglePredefined(item)}
                 className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-xs font-bold transition-all outline-none ${
                   isSelected
-                    ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                    ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
                     : 'border-brand-border bg-brand-surface text-brand-text hover:border-brand-green/40'
                 }`}
               >
@@ -360,7 +360,7 @@ export default function StructuredSafetyIntake({
               return (
                 <span
                   key={inputKey(entry)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-xs font-semibold text-brand-green"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-xs font-semibold text-brand-green dark:border-brand-accent/30 dark:bg-brand-accent/15 dark:text-brand-accent"
                 >
                   <span>{labelText}</span>
                   <button

@@ -95,7 +95,7 @@ export function DashboardHealthSnapshot({
           </button>
           <button
             onClick={() => onAddWater(250)}
-            className="flex-1 rounded-lg border border-brand-green bg-brand-green px-3 py-1 text-xs font-bold text-white hover:bg-brand-greenHover dark:text-brand-black"
+            className="flex-1 rounded-lg border border-brand-green bg-brand-green px-3 py-1 text-xs font-bold text-white hover:bg-brand-greenHover dark:border-brand-accent dark:bg-brand-accent dark:text-black"
           >
             +250mL
           </button>

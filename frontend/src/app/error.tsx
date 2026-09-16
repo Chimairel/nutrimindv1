@@ -20,7 +20,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         </p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <button
-            className="min-h-11 rounded-2xl border border-brand-accent/70 bg-brand-accent px-6 py-2.5 text-sm font-extrabold text-brand-black shadow-neon"
+            className="min-h-11 rounded-2xl border border-brand-accent/70 bg-brand-accent px-6 py-2.5 text-sm font-extrabold text-black shadow-neon hover:brightness-105 transition-all"
             onClick={reset}
             type="button"
           >

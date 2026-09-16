@@ -112,7 +112,7 @@ export default function OnboardingShoppingDayPage() {
                       flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-left transition-all duration-200 outline-none
                       ${
                         isSelected
-                          ? 'border-brand-green/70 bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black shadow-md font-bold'
+                          ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black shadow-md font-bold'
                           : 'border-brand-border/70 bg-brand-bgAlt/50 text-brand-text hover:bg-brand-border/40'
                       }
                     `}
@@ -120,7 +120,7 @@ export default function OnboardingShoppingDayPage() {
                     <span
                       className={`p-2 rounded-lg flex items-center justify-center shrink-0 ${
                         isSelected
-                          ? 'bg-white/20 dark:bg-black/10 text-white dark:text-brand-black'
+                          ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black'
                           : 'bg-brand-border/30 text-brand-green'
                       }`}
                     >
@@ -129,21 +129,21 @@ export default function OnboardingShoppingDayPage() {
                     <div className="flex-1 min-w-0">
                       <h4
                         className={`text-xs sm:text-sm font-bold tracking-wide ${
-                          isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'
+                          isSelected ? 'text-white dark:text-black' : 'text-brand-text'
                         }`}
                       >
                         {opt.title}
                       </h4>
                       <p
-                        className={`text-[11px] mt-0.5 truncate sm:whitespace-normal ${
-                          isSelected ? 'text-white/85 dark:text-brand-black/80' : 'text-brand-muted'
+                        className={`text-[11px] mt-0.5 truncate sm:whitespace-normal font-semibold ${
+                          isSelected ? 'text-emerald-100 dark:text-neutral-900' : 'text-brand-muted'
                         }`}
                       >
                         {opt.desc}
                       </p>
                     </div>
                     {isSelected && (
-                      <span className="text-white dark:text-brand-black bg-white/20 dark:bg-black/10 h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+                      <span className="text-white dark:text-black bg-white/20 dark:bg-black/15 h-6 w-6 rounded-full flex items-center justify-center shrink-0">
                         <Check className="w-3.5 h-3.5 stroke-[3px]" />
                       </span>
                     )}

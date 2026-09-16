@@ -305,7 +305,7 @@ export function CockpitDashboard({
             <button
               type="button"
               onClick={onOpenCheckin}
-              className="mt-3 min-h-11 rounded-xl bg-brand-accent px-4 text-sm font-bold text-brand-black"
+              className="mt-3 min-h-11 rounded-xl bg-brand-accent px-4 text-sm font-extrabold text-[#07100d] shadow-neon hover:brightness-105 transition-all"
             >
               Start check-in →
             </button>

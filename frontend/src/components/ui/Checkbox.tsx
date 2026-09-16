@@ -19,14 +19,14 @@ export const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimiti
           className={`
           peer h-5 w-5 shrink-0 rounded-md border border-brand-border bg-brand-surface/80
           outline-none transition-all duration-200 hover:border-brand-green/60 focus:ring-2 focus:ring-brand-green/20
-          data-[state=checked]:border-brand-green data-[state=checked]:bg-brand-green data-[state=checked]:text-[#0d0d0d]
+          data-[state=checked]:border-brand-green data-[state=checked]:bg-brand-green data-[state=checked]:text-white dark:data-[state=checked]:border-brand-accent dark:data-[state=checked]:bg-brand-accent dark:data-[state=checked]:text-black
           disabled:cursor-not-allowed disabled:opacity-40
           ${error ? 'border-status-error-text/60' : ''}
           ${className}
         `}
           {...props}
         >
-          <CheckboxPrimitive.Indicator className="flex items-center justify-center text-[#0d0d0d]">
+          <CheckboxPrimitive.Indicator className="flex items-center justify-center text-white dark:text-black">
             <Check className="h-3.5 w-3.5 stroke-[3]" />
           </CheckboxPrimitive.Indicator>
         </CheckboxPrimitive.Root>

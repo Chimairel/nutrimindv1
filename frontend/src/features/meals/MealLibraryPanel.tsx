@@ -45,7 +45,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               onClick={() => setLibraryMealType(type)}
               className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
                 libraryMealType === type
-                  ? 'border-brand-green bg-brand-green text-white shadow-sm'
+                  ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black shadow-sm'
                   : 'border-transparent text-brand-muted hover:bg-brand-surface hover:text-brand-text'
               }`}
             >

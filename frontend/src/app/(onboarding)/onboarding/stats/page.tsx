@@ -169,10 +169,10 @@ export default function OnboardingStatsPage() {
   };
 
   const goalsList: { value: Goal; label: string; icon: React.ReactNode }[] = [
-    { value: 'LOSE_WEIGHT', label: 'Lose Weight', icon: <TrendingDown className="w-4 h-4 text-brand-green" /> },
-    { value: 'GAIN_WEIGHT', label: 'Gain Weight', icon: <TrendingUp className="w-4 h-4 text-brand-green" /> },
-    { value: 'MAINTAIN', label: 'Maintain Weight', icon: <Scale className="w-4 h-4 text-brand-green" /> },
-    { value: 'BUILD_MUSCLE', label: 'Build Muscle', icon: <Dumbbell className="w-4 h-4 text-brand-green" /> },
+    { value: 'LOSE_WEIGHT', label: 'Lose Weight', icon: <TrendingDown className="w-4 h-4" /> },
+    { value: 'GAIN_WEIGHT', label: 'Gain Weight', icon: <TrendingUp className="w-4 h-4" /> },
+    { value: 'MAINTAIN', label: 'Maintain Weight', icon: <Scale className="w-4 h-4" /> },
+    { value: 'BUILD_MUSCLE', label: 'Build Muscle', icon: <Dumbbell className="w-4 h-4" /> },
   ];
 
   const activityLevelsList: { value: ActivityLevel; label: string; desc: string }[] = [
@@ -224,12 +224,14 @@ export default function OnboardingStatsPage() {
                         flex items-center gap-2 px-3.5 py-2.5 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                            ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >
-                      <span className="shrink-0">{item.icon}</span>
+                      <span className={`shrink-0 ${isSelected ? 'text-white dark:text-black' : 'text-brand-green'}`}>
+                        {item.icon}
+                      </span>
                       <span>{item.label}</span>
                     </button>
                   );
@@ -256,7 +258,7 @@ export default function OnboardingStatsPage() {
                       onClick={() => setBiologicalSex(value)}
                       className={`rounded-xl border-2 px-3.5 py-2.5 text-xs sm:text-sm font-bold transition outline-none ${
                         selected
-                          ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                          ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
                           : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                       }`}
                     >
@@ -375,7 +377,7 @@ export default function OnboardingStatsPage() {
                         flex items-center justify-between px-3 py-2 rounded-xl border-2 text-left transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                            ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
@@ -383,21 +385,21 @@ export default function OnboardingStatsPage() {
                       <div className="min-w-0 pr-1">
                         <h4
                           className={`text-xs sm:text-sm font-bold tracking-wide ${
-                            isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'
+                            isSelected ? 'text-white dark:text-black' : 'text-brand-text'
                           }`}
                         >
                           {item.label}
                         </h4>
                         <p
-                          className={`text-[10px] mt-0.5 leading-tight truncate ${
-                            isSelected ? 'text-white/85 dark:text-brand-black/80' : 'text-brand-muted'
+                          className={`text-[10px] mt-0.5 leading-tight truncate font-semibold ${
+                            isSelected ? 'text-emerald-100 dark:text-neutral-900' : 'text-brand-muted'
                           }`}
                         >
                           {item.desc}
                         </p>
                       </div>
                       {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-white dark:text-brand-black stroke-[3px] shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />
                       )}
                     </button>
                   );

@@ -486,7 +486,7 @@ export default function DashboardPage() {
                         aria-pressed={isSelected}
                         className={`flex min-w-[66px] sm:min-w-[76px] flex-1 snap-center flex-col items-center justify-center rounded-xl sm:rounded-2xl border px-2 sm:px-4 py-2 sm:py-3 outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                           isSelected
-                            ? 'border-transparent bg-brand-accent text-brand-black font-bold shadow-md shadow-brand-accent/20'
+                            ? 'border-transparent bg-brand-accent text-black font-extrabold shadow-md shadow-brand-accent/20'
                             : item.isPast
                               ? 'border-transparent bg-black/[0.04] text-slate-400 hover:bg-black/[0.07] hover:text-slate-600 dark:bg-white/[0.03] dark:text-zinc-500 dark:hover:bg-white/[0.07] dark:hover:text-zinc-300'
                               : 'border-transparent bg-transparent text-brand-muted hover:bg-brand-bgAlt/60 hover:text-brand-text'

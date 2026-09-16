@@ -133,7 +133,7 @@ export default function OnboardingPreferencesPage() {
                         flex items-center justify-between px-3 py-2 rounded-xl border-2 text-left transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                            ? 'border-brand-border bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
                         }
                       `}
@@ -141,21 +141,21 @@ export default function OnboardingPreferencesPage() {
                       <div className="min-w-0 pr-1">
                         <h4
                           className={`text-xs sm:text-sm font-bold tracking-wide ${
-                            isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'
+                            isSelected ? 'text-white dark:text-black' : 'text-brand-text'
                           }`}
                         >
                           {item.label}
                         </h4>
                         <p
-                          className={`text-[10px] mt-0.5 leading-tight truncate ${
-                            isSelected ? 'text-white/85 dark:text-brand-black/80' : 'text-brand-muted'
+                          className={`text-[10px] mt-0.5 leading-tight truncate font-semibold ${
+                            isSelected ? 'text-emerald-100 dark:text-neutral-900' : 'text-brand-muted'
                           }`}
                         >
                           {item.desc}
                         </p>
                       </div>
                       {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-white dark:text-brand-black stroke-[3px] shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />
                       )}
                     </button>
                   );
@@ -179,15 +179,15 @@ export default function OnboardingPreferencesPage() {
                         flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-xl border-2 text-center transition-all duration-200 outline-none
                         ${
                           isSelected
-                            ? 'border-brand-border bg-brand-green text-white dark:bg-brand-accent dark:text-brand-black font-bold shadow-md'
+                            ? 'border-brand-border bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
                             : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
                         }
                       `}
                     >
-                      <span className={`shrink-0 ${isSelected ? 'text-white dark:text-brand-black' : 'text-brand-green'}`}>
+                      <span className={`shrink-0 ${isSelected ? 'text-white dark:text-black' : 'text-brand-green'}`}>
                         {item.icon}
                       </span>
-                      <span className={`text-xs font-bold ${isSelected ? 'text-white dark:text-brand-black' : 'text-brand-text'}`}>
+                      <span className={`text-xs font-bold ${isSelected ? 'text-white dark:text-black' : 'text-brand-text'}`}>
                         {item.label}
                       </span>
                     </button>

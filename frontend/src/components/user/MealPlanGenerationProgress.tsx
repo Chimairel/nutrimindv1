@@ -112,7 +112,7 @@ export default function MealPlanGenerationProgress({
             </motion.div>
             {isComplete && (
               <div
-                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-brand-black shadow-md ring-2 ring-brand-surface"
+                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white dark:bg-brand-accent dark:text-black shadow-md ring-2 ring-brand-surface"
                 title="Complete"
               >
                 <Check className="h-3.5 w-3.5 stroke-[3]" />

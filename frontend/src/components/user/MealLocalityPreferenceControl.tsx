@@ -194,7 +194,7 @@ export default function MealLocalityPreferenceControl({
                 onClick={() => handleStopChange(stopItem.stop)}
                 className={`group flex min-h-[76px] flex-col items-center justify-between rounded-2xl border p-2 text-center outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface motion-reduce:transition-none ${
                   isSelected
-                    ? 'border-brand-green bg-brand-green text-white shadow-[0_6px_18px_rgba(18,129,100,0.25)] dark:text-brand-black'
+                    ? 'border-brand-green bg-brand-green text-white shadow-[0_6px_18px_rgba(18,129,100,0.25)] dark:border-brand-accent dark:bg-brand-accent dark:text-black'
                     : isUnlocked
                       ? 'border-brand-border/60 bg-brand-surface text-brand-text hover:-translate-y-0.5 hover:border-brand-green/35 hover:bg-brand-green/10'
                       : 'cursor-not-allowed border-transparent bg-brand-surface/40 text-brand-muted/60 opacity-60'
