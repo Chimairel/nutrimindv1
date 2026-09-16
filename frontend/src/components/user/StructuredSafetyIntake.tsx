@@ -135,33 +135,94 @@ export default function StructuredSafetyIntake({
   const addCustom = () => {
     if (isNoneSelected) return;
     if (!customText.trim()) return;
+
     const proposed = customText
       .split(/[,;\/\n\r]+/)
-      .map((value) => value.trim().toLocaleLowerCase())
+      .map((value) => value.trim())
       .filter(Boolean);
-    const existing = inputs
-      .filter((entry) => entry.domain === activeDomain)
-      .flatMap((entry) =>
-        entry.value
-          .split(/[,;\/\n\r]+/)
-          .map((value) => value.trim().toLocaleLowerCase())
-          .filter(Boolean)
-      );
-    if (proposed.length > 0 && proposed.every((value) => existing.includes(value))) {
-      setError('Those entries are already in this category.');
-      return;
+
+    if (proposed.length === 0) return;
+
+    let updatedInputs = [...inputs];
+    const selectedCommonNames: string[] = [];
+    const alreadySelectedCommonNames: string[] = [];
+    let addedCustomCount = 0;
+    let duplicateCustomCount = 0;
+
+    for (const text of proposed) {
+      const norm = text.toLowerCase();
+
+      // Check if text matches any predefined common choice for this domain
+      const matchedOption = options.find((opt) => {
+        if (opt.code.toLowerCase() === norm) return true;
+        if (opt.displayName.toLowerCase() === norm) return true;
+        if (opt.aliases?.some((a) => a.toLowerCase() === norm)) return true;
+        if (opt.searchTerms?.some((s) => s.toLowerCase() === norm)) return true;
+        return false;
+      });
+
+      if (matchedOption) {
+        if (matchedOption.code === 'NONE') {
+          // Selecting NONE clears other entries in this domain
+          updatedInputs = updatedInputs.filter((entry) => entry.domain !== activeDomain);
+          updatedInputs.push({ domain: activeDomain, value: 'NONE', provenance: 'PREDEFINED' });
+          selectedCommonNames.push(matchedOption.displayName);
+        } else {
+          const isAlreadySelected = updatedInputs.some(
+            (entry) =>
+              entry.domain === activeDomain &&
+              entry.provenance === 'PREDEFINED' &&
+              entry.value === matchedOption.code
+          );
+          if (isAlreadySelected) {
+            alreadySelectedCommonNames.push(matchedOption.displayName);
+          } else {
+            // Remove 'NONE' if present and select the predefined option
+            updatedInputs = updatedInputs.filter(
+              (entry) => !(entry.domain === activeDomain && entry.value === 'NONE')
+            );
+            updatedInputs.push({
+              domain: activeDomain,
+              value: matchedOption.code,
+              provenance: 'PREDEFINED',
+            });
+            selectedCommonNames.push(matchedOption.displayName);
+          }
+        }
+      } else {
+        // Custom entry
+        const isDuplicate = updatedInputs.some(
+          (entry) =>
+            entry.domain === activeDomain &&
+            entry.value.toLowerCase() === norm
+        );
+        if (isDuplicate) {
+          duplicateCustomCount++;
+        } else {
+          // Remove 'NONE' if present and add custom entry
+          updatedInputs = updatedInputs.filter(
+            (entry) => !(entry.domain === activeDomain && entry.value === 'NONE')
+          );
+          updatedInputs.push({
+            domain: activeDomain,
+            value: text,
+            provenance: 'CUSTOM',
+          });
+          addedCustomCount++;
+        }
+      }
     }
-    const next = [
-      ...inputs.filter((entry) => !(entry.domain === activeDomain && entry.value === 'NONE')),
-      {
-        domain: activeDomain,
-        value: customText,
-        provenance: 'CUSTOM' as const,
-      },
-    ];
-    setInputs(Array.from(new Map(next.map((entry) => [inputKey(entry), entry])).values()));
+
+    setInputs(Array.from(new Map(updatedInputs.map((entry) => [inputKey(entry), entry])).values()));
     setCustomText('');
-    setError(null);
+
+    if (alreadySelectedCommonNames.length > 0 && addedCustomCount === 0 && selectedCommonNames.length === 0) {
+      setError(`"${alreadySelectedCommonNames.join(', ')}" is already selected in the choices above.`);
+    } else if (duplicateCustomCount > 0 && addedCustomCount === 0 && selectedCommonNames.length === 0) {
+      setError('Those entries are already in your list.');
+    } else {
+      setError(null);
+    }
   };
 
   const removeEntry = (entryToRemove: SafetyInputValue) => {
@@ -179,13 +240,16 @@ export default function StructuredSafetyIntake({
 
   const handleInitiateSave = async () => {
     setError(null);
-    const relevantEntries = inputs.filter((entry) => editableDomains.includes(entry.domain));
 
-    // If nothing selected across these editable domains, check if 'NONE' is an option
-    if (relevantEntries.length === 0) {
-      const noneOption = options.find((opt) => opt.code === 'NONE');
-      if (noneOption) {
-        setError(`Please select your entries or choose "${noneOption.displayName}" to proceed.`);
+    // Enforce that every domain in editableDomains has at least one entry or "NONE"
+    for (const domain of editableDomains) {
+      const domainEntries = inputs.filter((entry) => entry.domain === domain);
+      if (domainEntries.length === 0) {
+        setActiveDomain(domain);
+        const domainTitle = domainConfig[domain]?.title || labels[domain];
+        const noneItem = catalogue.find((item) => item.domains.includes(domain) && item.code === 'NONE');
+        const noneLabel = noneItem ? `"${noneItem.displayName}"` : '"None"';
+        setError(`Please select your entries or choose ${noneLabel} for ${domainTitle} before proceeding.`);
         return;
       }
     }
@@ -302,7 +366,6 @@ export default function StructuredSafetyIntake({
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id={`safety-${activeDomain}`}
-            list={`safety-options-${activeDomain}`}
             value={isNoneSelected ? '' : customText}
             disabled={isBusy || isNoneSelected}
             onChange={(event) => setCustomText(event.target.value)}
@@ -323,15 +386,6 @@ export default function StructuredSafetyIntake({
                 : 'Type an entry and press Add (e.g. Soy, Walnuts)'
             }
           />
-          <datalist id={`safety-options-${activeDomain}`}>
-            {options
-              .filter((item) => item.code !== 'NONE')
-              .flatMap((item) =>
-                [item.displayName, ...item.searchTerms].map((value) => (
-                  <option key={`${item.code}-${value}`} value={value} />
-                ))
-              )}
-          </datalist>
           <Button
             type="button"
             variant="secondary"

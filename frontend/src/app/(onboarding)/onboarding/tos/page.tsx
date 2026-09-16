@@ -97,7 +97,7 @@ export default function OnboardingTosPage() {
   const reviewSections = [
     {
       title: 'Body & goal',
-      editPath: '/onboarding/stats',
+      editPath: '/onboarding/stats?from=review',
       items: [
         ['Age', userProfile?.age ? `${userProfile.age} years` : 'Not provided'],
         ['Biological sex', formatOnboardingValue(userProfile?.biologicalSex)],
@@ -110,7 +110,7 @@ export default function OnboardingTosPage() {
     },
     {
       title: 'Food preferences',
-      editPath: '/onboarding/preferences',
+      editPath: '/onboarding/preferences?from=review',
       items: [
         ['Diet', formatOnboardingValue(userProfile?.dietaryPreference)],
         ['Carbohydrate preference', formatOnboardingValue(userProfile?.carbPreference)],
@@ -120,10 +120,16 @@ export default function OnboardingTosPage() {
       ],
     },
     {
-      title: 'Health context',
-      editPath: '/onboarding/conditions',
+      title: 'Medical conditions',
+      editPath: '/onboarding/conditions?from=review',
       items: [
         ['Conditions', joinStructuredSelections(profile?.safetyEntries, 'CONDITION', legacyConditions)],
+      ],
+    },
+    {
+      title: 'Food safety',
+      editPath: '/onboarding/allergies?from=review',
+      items: [
         ['Allergies', joinStructuredSelections(profile?.safetyEntries, 'ALLERGY', legacyAllergies)],
         ['Intolerances', joinStructuredSelections(profile?.safetyEntries, 'INTOLERANCE', 'None declared')],
         ['Avoided foods', joinStructuredSelections(profile?.safetyEntries, 'AVOIDED_INGREDIENT', 'None declared')],
@@ -131,7 +137,7 @@ export default function OnboardingTosPage() {
     },
     {
       title: 'Plan schedule',
-      editPath: '/onboarding/shopping-day',
+      editPath: '/onboarding/shopping-day?from=review',
       items: [['Weekly cycle', formatPlanSchedule(userProfile?.shoppingDayOfWeek, userProfile?.shoppingDayGroup)]],
     },
   ];
@@ -185,6 +191,15 @@ export default function OnboardingTosPage() {
         <OnboardingProgressSlider currentStep={6} totalSteps={6} />
 
         <Card className="p-5 sm:p-7 glass-panel shadow-2xl border-brand-border/80">
+          <button
+            type="button"
+            onClick={() => router.push('/onboarding/shopping-day')}
+            className="mb-4 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
+          >
+            <ArrowLeft className="h-3 w-3 shrink-0" />
+            <span>Back to Step 5</span>
+          </button>
+
           <section aria-labelledby="onboarding-review-heading" className="mb-5">
             <div className="mb-3 flex items-start gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-green/25 bg-brand-green/10 text-brand-green">
@@ -265,16 +280,6 @@ export default function OnboardingTosPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding/shopping-day')}
-              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
-            >
-              <ArrowLeft className="w-3 h-3 shrink-0" />
-              <span>Back to Step 5</span>
-            </button>
-
             <Checkbox
               id="medicalDisclaimer"
               checked={medicalDisclaimer}

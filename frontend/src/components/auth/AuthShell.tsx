@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import InteractiveCyberGrid from '@/components/ui/InteractiveCyberGrid';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 interface AuthShellProps {
   eyebrow: string;
@@ -36,8 +37,8 @@ export default function AuthShell({
           {/* Interactive Cyber Grid with box hover effects */}
           <InteractiveCyberGrid cols={8} rows={10} accentIndices={[30, 50]} variant="dark" withMask={true} />
 
-          <div className="pointer-events-none relative z-10 flex items-center justify-between">
-            <Link href="/" className="group pointer-events-auto flex items-center gap-3" aria-label="KAINARA home">
+          <div className="relative z-10 flex items-center justify-between">
+            <Link href="/" className="group flex items-center gap-3" aria-label="KAINARA home">
               <span className="relative flex h-11 w-11 items-center justify-center transition group-hover:-rotate-3">
                 <span className="flex h-full w-full items-center justify-center rounded-full overflow-hidden">
                   <KainaraLogo className="h-11 w-11" />
@@ -51,13 +52,7 @@ export default function AuthShell({
                 </span>
               </span>
             </Link>
-            <Link
-              href="/docs"
-              className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/55 transition hover:border-brand-cyan/30 hover:text-brand-cyan"
-            >
-              Project docs
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            <ThemeToggle size="md" />
           </div>
 
           <div className="pointer-events-none relative z-10 my-auto max-w-2xl py-12">
@@ -89,22 +84,6 @@ export default function AuthShell({
               })}
             </div>
           </div>
-
-          <div className="pointer-events-none relative z-10 grid grid-cols-[1fr_auto] gap-3 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d]">
-                <UtensilsCrossed className="h-[18px] w-[18px]" />
-              </span>
-              <div>
-                <p className="text-xs font-bold text-white/90">Today&apos;s plan is connected</p>
-                <p className="mt-1 text-[10px] text-white/35">Meals, macros, review states, and progress</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full border border-brand-accent/15 bg-brand-accent/[0.08] px-3 py-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-accent shadow-[0_0_9px_rgba(184,244,95,0.9)]" />
-              <span className="font-mono text-[8px] uppercase tracking-wider text-brand-accent">Ready</span>
-            </div>
-          </div>
         </section>
 
         <section className="relative flex items-center justify-center px-5 py-6 sm:px-10 lg:px-12 xl:px-16">
@@ -120,12 +99,7 @@ export default function AuthShell({
                 </span>
                 KAINARA
               </Link>
-              <Link
-                href="/docs"
-                className="shrink-0 pl-2 text-xs font-semibold text-brand-muted transition hover:text-brand-green"
-              >
-                Docs
-              </Link>
+              <ThemeToggle size="sm" />
             </div>
 
             <div className="surface-panel rounded-[24px] p-5 sm:p-8">

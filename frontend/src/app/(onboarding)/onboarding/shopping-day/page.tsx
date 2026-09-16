@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -22,6 +22,8 @@ const options = dayNames.map((day, index) => ({
 
 export default function OnboardingShoppingDayPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading: isHydrating } = useProfile();
   const { refreshSession } = useAuth();
   const [selected, setSelected] = useState<ShoppingDayOfWeek | null>(null);
@@ -69,6 +71,15 @@ export default function OnboardingShoppingDayPage() {
         <OnboardingProgressSlider currentStep={5} totalSteps={6} />
 
         <Card className="p-5 sm:p-7 glass-panel shadow-2xl border-brand-border/80">
+          <button
+            type="button"
+            onClick={() => router.push(isFromReview ? '/onboarding/tos' : '/onboarding/allergies')}
+            className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
+          >
+            <ArrowLeft className="h-3 w-3 shrink-0" />
+            <span>{isFromReview ? 'Back to Review' : 'Back to Step 4'}</span>
+          </button>
+
           <div className="flex flex-col gap-1 mb-4">
             <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">
               GROCERY SHOPPING DAY
@@ -87,15 +98,6 @@ export default function OnboardingShoppingDayPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding/allergies')}
-              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit mb-1"
-            >
-              <ArrowLeft className="w-3 h-3 shrink-0" />
-              <span>Back to Step 4</span>
-            </button>
 
             {/* Exact day cards */}
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -171,7 +173,7 @@ export default function OnboardingShoppingDayPage() {
               isLoading={isLoading}
               disabled={isHydrating}
             >
-              Continue to Step 6
+              {isFromReview ? 'Save & Return to Review' : 'Continue to Step 6'}
             </Button>
           </form>
         </Card>

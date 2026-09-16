@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -17,6 +17,8 @@ import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading: isHydrating } = useProfile();
   const { refreshSession } = useAuth();
   const [dietary, setDietary] = useState<DietaryPreference>('OMNIVORE');
@@ -59,8 +61,8 @@ export default function OnboardingPreferencesPage() {
       });
       await refreshSession();
 
-      // Proceed to Step 3: Conditions
-      router.push('/onboarding/conditions');
+      // Proceed to Step 3: Conditions (or Review if from review)
+      router.push(isFromReview ? '/onboarding/tos' : '/onboarding/conditions');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to save preferences. Please check your connection.'));
     } finally {
@@ -90,6 +92,15 @@ export default function OnboardingPreferencesPage() {
         <OnboardingProgressSlider currentStep={2} totalSteps={6} />
 
         <Card className="p-5 sm:p-6 glass-panel shadow-2xl border-brand-border/80">
+          <button
+            type="button"
+            onClick={() => router.push(isFromReview ? '/onboarding/tos' : '/onboarding/stats')}
+            className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
+          >
+            <ArrowLeft className="w-3 h-3 shrink-0" />
+            <span>{isFromReview ? 'Back to Review' : 'Back to Step 1'}</span>
+          </button>
+
           <div className="flex flex-col gap-1 mb-3">
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
               DIETARY PREFERENCES
@@ -107,16 +118,6 @@ export default function OnboardingPreferencesPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding/stats')}
-              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors w-fit"
-            >
-              <ArrowLeft className="w-3 h-3 shrink-0" />
-              <span>Back to Step 1</span>
-            </button>
-
             {/* Dietary Preference Selector */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Dietary Pattern</label>
@@ -215,7 +216,7 @@ export default function OnboardingPreferencesPage() {
               isLoading={isLoading}
               disabled={isHydrating}
             >
-              Continue to Step 3
+              {isFromReview ? 'Save & Return to Review' : 'Continue to Step 3'}
             </Button>
           </form>
         </Card>

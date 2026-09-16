@@ -1,20 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import { Goal, ActivityLevel } from '@/types';
-import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check } from 'lucide-react';
+import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check, ArrowLeft } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function OnboardingStatsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading: isHydrating, error: profileError } = useProfile();
   const { refreshSession } = useAuth();
   const [goal, setGoal] = useState<Goal>('MAINTAIN');
@@ -103,12 +105,12 @@ export default function OnboardingStatsPage() {
     e.preventDefault();
     setError(null);
 
-    // Basic layout validations
-    const parsedAge = parseInt(age);
-    const parsedHeight = parseFloat(height);
-    const parsedWeight = parseFloat(weight);
-    const parsedTargetWeight = parseFloat(targetWeight);
-
+    // Empty field validations first
+    if (!age || age.trim() === '') {
+      setError('Please enter your age.');
+      return;
+    }
+    const parsedAge = parseInt(age, 10);
     if (isNaN(parsedAge) || parsedAge < 18 || parsedAge > 100) {
       setError('KAINARA currently supports adults aged 18 to 100.');
       return;
@@ -117,14 +119,29 @@ export default function OnboardingStatsPage() {
       setError('Please select the biological sex used for your energy calculation.');
       return;
     }
+    if (!height || height.trim() === '') {
+      setError('Please enter your height.');
+      return;
+    }
+    const parsedHeight = parseFloat(height);
     if (isNaN(parsedHeight) || parsedHeight < 100 || parsedHeight > 250) {
       setError('Please provide a realistic height (100 to 250 cm).');
       return;
     }
+    if (!weight || weight.trim() === '') {
+      setError('Please enter your weight.');
+      return;
+    }
+    const parsedWeight = parseFloat(weight);
     if (isNaN(parsedWeight) || parsedWeight < 30 || parsedWeight > 300) {
       setError('Please provide a realistic weight (30 to 300 kg).');
       return;
     }
+    if (!targetWeight || targetWeight.trim() === '') {
+      setError('Please enter your target weight.');
+      return;
+    }
+    const parsedTargetWeight = parseFloat(targetWeight);
     if (isNaN(parsedTargetWeight) || parsedTargetWeight < 30 || parsedTargetWeight > 300) {
       setError('Please provide a realistic target weight.');
       return;
@@ -159,8 +176,8 @@ export default function OnboardingStatsPage() {
 
       await refreshSession();
 
-      // Advance to step 2: Preferences
-      router.push('/onboarding/preferences');
+      // Advance to review or step 2: Preferences
+      router.push(isFromReview ? '/onboarding/tos' : '/onboarding/preferences');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to save stats. Please verify your connection.'));
     } finally {
@@ -191,6 +208,17 @@ export default function OnboardingStatsPage() {
         <OnboardingProgressSlider currentStep={1} totalSteps={6} />
 
         <Card className="p-5 sm:p-6 glass-panel shadow-2xl border-brand-border/80">
+          {isFromReview && (
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding/tos')}
+              className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
+            >
+              <ArrowLeft className="h-3 w-3 shrink-0" />
+              <span>Back to Review</span>
+            </button>
+          )}
+
           <div className="flex flex-col gap-1 mb-3">
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
               PERSONAL METRICS
@@ -207,7 +235,7 @@ export default function OnboardingStatsPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
             {/* Goal Chips */}
             <div className="flex flex-col gap-2">
               <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Primary Goal</label>
@@ -414,7 +442,7 @@ export default function OnboardingStatsPage() {
               isLoading={isLoading}
               disabled={isHydrating}
             >
-              Continue to Step 2
+              {isFromReview ? 'Save & Return to Review' : 'Continue to Step 2'}
             </Button>
           </form>
         </Card>

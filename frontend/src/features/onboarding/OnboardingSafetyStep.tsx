@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
@@ -34,6 +34,8 @@ export default function OnboardingSafetyStep({
   nextHref,
 }: OnboardingSafetyStepProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading } = useProfile();
   const { refreshSession } = useAuth();
   const initialEntries = useMemo(() => safetyInputsFromProfile(profile), [profile]);
@@ -49,10 +51,10 @@ export default function OnboardingSafetyStep({
         <Card className="border-brand-border/80 p-5 shadow-2xl sm:p-7 glass-panel">
           <button
             type="button"
-            onClick={() => router.push(backHref)}
+            onClick={() => router.push(isFromReview ? '/onboarding/tos' : backHref)}
             className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors"
           >
-            <ArrowLeft className="h-3 w-3 shrink-0" /> {backLabel}
+            <ArrowLeft className="h-3 w-3 shrink-0" /> {isFromReview ? 'Back to Review' : backLabel}
           </button>
           <h1 className="font-display text-2xl font-extrabold text-brand-green">{title}</h1>
           <p className="mt-1 text-xs text-brand-muted leading-relaxed">{description}</p>
@@ -65,10 +67,10 @@ export default function OnboardingSafetyStep({
             <StructuredSafetyIntake
               initialEntries={initialEntries}
               editableDomains={editableDomains}
-              submitLabel="Save and continue"
+              submitLabel={isFromReview ? 'Save & Return to Review' : 'Save and continue'}
               onSaved={async () => {
                 await refreshSession();
-                router.push(nextHref);
+                router.push(isFromReview ? '/onboarding/tos' : nextHref);
               }}
             />
           )}
