@@ -1,9 +1,30 @@
 import axios from 'axios';
 import { cookieHelper } from '@/lib/auth';
 
+/**
+ * Resolves the API base URL.
+ * - In the browser: if accessed remotely (e.g. mobile device, tunnel, LAN IP) where localhost
+ *   would fail, or if explicitly set to '/api', defaults to '/api' to route through the Next.js reverse proxy.
+ * - If an explicit production remote URL is provided in NEXT_PUBLIC_API_URL, it is preserved.
+ * - On desktop localhost or SSR, it defaults to the configured URL or 'http://localhost:5000/api'.
+ */
+export function getApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    if (configured && !configured.includes('localhost') && !configured.includes('127.0.0.1')) {
+      return configured;
+    }
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhost || configured === '/api') {
+      return '/api';
+    }
+  }
+  return configured || 'http://localhost:5000/api';
+}
+
 // Create a single pre-configured Axios instance for backend calls
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+  baseURL: getApiBaseUrl(),
   withCredentials: true, // Crucial for storing and sending HttpOnly session cookies
   headers: {
     'Content-Type': 'application/json',
@@ -99,7 +120,7 @@ api.interceptors.response.use(
           // Send refresh request — the HttpOnly cookie is sent automatically
           // by the browser because withCredentials is true on the api instance.
           const refreshResponse = await axios.post(
-            (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api') + '/auth/refresh',
+            `${getApiBaseUrl()}/auth/refresh`,
             {},
             { withCredentials: true }
           );

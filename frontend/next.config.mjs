@@ -45,9 +45,18 @@ const nextConfig = {
         headers: [
           { key: 'Content-Security-Policy', value: contentSecurityPolicy },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    const backendOrigin = process.env.INTERNAL_API_URL || 'http://127.0.0.1:5000';
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendOrigin}/api/:path*`,
       },
     ];
   },
