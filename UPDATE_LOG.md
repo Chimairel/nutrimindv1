@@ -464,6 +464,36 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Frontend Vitest suite: 169 passed across 43 test suites.
   - Frontend ESLint: passed with 0 errors and 0 warnings.
 
+---
+
+## 📅 ADDENDUM 25: PROVINCE/HUC ZERO-LAG INSTANT RENDER, LOCATION CACHING & INTERACTIVE GOOGLE MAP EMBED (September 2026)
+*Eliminated combobox start-up delays and slider layout jumping in Food & Planning preferences, and replaced the stylized vector map with an interactive, dark-mode-adapted Google Map embed.*
+
+- **Province/HUC Field Enablement (`PlanningLocationFields.tsx`):**
+  - Resolved an issue where the "Province / highly urbanized city" combobox started disabled on page mount with the placeholder "Choose a region first" while the `/user/onboarding/planning-locations` endpoint was in flight.
+  - Introduced `isRegionEffective`: if the user's profile already has a saved region name, the province/HUC field is immediately enabled and interactive on first paint without waiting for asynchronous network resolution.
+- **Locality Slider Jump Elimination (`MealLocalityPreferenceControl.tsx`):**
+  - Clamping logic previously defaulted `maxStop = 1` while location options were empty, forcing saved `LOCAL` (Stop 3) preferences to render at Stop 1 and abruptly animate to Stop 3 after 200–400ms.
+  - Added `effectiveRegionValid` and `effectiveProvinceValid` fallbacks against the user's present location names, allowing the slider to mount directly at Stop 3 (Local) with zero visual jump.
+- **Client-Side Location Cache & Request Deduplication (`usePlanningLocations.ts`):**
+  - Added module-level caching (`cachedPlanningLocations`) and in-flight promise deduplication (`planningLocationsPromise`).
+  - Subsequent mounts, tab switches, and dialog openings resolve official Philippine PSA geographic options in 0ms synchronously from memory.
+- **Interactive Google Maps Embed (`PhilippineDynamicMap.tsx`, `next.config.mjs`):**
+  - Replaced the abstract SVG polygon canvas with an interactive, pan-and-zoomable Google Maps embed:
+    `https://maps.google.com/maps?q=${locationQuery}&t=m&z=${zoomLevel}&output=embed`
+  - Dynamic focal zoom and queries:
+    - Level 1 (National): `Philippines` at zoom 5.
+    - Level 2 (Regional): `[Region Name], Philippines` at zoom 8.
+    - Level 3 (Local): `[Province/City Name], Philippines` at zoom 10.
+  - Configured CSP in `next.config.mjs` to authorize `frame-src https://accounts.google.com https://www.google.com https://maps.google.com`.
+  - Added tailored dark-mode styling (`dark:invert-[0.9] dark:hue-rotate-[170deg] dark:contrast-[1.1] dark:brightness-[0.88]`) to harmonize Google Maps with Kainara's dark palette without harsh white glare.
+  - Preserved HUD status indicators (Level badge, animated radar pulse, real-world coordinates, and external Google Maps anchor link).
+- **Automated Verification:**
+  - Frontend Vitest suite: 169 passed across 43 test suites (100% pass rate).
+  - Frontend ESLint: passed with 0 errors and 0 warnings.
+  - Backend test suite: 526 tests passed with 0 failures.
+
+
 
 
 
