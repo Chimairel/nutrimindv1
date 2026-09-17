@@ -50,8 +50,15 @@ describe('NutritionistCredentialModal', () => {
     expect(screen.getByText('University of the Philippines Diliman')).toBeInTheDocument();
     expect(screen.getByText(/8\+ years/i)).toBeInTheDocument();
 
+    // Clinical notes button is visible
+    const viewNotesBtn = screen.getByRole('button', { name: /view clinical adjustments/i });
+    expect(viewNotesBtn).toBeInTheDocument();
+
+    // Click to switch to Clinical Review & Notes tab
+    fireEvent.click(viewNotesBtn);
+
     // Review Notes & Date
-    expect(screen.getByText(/Reviewed & adjusted on/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reviewed on/i)).toBeInTheDocument();
     expect(
       screen.getByText(/Adjusted sodium levels down to match hypertension guidelines\./i)
     ).toBeInTheDocument();

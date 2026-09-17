@@ -89,6 +89,7 @@ export default function MealCard({
 }: MealCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
+  const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -463,6 +464,7 @@ export default function MealCard({
                               <button
                                 type="button"
                                 onClick={() => {
+                                  setVerifierModalTab('notes');
                                   setIsOpen(false);
                                   setIsVerifierOpen(true);
                                 }}
@@ -487,6 +489,7 @@ export default function MealCard({
                   <button
                     type="button"
                     onClick={() => {
+                      setVerifierModalTab('card');
                       setIsOpen(false);
                       setIsVerifierOpen(true);
                     }}
@@ -676,6 +679,7 @@ export default function MealCard({
           nutritionistNote={nutritionistNote}
           reviewedAt={reviewedAt}
           mealName={mealName}
+          initialTab={verifierModalTab}
         />
       )}
     </>

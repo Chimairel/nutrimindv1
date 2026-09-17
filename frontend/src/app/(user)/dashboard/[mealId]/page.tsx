@@ -66,6 +66,7 @@ export default function MealDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
+  const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
   const [error, setError] = useState<string | null>(null);
 
   const fetchMealDetails = useCallback(async () => {
@@ -305,7 +306,10 @@ export default function MealDetailPage() {
                       {isReviewerBullet && (
                         <button
                           type="button"
-                          onClick={() => setIsVerifierOpen(true)}
+                          onClick={() => {
+                            setVerifierModalTab('notes');
+                            setIsVerifierOpen(true);
+                          }}
                           className="shrink-0 text-[10px] font-bold text-brand-green hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
                         >
                           View Review &amp; Notes ↗
@@ -326,7 +330,10 @@ export default function MealDetailPage() {
           {meal.verifier && (
             <button
               type="button"
-              onClick={() => setIsVerifierOpen(true)}
+              onClick={() => {
+                setVerifierModalTab('card');
+                setIsVerifierOpen(true);
+              }}
               className="group relative flex w-full flex-col gap-2.5 rounded-2xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-3.5 text-left transition hover:border-brand-green/60 hover:shadow-sm"
               aria-label={`View clinical credentials for ${meal.verifier.name}`}
             >
@@ -554,6 +561,7 @@ export default function MealDetailPage() {
           nutritionistNote={meal.nutritionistNote}
           reviewedAt={meal.reviewedAt}
           mealName={meal.mealName}
+          initialTab={verifierModalTab}
         />
       )}
     </div>
