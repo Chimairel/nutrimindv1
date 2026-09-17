@@ -39,6 +39,43 @@ export const nutritionistReviewActionSchema = z.discriminatedUnion('action', [
     .strict(),
 ]);
 
+export const regenerateCandidateSchema = z
+  .object({
+    reason: boundedNote,
+  })
+  .strict();
+
+export const candidateMealSchema = z
+  .object({
+    mealName: z.string().trim().min(1).max(180),
+    description: z.string().trim().max(2000).optional().default(''),
+    calories: nutritionNumber.max(3000),
+    proteinG: nutritionNumber.max(500),
+    carbsG: nutritionNumber.max(800),
+    fatG: nutritionNumber.max(500),
+    ingredients: z
+      .array(
+        z
+          .object({
+            name: z.string().trim().min(1).max(180),
+            category: z.string().trim().max(80).optional(),
+            dataSource: z.enum(['FNRI', 'GEMINI_ESTIMATED']).optional(),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(50),
+  })
+  .strict();
+
+export const replaceAndApproveSchema = z
+  .object({
+    reason: boundedNote,
+    note: z.string().trim().max(2000).optional(),
+    candidate: candidateMealSchema,
+  })
+  .strict();
+
 export const libraryMealEditSchema = z
   .object({
     mealName: z.string().trim().min(1).max(180),

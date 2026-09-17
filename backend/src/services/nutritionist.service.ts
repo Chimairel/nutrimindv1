@@ -13,6 +13,10 @@ export class NutritionistService {
   static readonly getReviewCardDetails = NutritionistReviewService.getReviewCardDetails.bind(NutritionistReviewService);
   static readonly approveMealPlan = NutritionistReviewService.approveMealPlan.bind(NutritionistReviewService);
   static readonly rejectMealPlan = NutritionistReviewService.rejectMealPlan.bind(NutritionistReviewService);
+  static readonly generateReplacementCandidate =
+    NutritionistReviewService.generateReplacementCandidate.bind(NutritionistReviewService);
+  static readonly replaceAndApproveMealPlan =
+    NutritionistReviewService.replaceAndApproveMealPlan.bind(NutritionistReviewService);
   static readonly getApprovedMeals = NutritionistReviewService.getApprovedMeals.bind(NutritionistReviewService);
 
   static readonly getProfile = NutritionistProfileService.getProfile.bind(NutritionistProfileService);

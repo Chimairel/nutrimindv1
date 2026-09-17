@@ -95,6 +95,16 @@ export interface ReviewPayload {
   };
 }
 
+export interface CandidateMeal {
+  mealName: string;
+  description: string;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  ingredients: { name: string; category?: string; dataSource?: 'FNRI' | 'GEMINI_ESTIMATED' }[];
+}
+
 export type ReviewEditForm = {
   mealName: string;
   description: string;
@@ -120,6 +130,11 @@ export function useNutritionistReviews() {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [generalNote, setGeneralNote] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // In-Flight Candidate Replacement State
+  const [candidateMeal, setCandidateMeal] = useState<CandidateMeal | null>(null);
+  const [isGeneratingCandidate, setIsGeneratingCandidate] = useState(false);
+  const [isEditingCandidate, setIsEditingCandidate] = useState(false);
 
   // Edit Mode
   const [isEditing, setIsEditing] = useState(false);
@@ -168,6 +183,8 @@ export function useNutritionistReviews() {
     setShowRejectForm(false);
     setRejectNote('');
     setGeneralNote('');
+    setCandidateMeal(null);
+    setIsEditingCandidate(false);
 
     try {
       const res = await api.get(`/nutritionist/queue/${id}`);
@@ -241,6 +258,92 @@ export function useNutritionistReviews() {
     }
   };
 
+  const handleGenerateCandidate = async () => {
+    if (!selectedMealId || !rejectNote.trim() || isGeneratingCandidate) return;
+    setIsGeneratingCandidate(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await api.post(`/nutritionist/review/${selectedMealId}/regenerate-candidate`, {
+        reason: rejectNote.trim(),
+      });
+      if (res.data?.data) {
+        setCandidateMeal(res.data.data);
+      }
+    } catch (err: unknown) {
+      console.error('Generate candidate failed:', err);
+      setErrorMsg(getApiErrorMessage(err, 'Failed to generate replacement candidate. Please check the rejection reason.'));
+    } finally {
+      setIsGeneratingCandidate(false);
+    }
+  };
+
+  const handleReplaceAndApprove = async () => {
+    if (!selectedMealId || !candidateMeal || !rejectNote.trim()) return;
+    setActionLoading(selectedMealId);
+    setErrorMsg(null);
+
+    try {
+      await api.post(`/nutritionist/review/${selectedMealId}/replace-and-approve`, {
+        reason: rejectNote.trim(),
+        note: generalNote.trim() || undefined,
+        candidate: candidateMeal,
+      });
+      setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
+      setSelectedMealId(null);
+      setDetailData(null);
+      setShowRejectForm(false);
+      setRejectNote('');
+      setCandidateMeal(null);
+      setIsEditingCandidate(false);
+    } catch (err: unknown) {
+      console.error('Replace and approve failed:', err);
+      setErrorMsg(getApiErrorMessage(err, 'Failed to certify replacement meal. Please refresh the queue.'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const updateCandidateField = <K extends keyof CandidateMeal>(field: K, value: CandidateMeal[K]) => {
+    setCandidateMeal((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const addCandidateIngredient = () => {
+    setCandidateMeal((prev) =>
+      prev
+        ? {
+            ...prev,
+            ingredients: [...prev.ingredients, { name: '', category: 'PANTRY', dataSource: 'GEMINI_ESTIMATED' }],
+          }
+        : prev
+    );
+  };
+
+  const removeCandidateIngredient = (index: number) => {
+    setCandidateMeal((prev) =>
+      prev
+        ? {
+            ...prev,
+            ingredients: prev.ingredients.filter((_, i) => i !== index),
+          }
+        : prev
+    );
+  };
+
+  const updateCandidateIngredient = (index: number, name: string) => {
+    setCandidateMeal((prev) => {
+      if (!prev) return prev;
+      const updated = [...prev.ingredients];
+      updated[index] = { ...updated[index], name };
+      return { ...prev, ingredients: updated };
+    });
+  };
+
+  const resetCandidate = () => {
+    setCandidateMeal(null);
+    setIsEditingCandidate(false);
+  };
+
   const startEditing = () => {
     if (!detailData) return;
     setEditForm({
@@ -307,6 +410,18 @@ export function useNutritionistReviews() {
     generalNote,
     setGeneralNote,
     errorMsg,
+    candidateMeal,
+    setCandidateMeal,
+    isGeneratingCandidate,
+    isEditingCandidate,
+    setIsEditingCandidate,
+    handleGenerateCandidate,
+    handleReplaceAndApprove,
+    updateCandidateField,
+    addCandidateIngredient,
+    removeCandidateIngredient,
+    updateCandidateIngredient,
+    resetCandidate,
     isEditing,
     setIsEditing,
     editForm,

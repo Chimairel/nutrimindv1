@@ -12,6 +12,8 @@ import {
   libraryMealEditSchema,
   libraryMealFlagSchema,
   nutritionistReviewActionSchema,
+  regenerateCandidateSchema,
+  replaceAndApproveSchema,
 } from '@/validation/nutritionist.schemas';
 import { NutritionistCompensationService } from '@/services/compensation-admin.service';
 import { isNutritionistReviewConflict } from '@/domain/nutritionist-review-http.policy';
@@ -113,6 +115,61 @@ router.patch(
       }
     } catch (error: any) {
       const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
+      if (isNutritionistReviewConflict(msg)) {
+        return res.status(409).json({ success: false, error: msg });
+      }
+      return res.status(500).json({ success: false, error: msg });
+    }
+  }
+);
+
+/**
+ * POST /api/nutritionist/review/:id/regenerate-candidate
+ * Generates an in-flight AI replacement candidate for a rejected meal slot
+ * based on negative constraint reasoning.
+ */
+router.post(
+  '/review/:id/regenerate-candidate',
+  validateZodBody(regenerateCandidateSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const mealPlanId = req.params.id;
+      const { reason } = req.body;
+      const candidate = await NutritionistService.generateReplacementCandidate(
+        req.nutritionistProfileId!,
+        mealPlanId,
+        reason
+      );
+      return res.status(200).json({ success: true, data: candidate });
+    } catch (error: any) {
+      const msg = sanitizeErrorMessage(error, 'Failed to generate replacement candidate.');
+      if (isNutritionistReviewConflict(msg)) {
+        return res.status(409).json({ success: false, error: msg });
+      }
+      return res.status(500).json({ success: false, error: msg });
+    }
+  }
+);
+
+/**
+ * POST /api/nutritionist/review/:id/replace-and-approve
+ * Atomically replaces the rejected meal with the approved candidate,
+ * certifying the replacement immediately for zero-pending patient delivery.
+ */
+router.post(
+  '/review/:id/replace-and-approve',
+  validateZodBody(replaceAndApproveSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const mealPlanId = req.params.id;
+      const result = await NutritionistService.replaceAndApproveMealPlan(
+        req.nutritionistProfileId!,
+        mealPlanId,
+        req.body
+      );
+      return res.status(200).json({ success: true, data: result });
+    } catch (error: any) {
+      const msg = sanitizeErrorMessage(error, 'Failed to replace and approve meal.');
       if (isNutritionistReviewConflict(msg)) {
         return res.status(409).json({ success: false, error: msg });
       }
