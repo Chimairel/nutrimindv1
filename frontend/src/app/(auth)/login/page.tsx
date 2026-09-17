@@ -92,7 +92,7 @@ export default function LoginPage() {
         <>
           Your nutrition.
           <br />
-          <span className="text-brand-accent">One connected view.</span>
+          <span className="text-brand-green dark:text-brand-accent">One connected view.</span>
         </>
       }
       heroDescription="Return to a workspace where weekly meals, daily progress, and transparent review states move together."

@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <>
           Nutrition built for
           <br />
-          <span className="text-brand-accent">real Filipino life.</span>
+          <span className="text-brand-green dark:text-brand-accent">real Filipino life.</span>
         </>
       }
       heroDescription="Create a profile that connects familiar food, personal goals, clinical context, and a visible nutritionist-review process."
