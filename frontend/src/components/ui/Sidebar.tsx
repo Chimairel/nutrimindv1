@@ -55,11 +55,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
     setIsCollapsed(localStorage.getItem('nutrimind-sidebar-collapsed') === 'true');
   }, []);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   if (!user) return null;
 
@@ -130,11 +135,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               aria-label={`${user.role.toLowerCase()} tabs`}
             >
               {navItems.map((item) => {
-                const active =
+                const isSelected =
                   pathname === item.href ||
                   pathname.startsWith(`${item.href}/`) ||
                   (item.href === '/nutritionist/reviews' &&
                     ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
+                const isPending = pendingHref === item.href;
+                const active = isPending || (isSelected && !pendingHref);
                 const Icon = item.icon;
                 return (
                   <Link
@@ -143,6 +150,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     prefetch={true}
                     onMouseEnter={() => router.prefetch(item.href)}
                     onTouchStart={() => router.prefetch(item.href)}
+                    onClick={() => {
+                      if (item.href !== pathname) setPendingHref(item.href);
+                    }}
                     aria-label={item.label}
                     aria-current={active ? 'page' : undefined}
                     className="flex shrink-0 items-center justify-center outline-none"
@@ -266,11 +276,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             aria-label={`${user.role.toLowerCase()} navigation`}
           >
             {navItems.map((item, index) => {
-              const active =
+              const isSelected =
                 pathname === item.href ||
                 pathname.startsWith(`${item.href}/`) ||
                 (item.href === '/nutritionist/reviews' &&
                   ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
+              const isPending = pendingHref === item.href;
+              const active = isPending || (isSelected && !pendingHref);
               const Icon = item.icon;
               return (
                 <React.Fragment key={item.href}>
@@ -282,6 +294,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     prefetch={true}
                     onMouseEnter={() => router.prefetch(item.href)}
                     onTouchStart={() => router.prefetch(item.href)}
+                    onClick={() => {
+                      if (item.href !== pathname) setPendingHref(item.href);
+                    }}
                     aria-label={item.label}
                     aria-current={active ? 'page' : undefined}
                     className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] ${

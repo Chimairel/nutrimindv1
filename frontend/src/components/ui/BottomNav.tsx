@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   // BottomNav only displays for standard authenticated users in mobile layouts
   if (!user || user.role !== 'USER') return null;
@@ -38,7 +43,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
         ariaLabel="Mobile navigation dock"
       >
         {items.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isSelected = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isPending = pendingHref === item.href;
+          const isActive = isPending || (isSelected && !pendingHref);
           const Icon = item.icon;
           return (
             <Link
@@ -47,9 +54,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
               prefetch={true}
               onMouseEnter={() => router.prefetch(item.href)}
               onTouchStart={() => router.prefetch(item.href)}
+              onClick={() => {
+                if (item.href !== pathname) {
+                  setPendingHref(item.href);
+                }
+              }}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
-              className="outline-none"
+              className="outline-none active:scale-95 transition-transform duration-75"
             >
               <DockItem
                 active={isActive}
