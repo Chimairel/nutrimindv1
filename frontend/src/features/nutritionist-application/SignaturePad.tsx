@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { Eraser, PenTool, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Eraser, PenTool, ShieldCheck, CheckCircle2, RotateCcw, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface SignaturePadProps {
@@ -13,12 +13,36 @@ interface SignaturePadProps {
 
 export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
   const sigRef = useRef<SignatureCanvas>(null);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(Boolean(value));
 
-  const handleEnd = useCallback(() => {
+  // Sync confirmed state when external value changes
+  useEffect(() => {
+    if (value) {
+      setIsConfirmed(true);
+    }
+  }, [value]);
+
+  const handleBegin = useCallback(() => {
+    setHasDrawn(true);
+  }, []);
+
+  const handleStrokeEnd = useCallback(() => {
+    if (sigRef.current && !sigRef.current.isEmpty()) {
+      setHasDrawn(true);
+      const trimmedCanvas = sigRef.current.getTrimmedCanvas();
+      const dataUrl = trimmedCanvas.toDataURL('image/png');
+      // Auto-propagate to form state so field is never empty once drawn
+      onChange(dataUrl);
+    }
+  }, [onChange]);
+
+  const handleConfirm = useCallback(() => {
     if (sigRef.current && !sigRef.current.isEmpty()) {
       const trimmedCanvas = sigRef.current.getTrimmedCanvas();
       const dataUrl = trimmedCanvas.toDataURL('image/png');
       onChange(dataUrl);
+      setIsConfirmed(true);
     }
   }, [onChange]);
 
@@ -26,6 +50,14 @@ export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
     if (sigRef.current) {
       sigRef.current.clear();
     }
+    setHasDrawn(false);
+    setIsConfirmed(false);
+    onChange('');
+  }, [onChange]);
+
+  const handleRedraw = useCallback(() => {
+    setIsConfirmed(false);
+    setHasDrawn(false);
     onChange('');
   }, [onChange]);
 
@@ -35,9 +67,9 @@ export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
         <label className="block text-xs font-bold uppercase tracking-wider text-brand-text">
           Digital Handwritten Signature <span className="text-status-error-text">*</span>
         </label>
-        {value ? (
+        {isConfirmed && value ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Signature Saved
+            <CheckCircle2 className="h-3.5 w-3.5" /> Signature Confirmed
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">
@@ -46,50 +78,99 @@ export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
         )}
       </div>
 
-      <div className="surface-card relative rounded-2xl border border-brand-border p-4 bg-black/40 overflow-hidden">
-        {/* Interactive Canvas */}
-        <div className="relative w-full h-36 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center overflow-hidden">
-          <SignatureCanvas
-            ref={sigRef}
-            penColor="#34d399"
-            backgroundColor="rgba(0,0,0,0)"
-            canvasProps={{
-              className: 'w-full h-full cursor-crosshair select-none',
-              style: { width: '100%', height: '100%' },
-              'aria-label': 'Digital signature drawing pad',
-            }}
-            onEnd={handleEnd}
-          />
+      {isConfirmed && value ? (
+        /* Confirmed & Locked View — immune to canvas resize and keyboard shifts */
+        <div className="surface-card relative rounded-2xl border border-emerald-500/30 p-4 bg-black/40 overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" /> Signature Confirmed & Locked
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleRedraw}
+              className="text-xs font-bold text-slate-300 hover:text-white"
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Clear & Redraw
+            </Button>
+          </div>
 
-          {/* Guide Line and Placeholder if Empty */}
-          {!value && (
-            <div className="pointer-events-none absolute inset-x-8 bottom-8 flex flex-col items-center">
-              <div className="w-full border-b border-dashed border-white/20" />
-              <span className="text-[10px] uppercase font-bold tracking-widest text-white/30 mt-1">
-                Sign above line
-              </span>
+          <div className="relative w-full h-36 rounded-xl bg-neutral-900/90 border border-neutral-800 flex items-center justify-center p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="Confirmed Digital Handwritten Signature"
+              className="max-h-28 max-w-full object-contain filter drop-shadow-[0_2px_8px_rgba(52,211,153,0.35)]"
+            />
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-brand-muted">
+            <p className="flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>Locked to your application to certify medical accountability.</span>
+            </p>
+            <span className="text-[10px] font-mono text-brand-muted shrink-0">PNG Certified</span>
+          </div>
+        </div>
+      ) : (
+        /* Interactive Drawing Pad */
+        <div className="surface-card relative rounded-2xl border border-brand-border p-4 bg-black/40 overflow-hidden">
+          <div className="relative w-full h-36 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center overflow-hidden touch-none">
+            <SignatureCanvas
+              ref={sigRef}
+              penColor="#34d399"
+              backgroundColor="rgba(0,0,0,0)"
+              canvasProps={{
+                className: 'w-full h-full cursor-crosshair select-none',
+                style: { width: '100%', height: '100%' },
+                'aria-label': 'Digital signature drawing pad',
+              }}
+              onBegin={handleBegin}
+              onEnd={handleStrokeEnd}
+            />
+
+            {!hasDrawn && (
+              <div className="pointer-events-none absolute inset-x-8 bottom-8 flex flex-col items-center">
+                <div className="w-full border-b border-dashed border-white/20" />
+                <span className="text-[10px] uppercase font-bold tracking-widest text-white/30 mt-1">
+                  Sign above line with finger or mouse
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[11px] text-brand-muted leading-relaxed flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>Sign your name, then tap Confirm Signature.</span>
+            </p>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClear}
+                disabled={!hasDrawn}
+                className="text-xs font-bold text-slate-400 hover:text-white shrink-0"
+              >
+                <Eraser className="h-3.5 w-3.5 mr-1" /> Clear
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleConfirm}
+                disabled={!hasDrawn}
+                className="text-xs font-bold shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white"
+              >
+                <Check className="h-3.5 w-3.5 mr-1" /> Confirm Signature
+              </Button>
             </div>
-          )}
+          </div>
         </div>
-
-        {/* Footer Actions & Clinical Disclaimer */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-[11px] text-brand-muted leading-relaxed flex items-center gap-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-            <span>Used on verified meal plans to certify medical accountability.</span>
-          </p>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            className="text-xs font-bold text-slate-400 hover:text-white shrink-0"
-          >
-            <Eraser className="h-3.5 w-3.5 mr-1" /> Clear
-          </Button>
-        </div>
-      </div>
+      )}
 
       {error && (
         <p role="alert" className="text-xs font-semibold text-status-error-text">

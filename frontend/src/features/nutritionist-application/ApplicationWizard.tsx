@@ -116,6 +116,8 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.fullName}
         onChange={(event) => onFieldChange('fullName', event.target.value)}
         error={errors.fullName}
+        placeholder="e.g. Maria Clara Santos"
+        helperText="Your complete legal name as registered with the PRC."
         autoComplete="name"
       />
       <Input
@@ -125,6 +127,8 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.email}
         onChange={(event) => onFieldChange('email', event.target.value)}
         error={errors.email}
+        placeholder="e.g. maria.santos@gmail.com"
+        helperText="Active email where call invitation and application updates are sent."
         autoComplete="email"
       />
       <Input
@@ -134,7 +138,8 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.phoneNumber}
         onChange={(event) => onFieldChange('phoneNumber', event.target.value)}
         error={errors.phoneNumber}
-        placeholder="+63 9XX XXX XXXX"
+        placeholder="+63 9XX XXX XXXX or 09XX XXX XXXX"
+        helperText="Philippine mobile number for verification and coordination."
         autoComplete="tel"
       />
       <div className="pt-2">
@@ -157,6 +162,8 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.prcLicenseNumber}
         onChange={(event) => onFieldChange('prcLicenseNumber', event.target.value.toUpperCase())}
         error={errors.prcLicenseNumber}
+        placeholder="e.g. 0012345 or RND-0012345"
+        helperText="Official PRC registration number (typically 7 digits, e.g. 0012345)."
       />
       <Input
         id="prcLicenseExpiry"
@@ -165,6 +172,7 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.prcLicenseExpiry}
         onChange={(event) => onFieldChange('prcLicenseExpiry', event.target.value)}
         error={errors.prcLicenseExpiry}
+        helperText="Card validity date shown on your PRC ID (must be a future date)."
       />
       <Input
         id="specialization"
@@ -172,7 +180,8 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.specialization}
         onChange={(event) => onFieldChange('specialization', event.target.value)}
         error={errors.specialization}
-        placeholder="e.g. Clinical nutrition, diabetes care"
+        placeholder="e.g. Clinical Nutrition, Renal Nutrition, Diabetes Care"
+        helperText="Your primary areas of clinical or dietetic practice."
       />
       <div className="pt-2">
         <SignaturePad
@@ -197,6 +206,8 @@ function ExperienceFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.yearsOfExperience}
         onChange={(event) => onFieldChange('yearsOfExperience', event.target.value)}
         error={errors.yearsOfExperience}
+        placeholder="e.g. 5"
+        helperText="Total years practicing as a registered nutritionist-dietitian."
       />
       <Input
         id="university"
@@ -204,6 +215,8 @@ function ExperienceFields({ form, errors, onFieldChange }: FieldProps) {
         value={form.university}
         onChange={(event) => onFieldChange('university', event.target.value)}
         error={errors.university}
+        placeholder="e.g. University of the Philippines Los Baños"
+        helperText="Institution where you completed your BS Nutrition & Dietetics degree."
       />
       <div>
         <label htmlFor="professionalBio" className="font-display text-xs font-bold text-brand-text/90">
@@ -216,12 +229,17 @@ function ExperienceFields({ form, errors, onFieldChange }: FieldProps) {
           value={form.professionalBio}
           onChange={(event) => onFieldChange('professionalBio', event.target.value)}
           className={`mt-2 w-full rounded-2xl border bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:ring-4 ${errors.professionalBio ? 'border-status-error-text focus:ring-status-error-text/20' : 'border-brand-border focus:border-brand-green/55 focus:ring-brand-green/10'}`}
-          placeholder="Tell the review team about your experience and areas of practice."
+          placeholder="Describe your clinical background, dietary practice, hospital or community experience (minimum 40 characters)."
         />
         {errors.professionalBio && (
           <p className="mt-2 text-xs font-semibold text-status-error-text">{errors.professionalBio}</p>
         )}
-        <p className="mt-1 text-right text-[10px] text-brand-muted">{form.professionalBio.length}/2000</p>
+        <div className="mt-1 flex items-center justify-between text-[10px] text-brand-muted">
+          <span>Minimum 40 characters</span>
+          <span className={form.professionalBio.length < 40 ? 'text-amber-400 font-semibold' : 'text-brand-green font-semibold'}>
+            {form.professionalBio.length}/2000
+          </span>
+        </div>
       </div>
     </>
   );

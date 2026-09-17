@@ -23,15 +23,17 @@ export const applicantIdentitySchema = z.object({
 });
 
 export const applicantCredentialSchema = z.object({
-  prcLicenseNumber: text('PRC license number', 80).regex(/^[A-Za-z0-9-]+$/, 'Use only letters, numbers, and hyphens.'),
+  prcLicenseNumber: text('PRC license number', 80)
+    .min(5, 'PRC license number must be at least 5 characters.')
+    .regex(/^[A-Za-z0-9-]+$/, 'PRC license number may contain only letters, numbers, and hyphens.'),
   prcLicenseExpiry: z
     .string()
     .min(1, 'License expiration date is required.')
     .refine((value) => new Date(`${value}T23:59:59`).getTime() > Date.now(), 'PRC license must not be expired.'),
-  specialization: text('Specialization', 120),
+  specialization: text('Specialization', 120).min(2, 'Specialization must be at least 2 characters.'),
   digitalSignature: z
     .string()
-    .min(1, 'Digital handwritten signature is required. Please sign in the box provided.'),
+    .min(1, 'Digital handwritten signature is required. Please draw and confirm your signature in the box provided.'),
 });
 
 export const applicantProfileSchema = z.object({
