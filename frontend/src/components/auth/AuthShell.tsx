@@ -41,7 +41,7 @@ export default function AuthShell({
           <InteractiveCyberGrid cols={8} rows={10} accentIndices={[30, 50]} variant="adaptive" withMask={true} />
 
           {/* Top Bar: Logo + Theme Toggle */}
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="pointer-events-auto relative z-10 flex items-center justify-between">
             <Link href="/" className="group flex items-center gap-2.5 sm:gap-3" aria-label="KAINARA home">
               <span className="relative flex h-9 w-9 sm:h-10 sm:w-10 lg:h-11 lg:w-11 items-center justify-center transition group-hover:-rotate-3">
                 <span className="flex h-full w-full items-center justify-center rounded-full overflow-hidden">
@@ -61,21 +61,21 @@ export default function AuthShell({
             <ThemeToggle size="sm" variant="default" className="rounded-2xl" />
           </div>
 
-          {/* Hero Typography & Pills */}
-          <div className="relative z-10 my-4 sm:my-6 lg:my-auto lg:max-w-xl lg:py-8">
+          {/* Hero Typography & Pills (pointer-events-none allows grid tiles behind text to hover) */}
+          <div className="pointer-events-none relative z-10 my-4 sm:my-6 lg:my-auto lg:max-w-xl lg:py-8">
             <div className="eyebrow mb-3 hidden items-center gap-2 rounded-full border border-brand-green/25 bg-brand-green/10 px-3 py-1 text-brand-green dark:border-white/10 dark:bg-white/[0.04] dark:text-brand-accent lg:inline-flex">
               <Sparkles className="h-3.5 w-3.5" />
               Your personal nutrition system
             </div>
-            <h1 className="font-display text-2xl font-black leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-[clamp(3rem,4.5vw,5.5rem)] lg:leading-[0.9] lg:tracking-[-0.06em] text-brand-text dark:text-white">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-[clamp(3.2rem,4.8vw,5.5rem)] font-black leading-[1.05] lg:leading-[0.9] tracking-[-0.05em] text-brand-text dark:text-white">
               {heroTitle}
             </h1>
-            <p className="mt-2 sm:mt-3 max-w-lg text-xs sm:text-sm lg:text-base leading-relaxed text-brand-muted dark:text-white/55">
+            <p className="mt-2.5 sm:mt-3 max-w-lg text-xs sm:text-sm lg:text-base leading-relaxed text-brand-muted dark:text-white/60">
               {heroDescription}
             </p>
 
             {/* Feature Pills */}
-            <div className="mt-4 sm:mt-5 flex flex-wrap gap-2 lg:mt-8 lg:grid lg:grid-cols-3 lg:gap-2.5">
+            <div className="pointer-events-auto mt-4 sm:mt-5 flex flex-wrap gap-2 lg:mt-8 lg:grid lg:grid-cols-3 lg:gap-2.5">
               {[
                 ['Culturally familiar', UtensilsCrossed],
                 ['Review-aware', ShieldCheck],
