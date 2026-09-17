@@ -19,6 +19,8 @@ import { KainaraLogo } from '@/components/shared/KainaraLogo';
 export interface VerifierData {
   name: string;
   image?: string | null;
+  officialHeadshot?: string | null;
+  digitalSignature?: string | null;
   prcLicenseNumber: string;
   prcLicenseExpiry: string | Date;
   specialization?: string | null;
@@ -290,11 +292,11 @@ export default function NutritionistCredentialModal({
 
                   {/* Circular Dietitian Portrait */}
                   <div className="my-3 sm:my-4 relative">
-                    <div className="h-32 w-32 sm:h-36 sm:w-36 rounded-full shadow-lg overflow-hidden flex items-center justify-center">
-                      {verifier.image ? (
+                    <div className="h-32 w-32 sm:h-36 sm:w-36 rounded-full shadow-lg overflow-hidden flex items-center justify-center border-2 border-[#1a5c48]/50 bg-[#faeedd]">
+                      {verifier.officialHeadshot || verifier.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={verifier.image}
+                          src={verifier.officialHeadshot || verifier.image!}
                           alt={verifier.name}
                           className="h-full w-full object-cover rounded-full"
                         />
@@ -321,8 +323,27 @@ export default function NutritionistCredentialModal({
                     </div>
                   </div>
 
-                  {/* Cursive Signature & Motto */}
-                  <DietitianSignature name={verifier.name} />
+                  {/* Handwritten Signature & Motto */}
+                  {verifier.digitalSignature ? (
+                    <div className="flex flex-col items-center select-none pt-2 pb-1">
+                      <div className="relative flex items-center justify-center min-h-[48px] max-w-[200px]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={verifier.digitalSignature}
+                          alt={`${verifier.name}'s digital signature`}
+                          className="max-h-12 w-auto object-contain drop-shadow-sm"
+                        />
+                      </div>
+                      <span className="font-sans font-semibold text-[10px] tracking-[0.28em] text-white/80 uppercase mt-1">
+                        RND
+                      </span>
+                      <p className="text-xs text-[#8ea79d] mt-1 font-normal">
+                        Better meals. Healthier you.
+                      </p>
+                    </div>
+                  ) : (
+                    <DietitianSignature name={verifier.name} />
+                  )}
                 </div>
 
                 {/* ──── MIDDLE: Inset Dashed Vertical Divider ──── */}

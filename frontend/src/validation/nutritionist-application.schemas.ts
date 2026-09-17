@@ -17,6 +17,9 @@ export const applicantIdentitySchema = z.object({
     .regex(professionalNameCharacters, 'Full name contains unsupported characters.'),
   email: z.string().trim().toLowerCase().max(254).email('Enter a valid email address.'),
   phoneNumber: text('Phone number', 30).regex(/^\+?[0-9 ()-]{7,25}$/, 'Enter a valid phone number.'),
+  officialHeadshot: z
+    .string()
+    .min(1, 'Live photo verification is required. Please capture your photo using your camera.'),
 });
 
 export const applicantCredentialSchema = z.object({
@@ -26,6 +29,9 @@ export const applicantCredentialSchema = z.object({
     .min(1, 'License expiration date is required.')
     .refine((value) => new Date(`${value}T23:59:59`).getTime() > Date.now(), 'PRC license must not be expired.'),
   specialization: text('Specialization', 120),
+  digitalSignature: z
+    .string()
+    .min(1, 'Digital handwritten signature is required. Please sign in the box provided.'),
 });
 
 export const applicantProfileSchema = z.object({
@@ -61,9 +67,11 @@ export type NutritionistApplicationForm = {
   fullName: string;
   email: string;
   phoneNumber: string;
+  officialHeadshot: string;
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
   specialization: string;
+  digitalSignature: string;
   yearsOfExperience: string;
   university: string;
   professionalBio: string;

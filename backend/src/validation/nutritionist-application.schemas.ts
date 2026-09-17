@@ -31,6 +31,8 @@ export const nutritionistApplicationSchema = z
       40,
       'Professional background must be at least 40 characters.'
     ),
+    officialHeadshot: z.string().trim().max(1000000).optional(),
+    digitalSignature: z.string().trim().max(500000).optional(),
     availableCallSlots: z
       .array(isoFutureDate('Call availability'))
       .min(2, 'Provide at least two available call schedules.')

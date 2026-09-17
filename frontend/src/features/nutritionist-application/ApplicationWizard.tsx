@@ -11,6 +11,8 @@ import {
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import type { NutritionistApplicationForm } from '@/validation/nutritionist-application.schemas';
+import { LiveWebcamCapture } from './LiveWebcamCapture';
+import { SignaturePad } from './SignaturePad';
 
 const steps = [
   { label: 'Identity', icon: UserRound },
@@ -135,6 +137,13 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
         placeholder="+63 9XX XXX XXXX"
         autoComplete="tel"
       />
+      <div className="pt-2">
+        <LiveWebcamCapture
+          value={form.officialHeadshot}
+          onChange={(val) => onFieldChange('officialHeadshot', val)}
+          error={errors.officialHeadshot}
+        />
+      </div>
     </>
   );
 }
@@ -165,6 +174,13 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
         error={errors.specialization}
         placeholder="e.g. Clinical nutrition, diabetes care"
       />
+      <div className="pt-2">
+        <SignaturePad
+          value={form.digitalSignature}
+          onChange={(val) => onFieldChange('digitalSignature', val)}
+          error={errors.digitalSignature}
+        />
+      </div>
     </>
   );
 }
@@ -260,13 +276,45 @@ function ApplicationReview({ form }: { form: NutritionistApplicationForm }) {
   ];
 
   return (
-    <div className="space-y-3">
-      {summary.map(([label, value]) => (
-        <div key={label} className="flex items-start justify-between gap-5 rounded-2xl bg-brand-bgAlt/60 px-4 py-3">
-          <span className="text-xs text-brand-muted">{label}</span>
-          <strong className="text-right text-xs text-brand-text">{value}</strong>
+    <div className="space-y-4">
+      {/* Visual Identity & Credentials Preview */}
+      <div className="flex flex-col sm:flex-row items-center gap-4 rounded-2xl bg-brand-bgAlt/60 p-4 border border-brand-border">
+        {form.officialHeadshot ? (
+          <div className="relative h-20 w-20 shrink-0 rounded-full overflow-hidden border-2 border-brand-green shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.officialHeadshot} alt={form.fullName} className="h-full w-full object-cover" />
+          </div>
+        ) : (
+          <div className="h-20 w-20 shrink-0 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-brand-muted">
+            No Photo
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0 text-center sm:text-left space-y-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Applicant Credential Preview</p>
+          <h4 className="text-base font-bold text-brand-text truncate">{form.fullName || 'Applicant Name'}, RND</h4>
+          <p className="text-xs text-brand-muted truncate">{form.specialization || 'Clinical Nutrition'}</p>
         </div>
-      ))}
+
+        {form.digitalSignature && (
+          <div className="shrink-0 flex flex-col items-center sm:items-end">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Digital Signature</span>
+            <div className="mt-1 h-12 w-28 rounded-lg bg-neutral-950 border border-neutral-800 p-1 flex items-center justify-center overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.digitalSignature} alt="Digital signature preview" className="max-h-full max-w-full object-contain" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {summary.map(([label, value]) => (
+          <div key={label} className="flex items-start justify-between gap-5 rounded-2xl bg-brand-bgAlt/60 px-4 py-3">
+            <span className="text-xs text-brand-muted">{label}</span>
+            <strong className="text-right text-xs text-brand-text">{value}</strong>
+          </div>
+        ))}
+      </div>
       <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-4 text-xs leading-5 text-brand-muted">
         <ShieldCheck className="mb-2 h-4 w-4 text-brand-green" />
         Submitting creates an application only. It does not create a privileged account. An administrator must complete

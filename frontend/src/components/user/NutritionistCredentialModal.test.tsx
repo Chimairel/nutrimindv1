@@ -88,6 +88,28 @@ describe('NutritionistCredentialModal', () => {
     expect(svgs.length).toBeGreaterThan(0);
   });
 
+  it('renders officialHeadshot and digitalSignature when provided', () => {
+    const verifierWithBiometrics: PublicVerifier = {
+      ...mockVerifier,
+      officialHeadshot: 'data:image/jpeg;base64,mockheadshotimage123',
+      digitalSignature: 'data:image/png;base64,mocksignatureimage456',
+    };
+
+    render(
+      <NutritionistCredentialModal
+        isOpen={true}
+        onClose={() => {}}
+        verifier={verifierWithBiometrics}
+      />
+    );
+
+    const headshot = screen.getByAltText('Andrea Reyes');
+    expect(headshot).toHaveAttribute('src', verifierWithBiometrics.officialHeadshot);
+
+    const signature = screen.getByAltText("Andrea Reyes's digital signature");
+    expect(signature).toHaveAttribute('src', verifierWithBiometrics.digitalSignature);
+  });
+
   it('does not render when isOpen is false', () => {
     const { container } = render(
       <NutritionistCredentialModal

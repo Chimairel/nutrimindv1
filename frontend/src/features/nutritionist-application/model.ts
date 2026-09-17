@@ -8,6 +8,8 @@ export type PublicApplication = {
   status: ApplicationStatus;
   fullName: string;
   email: string;
+  officialHeadshot?: string;
+  digitalSignature?: string;
   scheduledCallAt?: string;
   meetingUrl?: string;
   decisionReason?: string;
@@ -18,9 +20,11 @@ export const initialApplicationForm: NutritionistApplicationForm = {
   fullName: '',
   email: '',
   phoneNumber: '',
+  officialHeadshot: '',
   prcLicenseNumber: '',
   prcLicenseExpiry: '',
   specialization: '',
+  digitalSignature: '',
   yearsOfExperience: '',
   university: '',
   professionalBio: '',

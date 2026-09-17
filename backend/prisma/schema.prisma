@@ -754,6 +754,8 @@ model NutritionistProfile {
   university        String?
   bio               String?   @db.Text
   isVerified        Boolean   @default(false)
+  officialHeadshot  String?   @db.Text
+  digitalSignature  String?   @db.Text
   rating            Float     @default(0)
   totalVerified     Int       @default(0)
   verifiedAt        DateTime?
@@ -785,6 +787,8 @@ model NutritionistApplication {
   yearsOfExperience   Int
   university          String                        @db.VarChar(180)
   professionalBio     String                        @db.Text
+  officialHeadshot    String?                       @db.Text
+  digitalSignature    String?                       @db.Text
   availableCallSlots  Json
   applicantConsentAt  DateTime
   reviewedByAdminId   String?

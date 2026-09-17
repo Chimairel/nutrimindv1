@@ -31,13 +31,17 @@ function toPublicVerifier(
     yearsOfExperience: number | null;
     university: string | null;
     bio: string | null;
+    officialHeadshot?: string | null;
+    digitalSignature?: string | null;
     user: { name: string; image?: string | null };
   } | null
 ) {
   if (!nutritionist) return null;
   return {
     name: nutritionist.user.name,
-    image: nutritionist.user.image || null,
+    image: nutritionist.officialHeadshot || nutritionist.user.image || null,
+    officialHeadshot: nutritionist.officialHeadshot || null,
+    digitalSignature: nutritionist.digitalSignature || null,
     prcLicenseNumber: nutritionist.prcLicenseNumber,
     prcLicenseExpiry: nutritionist.prcLicenseExpiry,
     specialization: nutritionist.specialization,

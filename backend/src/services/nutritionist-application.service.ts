@@ -19,6 +19,8 @@ type ApplicationInput = {
   yearsOfExperience: number;
   university: string;
   professionalBio: string;
+  officialHeadshot?: string;
+  digitalSignature?: string;
   availableCallSlots: string[];
   consent: true;
 };
@@ -34,6 +36,8 @@ const publicApplicationSelect = {
   status: true,
   fullName: true,
   email: true,
+  officialHeadshot: true,
+  digitalSignature: true,
   scheduledCallAt: true,
   meetingUrl: true,
   decisionReason: true,
@@ -80,6 +84,8 @@ export class NutritionistApplicationService {
         yearsOfExperience: input.yearsOfExperience,
         university: input.university.trim(),
         professionalBio: input.professionalBio.trim(),
+        officialHeadshot: input.officialHeadshot?.trim() || null,
+        digitalSignature: input.digitalSignature?.trim() || null,
         availableCallSlots: input.availableCallSlots,
         applicantConsentAt: new Date(),
       },
@@ -250,6 +256,8 @@ export class NutritionistApplicationService {
           yearsOfExperience: application.yearsOfExperience,
           university: application.university,
           bio: application.professionalBio,
+          officialHeadshot: application.officialHeadshot,
+          digitalSignature: application.digitalSignature,
           isVerified: true,
           verifiedAt: new Date(),
         },

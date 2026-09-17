@@ -14,6 +14,8 @@ export interface NutritionistApplication {
   yearsOfExperience: number;
   university: string;
   professionalBio: string;
+  officialHeadshot?: string | null;
+  digitalSignature?: string | null;
   availableCallSlots: string[];
   scheduledCallAt?: string;
   meetingUrl?: string;

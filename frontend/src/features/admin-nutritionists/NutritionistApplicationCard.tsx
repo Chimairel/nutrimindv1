@@ -174,8 +174,19 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
   return (
     <div className="border-b border-brand-border/70 p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <Avatar name={application.fullName} size="md" className="border border-brand-border/70 shrink-0" />
+        <div className="flex min-w-0 items-center gap-3.5">
+          {application.officialHeadshot ? (
+            <div className="relative h-14 w-14 shrink-0 rounded-full overflow-hidden border-2 border-brand-green shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={application.officialHeadshot}
+                alt={application.fullName}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <Avatar name={application.fullName} size="md" className="border border-brand-border/70 shrink-0" />
+          )}
           <div className="min-w-0">
             <h3 className="truncate font-display text-base font-black text-brand-text">{application.fullName}</h3>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
@@ -217,6 +228,46 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
         </p>
         <p className="rounded-xl border border-brand-border/60 p-3">{application.professionalBio}</p>
       </div>
+
+      {/* Official Identity & Handwritten Signature Audit Section */}
+      {(application.officialHeadshot || application.digitalSignature) && (
+        <div className="mt-4 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted mb-3">
+            Biometric &amp; Clinical Signature Verification (Locked &amp; Immutable)
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 items-center">
+            {application.officialHeadshot && (
+              <div className="flex items-center gap-3">
+                <div className="relative h-14 w-14 shrink-0 rounded-full overflow-hidden border-2 border-brand-green shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={application.officialHeadshot}
+                    alt={`${application.fullName} official headshot`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="text-xs">
+                  <p className="font-bold text-brand-text">Live Photo Headshot</p>
+                  <p className="text-[11px] text-brand-muted">Captured via webcam on application</p>
+                </div>
+              </div>
+            )}
+            {application.digitalSignature && (
+              <div className="flex flex-col sm:items-end">
+                <p className="text-[11px] font-bold text-brand-text mb-1">Handwritten Digital Signature</p>
+                <div className="h-14 w-40 rounded-xl bg-neutral-950 border border-neutral-800 p-1 flex items-center justify-center overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={application.digitalSignature}
+                    alt={`${application.fullName} digital signature`}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
