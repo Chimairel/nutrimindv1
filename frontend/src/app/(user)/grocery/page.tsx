@@ -7,7 +7,6 @@ import Button from '@/components/ui/Button';
 import GroceryCostSummary from '@/features/grocery/GroceryCostSummary';
 import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
-import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -18,16 +17,7 @@ import {
   type GroceryList,
   type GroceryPageSnapshot,
 } from '@/features/grocery/current-grocery';
-import {
-  AlertTriangle,
-  Check,
-  ChevronDown,
-  CircleCheckBig,
-  Download,
-  Search,
-  ShoppingBasket,
-  ShoppingCart,
-} from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, CircleCheckBig, Download, Search, ShoppingBasket } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
@@ -279,17 +269,21 @@ export default function GroceryListPage() {
           }}
         />
       ) : !groceryList ? (
-        <div className="py-12">
-          <EmptyState
-            icon={<ShoppingCart className="h-8 w-8 text-brand-green" />}
-            title="Grocery Checklist Pending"
-            description={
-              pendingMealCount > 0
-                ? `Your ${pendingMealCount} planned meals are still being reviewed. Approved ingredients will appear here automatically—there is nothing else to generate.`
-                : 'Your checklist will appear automatically as meals in your current plan are approved by a nutritionist.'
-            }
-          />
-        </div>
+        <UnauthorizedState
+          imageSrc="/logo/verifying.svg"
+          imageAlt="Verifying Meals"
+          eyebrow={pendingMealCount > 0 ? 'Review in progress' : 'Nutritionist audit'}
+          title="Grocery Checklist Pending"
+          description={
+            pendingMealCount > 0
+              ? `Your ${pendingMealCount} planned meals are still being reviewed. Approved ingredients will appear here automatically—there is nothing else to generate.`
+              : 'Your checklist will appear automatically as meals in your current plan are approved by a nutritionist.'
+          }
+          action={{
+            label: 'View Meal Plan',
+            href: '/meals',
+          }}
+        />
       ) : (
         <div className="flex flex-col gap-5 text-left">
           {pendingMealCount > 0 && (

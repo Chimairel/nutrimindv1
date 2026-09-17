@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { Check, Clock3 } from 'lucide-react';
 import { motion } from 'motion/react';
-import KainaraLogo from '@/components/shared/KainaraLogo';
 import TextShimmer from '@/components/ui/motion/TextShimmer';
 import AnimatedNumber from '@/components/ui/motion/AnimatedNumber';
 
@@ -85,13 +85,13 @@ export default function MealPlanGenerationProgress({
       aria-busy={!isComplete}
     >
       <div className="relative mx-auto flex w-full max-w-lg flex-col items-center text-center">
-        {/* Animated KAINARA Logo with Soft Ambient Pulsing Glow Aura */}
-        <div className="relative mb-6 flex h-20 w-20 items-center justify-center">
+        {/* Animated KAINARA Chef Cooking Illustration with Soft Ambient Pulsing Glow Aura */}
+        <div className="relative mb-6 flex h-24 w-24 items-center justify-center">
           <div className="absolute inset-0 rounded-full bg-brand-green/25 blur-2xl animate-pulse" aria-hidden="true" />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-green/30 bg-gradient-to-b from-brand-green/15 to-brand-green/5 text-brand-green shadow-lg backdrop-blur-sm">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-brand-green/30 bg-gradient-to-b from-brand-green/15 to-brand-green/5 text-brand-green shadow-lg backdrop-blur-sm p-2 overflow-hidden">
             <motion.div
               animate={{
-                scale: [1, 1.08, 1],
+                scale: [1, 1.06, 1],
                 filter: [
                   'drop-shadow(0 0 8px rgba(184, 244, 95, 0.35))',
                   'drop-shadow(0 0 18px rgba(184, 244, 95, 0.65))',
@@ -103,13 +103,20 @@ export default function MealPlanGenerationProgress({
                 repeat: Infinity,
                 ease: 'easeInOut',
               }}
-              className="flex items-center justify-center"
+              className="relative flex h-full w-full items-center justify-center"
             >
-              <KainaraLogo className="h-10 w-10" ariaLabel="KAINARA logo" />
+              <Image
+                src="/logo/cooking.svg"
+                alt="KAINARA cooking"
+                width={72}
+                height={72}
+                priority
+                className="h-full w-full object-contain"
+              />
             </motion.div>
             {isComplete && (
               <div
-                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white dark:bg-brand-accent dark:text-black shadow-md ring-2 ring-brand-surface"
+                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white dark:bg-brand-accent dark:text-black shadow-md ring-2 ring-brand-surface z-10"
                 title="Complete"
               >
                 <Check className="h-3.5 w-3.5 stroke-[3]" />

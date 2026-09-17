@@ -48,6 +48,8 @@ router.put('/profile/avatar', UserController.updateAvatar);
 // ──────────────────────────────────────────
 router.use(requireRole('USER'));
 
+router.post('/test-premium', UserController.toggleTestPremium);
+
 /**
  * Onboarding Flow Endpoints
  */

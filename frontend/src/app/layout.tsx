@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/context/AuthContext';
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
 import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
+import { Toaster } from '@/components/ui/Sonner';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${dmSans.variable} ${plusJakartaSans.variable} ${outfit.variable} ${jetbrainsMono.variable} bg-brand-bg font-sans text-brand-text antialiased`}
       >
         <ThemeProvider>
+          <Toaster position="top-right" richColors />
           <AuthProvider>
             <BreadcrumbProvider>
               <Suspense fallback={null}>

@@ -78,9 +78,21 @@ export default function AvatarSettings({
             size="lg"
             src={isDefaultActive ? defaultUserImage || undefined : avatarSeed}
             fallbackText={user.name}
+            showSalakot={Boolean(user.isPremium)}
             className="h-28 w-28 rounded-full shadow-xl"
           />
-          <span className="mt-4 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-brand-muted">
+          <div className="mt-3">
+            {user.isPremium ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-brand-accent/40 bg-brand-accent/15 px-2.5 py-1 text-[10px] font-bold text-brand-green">
+                👑 Salakot Crown Active · Premium
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-brand-border bg-brand-surface px-2.5 py-1 text-[10px] font-medium text-brand-muted">
+                🔒 Salakot Crown unlocks with Premium
+              </span>
+            )}
+          </div>
+          <span className="mt-3 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-brand-muted">
             Live preview
           </span>
           <div className="mt-2 text-center">

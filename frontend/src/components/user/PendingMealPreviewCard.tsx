@@ -149,12 +149,9 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
 
           {/* Card Body: Meal Title & Nutrition Summary */}
           <div className="flex-1 flex flex-col justify-between">
-            <motion.h3
-              layoutId={`title-${layoutId}`}
-              className="text-sm font-extrabold font-display tracking-tight leading-snug mb-1 text-brand-text line-clamp-2"
-            >
+            <h3 className="text-sm font-extrabold font-display tracking-tight leading-snug mb-1 text-brand-text line-clamp-2">
               {meal.mealName}
-            </motion.h3>
+            </h3>
 
             <div className="mt-3 flex items-center justify-between border-t border-brand-border/40 pt-2.5">
               <span className="text-[11px] font-bold text-brand-muted">
@@ -216,10 +213,10 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
 
                   {/* Modal Body */}
                   <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                     className="p-5 sm:p-7 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5"
                   >
                     {/* Title & Metadata */}
@@ -236,12 +233,9 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
                             {scheduledDate}
                           </span>
                         </div>
-                        <motion.h3
-                          layoutId={`title-${layoutId}`}
-                          className="text-xl sm:text-2xl font-black font-display text-brand-text tracking-tight"
-                        >
+                        <h3 className="text-xl sm:text-2xl font-black font-display text-brand-text tracking-tight">
                           {meal.mealName}
-                        </motion.h3>
+                        </h3>
                       </div>
                     </div>
 

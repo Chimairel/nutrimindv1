@@ -604,7 +604,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                   </>
                 )}
                 {/* Plan Cycle & Regeneration Notice */}
-                <div className="flex items-start gap-3 rounded-2xl border border-brand-green/25 bg-brand-green/[0.06] p-4 text-xs leading-relaxed text-brand-muted mt-2">
+                <div className="flex items-start gap-3 rounded-2xl bg-brand-green/[0.06] p-4 text-xs leading-relaxed text-brand-muted mt-2">
                   <Sparkles className="h-4 w-4 shrink-0 text-brand-green mt-0.5" />
                   <div>
                     <strong className="text-brand-text block mb-0.5">Plan Cycle Notice</strong>

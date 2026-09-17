@@ -29,6 +29,7 @@ export class AdminService {
           emailVerified: true,
           onboardingDone: true,
           isSuspended: true,
+          testPremiumAllowed: true,
           suspendedAt: true,
           suspensionReason: true,
           createdAt: true,

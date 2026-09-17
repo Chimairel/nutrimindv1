@@ -20,6 +20,7 @@ export interface UnauthorizedStateProps {
   secondaryAction?: UnauthorizedStateAction | null;
   variant?: 'card' | 'page';
   className?: string;
+  imageSrc?: string;
   imageAlt?: string;
   imageSize?: number;
 }
@@ -35,6 +36,7 @@ export default function UnauthorizedState({
   secondaryAction,
   variant = 'card',
   className = '',
+  imageSrc = '/logo/unauthorized.svg',
   imageAlt = 'Access Restricted',
   imageSize = 380,
 }: UnauthorizedStateProps) {
@@ -56,7 +58,7 @@ export default function UnauthorizedState({
             style={imageSize !== 380 ? { width: imageSize, height: imageSize } : undefined}
           >
             <Image
-              src="/logo/unauthorized.svg"
+              src={imageSrc}
               alt={imageAlt}
               width={imageSize}
               height={imageSize}

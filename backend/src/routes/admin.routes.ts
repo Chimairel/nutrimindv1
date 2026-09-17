@@ -1,3 +1,4 @@
+import { TestPremiumService } from '@/services/test-premium.service';
 import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
@@ -33,6 +34,16 @@ router.use(authenticate);
 router.use(requireRole('ADMIN'));
 router.use('/data', adminDataRouter);
 router.use('/meal-images', adminMealImagesRouter);
+router.patch('/users/:id/test-premium-permission', async (req: AuthenticatedRequest, res: Response) => {
+  if (typeof req.body?.allowed !== 'boolean')
+    return res.status(400).json({ success: false, error: 'allowed must be a boolean.' });
+  try {
+    const data = await TestPremiumService.setPermission(req.user!.userId, req.params.id, req.body.allowed);
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(400).json({ success: false, error: 'Could not update test Premium permission.' });
+  }
+});
 
 /**
  * GET /api/admin/analytics

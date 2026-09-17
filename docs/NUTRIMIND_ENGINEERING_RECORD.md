@@ -3909,3 +3909,7 @@ This section is a continuity record for agreed future work. Every item below is 
 
 Preserved Antigravity's latest UI while fixing signature capture/confirmation, application media validation and request limits, the missing identity/payout migration, and replacement approval inheritance. Extracted oversized modules and restored formatting compliance. Frontend: 190 tests passed. Backend: 527 passed with one existing TODO. See [audit evidence and explicit limits](ANTIGRAVITY_SIGNATURE_AUDIT_2026-09-17.md), including disposable-database acceptance and the scoped mobile browser check.
 
+
+## 86. Gemini Premium permission and price diagnostics (2026-09-17)
+
+Preserved the latest Desktop UI changes, added administrator-controlled test Premium permission and scoped revocation, aligned profile entitlement status, and clarified missing price-data diagnostics. Shared development has no price observations or commodity mappings; numerical cost coverage remains unavailable pending source-backed data work. See [audit details, asset review and verification limits](GEMINI_PREMIUM_AUDIT_2026-09-17.md). Frontend: 194 passing tests. Backend: 528 passing tests and one existing TODO.

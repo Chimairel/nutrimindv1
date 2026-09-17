@@ -137,7 +137,13 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
       <section className="relative overflow-hidden rounded-[28px] border border-brand-border/70 bg-brand-surface p-5 shadow-card sm:p-6">
         <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-brand-green/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar size="lg" src={user.image} fallbackText={user.name} className="h-20 w-20 rounded-full shadow-lg" />
+          <Avatar
+            size="lg"
+            src={user.image}
+            fallbackText={user.name}
+            showSalakot={Boolean(user.isPremium)}
+            className="h-20 w-20 rounded-full shadow-lg"
+          />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate font-display text-2xl font-black tracking-tight text-brand-text">{user.name}</h2>

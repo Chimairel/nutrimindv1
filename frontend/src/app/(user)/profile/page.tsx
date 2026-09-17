@@ -51,9 +51,16 @@ export default function ProfilePage() {
         description="Your information, preferences and account settings."
       />
       <div className="flex items-center gap-4 rounded-2xl border border-brand-border bg-brand-surface p-4">
-        <Avatar src={user?.image} fallbackText={user?.name} size="md" />
-        <div className="min-w-0">
-          <h2 className="font-display text-xl font-bold">{user?.name}</h2>
+        <Avatar src={user?.image} fallbackText={user?.name} size="md" showSalakot={Boolean(user?.isPremium)} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-xl font-bold">{user?.name}</h2>
+            {user?.isPremium && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-brand-accent/40 bg-brand-accent/15 px-2 py-0.5 text-[11px] font-semibold text-brand-green">
+                👑 Premium
+              </span>
+            )}
+          </div>
           <p className="break-all text-sm text-brand-muted">{user?.email}</p>
         </div>
       </div>

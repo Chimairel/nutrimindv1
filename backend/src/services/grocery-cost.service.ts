@@ -96,14 +96,35 @@ export class GroceryCostService {
         });
       }
     }
+    const aggregate = aggregatePriceEstimates(estimates);
+    const hasPriceData = await prisma.ingredientPriceObservation.count();
+    const hasMappings = await prisma.ingredientPriceCommodityMapping.count({
+      where: { state: 'EXACT', supersededBy: null },
+    });
+    const availabilityReason = !estimates.length
+      ? 'NOTHING_TO_PRICE'
+      : !hasPriceData
+        ? 'PRICE_DATA_NOT_CONFIGURED'
+        : !hasMappings
+          ? 'PRICE_MAPPINGS_NOT_CONFIGURED'
+          : aggregate.status === 'UNAVAILABLE'
+            ? 'NO_MATCHING_EVIDENCE'
+            : null;
     return {
-      ...aggregatePriceEstimates(estimates),
+      ...aggregate,
+      availabilityReason,
       estimates,
       evidence,
       scope: 'REMAINING_SHOPPING',
       budgetGuaranteed: false,
       explanation:
-        'Indicative reference prices for covered ingredients only. Store prices, package sizes and availability can differ.',
+        availabilityReason === 'PRICE_DATA_NOT_CONFIGURED'
+          ? 'Market prices have not been published in this system yet. Premium access is active, but an administrator must import price data before estimates can be calculated.'
+          : availabilityReason === 'PRICE_MAPPINGS_NOT_CONFIGURED'
+            ? 'Prices are available, but ingredient mappings still need to be reviewed before estimates can be calculated.'
+            : availabilityReason === 'NOTHING_TO_PRICE'
+              ? 'There are no remaining ingredients to price.'
+              : 'Indicative reference prices for covered ingredients only. Store prices, package sizes and availability can differ.',
     };
   }
 }

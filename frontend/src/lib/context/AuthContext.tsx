@@ -19,6 +19,9 @@ export interface UserSession {
   onboardingNextPath?: string;
   image?: string;
   googleImage?: string;
+  isPremium?: boolean;
+  testPremiumAllowed?: boolean;
+  premiumExpiresAt?: string | null;
 }
 
 export interface AuthContextType {
@@ -58,6 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userProfile,
           nutritionReport,
           onboardingStatus,
+          isPremium,
+          testPremiumAllowed,
+          premiumExpiresAt,
         } = response.data.data;
 
         const isReportAcknowledged = Boolean(
@@ -78,6 +84,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           googleImage,
+          isPremium: Boolean(isPremium),
+          testPremiumAllowed: Boolean(testPremiumAllowed),
+          premiumExpiresAt: premiumExpiresAt ?? null,
           reportAcknowledged: isReportAcknowledged,
           onboardingNextPath: onboardingStatus?.nextPath,
         };

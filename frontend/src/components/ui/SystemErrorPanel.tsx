@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/lib/context/ThemeContext';
@@ -117,11 +118,24 @@ export function SystemErrorPanel({
             </div>
           </div>
 
-          {/* Right Column: Giant 404 */}
+          {/* Right Column: 404 Illustration / Code */}
           <div className="pointer-events-none order-1 flex items-center justify-center lg:order-2 lg:justify-end">
-            <span className="select-none font-sans text-[9rem] font-light leading-none tracking-tighter text-slate-900/[0.12] transition-colors duration-200 dark:text-white/70 sm:text-[12rem] md:text-[15rem] lg:text-[18rem]">
-              {code}
-            </span>
+            {code === '404' ? (
+              <div className="relative flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80 md:w-[380px] md:h-[380px] lg:w-[460px] lg:h-[460px] transition-transform duration-500 hover:scale-105 ease-out">
+                <Image
+                  src="/logo/not-found.svg"
+                  alt="404 Page Not Found"
+                  width={460}
+                  height={460}
+                  priority
+                  className="h-full w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.35)]"
+                />
+              </div>
+            ) : (
+              <span className="select-none font-sans text-[9rem] font-light leading-none tracking-tighter text-slate-900/[0.12] transition-colors duration-200 dark:text-white/70 sm:text-[12rem] md:text-[15rem] lg:text-[18rem]">
+                {code}
+              </span>
+            )}
           </div>
         </div>
       </div>

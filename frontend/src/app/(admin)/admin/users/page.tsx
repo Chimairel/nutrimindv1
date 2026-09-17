@@ -20,6 +20,7 @@ interface UserRow {
   onboardingDone: boolean;
   createdAt: string;
   isSuspended: boolean;
+  testPremiumAllowed: boolean;
   suspensionReason?: string | null;
 }
 
@@ -60,6 +61,32 @@ export default function AdminUsersPage() {
   useEffect(() => {
     fetchUsers(page, search);
   }, [page, search]);
+
+  const [updatingTestAccess, setUpdatingTestAccess] = useState<string | null>(null);
+  const toggleTestAccess = async (target: UserRow) => {
+    setUpdatingTestAccess(target.id);
+    setError(null);
+    try {
+      await api.patch(`/admin/users/${target.id}/test-premium-permission`, { allowed: !target.testPremiumAllowed });
+      await fetchUsers(page, search);
+    } catch {
+      setError('Test Premium permission could not be updated.');
+    } finally {
+      setUpdatingTestAccess(null);
+    }
+  };
+  const testAccessButton = (target: UserRow) =>
+    target.role === 'USER' && (
+      <Button
+        variant="secondary"
+        size="sm"
+        className="text-xs"
+        disabled={Boolean(updatingTestAccess)}
+        onClick={() => void toggleTestAccess(target)}
+      >
+        {target.testPremiumAllowed ? 'Disable Premium testing' : 'Allow Premium testing'}
+      </Button>
+    );
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -197,6 +224,7 @@ export default function AdminUsersPage() {
                 >
                   {user.isSuspended ? 'Reinstate account' : 'Suspend account'}
                 </Button>
+                {testAccessButton(user)}
               </article>
             ))}
           </div>
@@ -253,6 +281,7 @@ export default function AdminUsersPage() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-4 text-right">
+                      {testAccessButton(user)}
                       <button
                         type="button"
                         onClick={() => openAccessDialog(user)}

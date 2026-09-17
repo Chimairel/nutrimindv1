@@ -15,8 +15,8 @@ describe('Avatar', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the fixed salakot hat overlay by default', () => {
-    const { container } = render(<Avatar fallbackText="Juan Dela Cruz" />);
+  it('renders the salakot hat overlay when showSalakot is true', () => {
+    const { container } = render(<Avatar fallbackText="Juan Dela Cruz" showSalakot={true} />);
 
     const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
     expect(salakotImg).toBeInTheDocument();
@@ -24,8 +24,8 @@ describe('Avatar', () => {
     expect(salakotImg).toHaveClass('absolute');
   });
 
-  it('allows hiding the salakot overlay when showSalakot is false', () => {
-    const { container } = render(<Avatar fallbackText="Maria Clara" showSalakot={false} />);
+  it('omits the salakot overlay by default when showSalakot is false or omitted', () => {
+    const { container } = render(<Avatar fallbackText="Maria Clara" />);
 
     const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
     expect(salakotImg).not.toBeInTheDocument();
