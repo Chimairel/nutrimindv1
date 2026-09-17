@@ -146,7 +146,7 @@ export function NutritionistApplicationCard(props: Props) {
                       decision: 'reject',
                       reason: rejectionReason,
                     }),
-                  'Application rejected.'
+                  'Application rejected and notification email sent to applicant.'
                 )
               }
               isLoading={workingId === application.id}
@@ -303,6 +303,7 @@ function CallScheduler({
           label="Confirmed call schedule"
           value={draft.scheduledCallAt}
           onChange={(event) => onScheduleChange(application.id, { ...draft, scheduledCallAt: event.target.value })}
+          helperText="Click a suggested slot above or pick any date/time that fits your schedule."
         />
         <Input
           id={`meeting-${application.id}`}
