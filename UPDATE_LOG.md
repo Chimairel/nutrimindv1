@@ -493,6 +493,30 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Frontend ESLint: passed with 0 errors and 0 warnings.
   - Backend test suite: 526 tests passed with 0 failures.
 
+---
+
+## 📅 ADDENDUM 26: INSTANT ROUTE TRANSITIONS, SKELETON BOUNDARIES, HOVER PREFETCHING & TOP PROGRESS BAR (September 2026)
+*Eliminated navigation latency and "frozen on dashboard" perception when switching between user portal pages by wiring up Next.js App Router loading skeletons, hover prefetching, and a luminous top progress bar.*
+
+- **Next.js App Router Suspense Boundaries (`loading.tsx`):**
+  - Connected existing feature skeleton primitives into dedicated route loading boundaries:
+    - `src/app/(user)/meals/loading.tsx` rendering `MealPlanSkeleton`
+    - `src/app/(user)/dashboard/loading.tsx` rendering `DashboardSkeleton`
+    - `src/app/(user)/grocery/loading.tsx` rendering `GrocerySkeleton`
+    - `src/app/(user)/progress/loading.tsx` rendering `ProgressSkeleton`
+    - `src/app/(user)/loading.tsx` as a fallback layout skeleton for profile and settings
+  - Clicking any navigation item now unmounts the previous page immediately and displays the matching skeleton layout instead of stalling on the prior screen.
+- **Route Prefetching on Hover & Touch (`Sidebar.tsx`, `BottomNav.tsx`):**
+  - Enabled `prefetch={true}` on all primary workspace navigation `<Link>` elements.
+  - Attached `onMouseEnter` and `onTouchStart` prefetch triggers (`router.prefetch(item.href)`). During the 150–300ms window between hovering and clicking, Next.js warms up and loads the target page's code bundles.
+- **Luminous Top Navigation Progress Bar (`TopNavigationProgress.tsx`, `layout.tsx`):**
+  - Added a global, zero-dependency 2.5px progress bar at the very top edge of the browser viewport with an emerald/teal luminous gradient and neon cyan glow.
+  - Automatically intercepts internal link clicks to trigger immediate (0ms) visual confirmation that navigation has begun, completing and fading smoothly upon URL/search parameter changes.
+- **Automated Verification:**
+  - Frontend Vitest suite: 172 passed across 44 test suites (100% pass rate).
+  - Frontend ESLint: passed with 0 errors and 0 warnings.
+
+
 
 
 
