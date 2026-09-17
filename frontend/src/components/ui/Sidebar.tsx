@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Activity, ArrowUpRight, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +51,7 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 
 
 export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -139,6 +140,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch(item.href)}
+                    onTouchStart={() => router.prefetch(item.href)}
                     aria-label={item.label}
                     aria-current={active ? 'page' : undefined}
                     className="flex shrink-0 items-center justify-center outline-none"
@@ -182,6 +186,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
               <Link
                 href={profileHref}
+                prefetch={true}
+                onMouseEnter={() => router.prefetch(profileHref)}
+                onTouchStart={() => router.prefetch(profileHref)}
                 aria-label={`Profile: ${user.name}`}
                 aria-current={profileActive ? 'page' : undefined}
                 className="flex shrink-0 items-center justify-center outline-none"
@@ -212,6 +219,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <div className="relative flex items-center justify-between gap-3 px-1 pb-5">
             <Link
               href={homeHref}
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(homeHref)}
+              onTouchStart={() => router.prefetch(homeHref)}
               className="group/logo flex min-w-0 items-center gap-3 outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-accent/40"
               aria-label="KAINARA home"
             >
@@ -269,6 +279,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                   )}
                   <Link
                     href={item.href}
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch(item.href)}
+                    onTouchStart={() => router.prefetch(item.href)}
                     aria-label={item.label}
                     aria-current={active ? 'page' : undefined}
                     className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] ${
@@ -295,6 +308,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <div className="relative mt-auto border-t border-white/[0.08] pt-4">
             <Link
               href={profileHref}
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(profileHref)}
+              onTouchStart={() => router.prefetch(profileHref)}
               aria-label={`Profile: ${user.name}`}
               aria-current={profileActive ? 'page' : undefined}
               className="group relative flex items-center gap-3 rounded-2xl p-2 outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"

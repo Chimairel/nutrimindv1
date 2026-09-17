@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Activity, Home, Soup, ShoppingCart, User } from 'lucide-react';
 import { Dock, DockItem, DockIcon, DockLabel } from '@/components/ui/motion';
@@ -13,6 +13,7 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
 
   // BottomNav only displays for standard authenticated users in mobile layouts
@@ -43,6 +44,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(item.href)}
+              onTouchStart={() => router.prefetch(item.href)}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className="outline-none"

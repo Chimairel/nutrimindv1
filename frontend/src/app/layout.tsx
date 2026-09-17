@@ -1,9 +1,11 @@
+import React, { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono, Outfit } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/context/AuthContext';
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
+import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -85,7 +87,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       >
         <ThemeProvider>
           <AuthProvider>
-            <BreadcrumbProvider>{children}</BreadcrumbProvider>
+            <BreadcrumbProvider>
+              <Suspense fallback={null}>
+                <TopNavigationProgress />
+              </Suspense>
+              {children}
+            </BreadcrumbProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
