@@ -48,8 +48,8 @@ export default function AnnouncementBanner({
       {badge}
       {message && <span className="text-white/90">{message}</span>}
       {children}
-      {action && (
-        action.href ? (
+      {action &&
+        (action.href ? (
           <Link
             href={action.href}
             className={`inline-flex items-center justify-center rounded-xl bg-white px-3 py-1 text-xs font-bold text-[#8c3b00] shadow-sm hover:bg-white/90 transition-all shrink-0 ml-1 ${action.className || ''}`}
@@ -64,8 +64,7 @@ export default function AnnouncementBanner({
           >
             {action.label}
           </button>
-        )
-      )}
+        ))}
     </aside>
   );
 }

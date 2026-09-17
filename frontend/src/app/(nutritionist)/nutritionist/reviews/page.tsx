@@ -578,7 +578,9 @@ export default function ReviewsPage() {
                 </div>
 
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Specify why this dish is contraindicated for the patient. You can immediately generate an alternative dish tailored to avoid this problem and verify it in one step, so the patient never receives an unverified pending meal.
+                  Specify why this dish is contraindicated for the patient. You can immediately generate an alternative
+                  dish tailored to avoid this problem and verify it in one step, so the patient never receives an
+                  unverified pending meal.
                 </p>
 
                 <div>
@@ -682,25 +684,33 @@ export default function ReviewsPage() {
                         <span className="block text-xs font-black font-display text-brand-text">
                           {Math.round(candidateMeal.calories)} kcal
                         </span>
-                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">Energy</span>
+                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
+                          Energy
+                        </span>
                       </div>
                       <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2">
                         <span className="block text-xs font-black font-display text-brand-text">
                           {Math.round(candidateMeal.proteinG)}g
                         </span>
-                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">Protein</span>
+                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
+                          Protein
+                        </span>
                       </div>
                       <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2">
                         <span className="block text-xs font-black font-display text-brand-text">
                           {Math.round(candidateMeal.carbsG)}g
                         </span>
-                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">Carbs</span>
+                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
+                          Carbs
+                        </span>
                       </div>
                       <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2">
                         <span className="block text-xs font-black font-display text-brand-text">
                           {Math.round(candidateMeal.fatG)}g
                         </span>
-                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">Fat</span>
+                        <span className="block text-[8px] font-extrabold uppercase tracking-wider text-brand-muted">
+                          Fat
+                        </span>
                       </div>
                     </div>
 
@@ -774,11 +784,7 @@ export default function ReviewsPage() {
                       >
                         <RefreshCw className="w-3 h-3 mr-1" /> Re-roll
                       </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={resetCandidate}
-                        className="text-xs px-3 py-2 text-brand-muted"
-                      >
+                      <Button variant="ghost" onClick={resetCandidate} className="text-xs px-3 py-2 text-brand-muted">
                         Back
                       </Button>
                     </div>

@@ -236,7 +236,11 @@ function ExperienceFields({ form, errors, onFieldChange }: FieldProps) {
         )}
         <div className="mt-1 flex items-center justify-between text-[10px] text-brand-muted">
           <span>Minimum 40 characters</span>
-          <span className={form.professionalBio.length < 40 ? 'text-amber-400 font-semibold' : 'text-brand-green font-semibold'}>
+          <span
+            className={
+              form.professionalBio.length < 40 ? 'text-amber-400 font-semibold' : 'text-brand-green font-semibold'
+            }
+          >
             {form.professionalBio.length}/2000
           </span>
         </div>
@@ -319,7 +323,11 @@ function ApplicationReview({ form }: { form: NutritionistApplicationForm }) {
             <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Digital Signature</span>
             <div className="mt-1 h-12 w-28 rounded-lg bg-neutral-950 border border-neutral-800 p-1 flex items-center justify-center overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={form.digitalSignature} alt="Digital signature preview" className="max-h-full max-w-full object-contain" />
+              <img
+                src={form.digitalSignature}
+                alt="Digital signature preview"
+                className="max-h-full max-w-full object-contain"
+              />
             </div>
           </div>
         )}

@@ -133,7 +133,11 @@ export default function PublicHeader() {
             aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={isMobileMenuOpen}
           >
-            {isMobileMenuOpen ? <X className="h-4 w-4 text-brand-text" /> : <Menu className="h-4 w-4 text-brand-text" />}
+            {isMobileMenuOpen ? (
+              <X className="h-4 w-4 text-brand-text" />
+            ) : (
+              <Menu className="h-4 w-4 text-brand-text" />
+            )}
           </button>
         </div>
       </div>

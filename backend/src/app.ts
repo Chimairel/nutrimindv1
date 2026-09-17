@@ -69,6 +69,8 @@ app.use(
 );
 // PayMongo signs the exact request bytes. Keep this route before express.json().
 app.use('/api/webhooks/paymongo', apiLimiter, paymongoWebhookRouter);
+// Applicant media is bounded by its schema (1 MB headshot + 500 KB signature).
+app.use('/api/nutritionist-applications', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 app.use('/api', apiLimiter); // Global API rate limit

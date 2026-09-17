@@ -4,6 +4,15 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
 import Button from '@/components/ui/Button';
+import WeightGraph from '@/features/progress/WeightGraph';
+import {
+  DIETARY_OPTIONS,
+  CARB_OPTIONS,
+  SHOPPING_DAY_OPTIONS,
+  BIOLOGICAL_SEX_OPTIONS,
+  GOAL_OPTIONS,
+  ACTIVITY_OPTIONS,
+} from '@/features/progress/profile-options';
 import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
@@ -36,48 +45,6 @@ import {
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
-
-const DIETARY_OPTIONS = [
-  { value: 'OMNIVORE', label: 'Omnivore' },
-  { value: 'VEGETARIAN', label: 'Vegetarian' },
-  { value: 'VEGAN', label: 'Vegan' },
-  { value: 'PESCATARIAN', label: 'Pescatarian' },
-];
-
-const CARB_OPTIONS = [
-  { value: 'LOW', label: 'Low Carb' },
-  { value: 'MODERATE', label: 'Moderate Carb' },
-  { value: 'HIGH', label: 'High Carb' },
-];
-
-const SHOPPING_DAY_OPTIONS = [
-  { value: '0', label: 'Sunday (Monday - Sunday plan)' },
-  { value: '1', label: 'Monday (Tuesday - Monday plan)' },
-  { value: '2', label: 'Tuesday (Wednesday - Tuesday plan)' },
-  { value: '3', label: 'Wednesday (Thursday - Wednesday plan)' },
-  { value: '4', label: 'Thursday (Friday - Thursday plan)' },
-  { value: '5', label: 'Friday (Saturday - Friday plan)' },
-  { value: '6', label: 'Saturday (Sunday - Saturday plan)' },
-];
-
-const BIOLOGICAL_SEX_OPTIONS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-];
-
-const GOAL_OPTIONS = [
-  { value: 'LOSE_WEIGHT', label: 'Lose Weight' },
-  { value: 'GAIN_WEIGHT', label: 'Gain Weight' },
-  { value: 'MAINTAIN', label: 'Maintain Weight' },
-  { value: 'BUILD_MUSCLE', label: 'Build Muscle' },
-];
-
-const ACTIVITY_OPTIONS = [
-  { value: 'SEDENTARY', label: 'Sedentary (Little/no exercise)' },
-  { value: 'LIGHTLY_ACTIVE', label: 'Lightly Active (1-3 days/week)' },
-  { value: 'ACTIVE', label: 'Active (3-5 days/week)' },
-  { value: 'VERY_ACTIVE', label: 'Very Active (6-7 days/week)' },
-];
 
 export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorkspaceMode }) {
   const {
@@ -177,173 +144,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       window.history.replaceState(null, '', url.pathname + url.search);
     }
   }, [activeSection, setSubTab]);
-
-  // Custom SVG Weight Graph calculations
-  const renderWeightGraph = () => {
-    if (groupedLogs.length === 0) {
-      return (
-        <div className="flex h-48 items-center justify-center border border-dashed border-brand-border rounded-2xl bg-brand-surface/20 text-brand-muted text-xs font-semibold">
-          <TrendingUp className="w-4 h-4 text-brand-green mr-1.5" />
-          <span>Log your weight to generate progress graphs</span>
-        </div>
-      );
-    }
-
-    // Graph Dimensions
-    const width = 500;
-    const height = 180;
-    const padding = 25;
-
-    // Resolve min/max weights for scale
-    const weights = groupedLogs.map((log) => log.weightKg);
-    if (targetWeight > 0) {
-      weights.push(targetWeight);
-    }
-    const maxW = Math.max(...weights) + 4;
-    const minW = Math.max(0, Math.min(...weights) - 4);
-    const rangeW = maxW - minW || 10;
-
-    // Map logs to coordinates
-    const points = groupedLogs.map((log, idx) => {
-      const ratio = groupedLogs.length > 1 ? idx / (groupedLogs.length - 1) : 0.5;
-      const x = padding + ratio * (width - padding * 2);
-      const y = height - padding - ((log.weightKg - minW) / rangeW) * (height - padding * 2);
-      return { x, y, weight: log.weightKg, date: log.dateLabel };
-    });
-
-    // Create Path commands
-    let linePath = '';
-    let areaPath = '';
-    if (points.length > 0) {
-      linePath =
-        `M ${points[0].x} ${points[0].y} ` +
-        points
-          .slice(1)
-          .map((p) => `L ${p.x} ${p.y}`)
-          .join(' ');
-      areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
-    }
-
-    const targetY = targetWeight > 0 ? height - padding - ((targetWeight - minW) / rangeW) * (height - padding * 2) : 0;
-
-    return (
-      <div className="w-full bg-brand-surface/30 border border-brand-border/60 p-4 rounded-2xl shadow-inner relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 blur-3xl pointer-events-none rounded-full" />
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
-          <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--brand-green)" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="var(--brand-green)" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="var(--brand-green)" />
-              <stop offset="100%" stopColor="var(--brand-cyan)" />
-            </linearGradient>
-          </defs>
-
-          {/* Dotted Grid lines */}
-          <line
-            x1={padding}
-            y1={padding}
-            x2={width - padding}
-            y2={padding}
-            stroke="var(--brand-border)"
-            strokeDasharray="3"
-          />
-          <line
-            x1={padding}
-            y1={height / 2}
-            x2={width - padding}
-            y2={height / 2}
-            stroke="var(--brand-border)"
-            strokeDasharray="3"
-          />
-          <line
-            x1={padding}
-            y1={height - padding}
-            x2={width - padding}
-            y2={height - padding}
-            stroke="var(--brand-border)"
-          />
-
-          {/* Target Weight Baseline */}
-          {targetWeight > 0 && targetY > padding && targetY < height - padding && (
-            <>
-              <line
-                x1={padding}
-                y1={targetY}
-                x2={width - padding}
-                y2={targetY}
-                stroke="rgba(239, 68, 68, 0.45)"
-                strokeDasharray="4 4"
-                strokeWidth="1.5"
-              />
-              <text
-                x={width - padding - 6}
-                y={targetY - 5}
-                fill="rgba(239, 68, 68, 0.7)"
-                fontSize="8"
-                fontWeight="black"
-                textAnchor="end"
-              >
-                Target: {targetWeight} kg
-              </text>
-            </>
-          )}
-
-          {/* Filled Area */}
-          {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
-
-          {/* Stroke Line */}
-          {linePath && (
-            <path
-              d={linePath}
-              fill="none"
-              stroke="url(#lineGrad)"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Graph Nodes */}
-          {points.map((p, idx) => (
-            <g key={idx}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r="5"
-                fill="var(--brand-surface)"
-                stroke="var(--brand-green)"
-                strokeWidth="2.5"
-                className="transition-all duration-200 hover:r-7 cursor-pointer"
-              />
-              <text
-                x={p.x}
-                y={p.y - 9}
-                fill="var(--brand-text)"
-                fontSize="8"
-                fontWeight="extrabold"
-                textAnchor="middle"
-              >
-                {p.weight}
-              </text>
-              <text
-                x={p.x}
-                y={height - padding + 13}
-                fill="var(--brand-muted)"
-                fontSize="7"
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                {p.date}
-              </text>
-            </g>
-          ))}
-        </svg>
-      </div>
-    );
-  };
 
   return (
     <div className="portal-page max-w-5xl text-brand-text">
@@ -619,7 +419,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                       )}
                     </div>
                   </div>
-                  {renderWeightGraph()}
+                  <WeightGraph groupedLogs={groupedLogs} targetWeight={targetWeight} />
                 </Card>
               </div>
             </>

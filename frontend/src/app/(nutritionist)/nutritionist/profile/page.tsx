@@ -270,7 +270,9 @@ export default function NutritionistProfilePage() {
             </div>
 
             <p className="text-xs text-brand-muted leading-relaxed">
-              Your official clinical headshot and handwritten signature were captured during application onboarding and verified by administration. These credentials are permanently locked to ensure clinical accountability and prevent identity spoofing.
+              Your official clinical headshot and handwritten signature were captured during application onboarding and
+              verified by administration. These credentials are permanently locked to ensure clinical accountability and
+              prevent identity spoofing.
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 pt-2">

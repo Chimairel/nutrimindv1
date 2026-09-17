@@ -106,8 +106,7 @@ function PayoutEvidence({ payouts, act }: { payouts: Workspace['payouts']; act: 
                         </span>
                         {profile.payoutAccountName && (
                           <span>
-                            Account Name:{' '}
-                            <strong className="text-brand-text">{profile.payoutAccountName}</strong>
+                            Account Name: <strong className="text-brand-text">{profile.payoutAccountName}</strong>
                           </span>
                         )}
                       </div>
@@ -163,9 +162,7 @@ function rejectAdjustment(id: string, act: CompensationAction) {
 }
 
 function recordPayout(id: string, act: CompensationAction) {
-  const externalReference = window.prompt(
-    'Enter GCash / Maya / Bank reference number (e.g. GCash Ref 1029384756):'
-  );
+  const externalReference = window.prompt('Enter GCash / Maya / Bank reference number (e.g. GCash Ref 1029384756):');
   if (externalReference)
     void act(
       `payout-record-${id}`,

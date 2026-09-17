@@ -8,7 +8,9 @@ describe('UnauthorizedState Component', () => {
 
     expect(screen.getByText('Nutrition Report Pending')).toBeInTheDocument();
     expect(
-      screen.getByText('Please review and acknowledge your personalized nutrition report before accessing this feature.')
+      screen.getByText(
+        'Please review and acknowledge your personalized nutrition report before accessing this feature.'
+      )
     ).toBeInTheDocument();
     const actionLink = screen.getByRole('link', { name: /view nutrition report/i });
     expect(actionLink).toHaveAttribute('href', '/profile/nutrition-report');

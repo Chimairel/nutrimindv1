@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  CheckCircle2,
-  Clock3,
-  Edit2,
-  Plus,
-  Receipt,
-  ShieldCheck,
-  WalletCards,
-} from 'lucide-react';
+import { CheckCircle2, Clock3, Edit2, Plus, Receipt, ShieldCheck, WalletCards } from 'lucide-react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -191,8 +183,9 @@ export default function NutritionistCompensationPage() {
       {/* Outcome neutrality disclosure */}
       <div className="rounded-2xl border border-brand-cyan/20 bg-brand-cyan/5 p-4 text-sm leading-relaxed text-brand-muted">
         <strong className="text-brand-text">Review compensation is outcome-neutral.</strong> A valid completed ordinary
-        review receives the same credit whether it is approved, rejected, or escalated. Claims and expired or abandoned work do
-        not count. Payouts are manually disbursed to your nominated GCash, Maya, or Philippine bank account after each cutoff.
+        review receives the same credit whether it is approved, rejected, or escalated. Claims and expired or abandoned
+        work do not count. Payouts are manually disbursed to your nominated GCash, Maya, or Philippine bank account
+        after each cutoff.
       </div>
 
       {/* Metric Cards */}
@@ -268,8 +261,7 @@ export default function NutritionistCompensationPage() {
                   </span>
                 </div>
                 <span className="text-xs text-brand-muted">
-                  Registered Name:{' '}
-                  <strong className="text-brand-text">{data.payoutMethod.accountName}</strong>
+                  Registered Name: <strong className="text-brand-text">{data.payoutMethod.accountName}</strong>
                 </span>
               </div>
               <p className="mt-3 text-[11px] text-brand-muted">
@@ -405,12 +397,7 @@ export default function NutritionistCompensationPage() {
         description="Nominate your GCash, Maya, or Philippine bank account for manual off-platform payouts."
         footer={
           <div className="flex items-center justify-end gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={savingPayout}
-              onClick={() => setIsModalOpen(false)}
-            >
+            <Button type="button" variant="secondary" disabled={savingPayout} onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" form="payout-method-form" isLoading={savingPayout}>
@@ -451,9 +438,7 @@ export default function NutritionistCompensationPage() {
 
           {payoutForm.channel === 'OTHER' && (
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-brand-muted">
-                Bank Name
-              </label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-brand-muted">Bank Name</label>
               <input
                 type="text"
                 required
@@ -488,9 +473,7 @@ export default function NutritionistCompensationPage() {
               type="text"
               required
               placeholder={
-                payoutForm.channel === 'GCASH' || payoutForm.channel === 'MAYA'
-                  ? 'e.g. 09171234567'
-                  : 'e.g. 1234567890'
+                payoutForm.channel === 'GCASH' || payoutForm.channel === 'MAYA' ? 'e.g. 09171234567' : 'e.g. 1234567890'
               }
               value={payoutForm.accountNumber}
               onChange={(e) => setPayoutForm((prev) => ({ ...prev, accountNumber: e.target.value }))}

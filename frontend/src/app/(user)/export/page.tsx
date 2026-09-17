@@ -124,7 +124,7 @@ export default function NutritionExportPage() {
 
   const isReportPending = Boolean(
     (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-      (error && error.toLowerCase().includes('nutrition report'))
+    (error && error.toLowerCase().includes('nutrition report'))
   );
 
   if (isReportPending) {

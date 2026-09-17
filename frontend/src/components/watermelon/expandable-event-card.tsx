@@ -47,10 +47,7 @@ export default function ExpandableEventCard({
           >
             {title}
           </motion.h3>
-          <motion.p
-            layoutId={`desc-${layoutId}`}
-            className="text-brand-muted text-xs tracking-wide line-clamp-2"
-          >
+          <motion.p layoutId={`desc-${layoutId}`} className="text-brand-muted text-xs tracking-wide line-clamp-2">
             {description}
           </motion.p>
           {children}

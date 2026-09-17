@@ -62,10 +62,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const isReportAcknowledged = Boolean(
           nutritionReport?.acknowledgedAt &&
-            !nutritionReport?.isStale &&
-            (nutritionReport?.profileRevision === undefined ||
-              userProfile?.revision === undefined ||
-              nutritionReport?.profileRevision === userProfile?.revision)
+          !nutritionReport?.isStale &&
+          (nutritionReport?.profileRevision === undefined ||
+            userProfile?.revision === undefined ||
+            nutritionReport?.profileRevision === userProfile?.revision)
         );
 
         const refreshedUser: UserSession = {

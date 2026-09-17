@@ -67,7 +67,13 @@ export default function TopNavigationProgress() {
       const target = anchor.getAttribute('target');
 
       // Only handle valid internal application routes
-      if (!href || href.startsWith('#') || target === '_blank' || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      if (
+        !href ||
+        href.startsWith('#') ||
+        target === '_blank' ||
+        href.startsWith('mailto:') ||
+        href.startsWith('tel:')
+      ) {
         return;
       }
 

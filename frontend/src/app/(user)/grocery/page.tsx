@@ -216,7 +216,7 @@ export default function GroceryListPage() {
 
   const isReportPending = Boolean(
     (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-      (error && error.toLowerCase().includes('nutrition report'))
+    (error && error.toLowerCase().includes('nutrition report'))
   );
 
   return (

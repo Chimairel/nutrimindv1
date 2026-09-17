@@ -3905,3 +3905,7 @@ This section is a continuity record for agreed future work. Every item below is 
   - Typecheck and Linters: 0 errors, 0 warnings across both frontend and backend.
   - Synchronized across main repository and Codex worktree.
 
+## 85. Signature and replacement-review follow-up (2026-09-17)
+
+Preserved Antigravity's latest UI while fixing signature capture/confirmation, application media validation and request limits, the missing identity/payout migration, and replacement approval inheritance. Extracted oversized modules and restored formatting compliance. Frontend: 190 tests passed. Backend: 527 passed with one existing TODO. See [audit evidence and explicit limits](ANTIGRAVITY_SIGNATURE_AUDIT_2026-09-17.md), including disposable-database acceptance and the scoped mobile browser check.
+

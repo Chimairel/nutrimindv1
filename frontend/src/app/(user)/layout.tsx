@@ -14,10 +14,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
 
   const isReportPending = Boolean(
-    user?.onboardingDone &&
-      user?.tosAccepted &&
-      !user?.reportAcknowledged &&
-      !pathname?.includes('nutrition-report')
+    user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged && !pathname?.includes('nutrition-report')
   );
 
   return (

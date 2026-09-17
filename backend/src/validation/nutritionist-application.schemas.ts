@@ -31,8 +31,16 @@ export const nutritionistApplicationSchema = z
       40,
       'Professional background must be at least 40 characters.'
     ),
-    officialHeadshot: z.string().trim().max(1000000).optional(),
-    digitalSignature: z.string().trim().max(500000).optional(),
+    officialHeadshot: z
+      .string()
+      .trim()
+      .max(1000000)
+      .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'A captured PNG or JPEG headshot is required.'),
+    digitalSignature: z
+      .string()
+      .trim()
+      .max(500000)
+      .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/, 'A confirmed PNG handwritten signature is required.'),
     availableCallSlots: z
       .array(isoFutureDate('Call availability'))
       .min(2, 'Provide at least two available call schedules.')

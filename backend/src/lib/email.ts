@@ -90,7 +90,14 @@ interface EmailLayoutOptions {
  * Renders a consistent, mobile-responsive HTML email in KAINARA's signature obsidian/emerald/lime theme.
  */
 function renderKainaraEmailLayout(options: EmailLayoutOptions): string {
-  const { title, kicker = 'Clinical Nutrition Intelligence', recipientName, contentHtml, ctaButton, footerNote } = options;
+  const {
+    title,
+    kicker = 'Clinical Nutrition Intelligence',
+    recipientName,
+    contentHtml,
+    ctaButton,
+    footerNote,
+  } = options;
   const currentYear = new Date().getFullYear();
 
   return `<!DOCTYPE html>
@@ -347,9 +354,7 @@ export interface NutritionistCallScheduledEmailParams {
 /**
  * Sends the applicant an email when the administrator schedules their 1-on-1 verification call.
  */
-export async function sendNutritionistCallScheduledEmail(
-  params: NutritionistCallScheduledEmailParams
-): Promise<void> {
+export async function sendNutritionistCallScheduledEmail(params: NutritionistCallScheduledEmailParams): Promise<void> {
   const { to, applicantName, referenceCode, scheduledCallAt, meetingUrl } = params;
   if (
     await captureTestMail({
@@ -585,4 +590,3 @@ export async function verifyEmailTransporter(): Promise<boolean> {
     return false;
   }
 }
-

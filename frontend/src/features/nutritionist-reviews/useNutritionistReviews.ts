@@ -272,7 +272,9 @@ export function useNutritionistReviews() {
       }
     } catch (err: unknown) {
       console.error('Generate candidate failed:', err);
-      setErrorMsg(getApiErrorMessage(err, 'Failed to generate replacement candidate. Please check the rejection reason.'));
+      setErrorMsg(
+        getApiErrorMessage(err, 'Failed to generate replacement candidate. Please check the rejection reason.')
+      );
     } finally {
       setIsGeneratingCandidate(false);
     }

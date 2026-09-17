@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Eraser, PenTool, ShieldCheck, CheckCircle2, RotateCcw, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -14,35 +14,44 @@ interface SignaturePadProps {
 export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
   const sigRef = useRef<SignatureCanvas>(null);
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [isConfirmed, setIsConfirmed] = useState(Boolean(value));
+  const isConfirmed = Boolean(value);
+  const [captureError, setCaptureError] = useState<string | null>(null);
 
-  // Sync confirmed state when external value changes
-  useEffect(() => {
-    if (value) {
-      setIsConfirmed(true);
+  const alignDrawingCoordinates = useCallback(() => {
+    const canvas = sigRef.current?.getCanvas();
+    if (!canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    if (bounds.width && bounds.height) {
+      // The fixed bitmap survives resizing; pointer coordinates are measured in CSS pixels.
+      canvas.getContext('2d')?.setTransform(canvas.width / bounds.width, 0, 0, canvas.height / bounds.height, 0, 0);
     }
-  }, [value]);
+  }, []);
 
   const handleBegin = useCallback(() => {
+    setCaptureError(null);
     setHasDrawn(true);
   }, []);
 
   const handleStrokeEnd = useCallback(() => {
     if (sigRef.current && !sigRef.current.isEmpty()) {
       setHasDrawn(true);
-      const trimmedCanvas = sigRef.current.getTrimmedCanvas();
-      const dataUrl = trimmedCanvas.toDataURL('image/png');
-      // Auto-propagate to form state so field is never empty once drawn
-      onChange(dataUrl);
     }
-  }, [onChange]);
+  }, []);
 
   const handleConfirm = useCallback(() => {
     if (sigRef.current && !sigRef.current.isEmpty()) {
-      const trimmedCanvas = sigRef.current.getTrimmedCanvas();
-      const dataUrl = trimmedCanvas.toDataURL('image/png');
-      onChange(dataUrl);
-      setIsConfirmed(true);
+      try {
+        // Export directly: the wrapper's trim-canvas ESM interop can throw before onChange.
+        const dataUrl = sigRef.current.getCanvas().toDataURL('image/png');
+        if (!dataUrl.startsWith('data:image/png;base64,')) throw new Error('Empty image');
+        onChange(dataUrl);
+        setCaptureError(null);
+      } catch {
+        setCaptureError('Your signature could not be saved. Please tap Confirm Signature again.');
+      }
+    } else {
+      setHasDrawn(false);
+      setCaptureError('Draw your signature before confirming it.');
     }
   }, [onChange]);
 
@@ -51,12 +60,12 @@ export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
       sigRef.current.clear();
     }
     setHasDrawn(false);
-    setIsConfirmed(false);
+    setCaptureError(null);
     onChange('');
   }, [onChange]);
 
   const handleRedraw = useCallback(() => {
-    setIsConfirmed(false);
+    setCaptureError(null);
     setHasDrawn(false);
     onChange('');
   }, [onChange]);
@@ -116,12 +125,19 @@ export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
       ) : (
         /* Interactive Drawing Pad */
         <div className="surface-card relative rounded-2xl border border-brand-border p-4 bg-black/40 overflow-hidden">
-          <div className="relative w-full h-36 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center overflow-hidden touch-none">
+          <div
+            className="relative w-full h-36 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center overflow-hidden touch-none"
+            onMouseDownCapture={alignDrawingCoordinates}
+            onTouchStartCapture={alignDrawingCoordinates}
+          >
             <SignatureCanvas
               ref={sigRef}
+              clearOnResize={false}
               penColor="#34d399"
               backgroundColor="rgba(0,0,0,0)"
               canvasProps={{
+                width: 900,
+                height: 360,
                 className: 'w-full h-full cursor-crosshair select-none',
                 style: { width: '100%', height: '100%' },
                 'aria-label': 'Digital signature drawing pad',
@@ -172,9 +188,9 @@ export function SignaturePad({ value, onChange, error }: SignaturePadProps) {
         </div>
       )}
 
-      {error && (
+      {(captureError || error) && (
         <p role="alert" className="text-xs font-semibold text-status-error-text">
-          {error}
+          {captureError || error}
         </p>
       )}
     </div>

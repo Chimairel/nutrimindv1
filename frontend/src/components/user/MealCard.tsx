@@ -301,371 +301,391 @@ export default function MealCard({
           <AnimatePresence>
             {isOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md"
-            />
-
-            {/* Expanded Modal Card */}
-            <motion.div
-              layoutId={layoutId}
-              className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-brand-border/80 bg-brand-surface shadow-2xl max-h-[92vh] flex flex-col text-left select-none"
-            >
-              {/* Floating Close Button */}
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white backdrop-blur-md hover:bg-black/90 transition-colors shadow-lg"
-                aria-label="Close modal"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              {/* Hero Image Container */}
-              <div className="relative h-48 sm:h-64 w-full shrink-0 overflow-hidden">
-                <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
-                  <MealImage
-                    image={image}
-                    mealName={mealName}
-                    mealType={mealType}
-                    className="h-full w-full rounded-none"
-                    variant="hero"
-                    ingredients={ingredients}
-                  />
-                </motion.div>
-                <MealVerificationBadge
-                  status={status}
-                  hasVerifier={Boolean(verifier)}
-                  className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10"
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsOpen(false)}
+                  className="fixed inset-0 bg-black/80 backdrop-blur-md"
                 />
-              </div>
 
-              {/* Modal Body */}
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.2 }}
-                className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4 sm:gap-5"
-              >
-                {/* Header / Meta Row */}
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <Icon className="h-4 w-4 text-brand-green" />
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-brand-muted">
-                      {activeLabel.label}
-                    </span>
-                    {scheduledDate && (
-                      <>
-                        <span className="text-xs text-brand-muted">·</span>
-                        <span className="flex items-center gap-1 text-xs font-semibold text-brand-muted">
-                          <CalendarDays className="h-3 w-3" />
-                          {scheduledDate}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <motion.h3
-                    layoutId={`title-${layoutId}`}
-                    className="text-xl sm:text-2xl font-black font-display text-brand-text tracking-tight leading-tight"
-                  >
-                    {mealName}
-                  </motion.h3>
-                  <span className="text-xs font-bold text-brand-muted mt-1 block">
-                    {Math.round(calories)} kcal Total Energy
-                  </span>
-                </div>
-
-                {/* Macro Badges Grid */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  <div
-                    className="border rounded-2xl p-2.5 sm:p-3 text-center"
-                    style={{
-                      backgroundColor: 'var(--macro-protein-bg)',
-                      borderColor: 'var(--macro-protein-border)',
-                    }}
-                  >
-                    <span className="block text-base font-extrabold font-display" style={{ color: 'var(--macro-protein)' }}>
-                      {Math.round(proteinG)}g
-                    </span>
-                    <span className="block text-[9px] uppercase font-bold mt-0.5" style={{ color: 'var(--macro-protein)' }}>
-                      Protein
-                    </span>
-                  </div>
-
-                  <div
-                    className="border rounded-2xl p-2.5 sm:p-3 text-center"
-                    style={{
-                      backgroundColor: 'var(--macro-carbs-bg)',
-                      borderColor: 'var(--macro-carbs-border)',
-                    }}
-                  >
-                    <span className="block text-base font-extrabold font-display" style={{ color: 'var(--macro-carbs)' }}>
-                      {Math.round(carbsG)}g
-                    </span>
-                    <span className="block text-[9px] uppercase font-bold mt-0.5" style={{ color: 'var(--macro-carbs)' }}>
-                      Carbs
-                    </span>
-                  </div>
-
-                  <div
-                    className="border rounded-2xl p-2.5 sm:p-3 text-center"
-                    style={{
-                      backgroundColor: 'var(--macro-fat-bg)',
-                      borderColor: 'var(--macro-fat-border)',
-                    }}
-                  >
-                    <span className="block text-base font-extrabold font-display" style={{ color: 'var(--macro-fat)' }}>
-                      {Math.round(fatG)}g
-                    </span>
-                    <span className="block text-[9px] uppercase font-bold mt-0.5" style={{ color: 'var(--macro-fat)' }}>
-                      Fat
-                    </span>
-                  </div>
-                </div>
-
-                {/* Description Text */}
-                <p className="text-xs text-brand-muted leading-relaxed">
-                  {description ||
-                    'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
-                </p>
-
-                {explanation && (
-                  <section
-                    className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
-                    aria-label="Why this meal"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-xs font-extrabold text-brand-text">
-                        <ListChecks className="h-4 w-4 text-brand-green" />
-                        Why this meal?
-                      </div>
-                      {verifier && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-extrabold text-brand-green border border-brand-green/20">
-                          <ShieldCheck className="h-3 w-3" /> RND Supervised
-                        </span>
-                      )}
-                    </div>
-                    <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
-                      {explanation.bullets.map((bullet) => {
-                        const isReviewerBullet =
-                          verifier && bullet.toLowerCase().includes('reviewed by');
-                        return (
-                          <li key={bullet} className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2 min-w-0">
-                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
-                              <span className="break-words">{bullet}</span>
-                            </div>
-                            {isReviewerBullet && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setVerifierModalTab('notes');
-                                  setIsOpen(false);
-                                  setIsVerifierOpen(true);
-                                }}
-                                className="shrink-0 text-[10px] font-bold text-brand-green hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
-                              >
-                                View Review &amp; Notes ↗
-                              </button>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    {explanation.limitation && (
-                      <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
-                        {explanation.limitation}
-                      </p>
-                    )}
-                  </section>
-                )}
-
-                {verifier && (
+                {/* Expanded Modal Card */}
+                <motion.div
+                  layoutId={layoutId}
+                  className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-brand-border/80 bg-brand-surface shadow-2xl max-h-[92vh] flex flex-col text-left select-none"
+                >
+                  {/* Floating Close Button */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setVerifierModalTab('card');
-                      setIsOpen(false);
-                      setIsVerifierOpen(true);
-                    }}
-                    className="group relative flex w-full flex-col gap-2.5 rounded-2xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-3.5 text-left transition hover:border-brand-green/60 hover:shadow-sm"
-                    aria-label={`View clinical credentials for ${verifier.name}`}
+                    onClick={() => setIsOpen(false)}
+                    className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white backdrop-blur-md hover:bg-black/90 transition-colors shadow-lg"
+                    aria-label="Close modal"
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {verifier.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={verifier.image}
-                            alt={verifier.name}
-                            className="h-10 w-10 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-xs shrink-0">
-                            {verifier.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .slice(0, 2)
-                              .join('')}
-                          </div>
+                    <X className="h-4 w-4" />
+                  </button>
+
+                  {/* Hero Image Container */}
+                  <div className="relative h-48 sm:h-64 w-full shrink-0 overflow-hidden">
+                    <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
+                      <MealImage
+                        image={image}
+                        mealName={mealName}
+                        mealType={mealType}
+                        className="h-full w-full rounded-none"
+                        variant="hero"
+                        ingredients={ingredients}
+                      />
+                    </motion.div>
+                    <MealVerificationBadge
+                      status={status}
+                      hasVerifier={Boolean(verifier)}
+                      className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10"
+                    />
+                  </div>
+
+                  {/* Modal Body */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4 sm:gap-5"
+                  >
+                    {/* Header / Meta Row */}
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <Icon className="h-4 w-4 text-brand-green" />
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-brand-muted">
+                          {activeLabel.label}
+                        </span>
+                        {scheduledDate && (
+                          <>
+                            <span className="text-xs text-brand-muted">·</span>
+                            <span className="flex items-center gap-1 text-xs font-semibold text-brand-muted">
+                              <CalendarDays className="h-3 w-3" />
+                              {scheduledDate}
+                            </span>
+                          </>
                         )}
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-display font-extrabold text-xs text-brand-text truncate">
-                              {verifier.name.endsWith('RND') ? verifier.name : `${verifier.name}, RND`}
-                            </span>
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-green/15 px-1.5 py-0.5 text-[9px] font-extrabold text-brand-green">
-                              <ShieldCheck className="h-3 w-3" /> PRC-Verified
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-brand-muted truncate">
-                            {verifier.specialization || 'Clinical Dietetics & Nutrition'} • {maskPrcLicenseNumber(verifier.prcLicenseNumber)}
-                          </p>
-                        </div>
                       </div>
-                      <span className="shrink-0 text-[11px] font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                        Credentials ↗
+                      <motion.h3
+                        layoutId={`title-${layoutId}`}
+                        className="text-xl sm:text-2xl font-black font-display text-brand-text tracking-tight leading-tight"
+                      >
+                        {mealName}
+                      </motion.h3>
+                      <span className="text-xs font-bold text-brand-muted mt-1 block">
+                        {Math.round(calories)} kcal Total Energy
                       </span>
                     </div>
 
-                    {nutritionistNote && (
-                      <div className="rounded-xl bg-brand-bgAlt/80 border border-brand-border/60 px-2.5 py-1.5 text-[10px] text-brand-muted italic line-clamp-2">
-                        <span className="font-bold not-italic text-brand-text mr-1">RND Note:</span>
-                        &ldquo;{nutritionistNote}&rdquo;
+                    {/* Macro Badges Grid */}
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                      <div
+                        className="border rounded-2xl p-2.5 sm:p-3 text-center"
+                        style={{
+                          backgroundColor: 'var(--macro-protein-bg)',
+                          borderColor: 'var(--macro-protein-border)',
+                        }}
+                      >
+                        <span
+                          className="block text-base font-extrabold font-display"
+                          style={{ color: 'var(--macro-protein)' }}
+                        >
+                          {Math.round(proteinG)}g
+                        </span>
+                        <span
+                          className="block text-[9px] uppercase font-bold mt-0.5"
+                          style={{ color: 'var(--macro-protein)' }}
+                        >
+                          Protein
+                        </span>
+                      </div>
+
+                      <div
+                        className="border rounded-2xl p-2.5 sm:p-3 text-center"
+                        style={{
+                          backgroundColor: 'var(--macro-carbs-bg)',
+                          borderColor: 'var(--macro-carbs-border)',
+                        }}
+                      >
+                        <span
+                          className="block text-base font-extrabold font-display"
+                          style={{ color: 'var(--macro-carbs)' }}
+                        >
+                          {Math.round(carbsG)}g
+                        </span>
+                        <span
+                          className="block text-[9px] uppercase font-bold mt-0.5"
+                          style={{ color: 'var(--macro-carbs)' }}
+                        >
+                          Carbs
+                        </span>
+                      </div>
+
+                      <div
+                        className="border rounded-2xl p-2.5 sm:p-3 text-center"
+                        style={{
+                          backgroundColor: 'var(--macro-fat-bg)',
+                          borderColor: 'var(--macro-fat-border)',
+                        }}
+                      >
+                        <span
+                          className="block text-base font-extrabold font-display"
+                          style={{ color: 'var(--macro-fat)' }}
+                        >
+                          {Math.round(fatG)}g
+                        </span>
+                        <span
+                          className="block text-[9px] uppercase font-bold mt-0.5"
+                          style={{ color: 'var(--macro-fat)' }}
+                        >
+                          Fat
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Description Text */}
+                    <p className="text-xs text-brand-muted leading-relaxed">
+                      {description ||
+                        'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
+                    </p>
+
+                    {explanation && (
+                      <section
+                        className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
+                        aria-label="Why this meal"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-xs font-extrabold text-brand-text">
+                            <ListChecks className="h-4 w-4 text-brand-green" />
+                            Why this meal?
+                          </div>
+                          {verifier && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-extrabold text-brand-green border border-brand-green/20">
+                              <ShieldCheck className="h-3 w-3" /> RND Supervised
+                            </span>
+                          )}
+                        </div>
+                        <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
+                          {explanation.bullets.map((bullet) => {
+                            const isReviewerBullet = verifier && bullet.toLowerCase().includes('reviewed by');
+                            return (
+                              <li key={bullet} className="flex items-start justify-between gap-2">
+                                <div className="flex items-start gap-2 min-w-0">
+                                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
+                                  <span className="break-words">{bullet}</span>
+                                </div>
+                                {isReviewerBullet && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setVerifierModalTab('notes');
+                                      setIsOpen(false);
+                                      setIsVerifierOpen(true);
+                                    }}
+                                    className="shrink-0 text-[10px] font-bold text-brand-green hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
+                                  >
+                                    View Review &amp; Notes ↗
+                                  </button>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        {explanation.limitation && (
+                          <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
+                            {explanation.limitation}
+                          </p>
+                        )}
+                      </section>
+                    )}
+
+                    {verifier && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVerifierModalTab('card');
+                          setIsOpen(false);
+                          setIsVerifierOpen(true);
+                        }}
+                        className="group relative flex w-full flex-col gap-2.5 rounded-2xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-3.5 text-left transition hover:border-brand-green/60 hover:shadow-sm"
+                        aria-label={`View clinical credentials for ${verifier.name}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {verifier.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={verifier.image}
+                                alt={verifier.name}
+                                className="h-10 w-10 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-xs shrink-0">
+                                {verifier.name
+                                  .split(' ')
+                                  .map((n) => n[0])
+                                  .slice(0, 2)
+                                  .join('')}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-display font-extrabold text-xs text-brand-text truncate">
+                                  {verifier.name.endsWith('RND') ? verifier.name : `${verifier.name}, RND`}
+                                </span>
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-green/15 px-1.5 py-0.5 text-[9px] font-extrabold text-brand-green">
+                                  <ShieldCheck className="h-3 w-3" /> PRC-Verified
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-brand-muted truncate">
+                                {verifier.specialization || 'Clinical Dietetics & Nutrition'} •{' '}
+                                {maskPrcLicenseNumber(verifier.prcLicenseNumber)}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="shrink-0 text-[11px] font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                            Credentials ↗
+                          </span>
+                        </div>
+
+                        {nutritionistNote && (
+                          <div className="rounded-xl bg-brand-bgAlt/80 border border-brand-border/60 px-2.5 py-1.5 text-[10px] text-brand-muted italic line-clamp-2">
+                            <span className="font-bold not-italic text-brand-text mr-1">RND Note:</span>
+                            &ldquo;{nutritionistNote}&rdquo;
+                          </div>
+                        )}
+                      </button>
+                    )}
+
+                    {/* YouTube Cooking Tutorial Helper */}
+                    <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl shrink-0">📺</span>
+                        <div>
+                          <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
+                          <p className="text-[10px] text-brand-muted mt-1 leading-snug">
+                            Watch Filipino cooking tutorials for this dish on YouTube.
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={`https://www.youtube.com/results?search_query=how+to+cook+${encodeURIComponent(mealName)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none"
+                      >
+                        Watch Video
+                      </a>
+                    </div>
+
+                    {/* Ingredients list */}
+                    {ingredients.length > 0 && (
+                      <div>
+                        <span className="text-[9px] tracking-wider font-extrabold text-brand-muted uppercase block mb-2">
+                          Ingredients List
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ingredients.map((ing) => (
+                            <span
+                              key={ing.id}
+                              className="text-[10px] bg-brand-bgAlt border border-brand-border/60 text-brand-text px-2.5 py-1.5 rounded-lg leading-none font-semibold"
+                            >
+                              {ing.ingredientName}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </button>
-                )}
 
-                {/* YouTube Cooking Tutorial Helper */}
-                <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl shrink-0">📺</span>
-                    <div>
-                      <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
-                      <p className="text-[10px] text-brand-muted mt-1 leading-snug">
-                        Watch Filipino cooking tutorials for this dish on YouTube.
-                      </p>
-                    </div>
-                  </div>
-                  <a
-                    href={`https://www.youtube.com/results?search_query=how+to+cook+${encodeURIComponent(mealName)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none"
-                  >
-                    Watch Video
-                  </a>
-                </div>
-
-                {/* Ingredients list */}
-                {ingredients.length > 0 && (
-                  <div>
-                    <span className="text-[9px] tracking-wider font-extrabold text-brand-muted uppercase block mb-2">
-                      Ingredients List
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {ingredients.map((ing) => (
-                        <span
-                          key={ing.id}
-                          className="text-[10px] bg-brand-bgAlt border border-brand-border/60 text-brand-text px-2.5 py-1.5 rounded-lg leading-none font-semibold"
-                        >
-                          {ing.ingredientName}
+                    {/* Clinical Warning Banner (Legal layer 3 & 4) */}
+                    {status === 'PENDING_REVIEW' && (
+                      <div className="p-3 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-[10px] font-semibold leading-relaxed flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>
+                          <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed
+                          Registered Nutritionist-Dietitian. Use with caution.
                         </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Clinical Warning Banner (Legal layer 3 & 4) */}
-                {status === 'PENDING_REVIEW' && (
-                  <div className="p-3 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-[10px] font-semibold leading-relaxed flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered
-                      Nutritionist-Dietitian. Use with caution.
-                    </span>
-                  </div>
-                )}
-
-                {/* Action Buttons Panel */}
-                <div className="border-t border-brand-border/60 pt-4 mt-1">
-                  {isUnloggedPastMeal && !isPastGracePeriod && (
-                    <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
-                      <Clock3 className="h-4 w-4 shrink-0" />
-                      <span>Missed this meal? You can still catch up and record whether you ate or skipped it.</span>
-                    </div>
-                  )}
-                  {isPastGracePeriod && (
-                    <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                      <span>The 7-day logging grace period for this scheduled meal has passed.</span>
-                    </div>
-                  )}
-                  {!isLogged ? (
-                    <div className="flex flex-col gap-3">
-                      {/* Primary: Mark as Eaten */}
-                      <Button
-                        variant="primary"
-                        onClick={() => handleCheckedChange(true)}
-                        disabled={isUpdating || isPastGracePeriod}
-                        className="w-full font-bold py-2.5 text-xs"
-                      >
-                        Mark as Eaten
-                      </Button>
-
-                      {/* Secondary: Swap and Skip side-by-side */}
-                      <div className="flex gap-3">
-                        {onSwapClick && (
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setIsOpen(false);
-                              onSwapClick(id);
-                            }}
-                            disabled={swapsUsed >= swapCap || isPastDate}
-                            className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title={
-                              isPastDate
-                                ? 'Past scheduled meals cannot be swapped.'
-                                : swapsUsed >= swapCap
-                                  ? `You've used all ${swapCap} swaps for this weekly plan.`
-                                  : undefined
-                            }
-                          >
-                            <RefreshCw className="h-3 w-3 animate-spin-hover" /> Swap Meal
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          onClick={handleSkipMeal}
-                          disabled={isUpdating || isPastGracePeriod}
-                          className="flex-1 font-bold text-xs py-2 h-9 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white"
-                        >
-                          Skip Meal
-                        </Button>
                       </div>
+                    )}
+
+                    {/* Action Buttons Panel */}
+                    <div className="border-t border-brand-border/60 pt-4 mt-1">
+                      {isUnloggedPastMeal && !isPastGracePeriod && (
+                        <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
+                          <Clock3 className="h-4 w-4 shrink-0" />
+                          <span>
+                            Missed this meal? You can still catch up and record whether you ate or skipped it.
+                          </span>
+                        </div>
+                      )}
+                      {isPastGracePeriod && (
+                        <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          <span>The 7-day logging grace period for this scheduled meal has passed.</span>
+                        </div>
+                      )}
+                      {!isLogged ? (
+                        <div className="flex flex-col gap-3">
+                          {/* Primary: Mark as Eaten */}
+                          <Button
+                            variant="primary"
+                            onClick={() => handleCheckedChange(true)}
+                            disabled={isUpdating || isPastGracePeriod}
+                            className="w-full font-bold py-2.5 text-xs"
+                          >
+                            Mark as Eaten
+                          </Button>
+
+                          {/* Secondary: Swap and Skip side-by-side */}
+                          <div className="flex gap-3">
+                            {onSwapClick && (
+                              <Button
+                                variant="secondary"
+                                onClick={() => {
+                                  setIsOpen(false);
+                                  onSwapClick(id);
+                                }}
+                                disabled={swapsUsed >= swapCap || isPastDate}
+                                className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title={
+                                  isPastDate
+                                    ? 'Past scheduled meals cannot be swapped.'
+                                    : swapsUsed >= swapCap
+                                      ? `You've used all ${swapCap} swaps for this weekly plan.`
+                                      : undefined
+                                }
+                              >
+                                <RefreshCw className="h-3 w-3 animate-spin-hover" /> Swap Meal
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              onClick={handleSkipMeal}
+                              disabled={isUpdating || isPastGracePeriod}
+                              className="flex-1 font-bold text-xs py-2 h-9 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white"
+                            >
+                              Skip Meal
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* If logged, show Reset Status button */
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleCheckedChange(false)}
+                          disabled={isUpdating || isPastGracePeriod}
+                          className="w-full font-bold py-2.5 text-xs border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50"
+                        >
+                          Reset Meal Status
+                        </Button>
+                      )}
                     </div>
-                  ) : (
-                    /* If logged, show Reset Status button */
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleCheckedChange(false)}
-                      disabled={isUpdating || isPastGracePeriod}
-                      className="w-full font-bold py-2.5 text-xs border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50"
-                    >
-                      Reset Meal Status
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
+                  </motion.div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>,
           document.body

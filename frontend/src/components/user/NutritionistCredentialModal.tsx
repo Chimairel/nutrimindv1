@@ -2,18 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  X,
-  ShieldCheck,
-  User,
-  GraduationCap,
-  Award,
-  Calendar,
-  Clock,
-  Quote,
-  ArrowLeft,
-  FileCheck,
-} from 'lucide-react';
+import { X, ShieldCheck, User, GraduationCap, Award, Calendar, Clock, Quote, ArrowLeft, FileCheck } from 'lucide-react';
 import { KainaraLogo } from '@/components/shared/KainaraLogo';
 
 export interface VerifierData {
@@ -105,10 +94,7 @@ function DietitianAvatarIllustration() {
       <polygon points="58,82 82,82 70,104" fill="#0e382d" />
 
       {/* White Doctor Lab Coat */}
-      <path
-        d="M32 140 L36 100 C38 91 48 85 58 83 L70 102 L82 83 C92 85 102 91 104 100 L108 140 Z"
-        fill="#ffffff"
-      />
+      <path d="M32 140 L36 100 C38 91 48 85 58 83 L70 102 L82 83 C92 85 102 91 104 100 L108 140 Z" fill="#ffffff" />
       {/* Crisp Coat Lapels */}
       <path d="M54 84 L65 108 L57 110 L44 94 Z" fill="#edf2f0" />
       <path d="M86 84 L75 108 L83 110 L96 94 Z" fill="#edf2f0" />
@@ -138,12 +124,8 @@ function DietitianSignature({ name }: { name: string }) {
           <path d="M4 3 Q 55 1, 106 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       </div>
-      <span className="font-sans font-semibold text-[10px] tracking-[0.28em] text-white/80 uppercase mt-1">
-        RND
-      </span>
-      <p className="text-xs text-[#8ea79d] mt-1 font-normal">
-        Better meals. Healthier you.
-      </p>
+      <span className="font-sans font-semibold text-[10px] tracking-[0.28em] text-white/80 uppercase mt-1">RND</span>
+      <p className="text-xs text-[#8ea79d] mt-1 font-normal">Better meals. Healthier you.</p>
     </div>
   );
 }
@@ -217,9 +199,7 @@ export default function NutritionistCredentialModal({
                 type="button"
                 onClick={() => setActiveTab('card')}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
-                  activeTab === 'card'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                  activeTab === 'card' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <ShieldCheck className="h-3.5 w-3.5" /> Nutritionist Profile
@@ -228,9 +208,7 @@ export default function NutritionistCredentialModal({
                 type="button"
                 onClick={() => setActiveTab('notes')}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
-                  activeTab === 'notes'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                  activeTab === 'notes' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <Clock className="h-3.5 w-3.5" /> Clinical Review &amp; Notes
@@ -261,20 +239,11 @@ export default function NutritionistCredentialModal({
               <div className="pointer-events-none absolute -top-0.5 -left-0.5 h-36 w-36 sm:h-44 sm:w-44 overflow-hidden rounded-tl-[28px] sm:rounded-tl-[32px] z-0">
                 <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
                   {/* Outer warm vibrant orange ribbon */}
-                  <path
-                    d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z"
-                    fill="#eb6a38"
-                  />
+                  <path d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z" fill="#eb6a38" />
                   {/* Middle soft peach ribbon */}
-                  <path
-                    d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z"
-                    fill="#f09e6c"
-                  />
+                  <path d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z" fill="#f09e6c" />
                   {/* Inner dark forest green ribbon */}
-                  <path
-                    d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z"
-                    fill="#164639"
-                  />
+                  <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" fill="#164639" />
                 </svg>
               </div>
 
@@ -285,9 +254,7 @@ export default function NutritionistCredentialModal({
                   {/* Brand Header */}
                   <div className="w-full flex items-center justify-start gap-2 pl-2 pt-1">
                     <KainaraLogo size={24} variant="multicolor" />
-                    <span className="font-display font-black text-lg tracking-tight text-white lowercase">
-                      kainara
-                    </span>
+                    <span className="font-display font-black text-lg tracking-tight text-white lowercase">kainara</span>
                   </div>
 
                   {/* Circular Dietitian Portrait */}
@@ -311,9 +278,7 @@ export default function NutritionistCredentialModal({
                     <h3 className="font-display text-xl sm:text-2xl font-bold text-white tracking-tight">
                       {displayName}
                     </h3>
-                    <p className="text-xs font-normal text-[#8ea79d]">
-                      Registered Nutritionist - Dietitian
-                    </p>
+                    <p className="text-xs font-normal text-[#8ea79d]">Registered Nutritionist - Dietitian</p>
 
                     <div className="pt-2 flex justify-center">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1a5c48] bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-[#38c172] shadow-sm">
@@ -337,9 +302,7 @@ export default function NutritionistCredentialModal({
                       <span className="font-sans font-semibold text-[10px] tracking-[0.28em] text-white/80 uppercase mt-1">
                         RND
                       </span>
-                      <p className="text-xs text-[#8ea79d] mt-1 font-normal">
-                        Better meals. Healthier you.
-                      </p>
+                      <p className="text-xs text-[#8ea79d] mt-1 font-normal">Better meals. Healthier you.</p>
                     </div>
                   ) : (
                     <DietitianSignature name={verifier.name} />
@@ -361,8 +324,7 @@ export default function NutritionistCredentialModal({
                       <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-medium text-[#8ea79d]">Specialization</p>
                         <p className="text-sm sm:text-[15px] font-bold text-white leading-snug mt-0.5">
-                          {verifier.specialization ||
-                            'Clinical Nutrition, Weight Management, and Metabolic Health'}
+                          {verifier.specialization || 'Clinical Nutrition, Weight Management, and Metabolic Health'}
                         </p>
                       </div>
                     </div>
@@ -413,9 +375,7 @@ export default function NutritionistCredentialModal({
                         <p className="text-sm sm:text-[15px] font-bold text-white leading-snug mt-0.5">
                           {verifier.yearsOfExperience ?? 5}+ years
                         </p>
-                        <p className="text-xs text-[#8ea79d] font-normal mt-0.5">
-                          in clinical and community nutrition
-                        </p>
+                        <p className="text-xs text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
                       </div>
                     </div>
                   </div>
@@ -424,7 +384,8 @@ export default function NutritionistCredentialModal({
                   <div className="relative pt-2 flex items-end justify-between pr-24">
                     <div className="space-y-1">
                       <p className="text-xs text-[#8ea79d] leading-relaxed">
-                        Supporting your health<br />
+                        Supporting your health
+                        <br />
                         with science-backed nutrition.
                       </p>
                       {nutritionistNote && (
@@ -461,9 +422,7 @@ export default function NutritionistCredentialModal({
                     <h3 className="font-display text-lg font-bold text-white">
                       Clinical Meal Supervision &amp; Adjustments
                     </h3>
-                    <p className="text-xs text-slate-400">
-                      Personalized audit by {displayName}
-                    </p>
+                    <p className="text-xs text-slate-400">Personalized audit by {displayName}</p>
                   </div>
                 </div>
                 <button
@@ -480,9 +439,7 @@ export default function NutritionistCredentialModal({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-emerald-300">
                     <Clock className="h-4 w-4 text-emerald-400" />
-                    {formattedReviewDate
-                      ? `Reviewed on ${formattedReviewDate}`
-                      : 'Reviewed & Certified'}
+                    {formattedReviewDate ? `Reviewed on ${formattedReviewDate}` : 'Reviewed & Certified'}
                   </span>
                   {mealName && (
                     <span className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-xs font-bold text-emerald-300">
@@ -504,7 +461,8 @@ export default function NutritionistCredentialModal({
                 )}
 
                 <p className="text-xs text-slate-400 leading-relaxed pt-1">
-                  Meal composition, macro distribution, and clinical contraindications were audited and approved to ensure compliance with medical dietary guidelines.
+                  Meal composition, macro distribution, and clinical contraindications were audited and approved to
+                  ensure compliance with medical dietary guidelines.
                 </p>
               </div>
 
@@ -514,9 +472,7 @@ export default function NutritionistCredentialModal({
                   <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                     About {verifier.name.replace(/,.*$/, '')}:
                   </p>
-                  <p className="text-xs text-slate-300 leading-relaxed italic">
-                    &ldquo;{verifier.bio}&rdquo;
-                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed italic">&ldquo;{verifier.bio}&rdquo;</p>
                 </div>
               )}
             </div>

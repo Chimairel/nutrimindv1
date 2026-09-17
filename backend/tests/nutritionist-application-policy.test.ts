@@ -21,6 +21,8 @@ const validApplication = {
   professionalBio: 'Registered nutritionist-dietitian with experience in community and clinical nutrition programs.',
   availableCallSlots: [future(2), future(3)],
   consent: true,
+  officialHeadshot: 'data:image/jpeg;base64,/9j/AA==',
+  digitalSignature: 'data:image/png;base64,iVBORw0KGgo=',
 };
 
 test('[TEST-067] nutritionist application accepts a complete professional application and normalizes email', () => {

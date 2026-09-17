@@ -19,7 +19,9 @@ export const applicantIdentitySchema = z.object({
   phoneNumber: text('Phone number', 30).regex(/^\+?[0-9 ()-]{7,25}$/, 'Enter a valid phone number.'),
   officialHeadshot: z
     .string()
-    .min(1, 'Live photo verification is required. Please capture your photo using your camera.'),
+    .min(1, 'Live photo verification is required. Please capture your photo using your camera.')
+    .max(1000000, 'Photo is too large. Please capture it again.')
+    .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'Capture a PNG or JPEG photo.'),
 });
 
 export const applicantCredentialSchema = z.object({
@@ -33,7 +35,9 @@ export const applicantCredentialSchema = z.object({
   specialization: text('Specialization', 120).min(2, 'Specialization must be at least 2 characters.'),
   digitalSignature: z
     .string()
-    .min(1, 'Digital handwritten signature is required. Please draw and confirm your signature in the box provided.'),
+    .min(1, 'Digital handwritten signature is required. Please draw and confirm your signature in the box provided.')
+    .max(500000, 'Signature is too large. Please clear and redraw it.')
+    .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/, 'Draw and confirm a PNG signature.'),
 });
 
 export const applicantProfileSchema = z.object({

@@ -46,23 +46,13 @@ describe('MealCard', () => {
   });
 
   it('renders Eaten status badge when meal is marked as DONE', () => {
-    render(
-      <MealCard
-        {...defaultProps}
-        mealLogs={[{ id: 'log-1', status: 'DONE' }]}
-      />
-    );
+    render(<MealCard {...defaultProps} mealLogs={[{ id: 'log-1', status: 'DONE' }]} />);
 
     expect(screen.getByText('Eaten')).toBeInTheDocument();
   });
 
   it('renders Skipped status badge when meal is marked as SKIPPED', () => {
-    render(
-      <MealCard
-        {...defaultProps}
-        mealLogs={[{ id: 'log-2', status: 'SKIPPED' }]}
-      />
-    );
+    render(<MealCard {...defaultProps} mealLogs={[{ id: 'log-2', status: 'SKIPPED' }]} />);
 
     expect(screen.getByText('Skipped')).toBeInTheDocument();
   });
@@ -121,4 +111,3 @@ describe('MealCard', () => {
     expect(screen.getByText('UP Diliman')).toBeInTheDocument();
   });
 });
-

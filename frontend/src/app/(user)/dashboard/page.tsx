@@ -201,7 +201,7 @@ export default function DashboardPage() {
 
   const isReportPending = Boolean(
     (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
-      (error && error.toLowerCase().includes('nutrition report'))
+    (error && error.toLowerCase().includes('nutrition report'))
   );
 
   // Load active plan meals

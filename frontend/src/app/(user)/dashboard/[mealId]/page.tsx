@@ -295,8 +295,7 @@ export default function MealDetailPage() {
               </div>
               <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
                 {meal.explanation.bullets.map((bullet) => {
-                  const isReviewerBullet =
-                    meal.verifier && bullet.toLowerCase().includes('reviewed by');
+                  const isReviewerBullet = meal.verifier && bullet.toLowerCase().includes('reviewed by');
                   return (
                     <li key={bullet} className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2 min-w-0">
@@ -365,7 +364,8 @@ export default function MealDetailPage() {
                       </span>
                     </div>
                     <p className="text-[10px] text-brand-muted truncate">
-                      {meal.verifier.specialization || 'Clinical Dietetics & Nutrition'} • {maskPrcLicenseNumber(meal.verifier.prcLicenseNumber)}
+                      {meal.verifier.specialization || 'Clinical Dietetics & Nutrition'} •{' '}
+                      {maskPrcLicenseNumber(meal.verifier.prcLicenseNumber)}
                     </p>
                   </div>
                 </div>

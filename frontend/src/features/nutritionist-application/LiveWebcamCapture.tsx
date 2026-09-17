@@ -221,8 +221,8 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
               Live Photo Captured &amp; Verified
             </h4>
             <p className="text-xs text-brand-muted leading-relaxed">
-              This photo will be displayed on your verified meal credentials. Once your application is approved by Admin,
-              this official verification photo is locked and cannot be changed.
+              This photo will be displayed on your verified meal credentials. Once your application is approved by
+              Admin, this official verification photo is locked and cannot be changed.
             </p>
             <div className="pt-1">
               <Button type="button" variant="secondary" size="sm" onClick={retake} className="text-xs font-bold">
@@ -316,9 +316,7 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
               {/* Live Countdown Overlay */}
               {countdown !== null && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
-                  <span className="font-display font-black text-6xl text-white animate-ping">
-                    {countdown}
-                  </span>
+                  <span className="font-display font-black text-6xl text-white animate-ping">{countdown}</span>
                 </div>
               )}
             </div>

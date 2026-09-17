@@ -78,14 +78,12 @@ export default function UnauthorizedState({
             {title}
           </h2>
 
-          <p className="mb-6 text-sm sm:text-base leading-relaxed text-brand-muted">
-            {description}
-          </p>
+          <p className="mb-6 text-sm sm:text-base leading-relaxed text-brand-muted">{description}</p>
 
           {(action || secondaryAction) && (
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 w-full sm:w-auto">
-              {action && (
-                action.href ? (
+              {action &&
+                (action.href ? (
                   <Link href={action.href} className="w-full sm:w-auto">
                     <Button variant="primary" className={`w-full sm:min-w-[180px] ${action.className || ''}`}>
                       {action.label}
@@ -99,11 +97,10 @@ export default function UnauthorizedState({
                   >
                     {action.label}
                   </Button>
-                )
-              )}
+                ))}
 
-              {secondaryAction && (
-                secondaryAction.href ? (
+              {secondaryAction &&
+                (secondaryAction.href ? (
                   <Link href={secondaryAction.href} className="w-full sm:w-auto">
                     <Button
                       variant="secondary"
@@ -120,8 +117,7 @@ export default function UnauthorizedState({
                   >
                     {secondaryAction.label}
                   </Button>
-                )
-              )}
+                ))}
             </div>
           )}
         </div>

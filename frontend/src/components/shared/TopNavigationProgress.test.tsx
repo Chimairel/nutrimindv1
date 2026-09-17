@@ -43,7 +43,9 @@ describe('TopNavigationProgress', () => {
     render(
       <div>
         <TopNavigationProgress />
-        <a href="https://example.com" target="_blank" rel="noreferrer">External</a>
+        <a href="https://example.com" target="_blank" rel="noreferrer">
+          External
+        </a>
         <a href="#section">Hash</a>
       </div>
     );

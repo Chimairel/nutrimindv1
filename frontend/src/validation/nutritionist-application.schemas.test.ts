@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  applicantCredentialSchema,
-  applicantIdentitySchema,
-} from './nutritionist-application.schemas';
+import { applicantCredentialSchema, applicantIdentitySchema } from './nutritionist-application.schemas';
 
 describe('nutritionist application schema validation', () => {
   describe('applicantIdentitySchema', () => {
@@ -25,7 +22,7 @@ describe('nutritionist application schema validation', () => {
         fullName: 'Maria Santos',
         email: 'maria.santos@rnd.ph',
         phoneNumber: '+63 917 123 4567',
-        officialHeadshot: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...',
+        officialHeadshot: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD=',
       });
 
       expect(result.success).toBe(true);
@@ -52,7 +49,7 @@ describe('nutritionist application schema validation', () => {
         prcLicenseNumber: '0098765',
         prcLicenseExpiry: '2029-12-31',
         specialization: 'Clinical Renal Nutrition',
-        digitalSignature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMg...',
+        digitalSignature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMg=',
       });
 
       expect(result.success).toBe(true);

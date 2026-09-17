@@ -391,10 +391,7 @@ router.patch(
   validateZodBody(updatePayoutMethodSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const data = await NutritionistCompensationService.updatePayoutMethod(
-        req.nutritionistProfileId!,
-        req.body
-      );
+      const data = await NutritionistCompensationService.updatePayoutMethod(req.nutritionistProfileId!, req.body);
       return res.status(200).json({ success: true, data });
     } catch (error: unknown) {
       return res

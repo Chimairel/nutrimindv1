@@ -59,9 +59,7 @@ describe('NutritionistCredentialModal', () => {
 
     // Review Notes & Date
     expect(screen.getByText(/Reviewed on/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Adjusted sodium levels down to match hypertension guidelines\./i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Adjusted sodium levels down to match hypertension guidelines\./i)).toBeInTheDocument();
 
     // Close button
     const closeBtn = screen.getByRole('button', { name: /close credential details/i });
@@ -75,13 +73,7 @@ describe('NutritionistCredentialModal', () => {
       image: null,
     };
 
-    render(
-      <NutritionistCredentialModal
-        isOpen={true}
-        onClose={() => {}}
-        verifier={verifierWithoutImg}
-      />
-    );
+    render(<NutritionistCredentialModal isOpen={true} onClose={() => {}} verifier={verifierWithoutImg} />);
 
     expect(screen.getByText(/Andrea Reyes, RND/i)).toBeInTheDocument();
     const svgs = document.querySelectorAll('svg');
@@ -95,13 +87,7 @@ describe('NutritionistCredentialModal', () => {
       digitalSignature: 'data:image/png;base64,mocksignatureimage456',
     };
 
-    render(
-      <NutritionistCredentialModal
-        isOpen={true}
-        onClose={() => {}}
-        verifier={verifierWithBiometrics}
-      />
-    );
+    render(<NutritionistCredentialModal isOpen={true} onClose={() => {}} verifier={verifierWithBiometrics} />);
 
     const headshot = screen.getByAltText('Andrea Reyes');
     expect(headshot).toHaveAttribute('src', verifierWithBiometrics.officialHeadshot);
@@ -112,11 +98,7 @@ describe('NutritionistCredentialModal', () => {
 
   it('does not render when isOpen is false', () => {
     const { container } = render(
-      <NutritionistCredentialModal
-        isOpen={false}
-        onClose={() => {}}
-        verifier={mockVerifier}
-      />
+      <NutritionistCredentialModal isOpen={false} onClose={() => {}} verifier={mockVerifier} />
     );
 
     expect(container).toBeEmptyDOMElement();

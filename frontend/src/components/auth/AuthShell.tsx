@@ -156,9 +156,7 @@ export default function AuthShell({
                 <h2 className="mt-1 font-display text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-neutral-900">
                   {title}
                 </h2>
-                <p className="mt-1 text-xs sm:text-sm text-neutral-500 leading-relaxed">
-                  {description}
-                </p>
+                <p className="mt-1 text-xs sm:text-sm text-neutral-500 leading-relaxed">{description}</p>
               </div>
               {children}
             </div>

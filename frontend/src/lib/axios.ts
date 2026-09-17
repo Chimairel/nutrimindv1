@@ -119,11 +119,7 @@ api.interceptors.response.use(
         try {
           // Send refresh request — the HttpOnly cookie is sent automatically
           // by the browser because withCredentials is true on the api instance.
-          const refreshResponse = await axios.post(
-            `${getApiBaseUrl()}/auth/refresh`,
-            {},
-            { withCredentials: true }
-          );
+          const refreshResponse = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {}, { withCredentials: true });
 
           if (refreshResponse.data && refreshResponse.data.success) {
             const { accessToken } = refreshResponse.data.data;

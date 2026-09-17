@@ -11,13 +11,7 @@ interface PortalPageHeaderProps {
   className?: string;
 }
 
-export default function PortalPageHeader({
-  title,
-  description,
-  actions,
-  meta,
-  className = '',
-}: PortalPageHeaderProps) {
+export default function PortalPageHeader({ title, description, actions, meta, className = '' }: PortalPageHeaderProps) {
   return (
     <header className={`workspace-header ${className}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
