@@ -399,6 +399,72 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - ESLint check: passed with 0 errors and 0 warnings.
   - Backend test suite: 521 passed with 0 failures.
 
+---
+
+## 📅 ADDENDUM 20: ONBOARDING PLAN GENERATION DECOUPLING & DIRECT DASHBOARD REDIRECT (September 2026)
+*Decoupled mandatory onboarding completion from automatic meal plan generation, directing new users straight to their dashboard so they can inspect their clinical report and choose when to generate plans.*
+
+- **Dashboard Redirect on Onboarding Completion (`tos/page.tsx`):**
+  - Removed automatic background meal-generation trigger upon Terms of Service agreement.
+  - Users are now routed directly to `/dashboard` upon finishing onboarding, preserving their autonomy to review their clinical nutrition report first before generating a 7-day or starter meal plan.
+
+---
+
+## 📅 ADDENDUM 21: FOOD & PLANNING PROFILE OVERHAUL & THREE-STOP LOCALITY CONTROLS (September 2026)
+*Overhauled the food and planning profile view, integrated the clinical nutrition report directly into profile tabs, and added a 3-stop geographical locality slider.*
+
+- **Three-Stop Locality Preferences (`MealLocalityPreferenceControl.tsx`):**
+  - Added interactive 3-stop locality control (`National`, `Regional`, `Provincial/Local`) reflecting Philippine sourcing and food availability.
+  - Linked locality controls with region and province selection models, ensuring valid geographic boundaries are enforced before unlocking localized meal suggestions.
+- **Nutrition Report Integration in Profile (`features/reports/NutritionReportWorkspace.tsx`):**
+  - Consolidated `/profile/nutrition-report` and `/nutrition-report` into a single reusable `NutritionReportWorkspace`.
+  - Added report history versioning tabs, PDF export preview, and clinical disclaimer acknowledgment gating.
+
+---
+
+## 📅 ADDENDUM 22: UNIVERSAL TERRACOTTA ACTION BANNER (`AnnouncementBanner`) (September 2026)
+*Standardized system-wide urgent action announcements by reusing the high-visibility terracotta/coral banner design originally crafted for unverified meals.*
+
+- **Reusable Component (`AnnouncementBanner.tsx`):**
+  - Created a modular `AnnouncementBanner` featuring high-contrast terracotta borders (`border-[#c85a32]/40`), warm translucent background (`bg-[#c85a32]/10`), coral alert icons, and primary action call-to-actions.
+  - Replaced ad-hoc yellow/amber alert boxes across the user portal with the unified terracotta banner.
+- **Fixed Top Placement in User Shell (`UserLayout.tsx`):**
+  - Pinned the `AnnouncementBanner` directly beneath the top `Navbar` and outside the scrollable `<main>` container, ensuring critical notices (such as required nutrition report acknowledgment) remain permanently visible during scrolling.
+  - Cleaned up page headers across `/dashboard`, `/meals`, `/grocery`, and `/progress` by stripping redundant green icons and eyebrow tags ("Daily overview", "Personal meal intelligence", etc.).
+
+---
+
+## 📅 ADDENDUM 23: REUSABLE FLOATING UNAUTHORIZED STATE COMPONENT (September 2026)
+*Created a reusable, floating graphic state using `unauthorized.svg` for clinical report gating and platform-wide RBAC access restriction.*
+
+- **Floating Component Architecture (`UnauthorizedState.tsx`):**
+  - Built a borderless, card-free floating container pairing the enlarged vector illustration (`/logo/unauthorized.svg`, 380px–400px responsive) with right-aligned titles, explanatory descriptions, and actionable button groups.
+  - Supports both clinical gate variants (report acknowledgment required) and RBAC unauthorized variants (access denied for nutritionist/admin portals) with custom action callbacks.
+- **Automated Verification:**
+  - Added comprehensive unit tests (`UnauthorizedState.test.tsx`) testing default report-pending state, custom props, and RBAC action callbacks.
+
+---
+
+## 📅 ADDENDUM 24: REPORT PREREQUISITE REVISION SYNC, FLICKER ELIMINATION & DARK MODE FLOATING SHADOWS (September 2026)
+*Synchronized profile revision tracking between backend prerequisites and client auth context, eliminated split-second empty plan flashes on tab switch, and created 3D floating shadows with luminous ambient elevation in dark mode.*
+
+- **Prerequisite Revision Synchronization (`user-profile.service.ts`, `AuthContext.tsx`):**
+  - Added `profileRevision: true` to the Prisma query in `UserProfileService.getFullUserProfile`.
+  - Updated `AuthContext.refreshSession` to check `nutritionReport.profileRevision === userProfile.revision`. When profile settings change and bump the revision, `user.reportAcknowledged` accurately flips to `false` in the frontend session, ensuring the top action banner and feature gates display immediately.
+  - Updated `NutritionReportWorkspace.tsx` to automatically trigger report regeneration when the existing report's `profileRevision` is out of date with the user's active profile revision.
+- **Tab-Switch Empty Plan Flicker Elimination (`dashboard/page.tsx`):**
+  - Memoized `isReportPending` upfront and guarded the `fetchCurrentPlan` call to prevent wiping error states or dispatching redundant plan queries when report acknowledgment is pending.
+  - Gated dashboard rendering so `isReportPending` evaluates before `currentMeals.length === 0`, completely eliminating the ~100ms flash of "No Active Meal Plan" when switching tabs away and returning to Kainara.
+- **Floating Depth & Dark-Mode Luminous Elevation (`globals.css`, `Sidebar.tsx`, `UnauthorizedState.tsx`):**
+  - Added `.floating-glow-graphic`: Natural drop shadow in light mode (`rgba(0,0,0,0.22)`); deep elevation drop shadow paired with signature emerald/teal ambient halo glow (`rgba(84,199,190,0.32)`) in dark mode on the SVG graphic.
+  - Added `.floating-glow-text`: Soft lifted depth in light mode; dark drop-shadow with subtle ethereal backglow in dark mode on titles, descriptions, and buttons in `UnauthorizedState`.
+  - Added `.floating-sidebar-shadow`: Smooth elevation shadow in light mode; deep black drop-shadow + ambient cyan/teal halo (`rgba(84,199,190,0.15)`) in dark mode on the desktop `Sidebar`.
+- **Automated Verification:**
+  - Backend TypeScript build (`npm run build`): passed with 0 errors.
+  - Frontend Vitest suite: 169 passed across 43 test suites.
+  - Frontend ESLint: passed with 0 errors and 0 warnings.
+
+
 
 
 
