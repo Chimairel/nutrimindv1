@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, RefreshCw, CheckCircle2, AlertCircle, ShieldCheck, FlipHorizontal } from 'lucide-react';
+import { Camera, RefreshCw, CheckCircle2, AlertCircle, ShieldCheck, FlipHorizontal, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface LiveWebcamCaptureProps {
@@ -112,6 +112,88 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
   }, []);
 
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  const simulateDevCapture = useCallback(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Background
+    ctx.fillStyle = '#faeedd';
+    ctx.fillRect(0, 0, 400, 400);
+
+    // Hair
+    ctx.fillStyle = '#1e2220';
+    ctx.beginPath();
+    ctx.arc(200, 150, 95, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Neck
+    ctx.fillStyle = '#fcd2b2';
+    ctx.fillRect(180, 200, 40, 50);
+
+    // Face
+    ctx.beginPath();
+    ctx.arc(200, 170, 70, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#1e2220';
+    ctx.beginPath();
+    ctx.arc(175, 160, 7, 0, Math.PI * 2);
+    ctx.arc(225, 160, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cheeks
+    ctx.fillStyle = 'rgba(247, 160, 139, 0.4)';
+    ctx.beginPath();
+    ctx.arc(160, 185, 14, 0, Math.PI * 2);
+    ctx.arc(240, 185, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Smile
+    ctx.strokeStyle = '#9e4334';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(200, 185, 24, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+
+    // Dark green scrubs
+    ctx.fillStyle = '#0e382d';
+    ctx.beginPath();
+    ctx.moveTo(150, 245);
+    ctx.lineTo(250, 245);
+    ctx.lineTo(200, 310);
+    ctx.closePath();
+    ctx.fill();
+
+    // White lab coat
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(80, 400);
+    ctx.lineTo(130, 245);
+    ctx.lineTo(200, 300);
+    ctx.lineTo(270, 245);
+    ctx.lineTo(320, 400);
+    ctx.closePath();
+    ctx.fill();
+
+    // Dev test banner
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(0, 360, 400, 40);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('DEV SIMULATED WEBCAM PHOTO', 200, 386);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    onChange(dataUrl);
+    setCameraError(null);
+  }, [onChange]);
+
   // 1. Photo Already Confirmed
   if (value) {
     return (
@@ -191,6 +273,23 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
             >
               <RefreshCw className="h-3.5 w-3.5 mr-1" /> Try Camera Again
             </Button>
+
+            {isDev && (
+              <div className="mt-4 pt-4 border-t border-brand-border/60">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={simulateDevCapture}
+                  className="text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Dev Mode: Simulate Camera Snap
+                </Button>
+                <p className="mt-1.5 text-[10px] text-brand-muted">
+                  Testing helper enabled in local development for machines without a physical webcam.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="relative w-full max-w-sm flex flex-col items-center">
@@ -249,6 +348,16 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
                 <FlipHorizontal className="h-4 w-4" />
               </button>
             </div>
+
+            {isDev && (
+              <button
+                type="button"
+                onClick={simulateDevCapture}
+                className="mt-3 text-[11px] font-bold text-amber-500 hover:underline flex items-center gap-1"
+              >
+                <Sparkles className="h-3 w-3" /> Dev: Simulate photo without camera
+              </button>
+            )}
           </div>
         )}
       </div>
