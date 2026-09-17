@@ -215,6 +215,15 @@ function StatementRow({
           <div className="flex flex-wrap items-center gap-2">
             <strong>{statement.nutritionistProfile.user.name}</strong>
             <span className="rounded-full bg-brand-bgAlt px-2 py-1 text-[10px] font-bold">{statement.status}</span>
+            {statement.nutritionistProfile.payoutChannel ? (
+              <span className="rounded-md border border-brand-cyan/30 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-semibold text-brand-cyan">
+                {statement.nutritionistProfile.payoutChannel}: {statement.nutritionistProfile.payoutAccountNumber}
+              </span>
+            ) : (
+              <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+                No payout method
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs text-brand-muted">
             Policy {statement.period.policy.version} · {(statement.creditedUnitsMillis / 1000).toFixed(3)} units ·

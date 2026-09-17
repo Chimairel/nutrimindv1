@@ -33,6 +33,17 @@ export type Payout = {
   amountMinor: number;
   currency: string;
   externalReference?: string | null;
+  statement?: {
+    id: string;
+    nutritionistProfile?: {
+      id: string;
+      payoutChannel?: string | null;
+      payoutAccountName?: string | null;
+      payoutAccountNumber?: string | null;
+      payoutBankName?: string | null;
+      user: { name: string };
+    };
+  };
 };
 
 export type Statement = {
@@ -43,7 +54,13 @@ export type Statement = {
   workloadAllowanceMinor: number;
   adjustmentMinor: number;
   currency: string;
-  nutritionistProfile: { user: { name: string } };
+  nutritionistProfile: {
+    user: { name: string };
+    payoutChannel?: string | null;
+    payoutAccountName?: string | null;
+    payoutAccountNumber?: string | null;
+    payoutBankName?: string | null;
+  };
   period: { policy: { version: string }; periodStart: string; periodEnd: string };
   adjustments: Adjustment[];
   payouts: Payout[];

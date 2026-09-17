@@ -66,7 +66,16 @@ async function recomputeStatement(tx: Prisma.TransactionClient, statementId: str
 
 const statementInclude = {
   period: { include: { policy: { select: { id: true, version: true, currency: true } } } },
-  nutritionistProfile: { select: { id: true, user: { select: { name: true } } } },
+  nutritionistProfile: {
+    select: {
+      id: true,
+      payoutChannel: true,
+      payoutAccountName: true,
+      payoutAccountNumber: true,
+      payoutBankName: true,
+      user: { select: { name: true } },
+    },
+  },
   workCredits: { orderBy: { createdAt: 'asc' as const }, include: { workCredit: true } },
   adjustments: { orderBy: { createdAt: 'asc' as const } },
   payouts: { orderBy: { createdAt: 'asc' as const }, include: { events: { orderBy: { createdAt: 'asc' as const } } } },
@@ -88,7 +97,24 @@ export class CompensationAdminService {
       }),
       prisma.compensationPayout.findMany({
         orderBy: { createdAt: 'desc' },
-        include: { events: { orderBy: { createdAt: 'asc' } } },
+        include: {
+          statement: {
+            select: {
+              id: true,
+              nutritionistProfile: {
+                select: {
+                  id: true,
+                  payoutChannel: true,
+                  payoutAccountName: true,
+                  payoutAccountNumber: true,
+                  payoutBankName: true,
+                  user: { select: { name: true } },
+                },
+              },
+            },
+          },
+          events: { orderBy: { createdAt: 'asc' } },
+        },
       }),
       prisma.compensationStatement.aggregate({
         _sum: { grossMinor: true },
@@ -654,7 +680,7 @@ export class CompensationAdminService {
 
 export class NutritionistCompensationService {
   static async getOwn(profileId: string) {
-    const [credits, statements] = await Promise.all([
+    const [credits, statements, profile] = await Promise.all([
       prisma.nutritionistWorkCredit.findMany({
         where: { nutritionistProfileId: profileId },
         orderBy: [{ earnedAt: 'desc' }, { id: 'desc' }],
@@ -664,6 +690,15 @@ export class NutritionistCompensationService {
         where: { nutritionistProfileId: profileId },
         orderBy: { createdAt: 'desc' },
         include: statementInclude,
+      }),
+      prisma.nutritionistProfile.findUnique({
+        where: { id: profileId },
+        select: {
+          payoutChannel: true,
+          payoutAccountName: true,
+          payoutAccountNumber: true,
+          payoutBankName: true,
+        },
       }),
     ]);
     const availableUnitsMillis = Math.max(
@@ -689,8 +724,48 @@ export class NutritionistCompensationService {
         availableUnitsMillis,
         currency: 'PHP',
       },
+      payoutMethod: profile
+        ? {
+            channel: profile.payoutChannel,
+            accountName: profile.payoutAccountName,
+            accountNumber: profile.payoutAccountNumber,
+            bankName: profile.payoutBankName,
+          }
+        : null,
       credits,
       statements,
+    };
+  }
+
+  static async updatePayoutMethod(
+    profileId: string,
+    data: {
+      channel: string;
+      accountName: string;
+      accountNumber: string;
+      bankName?: string | null;
+    }
+  ) {
+    const updated = await prisma.nutritionistProfile.update({
+      where: { id: profileId },
+      data: {
+        payoutChannel: data.channel.trim().toUpperCase(),
+        payoutAccountName: data.accountName.trim(),
+        payoutAccountNumber: data.accountNumber.trim(),
+        payoutBankName: data.bankName?.trim() || null,
+      },
+      select: {
+        payoutChannel: true,
+        payoutAccountName: true,
+        payoutAccountNumber: true,
+        payoutBankName: true,
+      },
+    });
+    return {
+      channel: updated.payoutChannel,
+      accountName: updated.payoutAccountName,
+      accountNumber: updated.payoutAccountNumber,
+      bankName: updated.payoutBankName,
     };
   }
 }

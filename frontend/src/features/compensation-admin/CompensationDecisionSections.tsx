@@ -71,38 +71,79 @@ function PayoutEvidence({ payouts, act }: { payouts: Workspace['payouts']; act: 
       </div>
       <div className="mt-4 space-y-3">
         {payouts.length ? (
-          payouts.map((payout) => (
-            <div key={payout.id} className="rounded-2xl border border-brand-border p-4">
-              <div className="flex items-center justify-between">
-                <strong>{peso(payout.amountMinor)}</strong>
-                <span className="text-[10px] font-bold text-brand-muted">{payout.status}</span>
-              </div>
-              {payout.externalReference && (
-                <p className="mt-1 text-xs text-brand-muted">Evidence: {payout.externalReference}</p>
-              )}
-              <div className="mt-3">
-                {payout.status === 'DRAFT' && (
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      void act(
-                        `payout-ok-${payout.id}`,
-                        () => api.post(`/admin/compensation/payouts/${payout.id}/approve`),
-                        'Manual payout evidence approved.'
-                      )
-                    }
-                  >
-                    Approve as checker
-                  </Button>
+          payouts.map((payout) => {
+            const profile = payout.statement?.nutritionistProfile;
+            return (
+              <div key={payout.id} className="rounded-2xl border border-brand-border p-4">
+                <div className="flex items-center justify-between">
+                  <strong>{peso(payout.amountMinor)}</strong>
+                  <span className="rounded-full bg-brand-bgAlt px-2.5 py-1 text-[10px] font-bold text-brand-muted">
+                    {payout.status}
+                  </span>
+                </div>
+                {profile && (
+                  <div className="mt-2.5 rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-3 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <span className="text-brand-muted">
+                        Disburse to: <strong className="text-brand-text">{profile.user?.name || 'Nutritionist'}</strong>
+                      </span>
+                      {profile.payoutChannel ? (
+                        <span className="rounded-md border border-brand-cyan/30 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-bold text-brand-cyan">
+                          {profile.payoutChannel}
+                          {profile.payoutBankName ? ` (${profile.payoutBankName})` : ''}
+                        </span>
+                      ) : (
+                        <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+                          No payout method linked
+                        </span>
+                      )}
+                    </div>
+                    {profile.payoutChannel && (
+                      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-brand-muted">
+                        <span>
+                          Account No:{' '}
+                          <strong className="font-mono text-brand-text">{profile.payoutAccountNumber}</strong>
+                        </span>
+                        {profile.payoutAccountName && (
+                          <span>
+                            Account Name:{' '}
+                            <strong className="text-brand-text">{profile.payoutAccountName}</strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
-                {payout.status === 'APPROVED' && (
-                  <Button size="sm" onClick={() => recordPayout(payout.id, act)}>
-                    Record evidence
-                  </Button>
+                {payout.externalReference && (
+                  <p className="mt-2 text-xs text-brand-muted">
+                    Transaction Ref:{' '}
+                    <span className="font-mono font-semibold text-brand-text">{payout.externalReference}</span>
+                  </p>
                 )}
+                <div className="mt-3">
+                  {payout.status === 'DRAFT' && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        void act(
+                          `payout-ok-${payout.id}`,
+                          () => api.post(`/admin/compensation/payouts/${payout.id}/approve`),
+                          'Manual payout evidence approved.'
+                        )
+                      }
+                    >
+                      Approve as checker
+                    </Button>
+                  )}
+                  {payout.status === 'APPROVED' && (
+                    <Button size="sm" onClick={() => recordPayout(payout.id, act)}>
+                      Record GCash / Bank reference
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="text-sm text-brand-muted">No payout records.</p>
         )}
@@ -122,7 +163,9 @@ function rejectAdjustment(id: string, act: CompensationAction) {
 }
 
 function recordPayout(id: string, act: CompensationAction) {
-  const externalReference = window.prompt('Off-platform evidence reference (no account details):');
+  const externalReference = window.prompt(
+    'Enter GCash / Maya / Bank reference number (e.g. GCash Ref 1029384756):'
+  );
   if (externalReference)
     void act(
       `payout-record-${id}`,

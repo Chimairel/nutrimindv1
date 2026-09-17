@@ -754,9 +754,13 @@ model NutritionistProfile {
   university        String?
   bio               String?   @db.Text
   isVerified        Boolean   @default(false)
-  officialHeadshot  String?   @db.Text
-  digitalSignature  String?   @db.Text
-  rating            Float     @default(0)
+  officialHeadshot    String?   @db.Text
+  digitalSignature    String?   @db.Text
+  payoutChannel       String?   @db.VarChar(30)
+  payoutAccountName   String?   @db.VarChar(120)
+  payoutAccountNumber String?   @db.VarChar(50)
+  payoutBankName      String?   @db.VarChar(80)
+  rating              Float     @default(0)
   totalVerified     Int       @default(0)
   verifiedAt        DateTime?
 

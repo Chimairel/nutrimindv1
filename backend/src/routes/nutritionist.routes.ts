@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { AuthenticatedRequest } from '@/types';
@@ -377,6 +378,31 @@ router.get('/compensation', async (req: AuthenticatedRequest, res: Response) => 
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve your compensation records.') });
   }
 });
+
+const updatePayoutMethodSchema = z.object({
+  channel: z.enum(['GCASH', 'MAYA', 'BPI', 'BDO', 'UNIONBANK', 'OTHER']),
+  accountName: z.string().trim().min(1, 'Account name is required.').max(120),
+  accountNumber: z.string().trim().min(4, 'Account or mobile number is required.').max(50),
+  bankName: z.string().trim().max(80).optional().nullable(),
+});
+
+router.patch(
+  '/compensation/payout-method',
+  validateZodBody(updatePayoutMethodSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await NutritionistCompensationService.updatePayoutMethod(
+        req.nutritionistProfileId!,
+        req.body
+      );
+      return res.status(200).json({ success: true, data });
+    } catch (error: unknown) {
+      return res
+        .status(500)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update payout method.') });
+    }
+  }
+);
 
 /**
  * GET /api/nutritionist/profile
