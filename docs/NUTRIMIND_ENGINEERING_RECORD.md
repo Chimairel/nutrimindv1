@@ -3877,3 +3877,26 @@ This section is a continuity record for agreed future work. Every item below is 
 - Repaired Gemini's Profile/report integration directly in the Desktop checkout, preserving its pending UI refinements. Profile corrections and read-only progress history remain accessible when a report is stale; meal actions retain server acknowledgment/version checks. Session status, regeneration continuation, report fetch failures and shared report rendering now follow the same lifecycle.
 - Frontend: 158 tests passed across 40 files. Backend: 526 passed, one existing clinical TODO. Both linters, frontend production build, backend build and script checking passed. Disposable API acceptance verifies repeated profile changes, staleness, history access, blocked meal generation and version-specific acknowledgment without real account changes or AI requests.
 - See [repair evidence and limits](PROFILE_REPORT_FLOW_REPAIR_2026-09-17.md). Live Gemini and authenticated browser layout remain unverified. These changes are uncommitted alongside Gemini's existing edits; no merge or push was performed.
+
+## 84. SMTP email modernization, 1-on-1 call notifications, and auth UX polish (2026-09-17)
+
+- **SMTP Email Modernization (`backend/src/lib/email.ts`)**:
+  - Upgraded all outgoing email templates from legacy NutriMind styles to the unified **KAINARA obsidian/emerald/lime** responsive HTML email system (`renderKainaraEmailLayout`):
+    - Replaced fallback sender address with `noreply@kainara.ph`.
+    - Deep obsidian backdrop (`#050a08`), dark surface card (`#0d1712`) with subtle emerald border (`#1a2f24`), electric lime accents (`#b8f45f`), official KAINARA wordmark and `🌱` emblem.
+    - Upgraded 6-digit OTP verification email with high-contrast monospace code box and letter spacing.
+    - Upgraded password reset and nutritionist invitation approval emails with high-contrast action buttons.
+- **Nutritionist 1-on-1 Call Notifications (`nutritionist-application.service.ts`)**:
+  - Implemented automated, non-blocking email dispatch when an administrator schedules a 1-on-1 verification call (`sendNutritionistCallScheduledEmail`), containing confirmed date/time in Philippine Standard Time (PHT), direct video meeting room link (Google Meet / Zoom), reference code, and physical PRC ID preparation checklist.
+  - Implemented application submission confirmation email (`sendNutritionistApplicationSubmittedEmail`) delivering the applicant's permanent tracking reference code.
+  - Implemented application rejection notification email (`sendNutritionistApplicationRejectedEmail`) delivering constructive administrative reasons.
+- **Auth UI & Navigation Polish (`AuthShell.tsx`, `login/page.tsx`, `NutritionistApplicationCard.tsx`)**:
+  - Enforced prominent mobile typography (`text-[2.35rem] sm:text-5xl md:text-6xl font-black`), tightened spacing between title and form, suppressed narrow cyber grid lines on mobile (`hidden md:block`) for a clean backdrop, and added smooth 1200ms auto-scroll to form.
+  - Added schedule override helper text and updated feedback notices in the admin nutritionist card.
+  - Fixed login page redirect blank screen: replaced `if (user) return null;` with `<PortalLoadingState fullScreen message="Redirecting to your workspace..." />`.
+- **Verification Evidence**:
+  - Backend tests: **527/527 passed (100%)** including `[TEST-146-EXT]`.
+  - Frontend tests: **187/187 passed (100%)** across 47 test files.
+  - Typecheck and Linters: 0 errors, 0 warnings across both frontend and backend.
+  - Synchronized across main repository and Codex worktree.
+
