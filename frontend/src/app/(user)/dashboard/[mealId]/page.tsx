@@ -6,9 +6,9 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import Modal from '@/components/ui/Modal';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import MealImage from '@/components/user/MealImage';
+import NutritionistCredentialModal, { maskPrcLicenseNumber } from '@/components/user/NutritionistCredentialModal';
 import {
   ArrowLeft,
   Coffee,
@@ -53,6 +53,8 @@ interface MealDetail {
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
   image?: PublicMealImage | null;
+  nutritionistNote?: string | null;
+  reviewedAt?: string | null;
 }
 
 export default function MealDetailPage() {
@@ -282,14 +284,36 @@ export default function MealDetailPage() {
               className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
               aria-label="Why this meal"
             >
-              <h3 className="text-xs font-extrabold text-brand-text">Why this meal?</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-extrabold text-brand-text">Why this meal?</h3>
+                {meal.verifier && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-extrabold text-brand-green border border-brand-green/20">
+                    <ShieldCheck className="h-3 w-3" /> RND Supervised
+                  </span>
+                )}
+              </div>
               <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
-                {meal.explanation.bullets.map((bullet) => (
-                  <li key={bullet} className="flex gap-2">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
-                    <span>{bullet}</span>
-                  </li>
-                ))}
+                {meal.explanation.bullets.map((bullet) => {
+                  const isReviewerBullet =
+                    meal.verifier && bullet.toLowerCase().includes('reviewed by');
+                  return (
+                    <li key={bullet} className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
+                        <span className="break-words">{bullet}</span>
+                      </div>
+                      {isReviewerBullet && (
+                        <button
+                          type="button"
+                          onClick={() => setIsVerifierOpen(true)}
+                          className="shrink-0 text-[10px] font-bold text-brand-green hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
+                        >
+                          View Review &amp; Notes ↗
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
               {meal.explanation.limitation && (
                 <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
@@ -303,17 +327,52 @@ export default function MealDetailPage() {
             <button
               type="button"
               onClick={() => setIsVerifierOpen(true)}
-              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-3 text-left transition hover:border-brand-green/40"
-              aria-label={`View verifier details for ${meal.verifier.name}`}
+              className="group relative flex w-full flex-col gap-2.5 rounded-2xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-3.5 text-left transition hover:border-brand-green/60 hover:shadow-sm"
+              aria-label={`View clinical credentials for ${meal.verifier.name}`}
             >
-              <span className="flex items-center gap-2 text-xs font-bold text-brand-text">
-                <ShieldCheck className="h-4 w-4 text-brand-green" />
-                Verified by{' '}
-                <span className="underline decoration-brand-green/40 underline-offset-2">{meal.verifier.name}</span>
-              </span>
-              <span className="rounded bg-brand-green/15 px-2 py-1 font-mono text-[9px] font-extrabold text-brand-green">
-                PRC {meal.verifier.prcLicenseNumber}
-              </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {meal.verifier.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={meal.verifier.image}
+                      alt={meal.verifier.name}
+                      className="h-10 w-10 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-xs shrink-0">
+                      {meal.verifier.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join('')}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-display font-extrabold text-xs text-brand-text truncate">
+                        {meal.verifier.name.endsWith('RND') ? meal.verifier.name : `${meal.verifier.name}, RND`}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-green/15 px-1.5 py-0.5 text-[9px] font-extrabold text-brand-green">
+                        <ShieldCheck className="h-3 w-3" /> PRC-Verified
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-brand-muted truncate">
+                      {meal.verifier.specialization || 'Clinical Dietetics & Nutrition'} • {maskPrcLicenseNumber(meal.verifier.prcLicenseNumber)}
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-[11px] font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                  Credentials ↗
+                </span>
+              </div>
+
+              {meal.nutritionistNote && (
+                <div className="rounded-xl bg-brand-bgAlt/80 border border-brand-border/60 px-2.5 py-1.5 text-[10px] text-brand-muted italic line-clamp-2">
+                  <span className="font-bold not-italic text-brand-text mr-1">RND Note:</span>
+                  &ldquo;{meal.nutritionistNote}&rdquo;
+                </div>
+              )}
             </button>
           )}
 
@@ -488,58 +547,14 @@ export default function MealDetailPage() {
       </Card>
 
       {meal.verifier && (
-        <Modal
+        <NutritionistCredentialModal
           isOpen={isVerifierOpen}
           onClose={() => setIsVerifierOpen(false)}
-          title={meal.verifier.name}
-          description="Nutritionist who reviewed and certified this reusable meal."
-          size="md"
-        >
-          <div className="space-y-4 text-left">
-            <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-4">
-              <div className="flex items-center gap-2 text-brand-green">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="font-display text-sm font-extrabold">Verified nutritionist-dietitian</span>
-              </div>
-              <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
-                <div>
-                  <dt className="text-brand-muted">PRC license</dt>
-                  <dd className="mt-1 font-mono font-bold text-brand-text">{meal.verifier.prcLicenseNumber}</dd>
-                </div>
-                <div>
-                  <dt className="text-brand-muted">Valid until</dt>
-                  <dd className="mt-1 font-bold text-brand-text">
-                    {new Date(meal.verifier.prcLicenseExpiry).toLocaleDateString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-brand-muted">Specialization</dt>
-                  <dd className="mt-1 font-bold text-brand-text">
-                    {meal.verifier.specialization || 'General nutrition'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-brand-muted">Experience</dt>
-                  <dd className="mt-1 font-bold text-brand-text">{meal.verifier.yearsOfExperience ?? 0} years</dd>
-                </div>
-              </dl>
-            </div>
-            {meal.verifier.university && (
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p>
-                <p className="mt-1 font-semibold text-brand-text">{meal.verifier.university}</p>
-              </div>
-            )}
-            {meal.verifier.bio && (
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">
-                  Professional profile
-                </p>
-                <p className="mt-1 text-sm leading-6 text-brand-muted">{meal.verifier.bio}</p>
-              </div>
-            )}
-          </div>
-        </Modal>
+          verifier={meal.verifier}
+          nutritionistNote={meal.nutritionistNote}
+          reviewedAt={meal.reviewedAt}
+          mealName={meal.mealName}
+        />
       )}
     </div>
   );

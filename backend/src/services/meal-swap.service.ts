@@ -75,10 +75,10 @@ export const certifiedLibraryMealInclude = {
   ingredients: { orderBy: { position: 'asc' as const } },
   safetyDeclarations: true,
   safetyReviewedByNutritionist: {
-    include: { user: { select: { role: true, name: true } } },
+    include: { user: { select: { role: true, name: true, image: true } } },
   },
   verifiedByNutritionist: {
-    include: { user: { select: { name: true } } },
+    include: { user: { select: { name: true, image: true } } },
   },
 } as const;
 
@@ -100,6 +100,7 @@ export function toPublicSwapOption(meal: CertifiedLibraryMeal) {
     verifier: meal.safetyReviewedByNutritionist
       ? {
           name: meal.safetyReviewedByNutritionist.user.name,
+          image: meal.safetyReviewedByNutritionist.user.image || null,
           prcLicenseNumber: meal.safetyReviewedByNutritionist.prcLicenseNumber,
           prcLicenseExpiry: meal.safetyReviewedByNutritionist.prcLicenseExpiry,
           specialization: meal.safetyReviewedByNutritionist.specialization,

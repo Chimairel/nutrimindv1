@@ -31,12 +31,13 @@ function toPublicVerifier(
     yearsOfExperience: number | null;
     university: string | null;
     bio: string | null;
-    user: { name: string };
+    user: { name: string; image?: string | null };
   } | null
 ) {
   if (!nutritionist) return null;
   return {
     name: nutritionist.user.name,
+    image: nutritionist.user.image || null,
     prcLicenseNumber: nutritionist.prcLicenseNumber,
     prcLicenseExpiry: nutritionist.prcLicenseExpiry,
     specialization: nutritionist.specialization,
@@ -286,7 +287,7 @@ export class MealsController {
               where: { userId },
             },
             nutritionist: {
-              include: { user: { select: { name: true } } },
+              include: { user: { select: { name: true, image: true } } },
             },
           },
           orderBy: { scheduledDate: 'asc' },
@@ -366,7 +367,7 @@ export class MealsController {
             where: { userId },
           },
           nutritionist: {
-            include: { user: { select: { name: true } } },
+            include: { user: { select: { name: true, image: true } } },
           },
         },
       });

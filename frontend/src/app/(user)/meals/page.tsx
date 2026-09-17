@@ -566,6 +566,8 @@ export default function WeeklyPlanPage() {
                           verifier={meal.verifier}
                           explanation={meal.explanation}
                           image={meal.image}
+                          nutritionistNote={meal.nutritionistNote}
+                          reviewedAt={meal.reviewedAt}
                         />
                       ))}
                     </div>

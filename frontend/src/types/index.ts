@@ -206,6 +206,7 @@ export interface MealExplanation {
 
 export interface PublicVerifier {
   name: string;
+  image?: string | null;
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
   specialization?: string | null;

@@ -23,7 +23,7 @@ describe('MealCard', () => {
     carbsG: 14,
     fatG: 8,
     status: 'APPROVED' as const,
-    aiConfidenceFlag: 'GREEN' as const,
+    aiConfidenceFlag: 'SAFE' as const,
     ingredients: [
       { id: 'ing-1', ingredientName: 'Shrimp' },
       { id: 'ing-2', ingredientName: 'Kangkong' },
@@ -80,4 +80,45 @@ describe('MealCard', () => {
     expect(screen.getByText('Kangkong')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /mark as eaten/i })).toBeInTheDocument();
   });
+
+  it('renders verifier card with masked PRC license and opens credential modal when clicked', () => {
+    const verifier = {
+      name: 'Andrea Reyes',
+      image: null,
+      prcLicenseNumber: '0098765',
+      prcLicenseExpiry: '2028-12-31T00:00:00.000Z',
+      specialization: 'Clinical Nutrition & Renal Dietetics',
+      yearsOfExperience: 8,
+      university: 'UP Diliman',
+      bio: 'Senior Clinical Nutritionist',
+    };
+
+    render(
+      <MealCard
+        {...defaultProps}
+        verifier={verifier}
+        nutritionistNote="Reduced sodium for renal support."
+        reviewedAt="2026-09-17T08:00:00.000Z"
+      />
+    );
+
+    // Click to open card
+    const cardButton = screen.getByRole('button', { name: /open Sinigang na Hipon details/i });
+    fireEvent.click(cardButton);
+
+    // Verify RND banner shows masked PRC license and note
+    expect(screen.getByText(/Andrea Reyes, RND/i)).toBeInTheDocument();
+    expect(screen.getByText(/PRC Lic\. No\. ••••••8765/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reduced sodium for renal support\./i)).toBeInTheDocument();
+
+    // Click to open verifier credential modal
+    const verifierBtn = screen.getByRole('button', { name: /view clinical credentials for Andrea Reyes/i });
+    fireEvent.click(verifierBtn);
+
+    // NutritionistCredentialModal should be visible
+    expect(screen.getByText('Verified Nutritionist')).toBeInTheDocument();
+    expect(screen.getByText('Clinical Nutrition & Renal Dietetics')).toBeInTheDocument();
+    expect(screen.getByText('UP Diliman')).toBeInTheDocument();
+  });
 });
+
