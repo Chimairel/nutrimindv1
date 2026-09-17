@@ -2,7 +2,12 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { sendNutritionistInvitationEmail } from '@/lib/email';
+import {
+  sendNutritionistInvitationEmail,
+  sendNutritionistCallScheduledEmail,
+  sendNutritionistApplicationSubmittedEmail,
+  sendNutritionistApplicationRejectedEmail,
+} from '@/lib/email';
 
 const INVITATION_TTL_MS = 72 * 60 * 60 * 1000;
 
@@ -92,6 +97,18 @@ export class NutritionistApplicationService {
       select: publicApplicationSelect,
     });
 
+    // Send confirmation email asynchronously (non-blocking)
+    void sendNutritionistApplicationSubmittedEmail(
+      application.email,
+      application.fullName,
+      application.referenceCode
+    ).catch((err: any) => {
+      console.error(
+        `[NutritionistApplication] Failed to send submission confirmation email to ${application.email}:`,
+        err?.message || err
+      );
+    });
+
     return application;
   }
 
@@ -158,8 +175,8 @@ export class NutritionistApplicationService {
       throw new Error('The application must be advanced to the call stage before scheduling.');
     }
 
-    return prisma.$transaction(async (tx) => {
-      const updated = await tx.nutritionistApplication.update({
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.nutritionistApplication.update({
         where: { id: applicationId },
         data: {
           status: 'CALL_SCHEDULED',
@@ -179,8 +196,24 @@ export class NutritionistApplicationService {
           metadata: { scheduledCallAt: input.scheduledCallAt },
         },
       });
-      return updated;
+      return result;
     });
+
+    // Send call scheduled notification email asynchronously (non-blocking)
+    void sendNutritionistCallScheduledEmail({
+      to: application.email,
+      applicantName: application.fullName,
+      referenceCode: application.referenceCode,
+      scheduledCallAt: input.scheduledCallAt,
+      meetingUrl: input.meetingUrl.trim(),
+    }).catch((err: any) => {
+      console.error(
+        `[NutritionistApplication] Failed to send call scheduled email to ${application.email}:`,
+        err?.message || err
+      );
+    });
+
+    return updated;
   }
 
   static async decide(
@@ -194,7 +227,7 @@ export class NutritionistApplicationService {
     }
 
     if (input.decision === 'reject') {
-      return prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
         const updated = await tx.nutritionistApplication.update({
           where: { id: applicationId },
           data: {
@@ -216,6 +249,21 @@ export class NutritionistApplicationService {
         });
         return { application: updated, invitationEmailSent: false };
       });
+
+      // Send rejection notification email asynchronously (non-blocking)
+      void sendNutritionistApplicationRejectedEmail(
+        application.email,
+        application.fullName,
+        application.referenceCode,
+        input.reason.trim()
+      ).catch((err: any) => {
+        console.error(
+          `[NutritionistApplication] Failed to send rejection email to ${application.email}:`,
+          err?.message || err
+        );
+      });
+
+      return result;
     }
 
     if (application.status !== 'CALL_SCHEDULED' || !application.scheduledCallAt) {

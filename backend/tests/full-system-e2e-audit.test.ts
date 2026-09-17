@@ -11,7 +11,14 @@ import {
   normalizeWeightNote,
 } from '../src/policies/weight-entry.policy';
 import { isNutritionistReviewConflict } from '../src/domain/nutritionist-review-http.policy';
-import { sendNutritionistInvitationEmail, sendPasswordResetEmail, sendVerificationEmail } from '../src/lib/email';
+import {
+  sendNutritionistInvitationEmail,
+  sendNutritionistCallScheduledEmail,
+  sendNutritionistApplicationSubmittedEmail,
+  sendNutritionistApplicationRejectedEmail,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from '../src/lib/email';
 import {
   MAX_PAGE_SIZE,
   MAX_SEARCH_LENGTH,
@@ -92,6 +99,49 @@ test('[TEST-146] local mail capture is test-only, absolute-path-only, and avoids
     process.env.NODE_ENV = 'test';
     process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH = 'relative.jsonl';
     await assert.rejects(sendVerificationEmail('blocked@example.invalid', '000000', 'Audit'), /must be absolute/);
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousCapture === undefined) delete process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH;
+    else process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH = previousCapture;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('[TEST-146-EXT] nutritionist application emails capture valid events in test mode', async () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousCapture = process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH;
+  const directory = await mkdtemp(path.join(tmpdir(), 'nutrimind-app-mail-capture-'));
+  const capturePath = path.join(directory, 'messages.jsonl');
+  try {
+    process.env.NODE_ENV = 'test';
+    process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH = capturePath;
+    await sendNutritionistApplicationSubmittedEmail('applicant@example.invalid', 'Maria Clara', 'NM-123456');
+    await sendNutritionistCallScheduledEmail({
+      to: 'applicant@example.invalid',
+      applicantName: 'Maria Clara',
+      referenceCode: 'NM-123456',
+      scheduledCallAt: '2026-09-25T14:00:00Z',
+      meetingUrl: 'https://meet.google.com/abc-defg-hij',
+    });
+    await sendNutritionistApplicationRejectedEmail(
+      'applicant@example.invalid',
+      'Maria Clara',
+      'NM-123456',
+      'PRC license could not be verified with official registry.'
+    );
+
+    const messages = (await readFile(capturePath, 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    assert.equal(messages.length, 3);
+    assert.equal(messages[0].type, 'NUTRITIONIST_APPLICATION_SUBMITTED');
+    assert.equal((messages[0].metadata as any).referenceCode, 'NM-123456');
+    assert.equal(messages[1].type, 'NUTRITIONIST_CALL_SCHEDULED');
+    assert.equal((messages[1].metadata as any).meetingUrl, 'https://meet.google.com/abc-defg-hij');
+    assert.equal(messages[2].type, 'NUTRITIONIST_APPLICATION_REJECTED');
+    assert.equal((messages[2].metadata as any).reason, 'PRC license could not be verified with official registry.');
   } finally {
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;

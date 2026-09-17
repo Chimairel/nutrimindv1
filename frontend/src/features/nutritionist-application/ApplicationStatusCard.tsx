@@ -52,6 +52,9 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
             <CalendarClock className="h-4 w-4 text-brand-cyan" />
             {new Date(application.scheduledCallAt).toLocaleString()}
           </p>
+          <p className="mt-1 text-xs text-brand-muted">
+            The meeting room link and preparation checklist have also been sent to your email.
+          </p>
           {application.meetingUrl && (
             <a
               href={application.meetingUrl}

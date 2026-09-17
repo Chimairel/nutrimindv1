@@ -322,7 +322,7 @@ function CallScheduler({
                 scheduledCallAt: new Date(draft.scheduledCallAt).toISOString(),
                 meetingUrl: draft.meetingUrl,
               }),
-            'Verification call scheduled.'
+            'Verification call scheduled and meeting invite emailed to applicant.'
           )
         }
         disabled={!draft.scheduledCallAt || !draft.meetingUrl}
