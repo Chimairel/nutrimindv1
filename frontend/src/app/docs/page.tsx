@@ -382,7 +382,7 @@ export default function DocsPage() {
                   (Omnivore, Vegetarian, Pescatarian, Low Carb).
                 </p>
                 <p>
-                  To encourage dietary consistency and budget predictability, swaps are subject to two clinical
+                  To encourage dietary consistency and shopping preparation, swaps are subject to two clinical
                   safeguards: a weekly swap limit and an energy divergence alert.
                 </p>
               </div>

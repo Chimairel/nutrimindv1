@@ -3917,3 +3917,7 @@ Preserved the latest Desktop UI changes, added administrator-controlled test Pre
 ## 87. Post-FNRI calorie enforcement and quality-first model order (2026-09-17)
 
 Closed the gap where reconciled ingredient calories bypassed the existing ±15% meal-slot check. Added schema and final-save validation, complete-day checks and approval/replacement enforcement; strengthened portion arithmetic prompts and reordered the existing stable Gemini models with 3.8 Flash first. Backend: 535 passing tests and one existing TODO. Historical meals were preserved. See [repair evidence and limits](CALORIE_ENFORCEMENT_REPAIR_2026-09-17.md).
+
+## 88. Hide unconfigured grocery costing (2026-09-17)
+
+At the user's request, removed the grocery cost panel from the grocery page and price/budget claims from the Premium comparison and test-activation modal. The unused costing component, API, data models and tests remain for future evidence-backed activation. Grocery quantities, purchase tracking, pantry controls and PDF exports are unchanged.

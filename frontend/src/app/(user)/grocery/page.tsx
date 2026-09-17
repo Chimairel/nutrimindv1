@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import GroceryCostSummary from '@/features/grocery/GroceryCostSummary';
 import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -481,7 +480,6 @@ export default function GroceryListPage() {
               })}
             </div>
           )}
-          {view === 'current' && <GroceryCostSummary revision={JSON.stringify(groceryList.groceryItems)} />}
         </div>
       )}
     </div>

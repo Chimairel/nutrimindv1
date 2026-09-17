@@ -392,16 +392,6 @@ export default function BillingPage() {
                 <div className="flex items-start gap-3 rounded-2xl bg-brand-bgAlt p-3.5 text-sm">
                   <Sparkles className="h-5 w-5 text-brand-green shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-brand-text">PSA Market Shopping Cost & Budget Estimates</p>
-                    <p className="text-xs text-brand-muted mt-0.5">
-                      Published commodity reference pricing, subtotal estimates, and price source evidence for your
-                      shopping list
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-brand-bgAlt p-3.5 text-sm">
-                  <Sparkles className="h-5 w-5 text-brand-green shrink-0 mt-0.5" />
-                  <div>
                     <p className="font-semibold text-brand-text">Exclusive Salakot Crown Profile Badge</p>
                     <p className="text-xs text-brand-muted mt-0.5">
                       Proudly wear the traditional Filipino Salakot crown on your avatar across KAINARA
@@ -494,10 +484,6 @@ export default function BillingPage() {
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-brand-green shrink-0" />
               <span>Unlocks Next-Week meal planning and grocery exports</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-brand-green shrink-0" />
-              <span>Unlocks PSA grocery shopping cost and budget estimates</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-brand-green shrink-0" />

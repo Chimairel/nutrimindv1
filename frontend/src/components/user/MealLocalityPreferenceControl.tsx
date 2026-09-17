@@ -116,7 +116,7 @@ export default function MealLocalityPreferenceControl({
         Meal locality strength
       </legend>
       <p className="mb-5 text-xs leading-relaxed text-brand-muted">
-        Choose how strongly KAINARA should favor familiar meals. Safety, nutrition, and budget rules still come first.
+        Choose how strongly KAINARA should favor familiar meals. Safety and nutrition requirements still come first.
       </p>
 
       {/* Embedded Dynamic Interactive Philippine Map */}
