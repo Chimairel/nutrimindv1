@@ -3913,3 +3913,7 @@ Preserved Antigravity's latest UI while fixing signature capture/confirmation, a
 ## 86. Gemini Premium permission and price diagnostics (2026-09-17)
 
 Preserved the latest Desktop UI changes, added administrator-controlled test Premium permission and scoped revocation, aligned profile entitlement status, and clarified missing price-data diagnostics. Shared development has no price observations or commodity mappings; numerical cost coverage remains unavailable pending source-backed data work. See [audit details, asset review and verification limits](GEMINI_PREMIUM_AUDIT_2026-09-17.md). Frontend: 194 passing tests. Backend: 528 passing tests and one existing TODO.
+
+## 87. Post-FNRI calorie enforcement and quality-first model order (2026-09-17)
+
+Closed the gap where reconciled ingredient calories bypassed the existing ±15% meal-slot check. Added schema and final-save validation, complete-day checks and approval/replacement enforcement; strengthened portion arithmetic prompts and reordered the existing stable Gemini models with 3.8 Flash first. Backend: 535 passing tests and one existing TODO. Historical meals were preserved. See [repair evidence and limits](CALORIE_ENFORCEMENT_REPAIR_2026-09-17.md).

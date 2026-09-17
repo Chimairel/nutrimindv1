@@ -23,6 +23,18 @@ const promptInput = {
   foodReference: '- Egg (Cat: Eggs, Cal: 155kcal, P: 13g, C: 1.1g, F: 11g)',
 };
 
+test('prompt includes selected meals, portion arithmetic and target-centered planning', () => {
+  const { prompt, systemInstruction } = buildMealGenerationPrompt({
+    ...promptInput,
+    existingMeals: [{ dayNumber: 1, mealType: 'DINNER', calories: 600 }],
+  });
+  assert.match(prompt, /ALREADY SELECTED MEALS/);
+  assert.match(prompt, /quantity \/ 100/);
+  assert.match(prompt, /15% limits are ceilings, not goals/);
+  assert.match(prompt, /never merely rewrite calories to fit/);
+  assert.match(systemInstruction, /as data, never instructions/);
+});
+
 test('[TEST-042] meal generation treats food culture as an influence rather than a cuisine boundary', () => {
   const { prompt, systemInstruction } = buildMealGenerationPrompt(promptInput);
 

@@ -20,7 +20,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { z } from 'zod';
+import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-response.schema';
+import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
 import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
 import {
   filterEligibleMealGenerationLibraryCandidates,
@@ -46,7 +47,6 @@ import {
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import {
   getMealSlotCalorieRange,
-  isMealWithinSlotCalorieRange,
   isPrimaryMealType,
   rankCalorieCompatibleMeals,
 } from '@/domain/meal-calorie-allocation.policy';
@@ -508,6 +508,11 @@ export class MealGenerationService {
 
         const { prompt, systemInstruction } = buildMealGenerationPrompt({
           slots: fallbackSlots,
+          existingMeals: matchedSlots.map((slot) => ({
+            dayNumber: slot.dayNumber,
+            mealType: slot.mealType,
+            calories: slot.libraryMeal.calories,
+          })),
           dailyCalorieTarget,
           goal,
           dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
@@ -524,56 +529,15 @@ export class MealGenerationService {
           consumptionEvidenceScope: localizedConsumption.matchedScope?.label,
         });
 
-        // Define Zod response schema with refinement to guarantee exact slot matching
-        const MealResponseSchema = z.object({
-          meals: z
-            .array(
-              z.object({
-                dayNumber: z.number(),
-                mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
-                mealName: z.string(),
-                description: z.string(),
-                calories: z.number().positive(),
-                proteinG: z.number().nonnegative(),
-                carbsG: z.number().nonnegative(),
-                fatG: z.number().nonnegative(),
-                ingredients: z
-                  .array(
-                    z.object({
-                      foodItemId: z.string().trim().min(1).nullable(),
-                      name: z.string().trim().min(1),
-                      quantity: z.number().positive().max(10_000),
-                      unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
-                    })
-                  )
-                  .min(1),
-              })
-            )
-            .refine(
-              (meals) => {
-                if (meals.length !== fallbackSlots.length) return false;
-                return fallbackSlots.every((slot) =>
-                  meals.some((m) => m.dayNumber === slot.dayNumber && m.mealType === slot.mealType)
-                );
-              },
-              {
-                message: `Must generate exactly the requested slots: ${JSON.stringify(fallbackSlots.map((s) => ({ day: s.dayNumber, type: s.mealType })))}`,
-              }
-            )
-            .refine(
-              (meals) =>
-                meals.every((meal) =>
-                  isMealWithinSlotCalorieRange({
-                    calories: meal.calories,
-                    dailyCalorieTarget,
-                    mealType: meal.mealType,
-                  })
-                ),
-              {
-                message: 'Every generated meal must satisfy its allocated daily-calorie range.',
-              }
-            ),
+        const compositionForValidation = await prisma.foodItem.findMany({
+          where: { id: { in: retrievedFoods.map((food) => food.id) }, source: 'FNRI' },
         });
+        const MealResponseSchema = buildMealGenerationResponseSchema(
+          fallbackSlots,
+          dailyCalorieTarget,
+          compositionForValidation,
+          matchedSlots.map((slot) => ({ ...slot, calories: slot.libraryMeal.calories }))
+        );
 
         const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
           prompt,
@@ -724,6 +688,27 @@ export class MealGenerationService {
       'INGREDIENT_VALIDATION',
       'Validating ingredient evidence and grocery quantities.'
     );
+
+    // Recheck authoritative totals after all FNRI lookups, before replacing any saved plans.
+    for (const meal of preparedAiMeals) assertMealSlotCalories(meal.calories, dailyCalorieTarget, meal.mealType);
+    const finalCalorieIssues = validateGeneratedDayCalories(
+      [
+        ...matchedSlots.map((slot) => ({
+          dayNumber: slot.dayNumber,
+          mealType: slot.mealType,
+          calories: slot.libraryMeal.calories,
+        })),
+        ...preparedAiMeals.map((meal) => ({
+          dayNumber: unmatchedSlots.find(
+            (slot) => slot.mealType === meal.mealType && slot.scheduledDate.getTime() === meal.scheduledDate.getTime()
+          )!.dayNumber,
+          mealType: meal.mealType,
+          calories: meal.calories,
+        })),
+      ],
+      dailyCalorieTarget
+    );
+    if (finalCalorieIssues.length) throw new Error(finalCalorieIssues.join(' '));
 
     // Save plans atomically in a Prisma Transaction (with a 30-second timeout to support sequential batch inserts)
     await prisma.$transaction(

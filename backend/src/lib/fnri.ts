@@ -177,7 +177,7 @@ export async function getFNRISubset() {
     referenceCategories.map((category) =>
       prisma.foodItem.findMany({
         take: 10,
-        where: { category },
+        where: { category, source: 'FNRI' },
         orderBy: { name: 'asc' },
         select: {
           id: true,

@@ -80,7 +80,7 @@ async function main() {
         planGroupId: `signature-audit-${stamp}`,
         mealName: 'Original synthetic meal',
         mealType: 'LUNCH',
-        calories: 400,
+        calories: 800,
         proteinG: 20,
         carbsG: 50,
         fatG: 15,
@@ -93,11 +93,44 @@ async function main() {
         claimedAt: new Date(),
       },
     });
+    await assert.rejects(
+      NutritionistReplacementService.replaceAndApproveMealPlan(reviewerId, meal.id, {
+        reason: 'Synthetic excessive calories',
+        candidate: {
+          mealName: 'Over target',
+          calories: 1200,
+          proteinG: 20,
+          carbsG: 50,
+          fatG: 15,
+          ingredients: [{ name: 'Synthetic' }],
+        },
+      }),
+      /680–920/
+    );
+    assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: meal.id } })).status, 'PENDING_REVIEW');
+    const { NutritionistReviewService } = await import('../src/services/nutritionist-review.service');
+    const excessive = await prisma.mealPlan.create({
+      data: {
+        userId: user.id,
+        planGroupId: `calorie-audit-${stamp}`,
+        mealName: 'Over target dinner',
+        mealType: 'DINNER',
+        calories: 1111,
+        proteinG: 38,
+        carbsG: 100,
+        fatG: 62,
+        scheduledDate: new Date(),
+        claimedByNutritionistId: reviewerId,
+        claimedAt: new Date(),
+      },
+    });
+    await assert.rejects(NutritionistReviewService.approveMealPlan(reviewerId, excessive.id), /510–690/);
+    assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: excessive.id } })).status, 'PENDING_REVIEW');
     const replacement = await NutritionistReplacementService.replaceAndApproveMealPlan(reviewerId, meal.id, {
       reason: 'Synthetic replacement regression',
       candidate: {
         mealName: 'Different synthetic recipe',
-        calories: 400,
+        calories: 800,
         proteinG: 20,
         carbsG: 50,
         fatG: 15,

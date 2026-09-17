@@ -1,3 +1,4 @@
+import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
 import { lockUserProfile } from './profile-revision.service';
 import {
@@ -425,6 +426,8 @@ export class NutritionistReviewService {
     const proteinG = updates?.proteinG !== undefined ? parseFloat(updates.proteinG as any) : plan.proteinG;
     const carbsG = updates?.carbsG !== undefined ? parseFloat(updates.carbsG as any) : plan.carbsG;
     const fatG = updates?.fatG !== undefined ? parseFloat(updates.fatG as any) : plan.fatG;
+
+    assertMealSlotCalories(calories, plan.user.userProfile?.dailyCalorieTarget ?? 2000, plan.mealType);
 
     if (plan.highRiskReviewRequired && plan.reviewApprovalCount === 0) {
       await prisma.$transaction(
