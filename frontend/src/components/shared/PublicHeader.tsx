@@ -1,8 +1,9 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, LogOut, Moon, Sun } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BookOpenText, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import { useTheme } from '@/lib/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import KainaraLogo from '@/components/shared/KainaraLogo';
@@ -17,7 +18,12 @@ export default function PublicHeader() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const { user, isLoading, logout } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isPendingVerification = Boolean(user && !user.emailVerified);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-border/60 bg-brand-bg/75 backdrop-blur-2xl">
@@ -37,6 +43,7 @@ export default function PublicHeader() {
           </span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-7 md:flex" aria-label="Public navigation">
           <Link href="/#platform" className="text-xs font-semibold text-brand-muted transition hover:text-brand-text">
             Platform
@@ -58,6 +65,7 @@ export default function PublicHeader() {
           </Link>
         </nav>
 
+        {/* Header Right Actions */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -68,17 +76,17 @@ export default function PublicHeader() {
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
+
           {!isLoading && user ? (
             <>
               {isPendingVerification && (
                 <button
                   type="button"
                   onClick={() => void logout()}
-                  className="flex items-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-bold text-brand-text transition hover:bg-brand-surface/70 sm:rounded-2xl sm:px-4"
+                  className="hidden items-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-bold text-brand-text transition hover:bg-brand-surface/70 sm:flex sm:rounded-2xl sm:px-4"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Use another account</span>
-                  <span className="sm:hidden">Switch</span>
+                  <span>Use another account</span>
                 </button>
               )}
               <Link
@@ -116,8 +124,113 @@ export default function PublicHeader() {
           ) : (
             <span className="h-10 w-24 animate-pulse rounded-xl bg-brand-surface/70" aria-hidden="true" />
           )}
+
+          {/* Mobile Navigation Toggle */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/70 text-brand-muted outline-none transition hover:border-brand-green/30 hover:text-brand-green focus:ring-2 focus:ring-brand-green/30 md:hidden"
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileMenuOpen}
+          >
+            {isMobileMenuOpen ? <X className="h-4 w-4 text-brand-text" /> : <Menu className="h-4 w-4 text-brand-text" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {isMobileMenuOpen && (
+        <div className="border-b border-brand-border/70 bg-brand-bg/95 backdrop-blur-2xl px-5 py-5 md:hidden animate-in slide-in-from-top-2 duration-200">
+          <nav className="flex flex-col gap-1.5" aria-label="Mobile navigation">
+            <Link
+              href="/#platform"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
+            >
+              <span>Platform</span>
+              <ArrowRight className="h-4 w-4 text-brand-muted" />
+            </Link>
+            <Link
+              href="/#process"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
+            >
+              <span>How it works</span>
+              <ArrowRight className="h-4 w-4 text-brand-muted" />
+            </Link>
+            <Link
+              href="/#nutritionists"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
+            >
+              <span>For nutritionists</span>
+              <ArrowRight className="h-4 w-4 text-brand-muted" />
+            </Link>
+            <Link
+              href="/docs"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition hover:bg-brand-surface/80 ${
+                pathname === '/docs' ? 'text-brand-accent font-extrabold' : 'text-brand-text'
+              }`}
+            >
+              <span>Documentation & Guides</span>
+              <BookOpenText className="h-4 w-4 text-brand-muted" />
+            </Link>
+
+            <div className="my-2 border-t border-brand-border/60" />
+
+            {!isLoading && user ? (
+              <div className="flex flex-col gap-2 pt-1">
+                <Link
+                  href={isPendingVerification ? '/verify-email' : getRoleHome(user.role)}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-brand-accent py-3 text-center text-sm font-extrabold text-[#07100d] shadow-neon"
+                >
+                  <span>
+                    {isPendingVerification
+                      ? 'Continue verification'
+                      : user.role === 'USER'
+                        ? 'Go to Dashboard'
+                        : 'Open Portal'}
+                  </span>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+                {isPendingVerification && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      void logout();
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-brand-border/80 bg-brand-surface/70 py-2.5 text-xs font-bold text-brand-muted hover:text-brand-text"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Sign out
+                  </button>
+                )}
+              </div>
+            ) : !isLoading ? (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/70 py-3 text-center text-sm font-bold text-brand-text transition hover:bg-brand-surface"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-brand-accent py-3 text-center text-sm font-extrabold text-[#07100d] shadow-neon transition hover:brightness-105"
+                >
+                  <span>Join</span>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ) : null}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

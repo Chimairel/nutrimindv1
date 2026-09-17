@@ -473,6 +473,115 @@ th {
   box-shadow: 0 18px 60px rgba(5, 18, 14, 0.08);
 }
 
+/* High-contrast Auth Card matching reference design (Image 3) */
+.auth-card {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.auth-card label {
+  color: #1e293b !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+}
+
+.auth-card input {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+.auth-card input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.auth-card input:hover {
+  border-color: #cbd5e1 !important;
+}
+
+.auth-card input:focus {
+  background-color: #ffffff !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}
+
+.auth-card input[data-validation-state="error"] {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.auth-card button[type="button"][aria-label="Show password"],
+.auth-card button[type="button"][aria-label="Hide password"] {
+  color: #64748b !important;
+}
+
+.auth-card button[type="button"][aria-label="Show password"]:hover,
+.auth-card button[type="button"][aria-label="Hide password"]:hover {
+  color: #0f172a !important;
+}
+
+.auth-card .portal-kicker {
+  color: #047857 !important;
+  font-size: 0.6875rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.18em !important;
+}
+
+.auth-card h2 {
+  color: #0f172a !important;
+}
+
+.auth-card p {
+  color: #64748b !important;
+}
+
+.auth-card .text-brand-text {
+  color: #0f172a !important;
+}
+
+.auth-card .text-brand-muted {
+  color: #64748b !important;
+}
+
+.auth-card .text-status-error-text {
+  color: #dc2626 !important;
+}
+
+.auth-card .bg-brand-border\/70 {
+  background-color: #e2e8f0 !important;
+}
+
+.auth-card .border-brand-border\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+.auth-card button[type="submit"] {
+  background-color: #a3e635 !important;
+  color: #022c22 !important;
+  font-weight: 800 !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  box-shadow: 0 4px 12px rgba(163, 230, 53, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+.auth-card button[type="submit"]:hover {
+  background-color: #84cc16 !important;
+  box-shadow: 0 6px 18px rgba(163, 230, 53, 0.35) !important;
+}
+
+.auth-card button[type="submit"]:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
 .futuristic-grid {
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),

@@ -107,7 +107,7 @@ export default function LoginPage() {
     >
       <AuthFormPrelude googleLabel="signin_with" error={error} compact />
 
-      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-4" noValidate>
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <Input
           id="email"
           label="Email address"
