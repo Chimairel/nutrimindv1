@@ -516,6 +516,22 @@ A comprehensive timeline of all features, specifications, addendums, and bug fix
   - Frontend Vitest suite: 172 passed across 44 test suites (100% pass rate).
   - Frontend ESLint: passed with 0 errors and 0 warnings.
 
+---
+
+## 📬 PHASE 15: EMAIL MODERNIZATION, 1-ON-1 CALL NOTIFICATIONS & AUTH UX POLISH (September 17, 2026 — 3:08 PM PHT)
+*Timestamp: 2026-09-17T15:08:00+08:00 (Philippine Standard Time, UTC+8) | Commits: 0feab36, e34395a, ddac37a, 9f63850*
+
+- **KAINARA Theme SMTP Email Engine:** Complete modernization of all outgoing emails to KAINARA's obsidian/emerald/lime responsive HTML layout (`#050a08` backdrop, `#0d1712` card, `#b8f45f` lime buttons, `#f1f7f4` text, `noreply@kainara.ph` fallback). Upgraded OTP, password reset, and nutritionist approval invitation emails.
+- **Nutritionist 1-on-1 Verification Call Notifications:** Automated email dispatch when an administrator confirms a call schedule with date/time in PHT, Google Meet/Zoom room link, reference code, and physical PRC ID preparation instructions.
+- **Application Receipt & Rejection Emails:** Instant confirmation email delivering tracking reference code (`NM-XXXXXX`) upon submission; constructive feedback email upon administrative rejection.
+- **Mobile Auth & Landing UI Polish:** Scaled mobile hero typography (`text-[2.35rem] sm:text-5xl font-black`), tightened spacing, disabled cramped grid on mobile viewports (`hidden md:block`), and added smooth 1200ms auto-scroll to form.
+- **Login Redirect Loading State:** Eliminated blank screen on `/login` for authenticated users by replacing `return null;` with `<PortalLoadingState fullScreen message="Redirecting to your workspace..." />`.
+- **Automated Verification:**
+  - Backend test suite: 527 passed (100% pass rate), including `[TEST-146-EXT]`.
+  - Frontend Vitest suite: 187 passed across 47 test suites (100% pass rate).
+  - TypeScript & ESLint: 0 errors and 0 warnings across both frontend and backend.
+
+
 
 
 

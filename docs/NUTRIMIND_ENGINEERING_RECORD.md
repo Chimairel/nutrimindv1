@@ -3878,7 +3878,12 @@ This section is a continuity record for agreed future work. Every item below is 
 - Frontend: 158 tests passed across 40 files. Backend: 526 passed, one existing clinical TODO. Both linters, frontend production build, backend build and script checking passed. Disposable API acceptance verifies repeated profile changes, staleness, history access, blocked meal generation and version-specific acknowledgment without real account changes or AI requests.
 - See [repair evidence and limits](PROFILE_REPORT_FLOW_REPAIR_2026-09-17.md). Live Gemini and authenticated browser layout remain unverified. These changes are uncommitted alongside Gemini's existing edits; no merge or push was performed.
 
-## 84. SMTP email modernization, 1-on-1 call notifications, and auth UX polish (2026-09-17)
+## 84. SMTP email modernization, 1-on-1 call notifications, and auth UX polish (2026-09-17 15:08:00 PHT)
+
+**Change ID:** CHG-20260917-02  
+**Timestamp:** 2026-09-17T15:08:00+08:00 (Philippine Standard Time, UTC+8)  
+**Commits:** `0feab36`, `e34395a`, `ddac37a`, `9f63850`  
+**Author / Pair:** Antigravity AI & Engineer  
 
 - **SMTP Email Modernization (`backend/src/lib/email.ts`)**:
   - Upgraded all outgoing email templates from legacy NutriMind styles to the unified **KAINARA obsidian/emerald/lime** responsive HTML email system (`renderKainaraEmailLayout`):
