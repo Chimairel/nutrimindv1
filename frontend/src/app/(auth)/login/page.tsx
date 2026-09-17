@@ -12,6 +12,7 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
@@ -45,7 +46,7 @@ export default function LoginPage() {
   }, [user, isAuthLoading, router]);
 
   if (user) {
-    return null;
+    return <PortalLoadingState fullScreen message="Redirecting to your workspace..." />;
   }
 
   const clearFieldError = (field: LoginField) => {
