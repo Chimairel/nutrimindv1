@@ -97,6 +97,9 @@ export default function PlanningLocationFields({
     setIsRegionOpen(false);
   };
 
+  const isRegionPresent = Boolean(regionName.trim());
+  const isRegionEffective = options.regions.length > 0 ? regionValid : isRegionPresent;
+
   const selectProvince = (value: string) => {
     handleProvinceHucChange(value);
     setIsProvinceOpen(false);
@@ -186,23 +189,23 @@ export default function PlanningLocationFields({
             aria-expanded={isProvinceOpen}
             aria-autocomplete="list"
             value={provinceHucName}
-            onFocus={() => regionValid && setIsProvinceOpen(true)}
+            onFocus={() => isRegionEffective && setIsProvinceOpen(true)}
             onChange={(event) => {
               handleProvinceHucChange(event.target.value);
-              if (regionValid) setIsProvinceOpen(true);
+              if (isRegionEffective) setIsProvinceOpen(true);
             }}
-            placeholder={regionName ? 'Start typing, e.g. Cebu' : 'Choose a region first'}
+            placeholder={isRegionPresent ? 'Start typing, e.g. Cebu' : 'Choose a region first'}
             maxLength={160}
             required={required}
-            disabled={disabled || !regionValid}
+            disabled={disabled || !isRegionEffective}
             autoComplete="off"
           />
           <button
             type="button"
             tabIndex={-1}
             aria-label="Toggle province choices"
-            disabled={disabled || !regionValid}
-            onClick={() => !disabled && regionValid && setIsProvinceOpen((prev) => !prev)}
+            disabled={disabled || !isRegionEffective}
+            onClick={() => !disabled && isRegionEffective && setIsProvinceOpen((prev) => !prev)}
             className="absolute right-3 top-[38px] text-brand-muted hover:text-brand-text transition-colors p-1 disabled:opacity-40"
           >
             <ChevronDown

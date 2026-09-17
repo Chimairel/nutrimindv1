@@ -10,25 +10,58 @@ export interface PlanningLocationOptions {
   source?: { label: string; version: string; url: string };
 }
 
+let cachedPlanningLocations: PlanningLocationOptions | null = null;
+let planningLocationsPromise: Promise<PlanningLocationOptions> | null = null;
+
 export function usePlanningLocations() {
-  const [options, setOptions] = useState<PlanningLocationOptions>({ regions: [], provinceHucs: [] });
+  const [options, setOptions] = useState<PlanningLocationOptions>(
+    cachedPlanningLocations || { regions: [], provinceHucs: [] }
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedPlanningLocations);
   const [error, setError] = useState(false);
+
   useEffect(() => {
+    if (cachedPlanningLocations) {
+      setOptions(cachedPlanningLocations);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!planningLocationsPromise) {
+      planningLocationsPromise = api
+        .get('/user/onboarding/planning-locations')
+        .then((response) => {
+          if (!response.data?.success) throw new Error('Location list unavailable');
+          cachedPlanningLocations = response.data.data as PlanningLocationOptions;
+          return cachedPlanningLocations;
+        })
+        .catch((err) => {
+          planningLocationsPromise = null;
+          throw err;
+        });
+    }
+
     let active = true;
-    api
-      .get('/user/onboarding/planning-locations')
-      .then((response) => {
-        if (!response.data?.success) throw new Error('Location list unavailable');
-        if (active) setOptions(response.data.data as PlanningLocationOptions);
+    planningLocationsPromise
+      .then((data) => {
+        if (active) {
+          setOptions(data);
+          setIsLoading(false);
+        }
       })
       .catch(() => {
-        if (active) setError(true);
+        if (active) {
+          setError(true);
+          setIsLoading(false);
+        }
       });
+
     return () => {
       active = false;
     };
   }, []);
-  return { options, error };
+
+  return { options, isLoading, error };
 }
 
 export function validPlanningLocation(options: PlanningLocationOptions, region: string, province: string) {

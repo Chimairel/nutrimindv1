@@ -27,11 +27,19 @@ export default function MealLocalityPreferenceControl({
   const { options } = usePlanningLocations();
   const { regionValid, provinceValid } = validPlanningLocation(options, regionName, provinceHucName);
 
+  const cleanRegion = regionName.trim();
+  const cleanProvince = provinceHucName.trim();
+
+  // If locations reference list is still loading, assume present values are valid to prevent layout jump
+  const isLocationsLoading = options.regions.length === 0;
+  const effectiveRegionValid = isLocationsLoading ? Boolean(cleanRegion) : regionValid;
+  const effectiveProvinceValid = isLocationsLoading ? Boolean(cleanProvince && cleanRegion) : provinceValid;
+
   // 3 stops:
   // 1: National
   // 2: Regional
   // 3: Local (Province/HUC)
-  const maxStop = provinceValid ? 3 : regionValid ? 2 : 1;
+  const maxStop = effectiveProvinceValid ? 3 : effectiveRegionValid ? 2 : 1;
 
   const savedStops: Record<MealLocalityPreference, number> = {
     NATIONAL: 1,
@@ -41,9 +49,6 @@ export default function MealLocalityPreferenceControl({
     LOCAL: 3,
   };
   const resolvedStop = Math.min(savedStops[value] ?? 1, maxStop);
-
-  const cleanRegion = regionName.trim();
-  const cleanProvince = provinceHucName.trim();
 
   // Define the 3 stops
   const stops = useMemo(() => {
@@ -71,7 +76,7 @@ export default function MealLocalityPreferenceControl({
         description: cleanRegion
           ? `Prioritize food familiar across ${formatRegionDisplay(cleanRegion)}, then fall back to national evidence.`
           : 'Prioritize food familiar across your region, then fall back to national evidence.',
-        isAvailable: regionValid,
+        isAvailable: effectiveRegionValid,
         Icon: Map,
       },
       {
@@ -85,11 +90,11 @@ export default function MealLocalityPreferenceControl({
         description: cleanProvince
           ? `Prioritize food familiar in ${cleanProvince}, then fall back to regional and national evidence.`
           : 'Prioritize food familiar in your province/HUC, then fall back to regional and national evidence.',
-        isAvailable: provinceValid,
+        isAvailable: effectiveProvinceValid,
         Icon: MapPin,
       },
     ];
-  }, [cleanRegion, cleanProvince, regionValid, provinceValid]);
+  }, [cleanRegion, cleanProvince, effectiveRegionValid, effectiveProvinceValid]);
 
   const currentStopData = stops[resolvedStop - 1];
 

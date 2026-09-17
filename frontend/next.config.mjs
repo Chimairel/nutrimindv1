@@ -21,7 +21,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://accounts.google.com",
   "img-src 'self' data: blob: https://api.dicebear.com https://lh3.googleusercontent.com https://res.cloudinary.com",
   `connect-src 'self' ${apiOrigin} https://accounts.google.com${isDevelopment ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
-  'frame-src https://accounts.google.com',
+  "frame-src 'self' https://accounts.google.com https://www.google.com https://maps.google.com",
   "font-src 'self' data:",
   ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
