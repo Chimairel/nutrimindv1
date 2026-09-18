@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import { createCorsOptions } from '@/config/cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { apiLimiter } from '@/middleware/rateLimiter';
@@ -53,20 +54,7 @@ app.use((req, res, next) => {
   });
   next();
 });
-app.use(
-  cors({
-    origin(origin, callback) {
-      // Requests without an Origin header are server-to-server or same-origin.
-      if (!origin || env.allowedCorsOrigins.includes(origin.replace(/\/$/, ''))) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error('Origin is not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(createCorsOptions(env.allowedCorsOrigins)));
 // PayMongo signs the exact request bytes. Keep this route before express.json().
 app.use('/api/webhooks/paymongo', apiLimiter, paymongoWebhookRouter);
 // Applicant media is bounded by its schema (1 MB headshot + 500 KB signature).

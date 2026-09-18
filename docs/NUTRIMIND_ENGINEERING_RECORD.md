@@ -3921,3 +3921,7 @@ Closed the gap where reconciled ingredient calories bypassed the existing ±15% 
 ## 88. Hide unconfigured grocery costing (2026-09-17)
 
 At the user's request, removed the grocery cost panel from the grocery page and price/budget claims from the Premium comparison and test-activation modal. The unused costing component, API, data models and tests remain for future evidence-backed activation. Grocery quantities, purchase tracking, pantry controls and PDF exports are unchanged.
+
+## 89. Tunnel application submission origin repair (2026-09-18)
+
+Reproduced the reported generic 500 response by sending an application POST through the Next.js proxy with an unconfigured Origin. Backend CORS rejection previously used a plain Error and was converted to INTERNAL_ERROR. It now returns an actionable 403 ORIGIN_NOT_ALLOWED. The user-provided exact HTTPS origin was added to local backend allowlists without enabling wildcard access. A non-submitting empty-payload probe through localhost:3000 now reaches application validation (400 VALIDATION_ERROR). The supplied public tunnel still returned Cloudflare HTTP 530; phone end-to-end success is not established. Desktop servers started on 3000/5000. Backend: 536 tests passed, one existing TODO; build and lint passed. Pending Gemini frontend edits were preserved.

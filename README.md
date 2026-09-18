@@ -275,3 +275,15 @@ Consult the engineering record for the ranked register. Important limitations in
 4. Never expose secrets or personal health data.
 5. Record implementation and exact verification evidence in the engineering record.
 6. Do not claim runtime, deployment, or clinical success without evidence.
+
+## Phone testing through a Cloudflare quick tunnel
+
+Run both local servers (frontend port 3000 and backend port 5000), then run `cloudflared tunnel --url http://localhost:3000` and keep it running. Mobile browser API calls use `/api`; Next.js forwards them to the local backend, so a second tunnel for port 5000 is unnecessary.
+
+Add the exact HTTPS origin printed by cloudflared to `backend/.env`, preserving your localhost entries:
+
+```dotenv
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001,https://YOUR-CURRENT-HOST.trycloudflare.com
+```
+
+Use only the origin, without `/nutritionist-apply` or a trailing path. Restart the backend after changing this setting. Quick-tunnel addresses can change when cloudflared restarts; update this entry to match. A Cloudflare tunnel error means the public tunnel is unavailable; an `ORIGIN_NOT_ALLOWED` API response means its origin has not been configured. Do not enable all Cloudflare origins or strip browser Origin headers to bypass this check. Local environment files must not be committed.
