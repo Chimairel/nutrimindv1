@@ -3,29 +3,6 @@ export const SUPPORTED_LIBRARY_ALLERGENS = ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTE
 export type SupportedLibraryAllergen = (typeof SUPPORTED_LIBRARY_ALLERGENS)[number];
 export type CatalogueMealType = 'BREAKFAST' | 'LUNCH' | 'DINNER';
 export type CatalogueDiet = 'OMNIVORE' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARIAN';
-export type CatalogueSupportedCondition = 'DIABETES' | 'HYPERTENSION';
-
-export const CONDITION_AWARE_CATALOGUE_RULES = Object.freeze({
-  diabetesMaxCarbsGPerMeal: 60,
-  hypertensionMaxSodiumMgPerMeal: 600,
-});
-
-export function deriveCatalogueConditionSuitability(nutrition: {
-  carbsG: number;
-  sodiumMg: number | null;
-}): CatalogueSupportedCondition[] {
-  const suitable: CatalogueSupportedCondition[] = [];
-  if (nutrition.carbsG <= CONDITION_AWARE_CATALOGUE_RULES.diabetesMaxCarbsGPerMeal) {
-    suitable.push('DIABETES');
-  }
-  if (
-    nutrition.sodiumMg !== null &&
-    nutrition.sodiumMg <= CONDITION_AWARE_CATALOGUE_RULES.hypertensionMaxSodiumMgPerMeal
-  ) {
-    suitable.push('HYPERTENSION');
-  }
-  return suitable;
-}
 
 export interface CommonMealIngredient {
   foodName: string;
@@ -42,10 +19,8 @@ export interface CommonMealDefinition {
   ingredients: CommonMealIngredient[];
 }
 
-const allGoals = ['LOSE_WEIGHT', 'GAIN_WEIGHT', 'MAINTAIN', 'BUILD_MUSCLE'] as const;
-
 export function getCatalogueDietaryTags(meal: CommonMealDefinition): string[] {
-  return [...meal.diets, ...allGoals];
+  return [...meal.diets];
 }
 
 const omnivore: CatalogueDiet[] = ['OMNIVORE'];

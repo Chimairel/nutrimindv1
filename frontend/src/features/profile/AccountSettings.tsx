@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
 import AvatarSettings from '@/features/profile/AvatarSettings';
@@ -15,6 +16,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { User, Lock, CheckCircle, AlertTriangle, LogOut, Mail, Palette, ShieldCheck, Trash2 } from 'lucide-react';
 
 type ProfilePanel = 'account' | 'security' | 'avatar' | 'privacy';
+const ACCOUNT_DELETION_CONFIRMATION = 'DELETE MY KAINARA ACCOUNT';
 
 export default function AccountSettings({ initialPanel = 'account' }: { initialPanel?: ProfilePanel }) {
   const { logout, user, updateUserSession } = useAuth();
@@ -39,19 +41,38 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const [deletionError, setDeletionError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const passwordsMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const deletionConfirmed =
+    deletionConfirmation === ACCOUNT_DELETION_CONFIRMATION || deletionConfirmation === 'DELETE MY NUTRIMIND ACCOUNT';
+  const deletionConfirmationMismatch = deletionConfirmation.length > 0 && !deletionConfirmed;
+
+  const deleteAccount = async (credential: { password?: string; googleIdToken?: string }) => {
+    await api.delete('/user/account', {
+      data: {
+        ...credential,
+        confirmation: deletionConfirmation,
+      },
+    });
+    await logout();
+  };
 
   const handleDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsDeleting(true);
     setDeletionError(null);
     try {
-      await api.delete('/user/account', {
-        data: {
-          password: deletionPassword,
-          confirmation: deletionConfirmation,
-        },
-      });
-      await logout();
+      await deleteAccount({ password: deletionPassword });
+    } catch (error: unknown) {
+      setDeletionError(getApiErrorMessage(error, 'Account deletion failed.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleGoogleDeleteAccount = async (googleIdToken: string) => {
+    setIsDeleting(true);
+    setDeletionError(null);
+    try {
+      await deleteAccount({ googleIdToken });
     } catch (error: unknown) {
       setDeletionError(getApiErrorMessage(error, 'Account deletion failed.'));
     } finally {
@@ -352,10 +373,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               id="delete-account-password"
               name="currentPassword"
               autoComplete="current-password"
-              label="Current password"
+              label="Current password (email and password accounts)"
               value={deletionPassword}
               onChange={(event) => setDeletionPassword(event.target.value)}
-              required
             />
             <Input
               id="delete-account-confirmation"
@@ -363,20 +383,33 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               label="Type DELETE MY KAINARA ACCOUNT"
               value={deletionConfirmation}
               onChange={(event) => setDeletionConfirmation(event.target.value)}
+              error={deletionConfirmationMismatch ? `Type ${ACCOUNT_DELETION_CONFIRMATION} exactly.` : undefined}
               required
             />
             <div className="flex justify-end border-t border-brand-border/60 pt-4">
               <Button
                 variant="danger"
                 type="submit"
-                disabled={
-                  isDeleting ||
-                  (deletionConfirmation !== 'DELETE MY KAINARA ACCOUNT' &&
-                    deletionConfirmation !== 'DELETE MY NUTRIMIND ACCOUNT')
-                }
+                disabled={isDeleting || !deletionConfirmed || deletionPassword.length < 8}
               >
                 {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
               </Button>
+            </div>
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-brand-border/70" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">or</span>
+              <span className="h-px flex-1 bg-brand-border/70" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs leading-relaxed text-brand-muted">
+                Google accounts can reauthenticate and delete without a password. The selected Google identity must
+                match this KAINARA account.
+              </p>
+              <GoogleSignInButton
+                label="continue_with"
+                disabled={isDeleting || !deletionConfirmed}
+                onCredential={handleGoogleDeleteAccount}
+              />
             </div>
           </form>
         </Card>

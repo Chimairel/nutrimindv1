@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { suspendMealClearancesForEvidenceChange } from './condition-clearance.service';
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import {
   MealLibraryStatus,
@@ -15,12 +16,14 @@ import {
   Goal,
   HealthConditionType,
   Prisma,
+  SafetyDeclarationProvenance,
+  MealIngredientClassificationStatus,
+  MealNutritionEvidenceSource,
 } from '@prisma/client';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '@/domain/meal-library-safety-evidence.policy';
 import type { CertifyMealLibrarySafetyInput } from '@/domain/meal-library-safety-review.schema';
 import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '@/services/meal-swap.service';
-import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 import {
   BASE_LIBRARY_COVERAGE_PROFILES,
   COMBINATION_CONDITIONS,
@@ -28,14 +31,33 @@ import {
   COVERAGE_MEAL_TYPES,
   STRUCTURED_COMBINATION_COVERAGE_PROFILES,
 } from '@/domain/nutritionist-library-coverage.profiles';
+import {
+  classifyMealIngredients,
+  MEAL_INGREDIENT_CLASSIFICATION_VERSION,
+} from '@/domain/meal-ingredient-classification.policy';
+import {
+  getNutritionistMealLibrary,
+  getNutritionistMealLibraryWithFilters,
+  type NutritionistLibraryFilters,
+} from './nutritionist-library-query.service';
+
+const INDEPENDENT_CONDITION_REVIEW_KEYS = new Set(['KIDNEY_DISEASE', 'PREGNANT']);
+const REQUIRED_ALLERGEN_FACT_KEYS = ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS'] as const;
+
+function certificationProposalKey(input: CertifyMealLibrarySafetyInput): string {
+  return JSON.stringify({
+    conditionDeclarationState: input.conditionDeclarationState,
+    allergenDeclarationState: input.allergenDeclarationState,
+    crossContactAssessment: input.crossContactAssessment,
+    suitableConditions: [...input.suitableConditions].sort(),
+    allergensPresent: [...input.allergensPresent].sort(),
+    allergensReviewedAbsent: [...input.allergensReviewedAbsent].sort(),
+  });
+}
 
 export class NutritionistLibraryService {
   static async getMealLibrary(limit = 50) {
-    return prisma.mealLibrary.findMany({
-      orderBy: { usageCount: 'desc' },
-      take: limit,
-      include: { verifiedByNutritionist: { select: { userId: true } } },
-    });
+    return getNutritionistMealLibrary(limit);
   }
   static async checkLibraryMealMutationPermission(userId: string, userRole: string, meal: any): Promise<boolean> {
     if (!meal) return false;
@@ -68,88 +90,8 @@ export class NutritionistLibraryService {
   /**
    * Query MealLibrary with advanced filters, search, and pagination
    */
-  static async getMealLibraryWithFilters(
-    currentUserId: string,
-    filters: {
-      search?: string;
-      mealType?: string;
-      conditionTag?: string;
-      status?: string;
-      verifiedByMe?: boolean;
-      page?: number;
-      limit?: number;
-    }
-  ) {
-    const { page, limit } = normalizePagination(filters.page, filters.limit, 20);
-    const skip = (page - 1) * limit;
-    const search = normalizeSearch(filters.search);
-
-    const where: any = {};
-
-    if (search) {
-      where.mealName = {
-        contains: search,
-        mode: 'insensitive',
-      };
-    }
-
-    if (filters.mealType && filters.mealType !== 'All') {
-      where.mealType = filters.mealType;
-    }
-
-    if (filters.conditionTag && filters.conditionTag !== 'All') {
-      where.suitableConditions = {
-        array_contains: filters.conditionTag,
-      };
-    }
-
-    if (filters.status && filters.status !== 'All') {
-      where.status = filters.status;
-    }
-
-    if (filters.verifiedByMe) {
-      where.verifiedByNutritionist = {
-        userId: currentUserId,
-      };
-    }
-
-    const [total, meals] = await Promise.all([
-      prisma.mealLibrary.count({ where }),
-      prisma.mealLibrary.findMany({
-        where,
-        orderBy: { addedAt: 'desc' },
-        skip,
-        take: limit,
-        include: {
-          verifiedByNutritionist: {
-            include: {
-              user: {
-                select: { name: true },
-              },
-            },
-          },
-          flags: {
-            where: { status: 'PENDING' },
-            include: {
-              flaggedByNutritionist: {
-                include: {
-                  user: {
-                    select: { name: true },
-                  },
-                },
-              },
-            },
-          },
-          ingredients: { orderBy: { position: 'asc' } },
-          safetyDeclarations: true,
-          safetyReviewedByNutritionist: {
-            include: { user: { select: { name: true } } },
-          },
-        },
-      }),
-    ]);
-
-    return { total, page, limit, meals };
+  static async getMealLibraryWithFilters(currentUserId: string, filters: NutritionistLibraryFilters) {
+    return getNutritionistMealLibraryWithFilters(currentUserId, filters);
   }
 
   /**
@@ -352,22 +294,97 @@ export class NutritionistLibraryService {
           throw new Error('Every library ingredient must be resolved and linked to FNRI before certification.');
         }
 
+        const classification = classifyMealIngredients(
+          meal.ingredients.map((ingredient) => ({
+            name: ingredient.ingredientName,
+            category: ingredient.category,
+          }))
+        );
+        const declaredPresent = new Set(input.allergensPresent);
+        const declaredAbsent = new Set(input.allergensReviewedAbsent);
+        for (const detected of classification.detectedAllergens) {
+          if (declaredAbsent.has(detected)) {
+            throw new Error(`Deterministic ingredient evidence detects ${detected}; it cannot be certified absent.`);
+          }
+          if (!declaredPresent.has(detected)) {
+            throw new Error(
+              `Deterministic ingredient evidence detects ${detected}; include it as present before certifying.`
+            );
+          }
+        }
+        const accountedAllergens = new Set([...input.allergensPresent, ...input.allergensReviewedAbsent]);
+        if (!REQUIRED_ALLERGEN_FACT_KEYS.every((key) => accountedAllergens.has(key))) {
+          throw new Error(
+            'Certification requires an explicit present or reviewed-absent fact for every supported allergen.'
+          );
+        }
+
+        const requiresIndependentReview = input.suitableConditions.some((condition) =>
+          INDEPENDENT_CONDITION_REVIEW_KEYS.has(condition)
+        );
+        const proposalKey = certificationProposalKey(input);
+        const pendingIndependentReview = requiresIndependentReview
+          ? await tx.mealLibrarySafetyReview.findFirst({
+              where: {
+                mealLibraryId: mealId,
+                outcome: MealLibrarySafetyReviewOutcome.CERTIFICATION_PENDING_SECOND_REVIEW,
+                evidenceRevision: input.expectedRevision,
+              },
+              orderBy: { createdAt: 'desc' },
+            })
+          : null;
+        if (requiresIndependentReview && !pendingIndependentReview) {
+          await tx.mealLibrarySafetyReview.create({
+            data: {
+              mealLibraryId: mealId,
+              nutritionistProfileId,
+              outcome: MealLibrarySafetyReviewOutcome.CERTIFICATION_PENDING_SECOND_REVIEW,
+              evidenceRevision: input.expectedRevision,
+              policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+              reasonCode: 'INDEPENDENT_CONDITION_REVIEW_REQUIRED',
+              evidenceSnapshot: { proposalKey, input },
+            },
+          });
+          return {
+            ...meal,
+            certificationAwaitingSecondReview: true,
+            certificationRequiredReviewerCount: 2,
+          };
+        }
+        if (pendingIndependentReview) {
+          if (pendingIndependentReview.nutritionistProfileId === nutritionistProfileId) {
+            throw new Error('A different nutritionist must perform the independent kidney/pregnancy evidence review.');
+          }
+          const pendingSnapshot = pendingIndependentReview.evidenceSnapshot as Record<string, unknown>;
+          if (pendingSnapshot?.proposalKey !== proposalKey) {
+            throw new Error(
+              'The proposed reusable evidence changed after first review; start the two-review process again.'
+            );
+          }
+        }
+
         const nextRevision = input.expectedRevision + 1;
         const declarations = [
           ...input.suitableConditions.map((canonicalKey) => ({
             mealLibraryId: mealId,
             declarationType: MealLibrarySafetyDeclarationType.CONDITION_REVIEWED,
             canonicalKey,
+            provenance: SafetyDeclarationProvenance.NUTRITIONIST_REVIEW,
+            policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
           })),
           ...input.allergensPresent.map((canonicalKey) => ({
             mealLibraryId: mealId,
             declarationType: MealLibrarySafetyDeclarationType.ALLERGEN_PRESENT,
             canonicalKey,
+            provenance: SafetyDeclarationProvenance.NUTRITIONIST_REVIEW,
+            policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
           })),
           ...input.allergensReviewedAbsent.map((canonicalKey) => ({
             mealLibraryId: mealId,
             declarationType: MealLibrarySafetyDeclarationType.ALLERGEN_REVIEWED_ABSENT,
             canonicalKey,
+            provenance: SafetyDeclarationProvenance.NUTRITIONIST_REVIEW,
+            policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
           })),
         ];
 
@@ -385,6 +402,14 @@ export class NutritionistLibraryService {
             crossContactAssessment: input.crossContactAssessment as MealLibraryCrossContactAssessment,
             suitableConditions: input.suitableConditions,
             allergenFree: input.allergensReviewedAbsent,
+            dietaryTags: classification.compatibleDietaryPreferences,
+            ingredientClassificationStatus:
+              classification.status === 'COMPLETE'
+                ? MealIngredientClassificationStatus.COMPLETE
+                : MealIngredientClassificationStatus.NEEDS_REVIEW,
+            ingredientClassificationVersion: MEAL_INGREDIENT_CLASSIFICATION_VERSION,
+            ingredientClassifiedAt: now,
+            ingredientClassificationFindings: classification as unknown as Prisma.InputJsonValue,
             safetyEvidenceRevision: nextRevision,
             certifiedEvidenceRevision: nextRevision,
             safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
@@ -430,6 +455,13 @@ export class NutritionistLibraryService {
             allergensReviewedAbsent: input.allergensReviewedAbsent,
             crossContactAssessment: input.crossContactAssessment,
           },
+          deterministicClassification: classification,
+          independentConditionReview: pendingIndependentReview
+            ? {
+                firstReviewerId: pendingIndependentReview.nutritionistProfileId,
+                secondReviewerId: nutritionistProfileId,
+              }
+            : null,
         };
         await tx.mealLibrarySafetyReview.create({
           data: {
@@ -439,7 +471,7 @@ export class NutritionistLibraryService {
             evidenceRevision: nextRevision,
             policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
             reasonCode: 'CERTIFIED_CURRENT_REVISION',
-            evidenceSnapshot,
+            evidenceSnapshot: evidenceSnapshot as unknown as Prisma.InputJsonValue,
           },
         });
 
@@ -492,6 +524,27 @@ export class NutritionistLibraryService {
             proteinG: parseFloat(updatedFields.proteinG || 0),
             carbsG: parseFloat(updatedFields.carbsG || 0),
             fatG: parseFloat(updatedFields.fatG || 0),
+            sodiumMg: Object.prototype.hasOwnProperty.call(updatedFields, 'sodiumMg')
+              ? updatedFields.sodiumMg
+              : meal.sodiumMg,
+            sugarG: Object.prototype.hasOwnProperty.call(updatedFields, 'sugarG') ? updatedFields.sugarG : meal.sugarG,
+            fiberG: Object.prototype.hasOwnProperty.call(updatedFields, 'fiberG') ? updatedFields.fiberG : meal.fiberG,
+            potassiumMg: Object.prototype.hasOwnProperty.call(updatedFields, 'potassiumMg')
+              ? updatedFields.potassiumMg
+              : meal.potassiumMg,
+            phosphorusMg: Object.prototype.hasOwnProperty.call(updatedFields, 'phosphorusMg')
+              ? updatedFields.phosphorusMg
+              : meal.phosphorusMg,
+            saturatedFatG: Object.prototype.hasOwnProperty.call(updatedFields, 'saturatedFatG')
+              ? updatedFields.saturatedFatG
+              : meal.saturatedFatG,
+            nutritionServingDescription: Object.prototype.hasOwnProperty.call(
+              updatedFields,
+              'nutritionServingDescription'
+            )
+              ? updatedFields.nutritionServingDescription
+              : meal.nutritionServingDescription,
+            nutritionEvidenceSource: MealNutritionEvidenceSource.NUTRITIONIST_EDITED,
             dietaryTags: updatedFields.dietaryTags || meal.dietaryTags,
             safetyEvidenceRevision: { increment: 1 },
             ...(wasComplete
@@ -505,6 +558,7 @@ export class NutritionistLibraryService {
         });
 
         if (wasComplete) {
+          await suspendMealClearancesForEvidenceChange(tx, mealId, 'MEAL_CONTENT_CHANGED');
           await tx.mealLibrarySafetyReview.create({
             data: {
               mealLibraryId: mealId,
@@ -558,6 +612,7 @@ export class NutritionistLibraryService {
             safetyInvalidationReason: 'LIBRARY_ARCHIVED',
           },
         });
+        await suspendMealClearancesForEvidenceChange(tx, mealId, 'LIBRARY_ARCHIVED');
         await tx.mealLibrarySafetyReview.create({
           data: {
             mealLibraryId: mealId,
@@ -626,6 +681,7 @@ export class NutritionistLibraryService {
           },
         });
         if (wasComplete) {
+          await suspendMealClearancesForEvidenceChange(tx, mealId, 'LIBRARY_FLAGGED');
           await tx.mealLibrarySafetyReview.create({
             data: {
               mealLibraryId: mealId,

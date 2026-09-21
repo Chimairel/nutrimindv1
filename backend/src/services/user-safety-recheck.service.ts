@@ -2,7 +2,6 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { lockUserProfile } from './profile-revision.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
-import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import {
   HealthConditionType,
   AllergenType,
@@ -13,18 +12,18 @@ import {
   MealLogDataSource,
   MealLogStatus,
   MealIngredientDataSource,
-  MealLibrarySafetyEvidenceStatus,
+  MealType,
   Prisma,
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
-import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
-import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-swap.service';
+import { queryEligibleLibraryMeals } from './meal-library-candidate-query.service';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 
 export class UserSafetyRecheckService {
   /**
@@ -35,112 +34,17 @@ export class UserSafetyRecheckService {
     allergens: AllergenType[],
     meal: { mealName: string; description: string | null; ingredients: { ingredientName: string }[] }
   ): boolean {
-    const ingredientNames = meal.ingredients.map((i) => i.ingredientName.toLowerCase());
-    const desc = meal.description || '';
-    const joinedIngs = ingredientNames.join(' ') + ' ' + meal.mealName.toLowerCase() + ' ' + desc.toLowerCase();
-
-    // 1. Check Allergen Keywords
-    if (allergens.includes(AllergenType.SHELLFISH)) {
-      const keywords = [
-        'shrimp',
-        'prawn',
-        'crab',
-        'lobster',
-        'shellfish',
-        'mussel',
-        'clam',
-        'oyster',
-        'hipon',
-        'alimango',
-        'alimasag',
-        'tahong',
-        'talaba',
-        'alamang',
-        'seafood',
-      ];
-      if (keywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    if (allergens.includes(AllergenType.NUTS)) {
-      const keywords = ['peanut', 'cashew', 'almond', 'walnut', 'pecan', 'nut', 'mani', 'kasuy', 'hazelnut'];
-      if (keywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    if (allergens.includes(AllergenType.DAIRY)) {
-      const keywords = [
-        'milk',
-        'cheese',
-        'butter',
-        'cream',
-        'yogurt',
-        'dairy',
-        'gatas',
-        'keso',
-        'condensed milk',
-        'evaporated milk',
-      ];
-      if (keywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    if (allergens.includes(AllergenType.GLUTEN)) {
-      const keywords = [
-        'wheat',
-        'flour',
-        'bread',
-        'gluten',
-        'pasta',
-        'spaghetti',
-        'macaroni',
-        'noodles',
-        'pan de sal',
-        'soy sauce',
-        'toyo',
-      ];
-      if (keywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    if (allergens.includes(AllergenType.EGGS)) {
-      const keywords = ['egg', 'itlog', 'mayo', 'mayonnaise', 'balut', 'penoy'];
-      if (keywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    // 2. Check Clinical Health Conditions
-    if (conditions.includes(HealthConditionType.HYPERTENSION)) {
-      const sodiumKeywords = [
-        'chicharon',
-        'spam',
-        'hotdog',
-        'sausage',
-        'instant noodle',
-        'tuyo',
-        'patis',
-        'bagoong',
-        'soy sauce',
-        'toyo',
-        'salted',
-      ];
-      if (sodiumKeywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    if (conditions.includes(HealthConditionType.DIABETES)) {
-      const sugarKeywords = [
-        'sugar',
-        'sweet',
-        'cake',
-        'pastry',
-        'soda',
-        'coke',
-        'juice',
-        'condensed milk',
-        'honey',
-        'syrup',
-        'turon',
-        'bananacue',
-      ];
-      if (sugarKeywords.some((k) => joinedIngs.includes(k))) return true;
-    }
-
-    return false;
+    const classification = classifyMealIngredients([
+      ...meal.ingredients.map((ingredient) => ({ name: ingredient.ingredientName })),
+      { name: meal.mealName },
+      ...(meal.description ? [{ name: meal.description }] : []),
+    ]);
+    const requestedAllergens = new Set(allergens.filter((value) => value !== AllergenType.NONE));
+    const definiteAllergenConflict = classification.detectedAllergens.some((value) => requestedAllergens.has(value));
+    // A newly added condition always requires the meal to pass the governed
+    // condition-clearance path. Ingredient keywords never decide condition safety.
+    const conditionRevalidationRequired = conditions.some((value) => value !== HealthConditionType.NONE);
+    return definiteAllergenConflict || conditionRevalidationRequired;
   }
 
   /**
@@ -194,25 +98,20 @@ export class UserSafetyRecheckService {
       orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
     });
 
-    const libraryMeals = await prisma.mealLibrary.findMany({
-      where: {
-        ...getApprovedMealLibraryWhere(),
-        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-      },
-      include: certifiedLibraryMealInclude,
-    });
-    const eligibleLibraryMeals = libraryMeals.filter(
-      (candidate) =>
-        isMealWithinSlotCalorieRange({
-          calories: candidate.calories,
-          mealType: candidate.mealType,
-          dailyCalorieTarget: userProfile.dailyCalorieTarget ?? 2000,
-        }) &&
-        isCertifiedLibraryMealCompatible(candidate, userConditions, userAllergens, {
-          ...userProfile,
-          safetyEntries: user.safetyProfileEntries,
-        })
-    );
+    const eligibleLibraryMeals = (
+      await Promise.all(
+        [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER].map((mealType) =>
+          queryEligibleLibraryMeals({
+            mealType,
+            dailyCalorieTarget: userProfile.dailyCalorieTarget ?? 2000,
+            userConditions,
+            userAllergens,
+            profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+            limit: 120,
+          })
+        )
+      )
+    ).flat();
     const highRiskReviewRequired = requiresEscalatedMealReview(
       userConditions,
       safetyRestrictions.customConditions.join(', ')
@@ -423,7 +322,10 @@ export class UserSafetyRecheckService {
               .min(1)
               .max(50),
           });
-          const replacement = await generateGenerativeJSON<z.infer<typeof schema>>(prompt, systemInstruction, schema);
+          const replacement = await generateGenerativeJSON<z.infer<typeof schema>>(prompt, systemInstruction, schema, {
+            operation: 'MEAL_REPLACEMENT',
+            purpose: 'PROFILE_SAFETY_RECHECK_REPLACEMENT',
+          });
           const replacementLogData = {
             source: MealLogSource.SAFETY_REPLACED,
             mealName: replacement.mealName,

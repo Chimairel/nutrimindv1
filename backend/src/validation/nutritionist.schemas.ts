@@ -53,6 +53,13 @@ export const candidateMealSchema = z
     proteinG: nutritionNumber.max(500),
     carbsG: nutritionNumber.max(800),
     fatG: nutritionNumber.max(500),
+    sodiumMg: nutritionNumber.max(100000).nullable().optional(),
+    sugarG: nutritionNumber.max(1000).nullable().optional(),
+    fiberG: nutritionNumber.max(1000).nullable().optional(),
+    potassiumMg: nutritionNumber.max(100000).nullable().optional(),
+    phosphorusMg: nutritionNumber.max(100000).nullable().optional(),
+    saturatedFatG: nutritionNumber.max(1000).nullable().optional(),
+    nutritionServingDescription: z.string().trim().max(180).nullable().optional(),
     ingredients: z
       .array(
         z
@@ -84,20 +91,7 @@ export const libraryMealEditSchema = z
     proteinG: nutritionNumber.max(500),
     carbsG: nutritionNumber.max(800),
     fatG: nutritionNumber.max(500),
-    dietaryTags: z
-      .array(
-        z.enum([
-          'OMNIVORE',
-          'VEGETARIAN',
-          'VEGAN',
-          'PESCATARIAN',
-          'LOSE_WEIGHT',
-          'GAIN_WEIGHT',
-          'MAINTAIN',
-          'BUILD_MUSCLE',
-        ])
-      )
-      .max(8),
+    dietaryTags: z.array(z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN'])).max(4),
   })
   .strict();
 

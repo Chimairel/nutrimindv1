@@ -120,19 +120,16 @@ export class AuthService {
   }
 
   /**
-   * Authenticates a user via Google OAuth.
-   * Verifies the Google ID token, creates or finds the user, and returns JWT tokens.
-   * Google-authenticated users have emailVerified=true automatically.
+   * Verifies a Google ID token without creating a session or mutating an account.
+   * Used by destructive-account reauthentication as well as Google login.
    */
-  static async googleAuth(idToken: string) {
+  static async verifyGoogleIdentity(idToken: string) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new Error('Google OAuth is not configured on the server.');
     }
 
     const client = new OAuth2Client(clientId);
-
-    // Verify the Google ID token
     let ticket;
     try {
       ticket = await client.verifyIdToken({
@@ -144,9 +141,19 @@ export class AuthService {
     }
 
     const payload = ticket.getPayload();
-    if (!payload || !payload.email) {
-      throw new Error('Unable to retrieve account information from Google.');
+    if (!payload?.email || payload.email_verified === false) {
+      throw new Error('Unable to retrieve a verified account identity from Google.');
     }
+    return { ...payload, email: payload.email };
+  }
+
+  /**
+   * Authenticates a user via Google OAuth.
+   * Verifies the Google ID token, creates or finds the user, and returns JWT tokens.
+   * Google-authenticated users have emailVerified=true automatically.
+   */
+  static async googleAuth(idToken: string) {
+    const payload = await this.verifyGoogleIdentity(idToken);
 
     const { email, given_name, family_name, name: googleName, picture } = payload;
     const sanitizedEmail = email.trim().toLowerCase();

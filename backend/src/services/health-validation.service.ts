@@ -104,7 +104,10 @@ export class HealthValidationService {
     `;
 
     try {
-      const response = await generateGenerativeJSON<NormalizationResponse>(prompt);
+      const response = await generateGenerativeJSON<NormalizationResponse>(prompt, undefined, undefined, {
+        operation: 'OTHER',
+        purpose: 'HEALTH_TERM_NORMALIZATION',
+      });
       if (!response.isValid || !response.normalized) {
         return 'INVALID';
       }

@@ -126,7 +126,10 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
     `- Return only the raw JSON object. Do not include markdown code block wraps.`;
 
   try {
-    const estimated = await generateGenerativeJSON<Record<string, unknown>>(prompt, systemInstruction);
+    const estimated = await generateGenerativeJSON<Record<string, unknown>>(prompt, systemInstruction, undefined, {
+      operation: 'OTHER',
+      purpose: 'FNRI_LOOKUP_ESTIMATE',
+    });
 
     const formattedFood: Partial<FoodItem> = {
       name: typeof estimated.name === 'string' ? estimated.name : cleanName,

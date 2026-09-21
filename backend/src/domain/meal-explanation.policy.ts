@@ -1,6 +1,6 @@
 export interface MealSelectionEvidence {
   schemaVersion: 1;
-  source: 'VERIFIED_LIBRARY' | 'AI_GENERATED';
+  source: 'VERIFIED_LIBRARY' | 'RAW_RECIPE_CORPUS' | 'AI_GENERATED';
   dailyCalorieTarget: number;
   slotCalorieTarget: number | null;
   slotCalorieLower: number | null;
@@ -13,7 +13,7 @@ export interface MealSelectionEvidence {
 }
 
 export interface MealExplanation {
-  source: 'VERIFIED_LIBRARY' | 'AI_GENERATED' | 'LEGACY_UNKNOWN';
+  source: 'VERIFIED_LIBRARY' | 'RAW_RECIPE_CORPUS' | 'AI_GENERATED' | 'LEGACY_UNKNOWN';
   reviewState: 'NUTRITIONIST_VERIFIED' | 'APPROVED' | 'PENDING_REVIEW';
   nutritionEvidence: 'ALL_FNRI' | 'MIXED' | 'ESTIMATED' | 'UNAVAILABLE';
   calorieFit: 'WITHIN_TARGET' | 'OUTSIDE_TARGET' | 'UNAVAILABLE';
@@ -36,7 +36,9 @@ function isSelectionEvidence(value: unknown): value is MealSelectionEvidence {
   const evidence = value as Partial<MealSelectionEvidence>;
   return (
     evidence.schemaVersion === 1 &&
-    (evidence.source === 'VERIFIED_LIBRARY' || evidence.source === 'AI_GENERATED') &&
+    (evidence.source === 'VERIFIED_LIBRARY' ||
+      evidence.source === 'RAW_RECIPE_CORPUS' ||
+      evidence.source === 'AI_GENERATED') &&
     (evidence.slotCalorieLower === null || typeof evidence.slotCalorieLower === 'number') &&
     (evidence.slotCalorieUpper === null || typeof evidence.slotCalorieUpper === 'number')
   );
@@ -72,6 +74,10 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
   const bullets: string[] = [];
 
   if (source === 'VERIFIED_LIBRARY') bullets.push('Selected from the nutritionist-curated verified meal library.');
+  else if (source === 'RAW_RECIPE_CORPUS')
+    bullets.push(
+      'Sourced from an existing recipe corpus and still pending the same professional review as generated meals.'
+    );
   else if (source === 'AI_GENERATED')
     bullets.push('Generated for this plan slot from your saved nutrition and meal-planning preferences.');
   else bullets.push('Exact selection-source evidence was not recorded for this meal.');

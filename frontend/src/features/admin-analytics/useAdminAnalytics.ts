@@ -27,6 +27,18 @@ export interface AdminAnalytics {
   aiFailures24h: number;
   adaptationReviews30d: number;
   pendingPlansStartingSoon: number;
+  activeConditionClearances: number;
+  activeClearancesByCondition: Array<{
+    condition: string;
+    assuranceTier: string;
+    provenance: string;
+    count: number;
+  }>;
+  rawRecipeCandidates: number;
+  aiUsageByOperation30d: Array<{ operation: string; purpose: string; status: string; count: number }>;
+  planSelectionsByProvenance30d: Array<{ provenance: string; count: number }>;
+  geminiFromScratchSelectionRate30d: number;
+  geminiPlanningInvocationsPer100Selections30d: number;
 }
 
 const CACHE_KEY = 'admin-analytics';

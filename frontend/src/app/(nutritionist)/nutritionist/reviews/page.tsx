@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Avatar from '@/components/ui/Avatar';
@@ -22,8 +23,10 @@ import {
 } from 'lucide-react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
+import GovernanceQueuePanel, { ReviewTabs, type ReviewWorkspaceTab } from './GovernanceQueuePanel';
 
 export default function ReviewsPage() {
+  const [workspaceTab, setWorkspaceTab] = useState<ReviewWorkspaceTab>('pending');
   const {
     queue,
     fetchQueue,
@@ -63,6 +66,13 @@ export default function ReviewsPage() {
     removeIngredientField,
     updateIngredientField,
   } = useNutritionistReviews();
+  const visibleQueue = queue.filter((meal) =>
+    workspaceTab === 'second' ? meal.requiresIndependentSecondReview : !meal.requiresIndependentSecondReview
+  );
+
+  if (workspaceTab === 'audit' || workspaceTab === 'disputed') {
+    return <GovernanceQueuePanel tab={workspaceTab} onTabChange={setWorkspaceTab} />;
+  }
 
   return (
     <div className="m-2 sm:m-3 flex h-[calc(100%-1rem)] sm:h-[calc(100%-1.5rem)] w-[calc(100%-1rem)] sm:w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl sm:rounded-[30px] border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
@@ -71,6 +81,7 @@ export default function ReviewsPage() {
         className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
       >
         <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 text-brand-text">
+          <ReviewTabs value={workspaceTab} onChange={setWorkspaceTab} />
           <p className="text-xs font-semibold text-brand-green">Meal-plan review</p>
           <div className="mt-3 flex items-center justify-between">
             <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
@@ -85,7 +96,7 @@ export default function ReviewsPage() {
               </button>
             </h1>
             <Badge variant="pending" className="text-[9px]">
-              {queue.length} pending
+              {visibleQueue.length} pending
             </Badge>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-brand-muted">
@@ -98,7 +109,7 @@ export default function ReviewsPage() {
           <div className="flex-1 flex items-center justify-center">
             <span className="text-brand-muted animate-pulse text-sm">Loading queue...</span>
           </div>
-        ) : queue.length === 0 ? (
+        ) : visibleQueue.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2 border border-dashed border-brand-border rounded-xl">
             <CheckCircle className="w-8 h-8 text-brand-green" />
             <p role={errorMsg ? 'alert' : 'status'} className="text-xs text-brand-muted">
@@ -107,7 +118,7 @@ export default function ReviewsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {queue.map((meal) => {
+            {visibleQueue.map((meal) => {
               const isSelected = selectedMealId === meal.id;
               return (
                 <button

@@ -8,7 +8,7 @@ import Avatar from '@/components/ui/Avatar';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Coffee, Sun, Moon, Apple, Soup, CheckCircle } from 'lucide-react';
+import { Coffee, Sun, Moon, Apple, Soup, CheckCircle, Library } from 'lucide-react';
 
 interface ApprovedMeal {
   id: string;
@@ -19,6 +19,7 @@ interface ApprovedMeal {
   carbsG: number;
   fatG: number;
   nutritionistNote: string | null;
+  libraryMealId: string | null;
   reviewedAt: string;
   scheduledDate: string;
   user: {
@@ -32,6 +33,32 @@ export default function NutritionistApprovedPage() {
   const [meals, setMeals] = useState<ApprovedMeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  const prepareReusableEvidence = async (mealId: string) => {
+    setPublishingId(mealId);
+    setActionMessage(null);
+    try {
+      const response = await api.post(`/nutritionist/approved/${mealId}/reusable-draft`);
+      const libraryMealId = response.data?.data?.meal?.id as string | undefined;
+      setMeals((current) =>
+        current.map((meal) =>
+          meal.id === mealId ? { ...meal, libraryMealId: libraryMealId ?? meal.libraryMealId } : meal
+        )
+      );
+      setActionMessage(
+        response.data?.data?.deduplicated
+          ? 'An identical reusable recipe already existed and was linked.'
+          : 'Reusable evidence draft created. Complete its independent certification in the meal library.'
+      );
+    } catch (err) {
+      console.error('Failed to prepare reusable evidence:', err);
+      setActionMessage('Reusable evidence could not be prepared. Review the meal ingredients and try again.');
+    } finally {
+      setPublishingId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchApproved = async () => {
@@ -86,6 +113,11 @@ export default function NutritionistApprovedPage() {
         />
       ) : (
         <div className="space-y-3">
+          {actionMessage && (
+            <p role="status" className="text-xs text-brand-muted">
+              {actionMessage}
+            </p>
+          )}
           {meals.map((meal) => {
             const type = mealTypeLabels[meal.mealType] || {
               label: meal.mealType,
@@ -176,6 +208,19 @@ export default function NutritionistApprovedPage() {
                         ? reviewDate.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
                         : ''}
                     </div>
+                    <button
+                      type="button"
+                      disabled={Boolean(meal.libraryMealId) || publishingId === meal.id}
+                      onClick={() => prepareReusableEvidence(meal.id)}
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg border border-brand-green/25 px-2 py-1 text-[10px] font-bold text-brand-green disabled:cursor-default disabled:opacity-55"
+                    >
+                      <Library className="h-3 w-3" aria-hidden="true" />
+                      {meal.libraryMealId
+                        ? 'Reusable draft linked'
+                        : publishingId === meal.id
+                          ? 'Preparing…'
+                          : 'Prepare reusable evidence'}
+                    </button>
                   </div>
                 </div>
               </Card>

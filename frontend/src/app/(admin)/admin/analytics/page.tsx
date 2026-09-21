@@ -98,6 +98,18 @@ export default function AdminAnalyticsPage() {
       tone: 'bg-brand-accent/20 text-brand-green',
     },
     { label: 'Food aliases', value: data.totalAliases, icon: Tags, tone: 'bg-brand-green/10 text-brand-green' },
+    {
+      label: 'Raw recipe candidates',
+      value: data.rawRecipeCandidates,
+      icon: BookOpenText,
+      tone: 'bg-brand-cyan/10 text-brand-cyan',
+    },
+    {
+      label: 'Active condition clearances',
+      value: data.activeConditionClearances,
+      icon: ClipboardCheck,
+      tone: 'bg-brand-green/10 text-brand-green',
+    },
   ];
 
   return (
@@ -143,7 +155,7 @@ export default function AdminAnalyticsPage() {
       </section>
       <section>
         <p className="portal-section-label mb-4">Data and AI layer</p>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {intelligence.map((metric) => (
             <MetricCard key={metric.label} metric={metric} />
           ))}
@@ -158,6 +170,86 @@ export default function AdminAnalyticsPage() {
               matching across meal-generation and lookup workflows.
             </p>
             <Bot className="ml-auto hidden h-5 w-5 shrink-0 text-brand-green/50 sm:block" />
+          </div>
+        </Card>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Card className="p-5">
+            <p className="text-xs font-bold text-brand-text">Meal candidate provenance · 30 days</p>
+            <p className="mt-1 text-[11px] text-brand-muted">
+              The recorded source for every generated plan selection. Corpus sourcing carries no safety authority.
+            </p>
+            <div className="mt-4 space-y-2">
+              {data.planSelectionsByProvenance30d.length === 0 ? (
+                <p className="text-xs text-brand-muted">No selections recorded in this window.</p>
+              ) : (
+                data.planSelectionsByProvenance30d.map((row) => (
+                  <div key={row.provenance} className="flex justify-between text-xs">
+                    <span className="font-semibold text-brand-muted">{row.provenance.replaceAll('_', ' ')}</span>
+                    <span className="font-black text-brand-text">{row.count.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="mt-5 rounded-2xl bg-brand-bgAlt p-4">
+              <p className="text-[11px] font-semibold text-brand-muted">Gemini from-scratch selection rate</p>
+              <p className="mt-1 font-display text-3xl font-black text-brand-green">
+                {data.geminiFromScratchSelectionRate30d.toLocaleString()}%
+              </p>
+            </div>
+            <div className="mt-3 rounded-2xl bg-brand-bgAlt p-4">
+              <p className="text-[11px] font-semibold text-brand-muted">
+                Gemini planning invocations per 100 selected slots
+              </p>
+              <p className="mt-1 font-display text-3xl font-black text-brand-green">
+                {data.geminiPlanningInvocationsPer100Selections30d.toLocaleString()}
+              </p>
+            </div>
+          </Card>
+          <Card className="p-5">
+            <p className="text-xs font-bold text-brand-text">AI operations · 30 days</p>
+            <p className="mt-1 text-[11px] text-brand-muted">
+              Calls are separated by operation and outcome so corpus lookup is measurable apart from recipe generation.
+            </p>
+            <div className="mt-4 space-y-2">
+              {data.aiUsageByOperation30d.length === 0 ? (
+                <p className="text-xs text-brand-muted">No AI operations recorded in this window.</p>
+              ) : (
+                data.aiUsageByOperation30d.map((row) => (
+                  <div
+                    key={`${row.operation}-${row.purpose}-${row.status}`}
+                    className="flex justify-between gap-4 text-xs"
+                  >
+                    <span className="font-semibold text-brand-muted">
+                      {row.operation.replaceAll('_', ' ')} · {row.purpose.replaceAll('_', ' ')} · {row.status}
+                    </span>
+                    <span className="font-black text-brand-text">{row.count.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        </div>
+        <Card className="mt-4 p-5">
+          <p className="text-xs font-bold text-brand-text">Active condition-clearance coverage</p>
+          <p className="mt-1 text-[11px] text-brand-muted">
+            Counts are split by condition, assurance tier, and evidence provenance.
+          </p>
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {data.activeClearancesByCondition.length === 0 ? (
+              <p className="text-xs text-brand-muted">No active reusable condition clearances.</p>
+            ) : (
+              data.activeClearancesByCondition.map((row) => (
+                <div
+                  key={`${row.condition}-${row.assuranceTier}-${row.provenance}`}
+                  className="flex justify-between gap-4 rounded-xl bg-brand-bgAlt px-3 py-2 text-xs"
+                >
+                  <span className="font-semibold text-brand-muted">
+                    {row.condition.replaceAll('_', ' ')} · {row.assuranceTier} · {row.provenance.replaceAll('_', ' ')}
+                  </span>
+                  <span className="font-black text-brand-text">{row.count.toLocaleString()}</span>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </section>

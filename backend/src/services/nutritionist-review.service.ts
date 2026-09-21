@@ -1,30 +1,29 @@
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
 import { lockUserProfile } from './profile-revision.service';
-import {
-  MealPlanStatus,
-  AIConfidenceFlag,
-  NotificationType,
-  MealLibrarySafetyReviewOutcome,
-  MealIngredientDataSource,
-  Prisma,
-} from '@prisma/client';
+import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
-import {
-  getApprovedMealPlanStatusWhere,
-  getNutritionistReviewableMealPlanWhere,
-} from '@/domain/meal-actionability.policy';
+import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { getReviewClaimCutoff, getReviewPriority, isReviewClaimActive } from '@/domain/nutritionist-review.policy';
 import { recordCompletedMealPlanReviewCredit } from '@/services/work-credit.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { NutritionistReplacementService } from './nutritionist-replacement.service';
+import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
+import { evaluateApprovedConditionRules } from './condition-rule.service';
+import { getNutritionistApprovedMeals } from './nutritionist-approved-meals.service';
 
 export class NutritionistReviewService {
   static async getReviewQueue(nutritionistProfileId?: string) {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     // Show the whole shared queue, including items actively claimed by peers.
+    const reviewer = nutritionistProfileId
+      ? await prisma.nutritionistProfile.findUnique({
+          where: { id: nutritionistProfileId },
+          select: { canLeadReview: true },
+        })
+      : null;
     const pendingMeals = await prisma.mealPlan.findMany({
       where: getNutritionistReviewableMealPlanWhere(),
       include: {
@@ -40,7 +39,12 @@ export class NutritionistReviewService {
     });
 
     // Sort purely by confidence flag severity (NEEDS_REVIEW -> CAUTION -> SAFE)
-    const sorted = pendingMeals.sort((a, b) => {
+    const visibleMeals = pendingMeals.filter((meal) => {
+      const secondReview = meal.highRiskReviewRequired && meal.reviewApprovalCount === 1;
+      if (!secondReview) return true;
+      return reviewer?.canLeadReview === true && meal.firstApprovedByNutritionistId !== nutritionistProfileId;
+    });
+    const sorted = visibleMeals.sort((a, b) => {
       const aEscalated = a.highRiskReviewRequired && a.reviewApprovalCount === 1 ? 0 : 1;
       const bEscalated = b.highRiskReviewRequired && b.reviewApprovalCount === 1 ? 0 : 1;
       if (aEscalated !== bEscalated) return aEscalated - bEscalated;
@@ -48,6 +52,7 @@ export class NutritionistReviewService {
     });
 
     const result = sorted.map((meal) => {
+      const isBlindSecondReview = meal.highRiskReviewRequired && meal.reviewApprovalCount === 1;
       const isClaimed = meal.claimedByNutritionistId && meal.claimedAt && meal.claimedAt >= thirtyMinutesAgo;
       const claimedByMe = isClaimed && meal.claimedByNutritionistId === nutritionistProfileId;
       const claimedByOther = isClaimed && meal.claimedByNutritionistId !== nutritionistProfileId;
@@ -70,7 +75,7 @@ export class NutritionistReviewService {
         aiConfidenceFlag: meal.requiresSafetyRevalidation ? AIConfidenceFlag.NEEDS_REVIEW : meal.aiConfidenceFlag,
         requiresSafetyRevalidation: meal.requiresSafetyRevalidation,
         planType: meal.planType,
-        nutritionistNote: meal.nutritionistNote,
+        nutritionistNote: isBlindSecondReview ? null : meal.nutritionistNote,
         scheduledDate: meal.scheduledDate,
         reviewedAt: meal.reviewedAt,
         createdAt: meal.createdAt,
@@ -96,6 +101,23 @@ export class NutritionistReviewService {
   static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string) {
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
+    const [reviewer, reviewTarget] = await Promise.all([
+      prisma.nutritionistProfile.findUnique({
+        where: { id: nutritionistProfileId },
+        select: { canLeadReview: true },
+      }),
+      prisma.mealPlan.findUnique({
+        where: { id: mealPlanId },
+        select: { highRiskReviewRequired: true, reviewApprovalCount: true, firstApprovedByNutritionistId: true },
+      }),
+    ]);
+    if (!reviewer || !reviewTarget) throw new Error('Meal plan or nutritionist profile not found.');
+    if (reviewTarget.highRiskReviewRequired && reviewTarget.reviewApprovalCount === 1) {
+      if (!reviewer.canLeadReview) throw new Error('Lead review capability is required for this second review.');
+      if (reviewTarget.firstApprovedByNutritionistId === nutritionistProfileId) {
+        throw new Error('A different nutritionist must perform the independent second review.');
+      }
+    }
 
     // updateMany supplies a compare-and-set claim: only one reviewer can change
     // an unclaimed/expired row from the shared queue at a time.
@@ -184,101 +206,57 @@ export class NutritionistReviewService {
       });
     }
 
-    const allergenMatches: Record<string, string[]> = {
-      NUTS: ['peanut', 'peanuts', 'mani', 'cashew', 'almond', 'walnut', 'pecan', 'macadamia', 'nut', 'nuts'],
-      DAIRY: ['milk', 'cheese', 'butter', 'cream', 'ghee', 'yogurt', 'dairy'],
-      EGGS: ['egg', 'eggs', 'itlog'],
-      SHELLFISH: [
-        'shrimp',
-        'crab',
-        'lobster',
-        'prawn',
-        'prawns',
-        'mussel',
-        'mussels',
-        'clam',
-        'clams',
-        'oyster',
-        'oysters',
-        'tahong',
-        'talaba',
-        'hipon',
-        'crab',
-        'crabs',
-      ],
-      GLUTEN: ['wheat', 'flour', 'bread', 'pasta', 'noodle', 'noodles', 'pancit', 'canton', 'bihon', 'miki', 'gluten'],
-    };
-
-    for (const ingredient of updatedMealPlan.ingredients) {
-      const ingNameLower = ingredient.ingredientName.toLowerCase();
-      const ingCatLower = (ingredient.category || '').toLowerCase();
-
-      for (const allergen of allergies) {
-        const keywords = allergenMatches[allergen] || [];
-        const isMatch =
-          keywords.some((keyword) => ingNameLower.includes(keyword) || ingCatLower.includes(keyword)) ||
-          ingNameLower.includes(allergen.toLowerCase().replace('_', ' '));
-        if (isMatch) {
-          warnings.push({
-            severity: 'CRITICAL',
-            message: `⚠️ ${ingredient.ingredientName} may contain ${allergen} — this conflicts with the user's declared ${allergen} restriction`,
-          });
-        }
+    const ingredientClassification = classifyMealIngredients(
+      updatedMealPlan.ingredients.map((ingredient) => ({
+        name: ingredient.ingredientName,
+        category: ingredient.category,
+      }))
+    );
+    for (const allergen of allergies) {
+      if (ingredientClassification.detectedAllergens.includes(allergen as any)) {
+        warnings.push({
+          severity: 'CRITICAL',
+          message: `A deterministic ingredient match found ${allergen}, which conflicts with the user's declared restriction.`,
+        });
       }
     }
 
+    const conditionRuleResults = await evaluateApprovedConditionRules({
+      conditions,
+      ingredientNames: updatedMealPlan.ingredients.map((ingredient) => ingredient.ingredientName),
+      nutrients: {
+        calories: updatedMealPlan.calories,
+        proteinG: updatedMealPlan.proteinG,
+        carbsG: updatedMealPlan.carbsG,
+      },
+      bodyWeightKg: userProfile?.weightKg,
+    });
+    for (const result of conditionRuleResults.nutrientEvaluations) {
+      if (result.evaluation.decision !== 'PASS') {
+        warnings.push({
+          severity:
+            result.evaluation.decision === 'FAIL' && result.rule.severity === 'HARD_BLOCK' ? 'CRITICAL' : 'IMPORTANT',
+          message:
+            result.evaluation.decision === 'FAIL'
+              ? `${result.condition}: approved rule ${result.rule.id} was violated (${result.evaluation.measuredValue} vs ${result.rule.threshold} ${result.rule.unit}).`
+              : `${result.condition}: approved rule ${result.rule.id} could not be evaluated because required nutrient or daily context is missing.`,
+        });
+      }
+    }
+    for (const result of conditionRuleResults.ingredientMatches) {
+      warnings.push({
+        severity: result.rule.severity === 'HARD_BLOCK' ? 'CRITICAL' : 'IMPORTANT',
+        message: `${result.condition}: approved ingredient rule ${result.rule.ingredientCategory} matched ${result.matches.join(', ')}.`,
+      });
+    }
+    for (const condition of conditionRuleResults.uncoveredConditions) {
+      warnings.push({
+        severity: 'IMPORTANT',
+        message: `${condition}: no active approved deterministic rules cover this condition; manual nutritionist clearance is required.`,
+      });
+    }
+
     if (userProfile) {
-      if (conditions.includes('DIABETES') && updatedMealPlan.carbsG > 60) {
-        warnings.push({
-          severity: 'IMPORTANT',
-          message: `⚠️ High carb load (${updatedMealPlan.carbsG.toFixed(1)}g) — user is diabetic. Typical safe range is under 60g per meal.`,
-        });
-      }
-      if (conditions.includes('HYPERTENSION')) {
-        let totalSodium = 0;
-        let hasSodiumData = false;
-
-        const foodItemIds = updatedMealPlan.ingredients.map((i) => i.foodItemId).filter(Boolean) as string[];
-
-        if (foodItemIds.length > 0) {
-          const foodItems = await prisma.foodItem.findMany({
-            where: { id: { in: foodItemIds } },
-          });
-
-          for (const item of foodItems) {
-            if (item.sodium !== null && item.sodium !== undefined) {
-              totalSodium += item.sodium;
-              hasSodiumData = true;
-            }
-          }
-        }
-
-        if (hasSodiumData && totalSodium > 800) {
-          warnings.push({
-            severity: 'IMPORTANT',
-            message: `⚠️ High sodium estimate (${totalSodium.toFixed(0)}mg) — user has hypertension.`,
-          });
-        }
-      }
-      if (conditions.includes('HEART_CONDITION') && updatedMealPlan.fatG > 20) {
-        warnings.push({
-          severity: 'IMPORTANT',
-          message: `⚠️ High fat content (${updatedMealPlan.fatG.toFixed(1)}g) — user has a heart condition.`,
-        });
-      }
-      if (conditions.includes('KIDNEY_DISEASE') && updatedMealPlan.proteinG > 40) {
-        warnings.push({
-          severity: 'IMPORTANT',
-          message: `⚠️ High protein load (${updatedMealPlan.proteinG.toFixed(1)}g) — user has kidney disease. Protein restriction may be required.`,
-        });
-      }
-      if (conditions.includes('PREGNANT')) {
-        warnings.push({
-          severity: 'IMPORTANT',
-          message: `⚠️ User is pregnant — verify meal is suitable for prenatal nutrition requirements.`,
-        });
-      }
-
       if (userProfile.dailyCalorieTarget && updatedMealPlan.calories > userProfile.dailyCalorieTarget * 0.5) {
         const percentage = ((updatedMealPlan.calories / userProfile.dailyCalorieTarget) * 100).toFixed(0);
         warnings.push({
@@ -412,13 +390,12 @@ export class NutritionistReviewService {
 
     const reviewer = await prisma.nutritionistProfile.findUnique({
       where: { id: nutritionistProfileId },
-      select: { userId: true },
+      select: { userId: true, canLeadReview: true },
     });
     if (!reviewer) throw new Error('Nutritionist profile not found.');
-
-    const dietaryTags = [plan.user.userProfile?.dietaryPreference, plan.user.userProfile?.goal].filter(
-      Boolean
-    ) as string[];
+    if (plan.highRiskReviewRequired && plan.reviewApprovalCount === 1 && !reviewer.canLeadReview) {
+      throw new Error('Lead review capability is required for this second review.');
+    }
 
     const mealName = updates?.mealName !== undefined ? updates.mealName : plan.mealName;
     const description = updates?.description !== undefined ? updates.description : plan.description;
@@ -474,6 +451,24 @@ export class NutritionistReviewService {
               })),
             });
           }
+
+          await tx.mealPlanReviewDecision.create({
+            data: {
+              mealPlanId,
+              nutritionistProfileId,
+              stage: 'PRIMARY',
+              decision: 'APPROVE',
+              rationale: note?.trim() || null,
+              evidenceSnapshot: {
+                mealName,
+                calories,
+                proteinG,
+                carbsG,
+                fatG,
+                policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              },
+            },
+          });
 
           await recordCompletedMealPlanReviewCredit(tx, {
             nutritionistProfileId,
@@ -562,73 +557,22 @@ export class NutritionistReviewService {
           });
         }
 
-        const finalIngredients = await tx.mealIngredient.findMany({
-          where: { mealPlanId },
-          orderBy: { id: 'asc' },
-        });
-
-        // Approval makes this exact user meal actionable, but it does not silently
-        // certify the reusable library entry. Stable library-owned ingredients are
-        // copied into an INCOMPLETE draft for a separate evidence review.
-        const libraryMeal = await tx.mealLibrary.create({
+        await tx.mealPlanReviewDecision.create({
           data: {
-            verifiedByNutritionistId: nutritionistProfileId,
-            mealName,
-            description,
-            mealType: plan.mealType,
-            calories,
-            proteinG,
-            carbsG,
-            fatG,
-            suitableConditions: [],
-            allergenFree: [],
-            dietaryTags,
-            safetyEvidenceRevision: 1,
-            ingredients: {
-              create: finalIngredients.map((ingredient, position) => ({
-                position,
-                ingredientName: ingredient.ingredientName,
-                category: ingredient.category,
-                foodItemId: ingredient.foodItemId,
-                dataSource: ingredient.dataSource,
-                quantity: ingredient.quantity,
-                unit: ingredient.unit,
-              })),
-            },
-          },
-        });
-
-        await tx.mealLibrarySafetyReview.create({
-          data: {
-            mealLibraryId: libraryMeal.id,
+            mealPlanId,
             nutritionistProfileId,
-            outcome: MealLibrarySafetyReviewOutcome.DRAFT_CREATED,
-            evidenceRevision: 1,
-            reasonCode: 'INITIAL_APPROVAL_DRAFT',
+            stage: plan.highRiskReviewRequired ? 'SECONDARY' : 'PRIMARY',
+            decision: 'APPROVE',
+            rationale: note?.trim() || null,
             evidenceSnapshot: {
               mealName,
-              description,
-              mealType: plan.mealType,
               calories,
               proteinG,
               carbsG,
               fatG,
-              ingredients: finalIngredients.map((ingredient, position) => ({
-                position,
-                ingredientName: ingredient.ingredientName,
-                category: ingredient.category,
-                foodItemId: ingredient.foodItemId,
-                dataSource: ingredient.dataSource,
-                quantity: ingredient.quantity,
-                unit: ingredient.unit,
-              })),
+              policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
             },
           },
-        });
-
-        await tx.mealPlan.update({
-          where: { id: mealPlanId },
-          data: { libraryMealId: libraryMeal.id },
         });
 
         await tx.nutritionistProfile.update({
@@ -650,7 +594,11 @@ export class NutritionistReviewService {
             action: plan.highRiskReviewRequired ? 'MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL' : 'MEAL_PLAN_APPROVED',
             entityType: 'MealPlan',
             entityId: mealPlanId,
-            metadata: { policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION },
+            metadata: {
+              policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              reusableEvidencePublished: false,
+              reusableEvidenceRequiresExplicitAction: true,
+            },
           },
         });
         await recordCompletedMealPlanReviewCredit(tx, {
@@ -679,6 +627,90 @@ export class NutritionistReviewService {
     return { success: true };
   }
 
+  static async resolveMealPlanDispute(
+    nutritionistProfileId: string,
+    mealPlanId: string,
+    decision: 'APPROVE' | 'REJECT',
+    rationale: string
+  ) {
+    const reviewer = await prisma.nutritionistProfile.findUnique({
+      where: { id: nutritionistProfileId },
+      select: { userId: true, isVerified: true, prcLicenseExpiry: true, canLeadReview: true },
+    });
+    if (!reviewer || !reviewer.isVerified || reviewer.prcLicenseExpiry < new Date() || !reviewer.canLeadReview) {
+      throw new Error('A currently eligible Lead nutritionist is required for dispute adjudication.');
+    }
+    const plan = await prisma.mealPlan.findUnique({
+      where: { id: mealPlanId },
+      include: { reviewDecisions: true },
+    });
+    if (!plan || plan.status !== MealPlanStatus.DISPUTED) throw new Error('Disputed meal plan not found.');
+    if (plan.reviewDecisions.some((item) => item.nutritionistProfileId === nutritionistProfileId)) {
+      throw new Error('Dispute adjudication requires a Lead who did not submit either disputed decision.');
+    }
+    const now = new Date();
+    const status = decision === 'APPROVE' ? MealPlanStatus.APPROVED : MealPlanStatus.REJECTED;
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.mealPlanReviewDecision.create({
+        data: {
+          mealPlanId,
+          nutritionistProfileId,
+          stage: 'DISPUTE_RESOLUTION',
+          decision,
+          rationale: rationale.trim(),
+          evidenceSnapshot: {
+            mealName: plan.mealName,
+            calories: plan.calories,
+            proteinG: plan.proteinG,
+            carbsG: plan.carbsG,
+            fatG: plan.fatG,
+            policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+          },
+        },
+      });
+      const result = await tx.mealPlan.update({
+        where: { id: mealPlanId },
+        data: {
+          status,
+          nutritionistId: nutritionistProfileId,
+          nutritionistNote: rationale.trim(),
+          reviewedAt: now,
+          requiresSafetyRevalidation: status !== MealPlanStatus.APPROVED,
+          reviewApprovalCount: status === MealPlanStatus.APPROVED ? 2 : plan.reviewApprovalCount,
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: reviewer.userId,
+          action: 'MEAL_PLAN_DISPUTE_RESOLVED',
+          entityType: 'MealPlan',
+          entityId: mealPlanId,
+          metadata: { decision },
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: plan.userId,
+          title: decision === 'APPROVE' ? 'Meal review completed' : 'Meal removed after review',
+          message:
+            decision === 'APPROVE'
+              ? `A Lead dietitian completed adjudication for "${plan.mealName}".`
+              : `A Lead dietitian rejected "${plan.mealName}" after independent review.`,
+          type: decision === 'APPROVE' ? NotificationType.PLAN_APPROVED : NotificationType.PLAN_REJECTED,
+        },
+      });
+      return result;
+    });
+    if (status === MealPlanStatus.APPROVED) {
+      try {
+        await GroceryService.generateGroceryList(plan.userId);
+      } catch (error) {
+        console.error('[NutritionistService] Grocery projection refresh failed after dispute resolution:', error);
+      }
+    }
+    return updated;
+  }
+
   /**
    * Rejects a meal plan and triggers AI regeneration of that specific meal.
    */
@@ -703,9 +735,16 @@ export class NutritionistReviewService {
 
     const reviewer = await prisma.nutritionistProfile.findUnique({
       where: { id: nutritionistProfileId },
-      select: { userId: true },
+      select: { userId: true, canLeadReview: true },
     });
     if (!reviewer) throw new Error('Nutritionist profile not found.');
+    const isSecondReview = plan.highRiskReviewRequired && plan.reviewApprovalCount === 1;
+    if (isSecondReview) {
+      if (!reviewer.canLeadReview) throw new Error('Lead review capability is required for this second review.');
+      if (plan.firstApprovedByNutritionistId === nutritionistProfileId) {
+        throw new Error('A different nutritionist must perform the independent second review.');
+      }
+    }
 
     await prisma.$transaction(
       async (tx) => {
@@ -721,7 +760,7 @@ export class NutritionistReviewService {
             claimedAt: { gte: claimCutoff },
           },
           data: {
-            status: MealPlanStatus.REJECTED,
+            status: isSecondReview ? MealPlanStatus.DISPUTED : MealPlanStatus.REJECTED,
             nutritionistId: nutritionistProfileId,
             nutritionistNote: reason,
             reviewedAt: now,
@@ -734,18 +773,38 @@ export class NutritionistReviewService {
           throw new Error('The active claim expired or this meal was already reviewed. Please refresh the queue.');
         }
 
+        await tx.mealPlanReviewDecision.create({
+          data: {
+            mealPlanId,
+            nutritionistProfileId,
+            stage: isSecondReview ? 'SECONDARY' : 'PRIMARY',
+            decision: 'REJECT',
+            rationale: reason.trim(),
+            evidenceSnapshot: {
+              mealName: plan.mealName,
+              calories: plan.calories,
+              proteinG: plan.proteinG,
+              carbsG: plan.carbsG,
+              fatG: plan.fatG,
+              policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+            },
+          },
+        });
+
         await tx.notification.create({
           data: {
             userId: plan.userId,
-            title: 'Meal Plan Needs Changes ⚠️',
-            message: `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason.trim().replace(/[.!?]+$/, '')}. A replacement is being generated.`,
+            title: isSecondReview ? 'Meal review requires adjudication' : 'Meal Plan Needs Changes ⚠️',
+            message: isSecondReview
+              ? `Independent reviewers disagreed about "${plan.mealName}". It is blocked pending Lead adjudication.`
+              : `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason.trim().replace(/[.!?]+$/, '')}. A replacement is being generated.`,
             type: NotificationType.PLAN_REJECTED,
           },
         });
         await tx.auditEvent.create({
           data: {
             actorUserId: reviewer.userId,
-            action: 'MEAL_PLAN_REJECTED',
+            action: isSecondReview ? 'MEAL_PLAN_REVIEW_DISPUTED' : 'MEAL_PLAN_REJECTED',
             entityType: 'MealPlan',
             entityId: mealPlanId,
             metadata: { reason: reason.trim().slice(0, 240) },
@@ -762,6 +821,8 @@ export class NutritionistReviewService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
+
+    if (isSecondReview) return { success: true, disputed: true };
 
     // Generate a replacement only after the rejection decision commits.
     try {
@@ -786,7 +847,10 @@ export class NutritionistReviewService {
         `Return a strict JSON object:\n` +
         `{ "mealName": string, "description": string, "calories": number, "proteinG": number, "carbsG": number, "fatG": number, "ingredients": [{"name": string, "category": string}] }`;
 
-      const replacement = await generateGenerativeJSON<any>(prompt);
+      const replacement = await generateGenerativeJSON<any>(prompt, undefined, undefined, {
+        operation: 'MEAL_REPLACEMENT',
+        purpose: 'REJECTED_MEAL_REPLACEMENT',
+      });
 
       // Create replacement meal with same planGroupId and scheduledDate
       await prisma.mealPlan.create({
@@ -827,31 +891,6 @@ export class NutritionistReviewService {
   static replaceAndApproveMealPlan = NutritionistReplacementService.replaceAndApproveMealPlan;
 
   static async getApprovedMeals(nutritionistProfileId: string) {
-    return prisma.mealPlan.findMany({
-      where: {
-        ...getApprovedMealPlanStatusWhere(),
-        nutritionistId: nutritionistProfileId,
-      },
-      select: {
-        id: true,
-        mealName: true,
-        mealType: true,
-        calories: true,
-        proteinG: true,
-        carbsG: true,
-        fatG: true,
-        nutritionistNote: true,
-        reviewedAt: true,
-        scheduledDate: true,
-        user: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { reviewedAt: 'desc' },
-    });
+    return getNutritionistApprovedMeals(nutritionistProfileId);
   }
-
-  /**
-   * Checks if the user is authorized to perform mutations (edit/delete/resolve flags)
-   * on a verified meal entry. Only the verifier has permissions, except for ADMIN
-   * override if the verifier account has been deactivated or is inactive.
-   */
 }

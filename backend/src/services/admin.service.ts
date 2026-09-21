@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
+import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
 
 export class AdminService {
   /**
@@ -95,12 +96,45 @@ export class AdminService {
     return { success: true };
   }
 
+  static async setNutritionistLeadCapability(
+    adminUserId: string,
+    nutritionistProfileId: string,
+    canLeadReview: boolean
+  ) {
+    const profile = await prisma.nutritionistProfile.findUnique({
+      where: { id: nutritionistProfileId },
+      select: { id: true, isVerified: true, prcLicenseExpiry: true },
+    });
+    if (!profile) throw new Error('Nutritionist profile not found.');
+    if (canLeadReview && (!profile.isVerified || profile.prcLicenseExpiry < new Date())) {
+      throw new Error('Lead capability requires a verified nutritionist with a current PRC license.');
+    }
+    const updated = await prisma.$transaction(async (tx) => {
+      const updated = await tx.nutritionistProfile.update({
+        where: { id: nutritionistProfileId },
+        data: { canLeadReview },
+        select: { id: true, canLeadReview: true },
+      });
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: adminUserId,
+          action: canLeadReview ? 'NUTRITIONIST_LEAD_CAPABILITY_GRANTED' : 'NUTRITIONIST_LEAD_CAPABILITY_REVOKED',
+          entityType: 'NutritionistProfile',
+          entityId: nutritionistProfileId,
+        },
+      });
+      return updated;
+    });
+    if (!canLeadReview) await enforceClearanceCircuitBreakers();
+    return updated;
+  }
+
   static async setUserSuspension(adminUserId: string, targetUserId: string, suspended: boolean, reason?: string) {
     if (adminUserId === targetUserId) throw new Error('Administrators cannot suspend their own active account.');
     const target = await prisma.user.findUnique({ where: { id: targetUserId } });
     if (!target) throw new Error('User not found.');
 
-    return prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({
         where: { id: targetUserId },
         data: {
@@ -122,6 +156,8 @@ export class AdminService {
       });
       return updated;
     });
+    if (suspended && target.role === 'NUTRITIONIST') await enforceClearanceCircuitBreakers();
+    return updated;
   }
 
   static async getAuditEvents(page = 1, limit = 50) {
@@ -206,6 +242,11 @@ export class AdminService {
       aiFailures24h,
       adaptationReviews30d,
       pendingPlansStartingSoon,
+      aiUsageByOperation30d,
+      planSelectionsByProvenance30d,
+      activeConditionClearances,
+      activeClearancesByCondition,
+      rawRecipeCandidates,
     ] = await Promise.all([
       prisma.user.count({ where: { role: 'USER' } }),
       prisma.nutritionistProfile.count(),
@@ -241,7 +282,31 @@ export class AdminService {
           scheduledDate: { gte: now, lte: inFortyEightHours },
         },
       }),
+      prisma.aiUsageEvent.groupBy({
+        by: ['operation', 'purpose', 'status'],
+        where: { createdAt: { gte: thirtyDaysAgo } },
+        _count: { _all: true },
+      }),
+      prisma.mealPlan.groupBy({
+        by: ['candidateProvenance'],
+        where: { createdAt: { gte: thirtyDaysAgo } },
+        _count: { _all: true },
+      }),
+      prisma.mealConditionClearance.count({ where: { state: 'ACTIVE' } }),
+      prisma.mealConditionClearance.groupBy({
+        by: ['condition', 'assuranceTier', 'provenance'],
+        where: { state: 'ACTIVE' },
+        _count: { _all: true },
+      }),
+      prisma.rawRecipeCandidate.count({ where: { status: 'AVAILABLE' } }),
     ]);
+
+    const generatedSelections = planSelectionsByProvenance30d.reduce((sum, row) => sum + row._count._all, 0);
+    const aiGeneratedSelections =
+      planSelectionsByProvenance30d.find((row) => row.candidateProvenance === 'AI_FROM_SCRATCH')?._count._all ?? 0;
+    const planningInvocations = aiUsageByOperation30d
+      .filter((row) => row.operation === 'MEAL_PLAN_CORPUS_LOOKUP' || row.operation === 'MEAL_PLAN_GENERATION')
+      .reduce((sum, row) => sum + row._count._all, 0);
 
     return {
       totalUsers,
@@ -265,6 +330,28 @@ export class AdminService {
       aiFailures24h,
       adaptationReviews30d,
       pendingPlansStartingSoon,
+      activeConditionClearances,
+      activeClearancesByCondition: activeClearancesByCondition.map((row) => ({
+        condition: row.condition,
+        assuranceTier: row.assuranceTier,
+        provenance: row.provenance,
+        count: row._count._all,
+      })),
+      rawRecipeCandidates,
+      aiUsageByOperation30d: aiUsageByOperation30d.map((row) => ({
+        operation: row.operation,
+        purpose: row.purpose,
+        status: row.status,
+        count: row._count._all,
+      })),
+      planSelectionsByProvenance30d: planSelectionsByProvenance30d.map((row) => ({
+        provenance: row.candidateProvenance,
+        count: row._count._all,
+      })),
+      geminiFromScratchSelectionRate30d:
+        generatedSelections > 0 ? Math.round((aiGeneratedSelections / generatedSelections) * 10_000) / 100 : 0,
+      geminiPlanningInvocationsPer100Selections30d:
+        generatedSelections > 0 ? Math.round((planningInvocations / generatedSelections) * 10_000) / 100 : 0,
     };
   }
 }

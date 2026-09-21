@@ -11,6 +11,7 @@ type ClaimCandidate = {
 type EligibilityCandidate = {
   isVerified: boolean;
   prcLicenseExpiry: Date;
+  user?: Record<string, unknown> | null;
 };
 
 export function getReviewClaimCutoff(now: Date = new Date()): Date {
@@ -43,6 +44,7 @@ export function getReviewPriority(flag: AIConfidenceFlag): number {
 
 export function isNutritionistEligibleForReview(profile: EligibilityCandidate, now: Date = new Date()): boolean {
   if (!profile.isVerified) return false;
+  if (profile.user?.isSuspended === true) return false;
 
   const expiryDate = getManilaBusinessDateKey(profile.prcLicenseExpiry);
   const currentDate = getManilaBusinessDateKey(now);

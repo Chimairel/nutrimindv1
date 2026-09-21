@@ -73,6 +73,7 @@ async function main() {
       bio: 'Registered nutritionist-dietitian focused on practical meal planning, food accessibility, and evidence-informed nutrition education for Filipino adults.',
       isVerified: true,
       verifiedAt: new Date(),
+      canLeadReview: false,
     },
     create: {
       userId: nutritionist.id,
@@ -85,8 +86,77 @@ async function main() {
       isVerified: true,
       verifiedAt: new Date(),
       verifiedByAdminId: admin.id,
+      canLeadReview: false,
     },
   });
+
+  // Two distinct Lead fixtures are required to exercise independent enhanced
+  // review and third-party dispute adjudication without weakening the checks.
+  for (const lead of [
+    {
+      email: 'nutritionist.lead1@gmail.com',
+      name: 'Beatriz Cruz, RND',
+      license: 'PRC-RND-NM-0002',
+      university: 'University of the Philippines Manila',
+    },
+    {
+      email: 'nutritionist.lead2@gmail.com',
+      name: 'Carlo Mendoza, RND',
+      license: 'PRC-RND-NM-0003',
+      university: 'University of Santo Tomas',
+    },
+  ]) {
+    const leadUser = await prisma.user.upsert({
+      where: { email: lead.email },
+      update: {
+        name: lead.name,
+        passwordHash: nutriPassword,
+        role: Role.NUTRITIONIST,
+        emailVerified: true,
+        onboardingDone: true,
+        tosAccepted: true,
+      },
+      create: {
+        name: lead.name,
+        email: lead.email,
+        passwordHash: nutriPassword,
+        role: Role.NUTRITIONIST,
+        emailVerified: true,
+        onboardingDone: true,
+        tosAccepted: true,
+        tosAcceptedAt: new Date(),
+      },
+    });
+    await prisma.nutritionistProfile.upsert({
+      where: { userId: leadUser.id },
+      update: {
+        prcLicenseNumber: lead.license,
+        prcLicenseExpiry: new Date('2028-12-31'),
+        specialization: 'Clinical Nutrition and Safety Review',
+        yearsOfExperience: 8,
+        university: lead.university,
+        bio: 'Fixture Lead RND for independent enhanced review, ruleset governance, and dispute testing.',
+        isVerified: true,
+        verifiedAt: new Date(),
+        verifiedByAdminId: admin.id,
+        canLeadReview: true,
+      },
+      create: {
+        userId: leadUser.id,
+        prcLicenseNumber: lead.license,
+        prcLicenseExpiry: new Date('2028-12-31'),
+        specialization: 'Clinical Nutrition and Safety Review',
+        yearsOfExperience: 8,
+        university: lead.university,
+        bio: 'Fixture Lead RND for independent enhanced review, ruleset governance, and dispute testing.',
+        isVerified: true,
+        verifiedAt: new Date(),
+        verifiedByAdminId: admin.id,
+        canLeadReview: true,
+      },
+    });
+    console.log(`✅ LEAD NUTRITIONIST ready: ${lead.email} / Nutritionist123 (id: ${leadUser.id})`);
+  }
   // ── TEST REGULAR USER (NO MEAL PLAN) ──
   const userPassword = await bcrypt.hash('Password123!', 12);
   const testUser = await prisma.user.upsert({

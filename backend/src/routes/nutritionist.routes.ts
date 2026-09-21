@@ -21,6 +21,8 @@ import { isNutritionistReviewConflict } from '@/domain/nutritionist-review-http.
 import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
 import { outsideMealReviewBodySchema, outsideMealReviewParamsSchema } from '@/validation/user-action.schemas';
 import { asyncHandler } from '@/middleware/errorHandler';
+import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
+import { ConditionClearanceService } from '@/services/condition-clearance.service';
 
 const router = Router();
 
@@ -69,6 +71,150 @@ router.get('/queue', async (req: AuthenticatedRequest, res: Response) => {
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review queue.') });
   }
 });
+
+router.get('/governance/queue', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const view = req.query.view === 'disputed' ? 'disputed' : 'audit';
+    const data = await ConditionClearanceService.getGovernanceQueue(req.nutritionistProfileId!, view);
+    return res.json({ success: true, data });
+  } catch (error: unknown) {
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve governance queue.') });
+  }
+});
+
+const decisionSchema = z.object({
+  decision: z.nativeEnum(ClearanceDecisionValue),
+  rationale: z.string().trim().max(1000).optional(),
+});
+
+router.post(
+  '/library/:id/condition-clearances',
+  validateZodBody(
+    decisionSchema.extend({
+      condition: z.nativeEnum(HealthConditionType).refine((value) => value !== HealthConditionType.NONE),
+      userScopeId: z.string().trim().min(1).optional().nullable(),
+    })
+  ),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await ConditionClearanceService.submitManualDecision({
+        nutritionistProfileId: req.nutritionistProfileId!,
+        mealLibraryId: req.params.id,
+        ...req.body,
+      });
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Clearance decision failed.') });
+    }
+  }
+);
+
+router.post(
+  '/condition-clearances/:id/resolve',
+  validateZodBody(decisionSchema.extend({ rationale: z.string().trim().min(1).max(1000) })),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await ConditionClearanceService.resolveDispute({
+        nutritionistProfileId: req.nutritionistProfileId!,
+        clearanceId: req.params.id,
+        ...req.body,
+      });
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Dispute resolution failed.') });
+    }
+  }
+);
+
+router.post(
+  '/condition-clearances/:id/suspend',
+  validateZodBody(z.object({ reason: z.string().trim().min(3).max(240) })),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await ConditionClearanceService.suspendClearance(
+        req.nutritionistProfileId!,
+        req.params.id,
+        req.body.reason
+      );
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Suspension failed.') });
+    }
+  }
+);
+
+router.post(
+  '/review/:id/dispute-resolution',
+  validateZodBody(
+    z.object({
+      decision: z.enum(['APPROVE', 'REJECT']),
+      rationale: z.string().trim().min(3).max(1000),
+    })
+  ),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await NutritionistService.resolveMealPlanDispute(
+        req.nutritionistProfileId!,
+        req.params.id,
+        req.body.decision,
+        req.body.rationale
+      );
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Adjudication failed.') });
+    }
+  }
+);
+
+router.post('/rule-policies/:id/impact', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await ConditionClearanceService.generateRulesetImpact(req.nutritionistProfileId!, req.params.id);
+    return res.json({ success: true, data });
+  } catch (error: unknown) {
+    return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Impact analysis failed.') });
+  }
+});
+
+router.post(
+  '/rule-policies/:id/decisions',
+  validateZodBody(
+    z.object({
+      decision: z.nativeEnum(RuleApprovalDecision),
+      rationale: z.string().trim().max(1000).optional(),
+    })
+  ),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await ConditionClearanceService.approveRulesetVersion({
+        nutritionistProfileId: req.nutritionistProfileId!,
+        policyVersionId: req.params.id,
+        ...req.body,
+      });
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Ruleset decision failed.') });
+    }
+  }
+);
+
+router.post(
+  '/rule-policies/:id/suspend',
+  validateZodBody(z.object({ reason: z.string().trim().min(3).max(240) })),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await ConditionClearanceService.suspendRuleset(
+        req.nutritionistProfileId!,
+        req.params.id,
+        req.body.reason
+      );
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Ruleset suspension failed.') });
+    }
+  }
+);
 
 /**
  * GET /api/nutritionist/queue/:id
@@ -365,6 +511,26 @@ router.get('/approved', async (req: AuthenticatedRequest, res: Response) => {
     return res
       .status(500)
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve approved meals.') });
+  }
+});
+
+/**
+ * POST /api/nutritionist/approved/:id/reusable-draft
+ * Explicit second action: prepare a deduplicated reusable evidence draft from
+ * a meal already approved for one user. This does not certify safety.
+ */
+router.post('/approved/:id/reusable-draft', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await NutritionistService.createReusableLibraryDraft(req.nutritionistProfileId!, req.params.id);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: unknown) {
+    const message = sanitizeErrorMessage(error, 'Failed to prepare reusable meal evidence.');
+    if (message.includes('Only the nutritionist')) return res.status(403).json({ success: false, error: message });
+    if (message.includes('not found')) return res.status(404).json({ success: false, error: message });
+    if (message.includes('Only a current') || message.includes('requires at least')) {
+      return res.status(422).json({ success: false, error: message });
+    }
+    return res.status(500).json({ success: false, error: message });
   }
 });
 

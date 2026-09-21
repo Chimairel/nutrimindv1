@@ -7,6 +7,7 @@ import {
   getNextWeeklyCycleWindow,
   isWeeklyPlanPreparationDue,
 } from '@/domain/meal-plan-cycle.policy';
+import { enforceClearanceCircuitBreakers } from './condition-clearance.service';
 
 export class CronService {
   static async retrySafetyRevalidation() {
@@ -39,6 +40,7 @@ export class CronService {
     // 1. Resolve 'yesterday' time bounds
     const yesterdayStart = new Date(getStartOfManilaBusinessDay().getTime() - 86_400_000);
     const yesterdayEnd = new Date(yesterdayStart.getTime() + 86_400_000 - 1);
+    await enforceClearanceCircuitBreakers();
     await this.retrySafetyRevalidation();
 
     console.log(`[CronService] Targeted time bounds: ${yesterdayStart.toISOString()} -> ${yesterdayEnd.toISOString()}`);

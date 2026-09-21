@@ -1,35 +1,25 @@
 import { z } from 'zod';
-import { RESTRICTION_ALLERGY_KEYS, RESTRICTION_CONDITION_KEYS } from './restriction-evaluation.policy';
+import { RESTRICTION_ALLERGY_KEYS } from './restriction-evaluation.policy';
 
-const conditionKeys = RESTRICTION_CONDITION_KEYS.filter((key) => key !== 'NONE');
 const allergyKeys = RESTRICTION_ALLERGY_KEYS.filter((key) => key !== 'NONE');
 
-const conditionKeySchema = z.enum(conditionKeys as [string, ...string[]]);
 const allergyKeySchema = z.enum(allergyKeys as [string, ...string[]]);
 
 export const certifyMealLibrarySafetySchema = z
   .object({
     expectedRevision: z.number().int().nonnegative(),
-    conditionDeclarationState: z.enum(['REVIEWED_NONE_DECLARED', 'REVIEWED_WITH_DECLARATIONS']),
+    conditionDeclarationState: z.literal('NOT_REVIEWED'),
     allergenDeclarationState: z.enum(['REVIEWED_NONE_DECLARED', 'REVIEWED_WITH_DECLARATIONS']),
     crossContactAssessment: z.literal('ASSESSED_NO_KNOWN_RISK'),
-    suitableConditions: z.array(conditionKeySchema).max(conditionKeys.length),
+    suitableConditions: z.array(z.never()).max(0),
     allergensPresent: z.array(allergyKeySchema).max(allergyKeys.length),
     allergensReviewedAbsent: z.array(allergyKeySchema).max(allergyKeys.length),
   })
   .strict()
   .superRefine((value, context) => {
-    const uniqueConditions = new Set(value.suitableConditions);
     const uniquePresent = new Set(value.allergensPresent);
     const uniqueAbsent = new Set(value.allergensReviewedAbsent);
 
-    if (uniqueConditions.size !== value.suitableConditions.length) {
-      context.addIssue({
-        code: 'custom',
-        path: ['suitableConditions'],
-        message: 'Duplicate condition declarations are not allowed.',
-      });
-    }
     if (uniquePresent.size !== value.allergensPresent.length) {
       context.addIssue({
         code: 'custom',
@@ -49,18 +39,6 @@ export const certifyMealLibrarySafetySchema = z
         code: 'custom',
         path: ['allergensPresent'],
         message: 'An allergen cannot be both present and reviewed absent.',
-      });
-    }
-
-    const conditionCount = uniqueConditions.size;
-    if (
-      (value.conditionDeclarationState === 'REVIEWED_NONE_DECLARED' && conditionCount !== 0) ||
-      (value.conditionDeclarationState === 'REVIEWED_WITH_DECLARATIONS' && conditionCount === 0)
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['conditionDeclarationState'],
-        message: 'Condition declaration state does not match its declarations.',
       });
     }
 

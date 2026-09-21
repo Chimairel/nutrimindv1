@@ -32,6 +32,7 @@ export interface NutritionistRow {
   specialization?: string;
   isVerified: boolean;
   totalVerified: number;
+  canLeadReview: boolean;
   verifiedAt?: string;
   user: { id: string; name: string; email: string; image?: string | null };
 }

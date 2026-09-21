@@ -23,6 +23,8 @@ export const MEAL_LIBRARY_SAFETY_REASON_ORDER = Object.freeze([
   'MALFORMED_DECLARATION',
   'UNSUPPORTED_DECLARATION_KEY',
   'DECLARATION_STATE_MISMATCH',
+  'DECLARATION_PROVENANCE_INVALID',
+  'RULESET_CLEARANCE_UNSUPPORTED',
 ] as const);
 
 export type MealLibrarySafetyReason = (typeof MEAL_LIBRARY_SAFETY_REASON_ORDER)[number];
@@ -44,14 +46,22 @@ export interface MealLibrarySafetyCandidate {
 }
 
 export interface MealLibrarySafetyEvaluation {
+  /** Base recipe evidence only. Allergen and condition coverage are separate. */
   complete: boolean;
   reasons: MealLibrarySafetyReason[];
+  coverageReasons: MealLibrarySafetyReason[];
   suitableConditions: string[];
   allergenFree: string[];
   ingredients: { dataSource: unknown; foodItemId: unknown }[];
   adapterEvidence: {
     complete: boolean;
+    baseComplete: boolean;
     detectedAllergens: string[];
+    reviewedAbsentAllergens: string[];
+    allergenDomainReviewed: boolean;
+    crossContactCleared: boolean;
+    conditionRuleMatches: string[];
+    conditionDomainReviewed: boolean;
   };
 }
 
@@ -76,25 +86,37 @@ function hasReviewedState(value: unknown): boolean {
 }
 
 export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCandidate): MealLibrarySafetyEvaluation {
-  const reasons = new Set<MealLibrarySafetyReason>();
+  const baseReasons = new Set<MealLibrarySafetyReason>();
+  const coverageReasons = new Set<MealLibrarySafetyReason>();
 
   if (!isRecord(candidate)) {
-    reasons.add('EVIDENCE_NOT_COMPLETE');
+    baseReasons.add('EVIDENCE_NOT_COMPLETE');
     return {
       complete: false,
-      reasons: sortReasons(reasons),
+      reasons: sortReasons(baseReasons),
+      coverageReasons: [],
       suitableConditions: [],
       allergenFree: [],
       ingredients: [],
-      adapterEvidence: { complete: false, detectedAllergens: [] },
+      adapterEvidence: {
+        complete: false,
+        baseComplete: false,
+        detectedAllergens: [],
+        reviewedAbsentAllergens: [],
+        allergenDomainReviewed: false,
+        crossContactCleared: false,
+        conditionRuleMatches: [],
+        conditionDomainReviewed: false,
+      },
     };
   }
 
-  if (candidate.status !== 'APPROVED') reasons.add('LIBRARY_NOT_APPROVED');
-  if (candidate.safetyEvidenceStatus !== 'COMPLETE') reasons.add('EVIDENCE_NOT_COMPLETE');
+  if (candidate.status !== 'APPROVED') baseReasons.add('LIBRARY_NOT_APPROVED');
+  if (candidate.safetyEvidenceStatus !== 'COMPLETE') baseReasons.add('EVIDENCE_NOT_COMPLETE');
   if (candidate.safetyEvidenceOrigin !== 'NUTRITIONIST_REVIEW') {
-    reasons.add('EVIDENCE_ORIGIN_NOT_REVIEWED');
+    baseReasons.add('EVIDENCE_ORIGIN_NOT_REVIEWED');
   }
+  if (candidate.reviewerEligible !== true) baseReasons.add('REVIEWER_NOT_ELIGIBLE');
 
   const revision = candidate.safetyEvidenceRevision;
   if (
@@ -103,41 +125,36 @@ export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCa
     revision <= 0 ||
     candidate.certifiedEvidenceRevision !== revision
   ) {
-    reasons.add('REVISION_NOT_CERTIFIED');
+    baseReasons.add('REVISION_NOT_CERTIFIED');
   }
   if (candidate.safetyPolicyVersion !== MEAL_LIBRARY_SAFETY_POLICY_VERSION) {
-    reasons.add('POLICY_VERSION_UNSUPPORTED');
+    baseReasons.add('POLICY_VERSION_UNSUPPORTED');
   }
   if (candidate.safetyInvalidatedAt !== null && candidate.safetyInvalidatedAt !== undefined) {
-    reasons.add('EVIDENCE_INVALIDATED');
+    baseReasons.add('EVIDENCE_INVALIDATED');
   }
-  if (candidate.reviewerEligible !== true) reasons.add('REVIEWER_NOT_ELIGIBLE');
-  if (!hasReviewedState(candidate.conditionDeclarationState)) {
-    reasons.add('CONDITION_DOMAIN_NOT_REVIEWED');
-  }
-  if (!hasReviewedState(candidate.allergenDeclarationState)) {
-    reasons.add('ALLERGEN_DOMAIN_NOT_REVIEWED');
-  }
-  if (candidate.crossContactAssessment !== 'ASSESSED_NO_KNOWN_RISK') {
-    reasons.add('CROSS_CONTACT_NOT_CLEARED');
-  }
+
+  const hasEligibleReviewProvenance =
+    candidate.safetyEvidenceOrigin === 'NUTRITIONIST_REVIEW' && candidate.reviewerEligible === true;
+  const crossContactCleared = candidate.crossContactAssessment === 'ASSESSED_NO_KNOWN_RISK';
+  if (!crossContactCleared) coverageReasons.add('CROSS_CONTACT_NOT_CLEARED');
 
   const ingredients: { dataSource: unknown; foodItemId: unknown }[] = [];
   if (!Array.isArray(candidate.ingredients) || candidate.ingredients.length === 0) {
-    reasons.add('MISSING_LIBRARY_INGREDIENTS');
+    baseReasons.add('MISSING_LIBRARY_INGREDIENTS');
   } else {
     for (const ingredient of candidate.ingredients) {
       if (!isRecord(ingredient)) {
-        reasons.add('UNRESOLVED_LIBRARY_INGREDIENT');
+        baseReasons.add('UNRESOLVED_LIBRARY_INGREDIENT');
         continue;
       }
       ingredients.push({
         dataSource: ingredient.dataSource,
         foodItemId: ingredient.foodItemId,
       });
-      if (ingredient.dataSource !== 'FNRI') reasons.add('NON_FNRI_LIBRARY_INGREDIENT');
+      if (ingredient.dataSource !== 'FNRI') baseReasons.add('NON_FNRI_LIBRARY_INGREDIENT');
       if (typeof ingredient.foodItemId !== 'string' || ingredient.foodItemId.length === 0) {
-        reasons.add('UNRESOLVED_LIBRARY_INGREDIENT');
+        baseReasons.add('UNRESOLVED_LIBRARY_INGREDIENT');
       }
     }
   }
@@ -145,44 +162,106 @@ export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCa
   const suitableConditions = new Set<string>();
   const allergensPresent = new Set<string>();
   const allergenFree = new Set<string>();
+  let conditionDeclarationsValid = true;
+  let allergenDeclarationsValid = true;
   if (!Array.isArray(candidate.safetyDeclarations)) {
-    reasons.add('MALFORMED_DECLARATION');
+    coverageReasons.add('MALFORMED_DECLARATION');
+    conditionDeclarationsValid = false;
+    allergenDeclarationsValid = false;
   } else {
     for (const declaration of candidate.safetyDeclarations) {
       if (!isRecord(declaration) || typeof declaration.declarationType !== 'string') {
-        reasons.add('MALFORMED_DECLARATION');
+        coverageReasons.add('MALFORMED_DECLARATION');
+        conditionDeclarationsValid = false;
+        allergenDeclarationsValid = false;
         continue;
       }
       if (declaration.customKey !== null && declaration.customKey !== undefined) {
-        reasons.add('UNSUPPORTED_DECLARATION_KEY');
+        coverageReasons.add('UNSUPPORTED_DECLARATION_KEY');
+        if (declaration.declarationType === 'CONDITION_REVIEWED') conditionDeclarationsValid = false;
+        else if (
+          declaration.declarationType === 'ALLERGEN_PRESENT' ||
+          declaration.declarationType === 'ALLERGEN_REVIEWED_ABSENT'
+        )
+          allergenDeclarationsValid = false;
+        else {
+          conditionDeclarationsValid = false;
+          allergenDeclarationsValid = false;
+        }
         continue;
       }
       const canonicalKey = normalizeRestrictionComparisonToken(declaration.canonicalKey);
       if (!canonicalKey) {
-        reasons.add('MALFORMED_DECLARATION');
+        coverageReasons.add('MALFORMED_DECLARATION');
+        if (declaration.declarationType === 'CONDITION_REVIEWED') conditionDeclarationsValid = false;
+        else if (
+          declaration.declarationType === 'ALLERGEN_PRESENT' ||
+          declaration.declarationType === 'ALLERGEN_REVIEWED_ABSENT'
+        )
+          allergenDeclarationsValid = false;
+        else {
+          conditionDeclarationsValid = false;
+          allergenDeclarationsValid = false;
+        }
         continue;
       }
 
       if (declaration.declarationType === 'CONDITION_REVIEWED') {
-        if (!CONDITION_KEYS.has(canonicalKey)) {
-          reasons.add('UNSUPPORTED_DECLARATION_KEY');
+        if (
+          !hasEligibleReviewProvenance ||
+          (declaration.provenance !== undefined && declaration.provenance !== 'NUTRITIONIST_REVIEW')
+        ) {
+          coverageReasons.add('DECLARATION_PROVENANCE_INVALID');
+          conditionDeclarationsValid = false;
+        } else if (!CONDITION_KEYS.has(canonicalKey)) {
+          coverageReasons.add('UNSUPPORTED_DECLARATION_KEY');
+          conditionDeclarationsValid = false;
+        } else {
+          suitableConditions.add(canonicalKey);
+        }
+      } else if (declaration.declarationType === 'CONDITION_RULESET_CLEARED') {
+        const snapshot = isRecord(declaration.evidenceSnapshot) ? declaration.evidenceSnapshot : null;
+        if (
+          canonicalKey !== 'HYPERTENSION' ||
+          declaration.provenance !== 'APPROVED_RULESET' ||
+          typeof declaration.policyVersion !== 'string' ||
+          !snapshot ||
+          snapshot.allRulesApproved !== true ||
+          snapshot.decision !== 'PASS'
+        ) {
+          coverageReasons.add('RULESET_CLEARANCE_UNSUPPORTED');
+          conditionDeclarationsValid = false;
         } else {
           suitableConditions.add(canonicalKey);
         }
       } else if (declaration.declarationType === 'ALLERGEN_PRESENT') {
-        if (!ALLERGY_KEYS.has(canonicalKey)) {
-          reasons.add('UNSUPPORTED_DECLARATION_KEY');
+        if (
+          declaration.provenance !== undefined &&
+          declaration.provenance !== 'NUTRITIONIST_REVIEW' &&
+          declaration.provenance !== 'DETERMINISTIC_CLASSIFIER'
+        ) {
+          coverageReasons.add('DECLARATION_PROVENANCE_INVALID');
+          allergenDeclarationsValid = false;
+        } else if (!ALLERGY_KEYS.has(canonicalKey)) {
+          coverageReasons.add('UNSUPPORTED_DECLARATION_KEY');
+          allergenDeclarationsValid = false;
         } else {
           allergensPresent.add(canonicalKey);
         }
       } else if (declaration.declarationType === 'ALLERGEN_REVIEWED_ABSENT') {
-        if (!ALLERGY_KEYS.has(canonicalKey)) {
-          reasons.add('UNSUPPORTED_DECLARATION_KEY');
+        if (declaration.provenance !== undefined && declaration.provenance !== 'NUTRITIONIST_REVIEW') {
+          coverageReasons.add('DECLARATION_PROVENANCE_INVALID');
+          allergenDeclarationsValid = false;
+        } else if (!ALLERGY_KEYS.has(canonicalKey)) {
+          coverageReasons.add('UNSUPPORTED_DECLARATION_KEY');
+          allergenDeclarationsValid = false;
         } else {
           allergenFree.add(canonicalKey);
         }
       } else {
-        reasons.add('MALFORMED_DECLARATION');
+        coverageReasons.add('MALFORMED_DECLARATION');
+        conditionDeclarationsValid = false;
+        allergenDeclarationsValid = false;
       }
     }
   }
@@ -191,29 +270,61 @@ export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCa
     (candidate.conditionDeclarationState === 'REVIEWED_NONE_DECLARED' && suitableConditions.size > 0) ||
     (candidate.conditionDeclarationState === 'REVIEWED_WITH_DECLARATIONS' && suitableConditions.size === 0)
   ) {
-    reasons.add('DECLARATION_STATE_MISMATCH');
+    coverageReasons.add('DECLARATION_STATE_MISMATCH');
+    conditionDeclarationsValid = false;
   }
   const allergenDeclarationCount = allergensPresent.size + allergenFree.size;
   if (
     (candidate.allergenDeclarationState === 'REVIEWED_NONE_DECLARED' && allergenDeclarationCount > 0) ||
     (candidate.allergenDeclarationState === 'REVIEWED_WITH_DECLARATIONS' && allergenDeclarationCount === 0)
   ) {
-    reasons.add('DECLARATION_STATE_MISMATCH');
+    coverageReasons.add('DECLARATION_STATE_MISMATCH');
+    allergenDeclarationsValid = false;
   }
   for (const key of allergensPresent) {
-    if (allergenFree.has(key)) reasons.add('DECLARATION_STATE_MISMATCH');
+    if (allergenFree.has(key)) {
+      coverageReasons.add('DECLARATION_STATE_MISMATCH');
+      allergenDeclarationsValid = false;
+    }
   }
 
-  const complete = reasons.size === 0;
+  const hasRuleBasedClearance =
+    suitableConditions.size > 0 &&
+    Array.isArray(candidate.safetyDeclarations) &&
+    candidate.safetyDeclarations.some(
+      (declaration) =>
+        isRecord(declaration) &&
+        declaration.declarationType === 'CONDITION_RULESET_CLEARED' &&
+        declaration.provenance === 'APPROVED_RULESET'
+    );
+  const conditionDomainReviewed =
+    hasReviewedState(candidate.conditionDeclarationState) &&
+    conditionDeclarationsValid &&
+    (hasEligibleReviewProvenance || hasRuleBasedClearance);
+  const allergenDomainReviewed =
+    hasReviewedState(candidate.allergenDeclarationState) && allergenDeclarationsValid && hasEligibleReviewProvenance;
+  if (!conditionDomainReviewed) coverageReasons.add('CONDITION_DOMAIN_NOT_REVIEWED');
+  if (!allergenDomainReviewed) coverageReasons.add('ALLERGEN_DOMAIN_NOT_REVIEWED');
+
+  const complete = baseReasons.size === 0;
+  const conditionCoverageValid = conditionDomainReviewed;
+  const allergenCoverageValid = allergenDomainReviewed && crossContactCleared;
   return {
     complete,
-    reasons: sortReasons(reasons),
+    reasons: sortReasons(baseReasons),
+    coverageReasons: sortReasons(coverageReasons),
     suitableConditions: [...suitableConditions].sort(),
     allergenFree: [...allergenFree].sort(),
     ingredients,
     adapterEvidence: {
       complete,
+      baseComplete: complete,
       detectedAllergens: [...allergensPresent].sort(),
+      reviewedAbsentAllergens: [...allergenFree].sort(),
+      allergenDomainReviewed: allergenCoverageValid,
+      crossContactCleared,
+      conditionRuleMatches: [...suitableConditions].sort(),
+      conditionDomainReviewed: conditionCoverageValid,
     },
   };
 }

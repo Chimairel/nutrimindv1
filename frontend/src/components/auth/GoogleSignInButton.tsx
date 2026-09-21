@@ -26,6 +26,8 @@ declare global {
 
 interface GoogleSignInButtonProps {
   label?: string;
+  disabled?: boolean;
+  onCredential?: (credential: string) => Promise<void>;
 }
 
 type GoogleCredentialResponse = { credential: string };
@@ -63,12 +65,21 @@ function loadGoogleIdentityServices(): Promise<void> {
   return googleScriptPromise;
 }
 
-export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSignInButtonProps) {
+export default function GoogleSignInButton({
+  label = 'signin_with',
+  disabled = false,
+  onCredential,
+}: GoogleSignInButtonProps) {
   const { login } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
+  const credentialActionRef = useRef(onCredential);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    credentialActionRef.current = onCredential;
+  }, [onCredential]);
 
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -118,6 +129,10 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
     setError(null);
     setIsLoading(true);
     try {
+      if (credentialActionRef.current) {
+        await credentialActionRef.current(response.credential);
+        return;
+      }
       const res = await api.post('/auth/google', {
         idToken: response.credential,
       });
@@ -148,7 +163,10 @@ export default function GoogleSignInButton({ label = 'signin_with' }: GoogleSign
           <span>{error}</span>
         </div>
       )}
-      <div className="relative min-h-[52px] w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm">
+      <div
+        className={`relative min-h-[52px] w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+        aria-disabled={disabled}
+      >
         {!isReady && (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-[#61706b]">
             Loading Google sign-in…

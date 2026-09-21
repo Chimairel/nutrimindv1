@@ -15,8 +15,13 @@ const completeCandidate = (
   allergenFree,
   safetyEvidence: {
     complete: true,
+    baseComplete: true,
     detectedAllergens,
-    conditionRulesReviewed: true,
+    reviewedAbsentAllergens: allergenFree,
+    allergenDomainReviewed: true,
+    crossContactCleared: true,
+    conditionRuleMatches: conditions,
+    conditionDomainReviewed: true,
   },
   ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
 });
@@ -35,11 +40,12 @@ const entry = (
 });
 
 const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree: string[]) => ({
+  recipeSignature: 'fixture-recipe-signature',
   status: 'APPROVED',
   dietaryTags: [...dietaryTags, 'MAINTAIN'],
   safetyEvidenceStatus: 'COMPLETE',
   safetyEvidenceOrigin: 'NUTRITIONIST_REVIEW',
-  conditionDeclarationState: conditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
+  conditionDeclarationState: 'NOT_REVIEWED',
   allergenDeclarationState: allergenFree.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
   crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
   safetyEvidenceRevision: 1,
@@ -52,17 +58,36 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
   },
   ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
   safetyDeclarations: [
-    ...conditions.map((canonicalKey) => ({
-      declarationType: 'CONDITION_REVIEWED',
-      canonicalKey,
-      customKey: null,
-    })),
     ...allergenFree.map((canonicalKey) => ({
       declarationType: 'ALLERGEN_REVIEWED_ABSENT',
       canonicalKey,
       customKey: null,
     })),
   ],
+  conditionClearances: conditions.map((condition, index) => ({
+    id: `fixture-clearance-${index}`,
+    condition,
+    state: 'ACTIVE',
+    recipeSignature: 'fixture-recipe-signature',
+    evidenceRevision: 1,
+    policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+    assuranceTier: 'STANDARD',
+    provenance: 'MANUAL_REVIEW',
+    userScopeId: null,
+    expiresAt: null,
+    auditDueAt: new Date('2999-12-31T00:00:00.000Z'),
+    rulePolicyVersion: null,
+    decisions: [
+      {
+        decision: 'APPROVE',
+        nutritionistProfile: {
+          isVerified: true,
+          prcLicenseExpiry: new Date('2999-12-31T00:00:00.000Z'),
+          canLeadReview: false,
+        },
+      },
+    ],
+  })),
 });
 
 test('[TEST-074] structured entries are authoritative and aliases dedupe across entry paths', () => {

@@ -1,5 +1,11 @@
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { AuthService } from './auth.service';
+
+type AccountDeletionCredential = {
+  password?: string;
+  googleIdToken?: string;
+};
 
 export class UserPrivacyService {
   static async exportAccount(userId: string) {
@@ -47,22 +53,64 @@ export class UserPrivacyService {
     };
   }
 
-  static async deleteAccount(userId: string, password: string) {
+  static async deleteAccount(userId: string, credential: AccountDeletionCredential) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, role: true, passwordHash: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        passwordHash: true,
+        accounts: { where: { provider: 'google' }, select: { providerAccountId: true } },
+      },
     });
     if (!user || user.role !== 'USER') throw new Error('Only patient accounts can use self-service deletion.');
-    if (!(await bcrypt.compare(password, user.passwordHash))) throw new Error('Current password is incorrect.');
+
+    let reauthenticationMethod: 'PASSWORD' | 'GOOGLE';
+    if (credential.password && (await bcrypt.compare(credential.password, user.passwordHash))) {
+      reauthenticationMethod = 'PASSWORD';
+    } else if (credential.googleIdToken) {
+      const identity = await AuthService.verifyGoogleIdentity(credential.googleIdToken);
+      const verifiedEmail = identity.email?.trim().toLowerCase();
+      const subjectMatches = Boolean(
+        identity.sub && user.accounts.some((account) => account.providerAccountId === identity.sub)
+      );
+      if (!subjectMatches && verifiedEmail !== user.email.trim().toLowerCase()) {
+        throw new Error('Google account does not match the signed-in KAINARA account.');
+      }
+      reauthenticationMethod = 'GOOGLE';
+    } else {
+      throw new Error('Current password is incorrect.');
+    }
 
     await prisma.$transaction(async (tx) => {
+      const mealPlans = await tx.mealPlan.findMany({ where: { userId }, select: { id: true } });
+      const scopedClearances = await tx.mealConditionClearance.findMany({
+        where: { userScopeId: userId },
+        select: { id: true },
+      });
+      const mealPlanIds = mealPlans.map(({ id }) => id);
+      const clearanceIds = scopedClearances.map(({ id }) => id);
+
+      // These clinical decisions intentionally use RESTRICT during ordinary
+      // operations. A verified self-deletion must remove the user-owned review
+      // graph explicitly before the database cascades the remaining health data.
+      if (clearanceIds.length) {
+        await tx.mealPlanClearanceUsage.deleteMany({ where: { clearanceId: { in: clearanceIds } } });
+        await tx.mealConditionClearanceDecision.deleteMany({ where: { clearanceId: { in: clearanceIds } } });
+        await tx.mealConditionClearance.deleteMany({ where: { id: { in: clearanceIds } } });
+      }
+      if (mealPlanIds.length) {
+        await tx.mealPlanReviewDecision.deleteMany({ where: { mealPlanId: { in: mealPlanIds } } });
+      }
+
       await tx.auditEvent.create({
         data: {
           actorUserId: userId,
           action: 'USER_SELF_DELETION',
           entityType: 'User',
           entityId: userId,
-          metadata: { initiatedBy: 'SELF_SERVICE' },
+          metadata: { initiatedBy: 'SELF_SERVICE', reauthenticationMethod },
         },
       });
       await tx.user.delete({ where: { id: userId } });

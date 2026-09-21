@@ -11,55 +11,76 @@ export function buildMealGenerationResponseSchema(
   foods: readonly Food[],
   matched: readonly (Slot & { calories: number })[] = []
 ) {
-  const base = z.object({
-    meals: z
-      .array(
-        z.object({
-          dayNumber: z.number(),
-          mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
-          mealName: z.string(),
-          description: z.string(),
-          calories: z.number().positive(),
-          proteinG: z.number().nonnegative(),
-          carbsG: z.number().nonnegative(),
-          fatG: z.number().nonnegative(),
-          ingredients: z
-            .array(
-              z.object({
-                foodItemId: z.string().trim().min(1).nullable(),
-                name: z.string().trim().min(1),
-                quantity: z.number().positive().max(10_000),
-                unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
-              })
-            )
-            .min(1),
-        })
-      )
-      .refine(
-        (meals) => {
-          if (meals.length !== slots.length) return false;
-          return slots.every((slot) =>
-            meals.some((m) => m.dayNumber === slot.dayNumber && m.mealType === slot.mealType)
-          );
-        },
-        {
-          message: `Must generate exactly the requested slots: ${JSON.stringify(slots.map((s) => ({ day: s.dayNumber, type: s.mealType })))}`,
-        }
-      )
-      .refine(
-        (meals) =>
-          meals.every((meal) =>
-            isMealWithinSlotCalorieRange({
-              calories: meal.calories,
-              dailyCalorieTarget,
-              mealType: meal.mealType,
-            })
-          ),
-        {
-          message: 'Every generated meal must satisfy its allocated daily-calorie range.',
-        }
-      ),
+  const ingredientSchema = z.object({
+    foodItemId: z.string().trim().min(1).nullable(),
+    name: z.string().trim().min(1),
+    quantity: z.number().positive().max(10_000),
+    unit: z.enum(['g', 'mL', 'piece', 'tbsp', 'tsp', 'cup', 'can', 'pack']),
   });
+  const base = z.preprocess(
+    (value) => {
+      const envelope = Array.isArray(value) ? { meals: value } : value;
+      if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) return envelope;
+      const record = envelope as Record<string, unknown>;
+      if (!Array.isArray(record.meals)) return envelope;
+      return {
+        ...record,
+        meals: record.meals.map((meal) => {
+          if (!meal || typeof meal !== 'object' || Array.isArray(meal)) return meal;
+          const mealRecord = meal as Record<string, unknown>;
+          if (!Array.isArray(mealRecord.ingredients)) return meal;
+          return {
+            ...mealRecord,
+            ingredients: mealRecord.ingredients.filter((ingredient) => {
+              if (!ingredient || typeof ingredient !== 'object' || Array.isArray(ingredient)) return false;
+              const name = (ingredient as Record<string, unknown>).name;
+              return typeof name === 'string' && name.trim().length > 0;
+            }),
+          };
+        }),
+      };
+    },
+    z.object({
+      meals: z
+        .array(
+          z.object({
+            dayNumber: z.number(),
+            mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
+            mealName: z.string(),
+            description: z.string(),
+            calories: z.number().positive(),
+            proteinG: z.number().nonnegative(),
+            carbsG: z.number().nonnegative(),
+            fatG: z.number().nonnegative(),
+            ingredients: z.array(ingredientSchema).min(1),
+          })
+        )
+        .refine(
+          (meals) => {
+            if (meals.length !== slots.length) return false;
+            return slots.every((slot) =>
+              meals.some((m) => m.dayNumber === slot.dayNumber && m.mealType === slot.mealType)
+            );
+          },
+          {
+            message: `Must generate exactly the requested slots: ${JSON.stringify(slots.map((s) => ({ day: s.dayNumber, type: s.mealType })))}`,
+          }
+        )
+        .refine(
+          (meals) =>
+            meals.every((meal) =>
+              isMealWithinSlotCalorieRange({
+                calories: meal.calories,
+                dailyCalorieTarget,
+                mealType: meal.mealType,
+              })
+            ),
+          {
+            message: 'Every generated meal must satisfy its allocated daily-calorie range.',
+          }
+        ),
+    })
+  );
   return base.superRefine(({ meals }, context) => {
     const finalMeals = meals.map((meal, index) => {
       for (const ingredient of meal.ingredients) {

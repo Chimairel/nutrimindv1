@@ -36,6 +36,6 @@ test('[TEST-098] current query evidence distinguishes direct revalidation use fr
   assert.match(revalidationScript, /status: MealPlanStatus\.APPROVED,[\s\S]*?requiresSafetyRevalidation: true/);
   assert.match(
     nutritionistService,
-    /where: getNutritionistReviewableMealPlanWhere\(\)[\s\S]*?pendingMeals\.sort\([\s\S]*?highRiskReviewRequired[\s\S]*?reviewApprovalCount/
+    /where: getNutritionistReviewableMealPlanWhere\(\)[\s\S]*?visibleMeals\.sort\([\s\S]*?highRiskReviewRequired[\s\S]*?reviewApprovalCount/
   );
 });

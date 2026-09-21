@@ -168,7 +168,11 @@ const SAFETY_METADATA_KEYS = new Set([
   'contradictory',
 ]);
 
-const REUSABLE_CERTIFIED_CONDITION_KEYS = new Set<CanonicalConditionKey>(['DIABETES', 'HYPERTENSION']);
+// Condition declarations reaching this policy are explicit reusable clearances.
+// Their provenance is checked by the library evidence policy before adaptation.
+const REUSABLE_CERTIFIED_CONDITION_KEYS = new Set<CanonicalConditionKey>(
+  RESTRICTION_CONDITION_KEYS.filter((key) => key !== 'NONE')
+);
 
 const INGREDIENT_EVIDENCE_KEYS = new Set(['dataSource', 'resolved', 'linked']);
 

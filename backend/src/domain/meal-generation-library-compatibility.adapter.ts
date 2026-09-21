@@ -50,6 +50,16 @@ type UnknownRecord = Record<string, unknown>;
 
 const CONDITION_KEYS = new Set<string>(RESTRICTION_CONDITION_KEYS);
 const ALLERGY_KEYS = new Set<string>(RESTRICTION_ALLERGY_KEYS);
+const LIBRARY_EVIDENCE_KEYS = new Set([
+  'complete',
+  'baseComplete',
+  'detectedAllergens',
+  'reviewedAbsentAllergens',
+  'allergenDomainReviewed',
+  'crossContactCleared',
+  'conditionRuleMatches',
+  'conditionDomainReviewed',
+]);
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -102,6 +112,29 @@ function positiveCanonicalUserAllergies(restrictions: UnknownRecord): string[] {
   return [...keys].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
+function positiveCanonicalUserConditions(restrictions: UnknownRecord): string[] {
+  const collections = [restrictions.conditions, splitStoredCustomRestrictions(restrictions.customConditions)];
+  const keys = new Set<string>();
+
+  for (const collection of collections) {
+    if (!Array.isArray(collection)) continue;
+    for (const value of collection) {
+      const key = normalizeRestrictionComparisonToken(value);
+      if (CONDITION_KEYS.has(key) && key !== 'NONE') keys.add(key);
+    }
+  }
+
+  return [...keys].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
+function normalizedCanonicalSet(value: unknown, domain: 'condition' | 'allergy'): Set<string> {
+  if (!Array.isArray(value)) return new Set();
+  const normalized = value
+    .map((entry) => (domain === 'allergy' ? canonicalAllergyKey(entry) : normalizeRestrictionComparisonToken(entry)))
+    .filter((entry): entry is string => Boolean(entry) && entry !== 'NONE');
+  return new Set(normalized);
+}
+
 function adaptSafetyMetadata(candidate: UnknownRecord, restrictions: UnknownRecord): unknown {
   if (!hasOwn(candidate, 'suitableConditions') || !hasOwn(candidate, 'allergenFree')) {
     return undefined;
@@ -128,21 +161,47 @@ function adaptSafetyMetadata(candidate: UnknownRecord, restrictions: UnknownReco
   if (!isRecord(candidate.safetyEvidence)) return candidate.safetyEvidence;
 
   const suppliedEvidence = candidate.safetyEvidence;
-  const declaredFreeKeys = new Set(
-    allergenFree.map(canonicalAllergyKey).filter((key): key is string => key !== null && key !== 'NONE')
+  if (Object.keys(suppliedEvidence).some((key) => !LIBRARY_EVIDENCE_KEYS.has(key))) {
+    return {
+      complete: false,
+      detectedAllergens: [],
+      conditionRuleMatches: [],
+      conditionRulesReviewed: false,
+      unknownLibraryEvidence: true,
+    };
+  }
+  const baseComplete = suppliedEvidence.baseComplete === true || suppliedEvidence.complete === true;
+  const detectedAllergenKeys = normalizedCanonicalSet(suppliedEvidence.detectedAllergens, 'allergy');
+  const declaredFreeKeys = normalizedCanonicalSet(suppliedEvidence.reviewedAbsentAllergens ?? allergenFree, 'allergy');
+  const conditionClearanceKeys = normalizedCanonicalSet(
+    suppliedEvidence.conditionRuleMatches ?? suitableConditions,
+    'condition'
   );
-  const declaredAllergiesCovered = positiveCanonicalUserAllergies(restrictions).every((key) =>
-    declaredFreeKeys.has(key)
+  const requestedAllergies = positiveCanonicalUserAllergies(restrictions);
+  const requestedConditions = positiveCanonicalUserConditions(restrictions);
+  const allergenFactsCoverRequest = requestedAllergies.every(
+    (key) => declaredFreeKeys.has(key) || detectedAllergenKeys.has(key)
   );
+  const allergenCoverageComplete =
+    requestedAllergies.length === 0 ||
+    (suppliedEvidence.allergenDomainReviewed === true &&
+      suppliedEvidence.crossContactCleared === true &&
+      allergenFactsCoverRequest);
+  const conditionCoverageComplete =
+    requestedConditions.length === 0 ||
+    (suppliedEvidence.conditionDomainReviewed === true &&
+      requestedConditions.every((key) => conditionClearanceKeys.has(key)));
   const unknownCompatibilityKey =
     hasUnknownCompatibilityValue(suitableConditions, 'condition') ||
     hasUnknownCompatibilityValue(allergenFree, 'allergy');
 
   return {
-    ...suppliedEvidence,
-    complete: suppliedEvidence.complete === true && declaredAllergiesCovered,
-    conditionRuleMatches: suitableConditions,
-    conditionRulesReviewed: suppliedEvidence.complete === true,
+    complete: baseComplete && allergenCoverageComplete,
+    detectedAllergens: Array.isArray(suppliedEvidence.detectedAllergens) ? [...suppliedEvidence.detectedAllergens] : [],
+    conditionRuleMatches: Array.isArray(suppliedEvidence.conditionRuleMatches)
+      ? [...suppliedEvidence.conditionRuleMatches]
+      : [...conditionClearanceKeys].sort(),
+    conditionRulesReviewed: baseComplete && conditionCoverageComplete,
     ...(unknownCompatibilityKey ? { unknownCompatibilityKey: true } : {}),
   };
 }

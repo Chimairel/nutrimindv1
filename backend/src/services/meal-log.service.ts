@@ -130,9 +130,7 @@ function emptyResolved(item: InputItem): ResolvedItem {
 
 function applySafetyWarnings(
   item: ResolvedItem,
-  restrictions: ReturnType<typeof adaptUserSafetyRestrictions>,
-  sodiumMg?: number,
-  sugarsG?: number
+  restrictions: ReturnType<typeof adaptUserSafetyRestrictions>
 ): ResolvedItem {
   const corpus = normalize([item.name, ...item.ingredients].join(' '));
   const warnings = [...item.warnings];
@@ -164,19 +162,10 @@ function applySafetyWarnings(
       compatibilityStatus = OutsideMealCompatibilityStatus.CONFLICT_DETECTED;
     }
   }
-  if (restrictions.conditions.includes(HealthConditionType.HYPERTENSION) && (sodiumMg ?? 0) > 400) {
-    warnings.push(`Estimated sodium is ${Math.round(sodiumMg!)} mg; consider this against your health guidance.`);
-    if (compatibilityStatus !== OutsideMealCompatibilityStatus.CONFLICT_DETECTED)
-      compatibilityStatus = OutsideMealCompatibilityStatus.CAUTION;
-  }
-  if (restrictions.conditions.includes(HealthConditionType.DIABETES) && (sugarsG ?? 0) > 15) {
-    warnings.push(`Estimated sugars are ${Math.round(sugarsG!)} g; consider this against your health guidance.`);
-    if (compatibilityStatus !== OutsideMealCompatibilityStatus.CONFLICT_DETECTED)
-      compatibilityStatus = OutsideMealCompatibilityStatus.CAUTION;
-  }
-  if (restrictions.requiresReview) {
+  const hasCondition = restrictions.conditions.some((condition) => condition !== HealthConditionType.NONE);
+  if (restrictions.requiresReview || hasCondition) {
     warnings.push(
-      'Your profile contains a restriction that needs individual review; compatibility is not established.'
+      'Your profile contains a health condition that needs governed rule or nutritionist review; compatibility is not established.'
     );
     if (compatibilityStatus !== OutsideMealCompatibilityStatus.CONFLICT_DETECTED)
       compatibilityStatus = OutsideMealCompatibilityStatus.REVIEW_REQUIRED;
@@ -295,9 +284,7 @@ export class MealLogService {
             ingredients: ai.ingredients,
             warnings: ['AI estimate — counted provisionally until a nutritionist reviews it.'],
           },
-          restrictions,
-          ai.sodiumMg,
-          ai.sugarsG
+          restrictions
         );
       });
     }
@@ -436,8 +423,7 @@ export class MealLogService {
         foodItemId: food.id,
         warnings: ['FNRI composition scaled from per-100 g data. Ingredient-level compatibility is not established.'],
       },
-      restrictions,
-      food.sodium === null ? undefined : food.sodium * (item.portionGrams / 100)
+      restrictions
     );
   }
 
@@ -449,7 +435,8 @@ Return exactly one JSON object with this shape and no alternate field names:
 Every calories, calorieLow, calorieHigh, proteinG, carbsG, and fatG value must be a finite non-negative JSON number. calorieLow must not exceed calories and calorieHigh must not be below calories. ingredients must be an array of plain ingredient-name strings. sodiumMg and sugarsG may be omitted only when they cannot be estimated.
 Foods: ${JSON.stringify(items.map((item) => ({ name: item.name, portionGrams: item.portionGrams ?? null })))}`,
       'You estimate nutrition for Filipino foods. Return JSON only. Do not claim clinical certainty.',
-      aiResponseSchema
+      aiResponseSchema,
+      { operation: 'OUTSIDE_MEAL_ESTIMATE', purpose: 'OUTSIDE_MEAL_ITEM_ESTIMATION' }
     );
     if (response.items.length !== items.length)
       throw new AppError('AI returned an incomplete item estimate.', 502, 'AI_ITEM_COUNT_MISMATCH');

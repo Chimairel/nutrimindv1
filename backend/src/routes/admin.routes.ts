@@ -107,6 +107,24 @@ router.patch('/nutritionists/:id/verify', async (req: AuthenticatedRequest, res:
   }
 });
 
+router.patch('/nutritionists/:id/lead-capability', async (req: AuthenticatedRequest, res: Response) => {
+  if (typeof req.body?.canLeadReview !== 'boolean') {
+    return res.status(400).json({ success: false, error: 'canLeadReview must be a boolean.' });
+  }
+  try {
+    const result = await AdminService.setNutritionistLeadCapability(
+      req.user!.userId,
+      req.params.id,
+      req.body.canLeadReview
+    );
+    return res.json({ success: true, data: result });
+  } catch (error: unknown) {
+    return res
+      .status(400)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update Lead capability.') });
+  }
+});
+
 router.get('/nutritionist-applications', async (_req: AuthenticatedRequest, res: Response) => {
   try {
     const data = await NutritionistApplicationService.listForAdmin();

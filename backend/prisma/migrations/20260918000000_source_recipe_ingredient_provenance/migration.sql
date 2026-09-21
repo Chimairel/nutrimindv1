@@ -1,0 +1,1 @@
+ALTER TYPE "MealIngredientDataSource" ADD VALUE 'SOURCE_RECIPE';

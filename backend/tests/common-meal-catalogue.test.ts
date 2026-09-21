@@ -2,9 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   COMMON_MEAL_CATALOGUE,
-  CONDITION_AWARE_CATALOGUE_RULES,
   assertCommonMealCatalogue,
-  deriveCatalogueConditionSuitability,
   getCatalogueDietaryTags,
   type SupportedLibraryAllergen,
 } from '../src/data/common-meal-catalogue';
@@ -27,7 +25,7 @@ test('common library catalogue has enough complete, unique meals per main slot',
   }
 });
 
-test('[TEST-076] two exact FNRI-backed additions close the diabetes vegetarian egg-free slot gaps', () => {
+test('[TEST-076] two exact FNRI-backed additions close the vegetarian egg-free slot gaps', () => {
   const evidence = new Map([
     [
       'Rice, well-milled, boiled',
@@ -108,7 +106,6 @@ test('[TEST-076] two exact FNRI-backed additions close the diabetes vegetarian e
     assert.ok(meal.diets.includes('VEGETARIAN'));
     assert.ok(!meal.allergensPresent.includes('EGGS'));
     assert.deepEqual(calculateCatalogueNutrition(meal, evidence), nutrition);
-    assert.ok(deriveCatalogueConditionSuitability(nutrition).includes('DIABETES'));
   }
 
   assert.deepEqual(
@@ -130,11 +127,11 @@ test('catalogue allergen declarations match its known allergenic ingredients', (
   }
 });
 
-test('every catalogue meal can match every supported healthy-profile goal', () => {
+test('catalogue tags contain diets and never persist user goals', () => {
   for (const meal of COMMON_MEAL_CATALOGUE) {
     const tags = getCatalogueDietaryTags(meal);
     for (const goal of ['LOSE_WEIGHT', 'GAIN_WEIGHT', 'MAINTAIN', 'BUILD_MUSCLE']) {
-      assert.ok(tags.includes(goal), `${meal.mealName} is missing ${goal}`);
+      assert.ok(!tags.includes(goal), `${meal.mealName} persisted user goal ${goal}`);
     }
     assert.ok(tags.includes('OMNIVORE'), `${meal.mealName} must be available to omnivores`);
   }
@@ -157,14 +154,10 @@ test('vegetarian, pescatarian, and each supported single-allergy profile have se
   }
 });
 
-test('condition suitability applies only the bounded diabetes and hypertension catalogue rules', () => {
-  assert.deepEqual(
-    deriveCatalogueConditionSuitability({
-      carbsG: CONDITION_AWARE_CATALOGUE_RULES.diabetesMaxCarbsGPerMeal,
-      sodiumMg: CONDITION_AWARE_CATALOGUE_RULES.hypertensionMaxSodiumMgPerMeal,
-    }),
-    ['DIABETES', 'HYPERTENSION']
-  );
-  assert.deepEqual(deriveCatalogueConditionSuitability({ carbsG: 60.1, sodiumMg: 600.1 }), []);
-  assert.deepEqual(deriveCatalogueConditionSuitability({ carbsG: 40, sodiumMg: null }), ['DIABETES']);
+test('catalogue definitions do not assign condition clearance from nutrient cutoffs', () => {
+  for (const meal of COMMON_MEAL_CATALOGUE) {
+    const tags = getCatalogueDietaryTags(meal);
+    assert.ok(!tags.includes('DIABETES'));
+    assert.ok(!tags.includes('HYPERTENSION'));
+  }
 });

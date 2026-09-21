@@ -1,10 +1,9 @@
 import prisma from '@/lib/prisma';
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
-import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
 import { lockUserProfile } from './profile-revision.service';
 import { generateGenerativeJSON } from '@/lib/gemini';
-import { getFNRISubset, lookupIngredient } from '@/lib/fnri';
+import { getFNRISubset } from '@/lib/fnri';
 import { getLocalizedFoodConsumptionContext } from '@/services/food-consumption-context.service';
 import {
   MealType,
@@ -14,19 +13,15 @@ import {
   NotificationType,
   PlanType,
   ShoppingDayGroup,
-  MealIngredientDataSource,
-  MealLibrarySafetyEvidenceStatus,
   MealPlanGenerationJobStatus,
+  AiUsageOperation,
+  MealCandidateProvenance,
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-response.schema';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
-import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
-import {
-  filterEligibleMealGenerationLibraryCandidates,
-  runMealGenerationFallbackForUnmatchedSlots,
-} from '@/domain/meal-generation-library-compatibility.adapter';
+import { runMealGenerationFallbackForUnmatchedSlots } from '@/domain/meal-generation-library-compatibility.adapter';
 import {
   getCurrentWeeklyCycleWindow,
   getManilaDateKey,
@@ -38,8 +33,6 @@ import {
   type WeeklyCycleWindow,
 } from '@/domain/meal-plan-cycle.policy';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
-import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
-import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
@@ -52,28 +45,18 @@ import {
 } from '@/domain/meal-calorie-allocation.policy';
 import { formatMealLocalityPreference, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
-
-interface GroundedFoodReference {
-  id: string;
-  name: string;
-  category: string | null;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-}
-
-interface GeneratedMeal {
-  dayNumber: number;
-  mealType: MealType;
-  mealName: string;
-  description: string;
-  ingredients: { foodItemId: string | null; name: string; quantity?: number; unit?: string }[];
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-}
+import {
+  certifiedLibraryMealInclude,
+  isCertifiedLibraryMealCompatible,
+  queryEligibleLibraryMeals,
+} from './meal-library-candidate-query.service';
+import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
+import { splitCustomRestrictions, validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
+import {
+  prepareGeneratedMealIngredients,
+  type GeneratedMeal,
+  type GroundedFoodReference,
+} from './meal-generation-ingredient-preparation.service';
 
 interface GeminiMealPlanResponse {
   meals: GeneratedMeal[];
@@ -335,8 +318,8 @@ export class MealGenerationService {
     );
     // 1. Fetch live user details, profile, conditions, and allergies
     const {
+      user,
       profile,
-      safetyRestrictions,
       conditions: userConditions,
       allergens: userAllergens,
       otherConditions,
@@ -364,44 +347,22 @@ export class MealGenerationService {
       'LIBRARY_MATCH',
       'Screening nutritionist-certified meals for safe matches.'
     );
-    const libraryMeals = await prisma.mealLibrary.findMany({
-      where: {
-        verifiedByNutritionistId: { not: null }, // Only nutritionist-verified meals
-        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-        ...getApprovedMealLibraryWhere(), // Exclude FLAGGED meals per Addendum 4
-      },
-      include: {
-        ingredients: {
-          orderBy: { position: 'asc' },
-        },
-        safetyDeclarations: true,
-        safetyReviewedByNutritionist: {
-          include: { user: { select: { role: true } } },
-        },
-      },
-    });
-
-    const evaluatedLibraryMeals = libraryMeals.map((meal) => ({
-      meal,
-      safety: evaluateMealLibrarySafetyEvidence({
-        ...meal,
-        reviewerEligible: meal.safetyReviewedByNutritionist
-          ? isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
-          : false,
-      }),
-    }));
-
-    const eligibleLibraryMeals = filterEligibleMealGenerationLibraryCandidates(
-      evaluatedLibraryMeals,
-      safetyRestrictions.evaluationRestrictions,
-      ({ meal, safety }) => ({
-        status: meal.status,
-        suitableConditions: safety.suitableConditions,
-        allergenFree: safety.allergenFree,
-        safetyEvidence: safety.adapterEvidence,
-        ingredients: safety.ingredients,
-      })
-    ).map(({ meal }) => meal);
+    const slotTypes = [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER] as const;
+    const libraryMeals = (
+      await Promise.all(
+        slotTypes.map((mealType) =>
+          queryEligibleLibraryMeals({
+            mealType,
+            dailyCalorieTarget,
+            userConditions,
+            userAllergens,
+            profile: { ...profile, userId, safetyEntries: user.safetyProfileEntries },
+            limit: 120,
+          })
+        )
+      )
+    ).flat();
+    const eligibleLibraryMeals = libraryMeals;
     const localizedCertifiedMealReference = rankMealsByLocalizedFoodEvidence(
       [...eligibleLibraryMeals].sort((left, right) => right.usageCount - left.usageCount),
       localizedFoodIds
@@ -438,16 +399,11 @@ export class MealGenerationService {
           if (selectedLibraryMealIds.has(meal.id)) return false;
           if (meal.mealType !== slotType) return false;
 
-          // 1. Check dietary preferences matching
+          // Dietary preference is a positive classification fact. User goals
+          // influence serving allocation and ranking, never reusable diet tags.
           if (profile.dietaryPreference && meal.dietaryTags) {
             const tags = meal.dietaryTags as string[];
             if (!tags.includes(profile.dietaryPreference)) return false;
-          }
-
-          // 2. Check goal matching
-          if (profile.goal && meal.dietaryTags) {
-            const tags = meal.dietaryTags as string[];
-            if (!tags.includes(profile.goal)) return false;
           }
 
           return true;
@@ -478,10 +434,48 @@ export class MealGenerationService {
       }
     }
 
-    // --- STEP 2: Fallback/Generation for unmatched slots ---
+    // --- STEP 2: Search the broader recipe corpus without granting it safety authority. ---
+    const rawCorpusMeals: GeneratedMeal[] = [];
+    const excludedRawCandidateIds = new Set<string>();
+    let openCorpusSlots = [...unmatchedSlots];
+    for (let attempt = 1; attempt <= 2 && openCorpusSlots.length; attempt += 1) {
+      const rawCorpusResult = await sourceRawRecipeCandidates({
+        slots: openCorpusSlots,
+        dailyCalorieTarget,
+        dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+        conditions: userConditions,
+        allergens: userAllergens,
+        otherConditions,
+        otherAllergies,
+        excludeCandidateIds: [...excludedRawCandidateIds],
+      });
+      const acceptedSlotKeys = new Set<string>();
+      for (const meal of rawCorpusResult.meals) {
+        const validation = validateGeneratedMealCandidate({
+          ingredients: meal.ingredients,
+          dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+          allergens: userAllergens,
+          customAllergies: splitCustomRestrictions(otherAllergies),
+        });
+        if (!validation.accepted) {
+          excludedRawCandidateIds.add(meal.rawCandidateId);
+          continue;
+        }
+        acceptedSlotKeys.add(`${meal.dayNumber}:${meal.mealType}`);
+        rawCorpusMeals.push({
+          ...meal,
+          candidateProvenance: MealCandidateProvenance.RAW_RECIPE_CORPUS,
+        });
+      }
+      openCorpusSlots = openCorpusSlots.filter((slot) => !acceptedSlotKeys.has(`${slot.dayNumber}:${slot.mealType}`));
+      if (!rawCorpusResult.meals.length) break;
+    }
+    const generationSlots = openCorpusSlots;
+
+    // --- STEP 3: Bounded from-scratch generation only for still-empty slots. ---
     const groundedFoodById = new Map<string, GroundedFoodReference>();
-    const aiMeals = await runMealGenerationFallbackForUnmatchedSlots(
-      unmatchedSlots,
+    const generatedFromScratch = await runMealGenerationFallbackForUnmatchedSlots(
+      generationSlots,
       async (fallbackSlots): Promise<GeneratedMeal[]> => {
         await updateGenerationProgress(
           generationJobId,
@@ -506,48 +500,86 @@ export class MealGenerationService {
           )
           .join('\n');
 
-        const { prompt, systemInstruction } = buildMealGenerationPrompt({
-          slots: fallbackSlots,
-          existingMeals: matchedSlots.map((slot) => ({
-            dayNumber: slot.dayNumber,
-            mealType: slot.mealType,
-            calories: slot.libraryMeal.calories,
-          })),
-          dailyCalorieTarget,
-          goal,
-          dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
-          carbPreference: profile.carbPreference || 'MODERATE',
-          foodCulture: profile.foodCulture || 'Filipino',
-          planningLocationLabel: formatMealLocalityPreference(profile),
-          conditions: userConditions,
-          allergens: userAllergens,
-          otherConditions,
-          otherAllergies,
-          foodReference: formattedFoodsContext,
-          certifiedMealReference: localizedCertifiedMealReference,
-          popularFoodReference: localizedConsumption.text,
-          consumptionEvidenceScope: localizedConsumption.matchedScope?.label,
-        });
-
         const compositionForValidation = await prisma.foodItem.findMany({
           where: { id: { in: retrievedFoods.map((food) => food.id) }, source: 'FNRI' },
         });
-        const MealResponseSchema = buildMealGenerationResponseSchema(
-          fallbackSlots,
-          dailyCalorieTarget,
-          compositionForValidation,
-          matchedSlots.map((slot) => ({ ...slot, calories: slot.libraryMeal.calories }))
-        );
-
-        const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
-          prompt,
-          systemInstruction,
-          MealResponseSchema
-        );
-
-        return aiResponse.meals;
+        const accepted: GeneratedMeal[] = [];
+        let pendingSlots = [...fallbackSlots];
+        const validationFailures: string[] = [];
+        for (let attempt = 1; attempt <= 3 && pendingSlots.length; attempt += 1) {
+          const existingMeals = [
+            ...matchedSlots.map((slot) => ({
+              dayNumber: slot.dayNumber,
+              mealType: slot.mealType,
+              calories: slot.libraryMeal.calories,
+            })),
+            ...rawCorpusMeals.map((meal) => ({
+              dayNumber: meal.dayNumber,
+              mealType: meal.mealType,
+              calories: meal.calories,
+            })),
+            ...accepted.map((meal) => ({
+              dayNumber: meal.dayNumber,
+              mealType: meal.mealType,
+              calories: meal.calories,
+            })),
+          ];
+          const { prompt, systemInstruction } = buildMealGenerationPrompt({
+            slots: pendingSlots,
+            existingMeals,
+            dailyCalorieTarget,
+            goal,
+            dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+            carbPreference: profile.carbPreference || 'MODERATE',
+            foodCulture: profile.foodCulture || 'Filipino',
+            planningLocationLabel: formatMealLocalityPreference(profile),
+            conditions: userConditions,
+            allergens: userAllergens,
+            otherConditions,
+            otherAllergies,
+            foodReference: formattedFoodsContext,
+            certifiedMealReference: localizedCertifiedMealReference,
+            popularFoodReference: localizedConsumption.text,
+            consumptionEvidenceScope: localizedConsumption.matchedScope?.label,
+          });
+          const MealResponseSchema = buildMealGenerationResponseSchema(
+            pendingSlots,
+            dailyCalorieTarget,
+            compositionForValidation,
+            existingMeals
+          );
+          const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
+            validationFailures.length
+              ? `${prompt}\nPrevious deterministic validation failures: ${validationFailures.join('; ')}`
+              : prompt,
+            systemInstruction,
+            MealResponseSchema,
+            { operation: AiUsageOperation.MEAL_PLAN_GENERATION, purpose: `UNMATCHED_SLOT_ATTEMPT_${attempt}` }
+          );
+          const rejectedKeys = new Set<string>();
+          for (const meal of aiResponse.meals) {
+            const validation = validateGeneratedMealCandidate({
+              ingredients: meal.ingredients,
+              dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+              allergens: userAllergens,
+              customAllergies: splitCustomRestrictions(otherAllergies),
+            });
+            if (!validation.accepted) {
+              rejectedKeys.add(`${meal.dayNumber}:${meal.mealType}`);
+              validationFailures.push(...validation.definiteConflicts);
+              continue;
+            }
+            accepted.push({ ...meal, candidateProvenance: MealCandidateProvenance.AI_FROM_SCRATCH });
+          }
+          pendingSlots = pendingSlots.filter((slot) => rejectedKeys.has(`${slot.dayNumber}:${slot.mealType}`));
+        }
+        if (pendingSlots.length) {
+          throw new Error(`Deterministic validation rejected ${pendingSlots.length} meal slot(s) after 3 attempts.`);
+        }
+        return accepted;
       }
     );
+    const aiMeals = [...rawCorpusMeals, ...generatedFromScratch];
 
     const newPlanGroupId = randomUUID();
     const evidenceCapturedAt = new Date().toISOString();
@@ -572,116 +604,17 @@ export class MealGenerationService {
     };
     const targetPlanEndDate = getScheduledMealDate(startDate, Math.max(0, numDays - 1));
     const userHasConditions = userConditions.length > 0 && !userConditions.includes(HealthConditionType.NONE);
+    const planConditions = userConditions.filter((condition) => condition !== HealthConditionType.NONE);
     const createdPlansList: any[] = [];
 
-    // Pre-resolve ingredient lookups outside the transaction to prevent database timeouts
-    const preparedAiMeals: {
-      mealType: MealType;
-      mealName: string;
-      description: string;
-      calories: number;
-      proteinG: number;
-      carbsG: number;
-      fatG: number;
-      scheduledDate: Date;
-      aiConfidenceFlag: AIConfidenceFlag;
-      ingredientsData: {
-        ingredientName: string;
-        category: string;
-        foodItemId: string | null;
-        dataSource: MealIngredientDataSource;
-        quantity?: number;
-        unit?: string;
-      }[];
-    }[] = [];
-
-    const compositionRevisions = new Map<string, number>();
-    for (const rawMeal of aiMeals) {
-      const slot = unmatchedSlots.find((s) => s.dayNumber === rawMeal.dayNumber && s.mealType === rawMeal.mealType);
-      const scheduledDate = slot ? slot.scheduledDate : new Date(startDate);
-
-      let hasEstimatedIngredient = false;
-      const ingredientsData: {
-        ingredientName: string;
-        category: string;
-        foodItemId: string | null;
-        dataSource: MealIngredientDataSource;
-        quantity?: number;
-        unit?: string;
-      }[] = [];
-
-      for (const ingredient of rawMeal.ingredients) {
-        const ingredientName = ingredient.name;
-        const groundedFood = ingredient.foodItemId ? groundedFoodById.get(ingredient.foodItemId) : undefined;
-        if (groundedFood) {
-          ingredientsData.push({
-            ingredientName: groundedFood.name,
-            category: groundedFood.category || 'PANTRY',
-            foodItemId: groundedFood.id,
-            dataSource: MealIngredientDataSource.FNRI,
-            quantity: ingredient.quantity,
-            unit: ingredient.unit,
-          });
-          continue;
-        }
-        try {
-          const lookup = await lookupIngredient(ingredientName);
-          if (lookup.source === 'ESTIMATED') {
-            hasEstimatedIngredient = true;
-          }
-          ingredientsData.push({
-            ingredientName: lookup.food.name || ingredientName,
-            category: lookup.food.category || 'PANTRY',
-            foodItemId: lookup.food.id || null,
-            dataSource:
-              lookup.source === 'ESTIMATED' ? MealIngredientDataSource.GEMINI_ESTIMATED : MealIngredientDataSource.FNRI,
-            quantity: ingredient.quantity,
-            unit: ingredient.unit,
-          });
-        } catch (lookupErr) {
-          console.warn(`Ingredient lookup failed for: ${ingredientName}, using as estimated.`, lookupErr);
-          hasEstimatedIngredient = true;
-          ingredientsData.push({
-            ingredientName,
-            category: 'PANTRY',
-            foodItemId: null,
-            dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
-            quantity: ingredient.quantity,
-            unit: ingredient.unit,
-          });
-        }
-      }
-
-      const composition = await prisma.foodItem.findMany({
-        where: { id: { in: ingredientsData.flatMap((item) => (item.foodItemId ? [item.foodItemId] : [])) } },
-      });
-      composition.forEach((food) => compositionRevisions.set(food.id, food.compositionRevision));
-      const reconciliation = reconcileFnriMealTotals(ingredientsData, composition);
-      if (!reconciliation.complete) hasEstimatedIngredient = true;
-      let flag: AIConfidenceFlag = reconciliation.complete ? AIConfidenceFlag.CAUTION : AIConfidenceFlag.NEEDS_REVIEW;
-      if (userHasConditions) {
-        if (hasEstimatedIngredient) {
-          flag = AIConfidenceFlag.NEEDS_REVIEW; // Unverified items + clinical conditions = NEEDS_REVIEW!
-        } else {
-          flag = AIConfidenceFlag.CAUTION; // Verified database items + clinical conditions = CAUTION!
-        }
-      }
-
-      preparedAiMeals.push({
-        mealType: rawMeal.mealType,
-        mealName: rawMeal.mealName,
-        description: rawMeal.description,
-        calories: parseFloat((rawMeal.calories as any) || 0),
-        proteinG: parseFloat((rawMeal.proteinG as any) || 0),
-        carbsG: parseFloat((rawMeal.carbsG as any) || 0),
-        fatG: parseFloat((rawMeal.fatG as any) || 0),
-        ...(reconciliation.complete ? reconciliation.totals : {}),
-        scheduledDate,
-        aiConfidenceFlag: flag,
-        ingredientsData,
-      });
-    }
-
+    // Resolve ingredient identities and composition snapshots before opening the save transaction.
+    const { preparedMeals: preparedAiMeals, compositionRevisions } = await prepareGeneratedMealIngredients({
+      meals: aiMeals,
+      unmatchedSlots,
+      startDate,
+      userHasConditions,
+      groundedFoodById,
+    });
     await updateGenerationProgress(
       generationJobId,
       72,
@@ -742,14 +675,22 @@ export class MealGenerationService {
         // 2. Create matched library meals from the exact certified library snapshot.
         if (matchedSlots.length > 0) {
           for (const slot of matchedSlots) {
-            const latest = await tx.mealLibrary.findUniqueOrThrow({ where: { id: slot.libraryMeal.id } });
+            const latest = await tx.mealLibrary.findUniqueOrThrow({
+              where: { id: slot.libraryMeal.id },
+              include: certifiedLibraryMealInclude,
+            });
             if (
               latest.safetyEvidenceRevision !== slot.libraryMeal.safetyEvidenceRevision ||
               latest.safetyEvidenceStatus !== 'COMPLETE' ||
-              latest.status !== 'APPROVED'
+              latest.status !== 'APPROVED' ||
+              !isCertifiedLibraryMealCompatible(latest, userConditions, userAllergens, {
+                ...profile,
+                userId,
+                safetyEntries: user.safetyProfileEntries,
+              })
             )
-              throw new Error('Recipe evidence changed during generation. Please retry.');
-            const ingredientsData = slot.libraryMeal.ingredients.map((ing) => ({
+              throw new Error('Recipe or clearance evidence changed during generation. Please retry.');
+            const ingredientsData = latest.ingredients.map((ing) => ({
               ingredientName: ing.ingredientName,
               category: ing.category,
               foodItemId: ing.foodItemId,
@@ -765,19 +706,20 @@ export class MealGenerationService {
                 planGroupId: newPlanGroupId,
                 userId,
                 status: MealPlanStatus.APPROVED,
+                candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
                 libraryMealId: slot.libraryMeal.id,
-                nutritionistId: slot.libraryMeal.safetyReviewedByNutritionistId,
+                nutritionistId: latest.safetyReviewedByNutritionistId,
                 planType,
                 mealType: slot.mealType,
-                mealName: slot.libraryMeal.mealName,
-                description: slot.libraryMeal.description,
-                calories: slot.libraryMeal.calories,
-                proteinG: slot.libraryMeal.proteinG,
-                carbsG: slot.libraryMeal.carbsG,
-                fatG: slot.libraryMeal.fatG,
+                mealName: latest.mealName,
+                description: latest.description,
+                calories: latest.calories,
+                proteinG: latest.proteinG,
+                carbsG: latest.carbsG,
+                fatG: latest.fatG,
                 aiConfidenceFlag: AIConfidenceFlag.SAFE,
                 scheduledDate: slot.scheduledDate,
-                reviewedAt: slot.libraryMeal.safetyReviewedAt,
+                reviewedAt: latest.safetyReviewedAt,
                 requiresSafetyRevalidation: false,
                 safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
                 highRiskReviewRequired,
@@ -792,6 +734,27 @@ export class MealGenerationService {
               },
             });
             createdPlansList.push(createdPlan);
+
+            if (planConditions.length) {
+              const clearanceUsages = planConditions.map((condition) => {
+                const clearance = latest.conditionClearances.find(
+                  (candidate) =>
+                    candidate.condition === condition &&
+                    candidate.state === 'ACTIVE' &&
+                    candidate.recipeSignature === latest.recipeSignature &&
+                    candidate.evidenceRevision === latest.safetyEvidenceRevision &&
+                    (!candidate.userScopeId || candidate.userScopeId === userId) &&
+                    (!candidate.expiresAt || candidate.expiresAt > new Date())
+                );
+                if (!clearance) throw new Error('Condition clearance changed during generation. Please retry.');
+                return {
+                  mealPlanId: createdPlan.id,
+                  clearanceId: clearance.id,
+                  condition: condition as HealthConditionType,
+                };
+              });
+              await tx.mealPlanClearanceUsage.createMany({ data: clearanceUsages });
+            }
 
             // Increment library entry usage count
             await tx.mealLibrary.update({
@@ -808,6 +771,8 @@ export class MealGenerationService {
               planGroupId: newPlanGroupId,
               userId,
               status: MealPlanStatus.PENDING_REVIEW,
+              candidateProvenance: meal.candidateProvenance,
+              sourceRawRecipeCandidateId: meal.rawCandidateId,
               planType,
               mealType: meal.mealType,
               mealName: meal.mealName,
@@ -822,7 +787,9 @@ export class MealGenerationService {
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
               selectionEvidence: selectionEvidenceFor(
-                'AI_GENERATED',
+                meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
+                  ? 'RAW_RECIPE_CORPUS'
+                  : 'AI_GENERATED',
                 meal.mealType
               ) as unknown as Prisma.InputJsonValue,
               ingredients: {

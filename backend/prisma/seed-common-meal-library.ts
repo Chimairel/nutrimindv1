@@ -21,7 +21,6 @@ import {
   COMMON_MEAL_CATALOGUE,
   SUPPORTED_LIBRARY_ALLERGENS,
   assertCommonMealCatalogue,
-  deriveCatalogueConditionSuitability,
   getCatalogueDietaryTags,
   type CommonMealDefinition,
 } from '../src/data/common-meal-catalogue';
@@ -125,7 +124,7 @@ function resolveFnriFoodsFromCsv(): Map<string, CatalogueFnriFoodEvidence> {
 
 function projectCertifiedMeal(meal: CommonMealDefinition, foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>) {
   const nutrition = calculateCatalogueNutrition(meal, foods);
-  const suitableConditions = deriveCatalogueConditionSuitability(nutrition);
+  const suitableConditions: string[] = [];
   const allergensReviewedAbsent = SUPPORTED_LIBRARY_ALLERGENS.filter(
     (allergen) => !meal.allergensPresent.includes(allergen)
   );
@@ -181,7 +180,6 @@ function projectCertifiedMeal(meal: CommonMealDefinition, foods: ReadonlyMap<str
 function runOfflineDryRun(counts: Record<string, number>, foods: ReadonlyMap<string, CatalogueFnriFoodEvidence>) {
   const projectedMeals = COMMON_MEAL_CATALOGUE.map((meal) => projectCertifiedMeal(meal, foods));
   const safetyEntries = [
-    { domain: 'CONDITION', canonicalCode: 'DIABETES', displayName: 'Diabetes', supportState: 'SUPPORTED' },
     { domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' },
   ] as const;
   const matching = projectedMeals.filter((meal) =>
@@ -244,7 +242,7 @@ function runOfflineDryRun(counts: Record<string, number>, foods: ReadonlyMap<str
           skips: COMMON_MEAL_CATALOGUE.length,
         },
         projectedProfile: {
-          restrictions: ['DIABETES', 'VEGETARIAN', 'EGGS'],
+          restrictions: ['VEGETARIAN', 'EGGS'],
           counts: projectedCoverage,
           weekReady: true,
         },
@@ -335,10 +333,7 @@ async function main() {
 
     const nutrition = calculateCatalogueNutrition(meal, foods);
     const { sodiumMg, ...macros } = nutrition;
-    const suitableConditions = deriveCatalogueConditionSuitability({
-      carbsG: macros.carbsG,
-      sodiumMg,
-    });
+    const suitableConditions: string[] = [];
 
     if (!mealId) {
       const draft = await prisma.mealLibrary.create({
@@ -387,62 +382,65 @@ async function main() {
       created += 1;
     } else {
       const nextDraftRevision = expectedRevision! + 1;
-      await prisma.$transaction(async (tx) => {
-        await tx.mealLibrarySafetyDeclaration.deleteMany({ where: { mealLibraryId: mealId! } });
-        await tx.mealLibraryIngredient.deleteMany({ where: { mealLibraryId: mealId! } });
-        await tx.mealLibrary.update({
-          where: { id: mealId! },
-          data: {
-            verifiedByNutritionistId: nutritionist.id,
-            mealName: meal.mealName,
-            description: meal.description,
-            mealType: meal.mealType as MealType,
-            ...macros,
-            suitableConditions,
-            allergenFree: [],
-            dietaryTags: getCatalogueDietaryTags(meal),
-            status: MealLibraryStatus.APPROVED,
-            safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.INCOMPLETE,
-            conditionDeclarationState: 'NOT_REVIEWED',
-            allergenDeclarationState: 'NOT_REVIEWED',
-            crossContactAssessment: 'NOT_ASSESSED',
-            safetyEvidenceRevision: nextDraftRevision,
-            certifiedEvidenceRevision: null,
-            safetyReviewedByNutritionistId: null,
-            safetyReviewedAt: null,
-            safetyInvalidatedAt: new Date(),
-            safetyInvalidationReason: 'CATALOGUE_DEFINITION_UPDATED',
-            ingredients: {
-              create: meal.ingredients.map((item, position) => ({
-                position,
-                ingredientName: item.foodName,
-                category: item.category,
-                foodItemId: foods.get(item.foodName)!.id,
-                dataSource: MealIngredientDataSource.FNRI,
-                quantity: item.grams,
-                unit: 'g',
-              })),
-            },
-          },
-        });
-        await tx.mealLibrarySafetyReview.create({
-          data: {
-            mealLibraryId: mealId!,
-            nutritionistProfileId: nutritionist.id,
-            outcome: MealLibrarySafetyReviewOutcome.DRAFT_CREATED,
-            evidenceRevision: nextDraftRevision,
-            reasonCode: SEED_REVIEW_REASON,
-            evidenceSnapshot: {
-              source: SEED_REVIEW_REASON,
-              signature,
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.mealLibrarySafetyDeclaration.deleteMany({ where: { mealLibraryId: mealId! } });
+          await tx.mealLibraryIngredient.deleteMany({ where: { mealLibraryId: mealId! } });
+          await tx.mealLibrary.update({
+            where: { id: mealId! },
+            data: {
+              verifiedByNutritionistId: nutritionist.id,
               mealName: meal.mealName,
-              ingredients: meal.ingredients,
-              nutrition: { ...macros, sodiumMg },
+              description: meal.description,
+              mealType: meal.mealType as MealType,
+              ...macros,
               suitableConditions,
+              allergenFree: [],
+              dietaryTags: getCatalogueDietaryTags(meal),
+              status: MealLibraryStatus.APPROVED,
+              safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.INCOMPLETE,
+              conditionDeclarationState: 'NOT_REVIEWED',
+              allergenDeclarationState: 'NOT_REVIEWED',
+              crossContactAssessment: 'NOT_ASSESSED',
+              safetyEvidenceRevision: nextDraftRevision,
+              certifiedEvidenceRevision: null,
+              safetyReviewedByNutritionistId: null,
+              safetyReviewedAt: null,
+              safetyInvalidatedAt: new Date(),
+              safetyInvalidationReason: 'CATALOGUE_DEFINITION_UPDATED',
+              ingredients: {
+                create: meal.ingredients.map((item, position) => ({
+                  position,
+                  ingredientName: item.foodName,
+                  category: item.category,
+                  foodItemId: foods.get(item.foodName)!.id,
+                  dataSource: MealIngredientDataSource.FNRI,
+                  quantity: item.grams,
+                  unit: 'g',
+                })),
+              },
             },
-          },
-        });
-      });
+          });
+          await tx.mealLibrarySafetyReview.create({
+            data: {
+              mealLibraryId: mealId!,
+              nutritionistProfileId: nutritionist.id,
+              outcome: MealLibrarySafetyReviewOutcome.DRAFT_CREATED,
+              evidenceRevision: nextDraftRevision,
+              reasonCode: SEED_REVIEW_REASON,
+              evidenceSnapshot: {
+                source: SEED_REVIEW_REASON,
+                signature,
+                mealName: meal.mealName,
+                ingredients: meal.ingredients,
+                nutrition: { ...macros, sodiumMg },
+                suitableConditions,
+              },
+            },
+          });
+        },
+        { maxWait: 10_000, timeout: 30_000 }
+      );
       expectedRevision = nextDraftRevision;
     }
 

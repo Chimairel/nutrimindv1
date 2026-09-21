@@ -82,14 +82,14 @@ export const CONDITION_SAFETY_CATALOGUE: readonly SafetyCatalogueItem[] = Object
     'Diabetes',
     ['diabetes', 'type 1 diabetes', 'type 2 diabetes', 't1d', 't2d'],
     'SUPPORTED',
-    'CATALOGUE_DIABETES_60G_CARB_V1'
+    'DIABETES_MANUAL_RND_REVIEW_V1'
   ),
   condition(
     'HYPERTENSION',
     'Hypertension',
     ['hypertension', 'high blood pressure', 'htn', 'hypertention'],
     'SUPPORTED',
-    'CATALOGUE_HYPERTENSION_600MG_SODIUM_V1'
+    'HYPERTENSION_APPROVED_RULESET_OR_RND_V1'
   ),
   condition(
     'KIDNEY_DISEASE',

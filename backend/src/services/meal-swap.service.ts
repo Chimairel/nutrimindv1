@@ -5,29 +5,27 @@ import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy'
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { additionalShoppingNeeds } from '@/domain/swap-shopping.policy';
-import { MealLibrarySafetyEvidenceStatus, MealType, Prisma } from '@prisma/client';
+import { MealType, Prisma } from '@prisma/client';
 import { GroceryService } from './grocery.service';
 import {
   assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
-  getApprovedMealLibraryWhere,
   getApprovedMealPlanStatusWhere,
   getNutritionEligibleMealLogWhere,
   getOwnedMealPlanWhere,
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
-import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
-import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
-import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
-import {
-  adaptUserSafetyRestrictions,
-  type StructuredSafetyRestrictionEntry,
-} from '@/domain/structured-restriction.adapter';
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { toPublicMealImage } from '@/domain/meal-image.policy';
+import {
+  certifiedLibraryMealInclude,
+  isCertifiedLibraryMealCompatible,
+  queryEligibleLibraryMeals,
+  type CertifiedLibraryMeal,
+} from './meal-library-candidate-query.service';
 
 export class SwapLimitReachedError extends Error {
   readonly code = 'WEEKLY_SWAP_LIMIT_REACHED';
@@ -71,18 +69,7 @@ export async function reserveWeeklySwap(
   return tracker.swapsUsed;
 }
 
-export const certifiedLibraryMealInclude = {
-  ingredients: { orderBy: { position: 'asc' as const } },
-  safetyDeclarations: true,
-  safetyReviewedByNutritionist: {
-    include: { user: { select: { role: true, name: true, image: true } } },
-  },
-  verifiedByNutritionist: {
-    include: { user: { select: { name: true, image: true } } },
-  },
-} as const;
-
-type CertifiedLibraryMeal = Prisma.MealLibraryGetPayload<{ include: typeof certifiedLibraryMealInclude }>;
+export { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible };
 
 export function toPublicSwapOption(meal: CertifiedLibraryMeal) {
   return {
@@ -110,53 +97,6 @@ export function toPublicSwapOption(meal: CertifiedLibraryMeal) {
         }
       : null,
   };
-}
-
-export type UserCompatibilityProfile = {
-  dietaryPreference: string | null;
-  goal: string | null;
-  otherConditions: string | null;
-  otherAllergies: string | null;
-  safetyEntries?: readonly StructuredSafetyRestrictionEntry[];
-};
-
-export function isCertifiedLibraryMealCompatible(
-  meal: any,
-  userConditions: readonly string[],
-  userAllergens: readonly string[],
-  profile: UserCompatibilityProfile
-): boolean {
-  const safety = evaluateMealLibrarySafetyEvidence({
-    ...meal,
-    reviewerEligible: meal.safetyReviewedByNutritionist
-      ? isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
-      : false,
-  });
-  if (!safety.complete) return false;
-
-  const restrictions = adaptUserSafetyRestrictions({
-    safetyEntries: profile.safetyEntries,
-    healthConditions: userConditions,
-    allergies: userAllergens,
-    otherConditions: profile.otherConditions,
-    otherAllergies: profile.otherAllergies,
-  });
-  const compatibility = evaluateMealGenerationLibraryCompatibility({
-    userRestrictions: restrictions.evaluationRestrictions,
-    candidate: {
-      status: meal.status,
-      suitableConditions: safety.suitableConditions,
-      allergenFree: safety.allergenFree,
-      safetyEvidence: safety.adapterEvidence,
-      ingredients: safety.ingredients,
-    },
-  });
-  if (!compatibility.eligible) return false;
-
-  const tags = Array.isArray(meal.dietaryTags) ? meal.dietaryTags : [];
-  if (profile.dietaryPreference && !tags.includes(profile.dietaryPreference)) return false;
-  if (profile.goal && !tags.includes(profile.goal)) return false;
-  return true;
 }
 
 export class MealSwapService {
@@ -191,15 +131,6 @@ export class MealSwapService {
     const swapCap = weeklySwapCapForTier(entitlement.tier);
 
     // 4. Query APPROVED library meals matching this mealType
-    const libraryMeals = await prisma.mealLibrary.findMany({
-      where: {
-        mealType: mealPlan.mealType,
-        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-        ...getApprovedMealLibraryWhere(),
-      },
-      include: certifiedLibraryMealInclude,
-    });
-
     const usedLibraryMeals = await prisma.mealPlan.findMany({
       where: {
         userId,
@@ -213,15 +144,19 @@ export class MealSwapService {
       usedLibraryMeals.map((item) => item.libraryMealId).filter((id): id is string => Boolean(id))
     );
 
+    const libraryMeals = await queryEligibleLibraryMeals({
+      mealType: mealPlan.mealType,
+      dailyCalorieTarget: userProfile.dailyCalorieTarget ?? 2000,
+      userConditions,
+      userAllergens,
+      profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+      excludeIds: [mealPlan.libraryMealId, ...usedLibraryMealIds].filter((id): id is string => Boolean(id)),
+      limit: 80,
+    });
+
     // 5. Only first-class, current, independently reviewed evidence can authorize a swap.
     const eligibleMeals = libraryMeals.filter(
-      (meal) =>
-        meal.id !== mealPlan.libraryMealId &&
-        !usedLibraryMealIds.has(meal.id) &&
-        isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
-          ...userProfile,
-          safetyEntries: user.safetyProfileEntries,
-        })
+      (meal) => meal.id !== mealPlan.libraryMealId && !usedLibraryMealIds.has(meal.id)
     );
 
     return {
@@ -649,30 +584,14 @@ export class MealSwapService {
     const userAllergens = allergies.map((a) => a.allergen);
 
     // 2. Query APPROVED library meals matching the optional mealType and search
-    const libraryMeals = await prisma.mealLibrary.findMany({
-      where: {
-        ...getApprovedMealLibraryWhere(),
-        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-        ...(mealType ? { mealType } : {}),
-        ...(search
-          ? {
-              mealName: {
-                contains: search,
-                mode: 'insensitive',
-              },
-            }
-          : {}),
-      },
-      include: certifiedLibraryMealInclude,
+    const eligibleMeals = await queryEligibleLibraryMeals({
+      mealType,
+      userConditions,
+      userAllergens,
+      profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+      search,
+      limit: 120,
     });
-
-    // 3. Fail closed unless evidence is current, complete, and compatible.
-    const eligibleMeals = libraryMeals.filter((meal) =>
-      isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
-        ...userProfile,
-        safetyEntries: user.safetyProfileEntries,
-      })
-    );
 
     const start = date ? new Date(date + 'T00:00:00+08:00') : getStartOfManilaBusinessDay();
     const slots = await prisma.mealPlan.findMany({

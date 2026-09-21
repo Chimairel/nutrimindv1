@@ -83,6 +83,7 @@ enum MealPlanStatus {
   PENDING_REVIEW
   APPROVED
   REJECTED
+  DISPUTED
   CANCELLED
 }
 
@@ -112,6 +113,133 @@ enum MealLogDataSource {
 enum MealIngredientDataSource {
   FNRI
   GEMINI_ESTIMATED
+  SOURCE_RECIPE
+}
+
+enum MealNutritionEvidenceSource {
+  UNKNOWN
+  SOURCE_PUBLISHED
+  FNRI_RECONCILED
+  NUTRITIONIST_EDITED
+}
+
+enum MealIngredientClassificationStatus {
+  UNCLASSIFIED
+  COMPLETE
+  NEEDS_REVIEW
+}
+
+enum SafetyDeclarationProvenance {
+  DETERMINISTIC_CLASSIFIER
+  NUTRITIONIST_REVIEW
+  APPROVED_RULESET
+}
+
+enum ConditionRuleReviewStatus {
+  DRAFT
+  APPROVED
+  RETIRED
+}
+
+enum AssuranceTier {
+  BASE
+  STANDARD
+  ENHANCED
+}
+
+enum ConditionClearanceProvenance {
+  MANUAL_REVIEW
+  APPROVED_RULESET
+}
+
+enum ConditionClearanceState {
+  ACTIVE
+  REVIEW_DUE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+  DISPUTED
+}
+
+enum ClearanceDecisionValue {
+  APPROVE
+  REJECT
+}
+
+enum ClearanceDecisionStage {
+  PRIMARY
+  SECONDARY
+  RECHECK
+  DISPUTE_RESOLUTION
+}
+
+enum MealPlanReviewDecisionValue {
+  APPROVE
+  REJECT
+}
+
+enum ConditionRulePolicyState {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  RETIRED
+}
+
+enum RuleApprovalDecision {
+  APPROVE
+  REJECT
+}
+
+enum RawRecipeCandidateStatus {
+  AVAILABLE
+  RETIRED
+}
+
+enum MealCandidateProvenance {
+  CERTIFIED_LIBRARY
+  RAW_RECIPE_CORPUS
+  AI_FROM_SCRATCH
+}
+
+enum AiUsageOperation {
+  MEAL_PLAN_CORPUS_LOOKUP
+  MEAL_PLAN_GENERATION
+  MEAL_REPLACEMENT
+  OUTSIDE_MEAL_ESTIMATE
+  NUTRITION_REPORT
+  OTHER
+}
+
+enum ConditionRuleSeverity {
+  FLAG
+  HARD_BLOCK
+}
+
+enum ConditionRuleOperator {
+  GREATER_THAN
+  GREATER_THAN_OR_EQUAL
+  LESS_THAN
+  LESS_THAN_OR_EQUAL
+  EQUAL
+}
+
+enum ConditionRuleBasis {
+  PER_SERVING
+  PER_1000_KCAL
+  DAILY_TOTAL
+  PERCENT_OF_DAILY_CALORIES
+  PER_KG_BODY_WEIGHT_DAILY
+}
+
+enum ConditionRuleNutrient {
+  SODIUM_MG
+  SUGAR_G
+  FIBER_G
+  POTASSIUM_MG
+  PHOSPHORUS_MG
+  PROTEIN_G
+  SATURATED_FAT_G
+  CARBOHYDRATE_G
 }
 
 enum MealLogStatus {
@@ -622,6 +750,7 @@ model User {
   referenceDataReleasesActivated   ReferenceDataRelease[]            @relation("ReferenceDataReleaseActivator")
   referenceDataActivations         ReferenceDataReleaseActivation[]  @relation("ReferenceDataActivationActor")
   foodAliasesVerified              FoodAlias[]                       @relation("FoodAliasAdminVerifier")
+  scopedConditionClearances        MealConditionClearance[]          @relation("ConditionClearanceUserScope")
 }
 
 model Account {
@@ -743,18 +872,18 @@ model NutritionReport {
 }
 
 model NutritionistProfile {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  user              User      @relation("UserToNutritionistProfile", fields: [userId], references: [id], onDelete: Cascade)
-  verifiedByAdminId String?
-  verifiedByAdmin   User?     @relation("AdminVerifier", fields: [verifiedByAdminId], references: [id])
-  prcLicenseNumber  String    @unique
-  prcLicenseExpiry  DateTime
-  specialization    String?
-  yearsOfExperience Int?
-  university        String?
-  bio               String?   @db.Text
-  isVerified        Boolean   @default(false)
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation("UserToNutritionistProfile", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedByAdminId   String?
+  verifiedByAdmin     User?     @relation("AdminVerifier", fields: [verifiedByAdminId], references: [id])
+  prcLicenseNumber    String    @unique
+  prcLicenseExpiry    DateTime
+  specialization      String?
+  yearsOfExperience   Int?
+  university          String?
+  bio                 String?   @db.Text
+  isVerified          Boolean   @default(false)
   officialHeadshot    String?   @db.Text
   digitalSignature    String?   @db.Text
   payoutChannel       String?   @db.VarChar(30)
@@ -762,21 +891,28 @@ model NutritionistProfile {
   payoutAccountNumber String?   @db.VarChar(50)
   payoutBankName      String?   @db.VarChar(80)
   rating              Float     @default(0)
-  totalVerified     Int       @default(0)
-  verifiedAt        DateTime?
+  totalVerified       Int       @default(0)
+  verifiedAt          DateTime?
+  canLeadReview       Boolean   @default(false)
 
   // Relations
-  mealPlansReviewed      MealPlan[]
-  verifiedMeals          MealLibrary[]
-  safetyReviewedMeals    MealLibrary[]             @relation("MealLibrarySafetyReviewer")
-  safetyReviewEvents     MealLibrarySafetyReview[] @relation("MealLibrarySafetyReviewActor")
-  submittedFlags         MealLibraryFlag[]         @relation("SubmittedFlags")
-  claimedPlans           MealPlan[]                @relation("ClaimedPlans")
-  firstApprovedPlans     MealPlan[]                @relation("FirstMealPlanApproval")
-  workCredits            NutritionistWorkCredit[]
-  compensationStatements CompensationStatement[]
-  outsideMealReviews     OutsideMealReview[]       @relation("OutsideMealReviewAssignee")
-  outsideMealRevisions   OutsideMealItemRevision[] @relation("OutsideMealRevisionReviewer")
+  mealPlansReviewed       MealPlan[]
+  verifiedMeals           MealLibrary[]
+  safetyReviewedMeals     MealLibrary[]                    @relation("MealLibrarySafetyReviewer")
+  safetyReviewEvents      MealLibrarySafetyReview[]        @relation("MealLibrarySafetyReviewActor")
+  submittedFlags          MealLibraryFlag[]                @relation("SubmittedFlags")
+  claimedPlans            MealPlan[]                       @relation("ClaimedPlans")
+  firstApprovedPlans      MealPlan[]                       @relation("FirstMealPlanApproval")
+  workCredits             NutritionistWorkCredit[]
+  compensationStatements  CompensationStatement[]
+  outsideMealReviews      OutsideMealReview[]              @relation("OutsideMealReviewAssignee")
+  outsideMealRevisions    OutsideMealItemRevision[]        @relation("OutsideMealRevisionReviewer")
+  approvedNutrientRules   ConditionNutrientRule[]          @relation("ConditionNutrientRuleApprover")
+  approvedIngredientRules ConditionIngredientRule[]        @relation("ConditionIngredientRuleApprover")
+  clearanceDecisions      MealConditionClearanceDecision[]
+  mealPlanReviewDecisions MealPlanReviewDecision[]
+  conditionRuleApprovals  ConditionRulePolicyApproval[]
+  resolvedClearances      MealConditionClearance[]         @relation("ConditionClearanceResolver")
 }
 
 model NutritionistApplication {
@@ -974,104 +1110,274 @@ model FoodConsumptionStat {
 }
 
 model MealPlan {
-  id                            String               @id @default(cuid())
+  id                            String                  @id @default(cuid())
   planGroupId                   String
   userId                        String
-  user                          User                 @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
+  user                          User                    @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
   nutritionistId                String?
-  nutritionist                  NutritionistProfile? @relation(fields: [nutritionistId], references: [id])
+  nutritionist                  NutritionistProfile?    @relation(fields: [nutritionistId], references: [id])
   libraryMealId                 String?
-  libraryMeal                   MealLibrary?         @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
-  status                        MealPlanStatus       @default(PENDING_REVIEW)
+  libraryMeal                   MealLibrary?            @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
+  status                        MealPlanStatus          @default(PENDING_REVIEW)
   mealType                      MealType
   mealName                      String
-  description                   String?              @db.Text
+  description                   String?                 @db.Text
   calories                      Float
   proteinG                      Float
   carbsG                        Float
   fatG                          Float
-  aiConfidenceFlag              AIConfidenceFlag     @default(SAFE)
-  planType                      PlanType             @default(WEEKLY)
-  nutritionistNote              String?              @db.Text
+  aiConfidenceFlag              AIConfidenceFlag        @default(SAFE)
+  planType                      PlanType                @default(WEEKLY)
+  nutritionistNote              String?                 @db.Text
   scheduledDate                 DateTime
   reviewedAt                    DateTime?
-  createdAt                     DateTime             @default(now())
+  createdAt                     DateTime                @default(now())
   claimedByNutritionistId       String?
-  claimedByNutritionist         NutritionistProfile? @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
+  claimedByNutritionist         NutritionistProfile?    @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
   claimedAt                     DateTime?
-  requiresSafetyRevalidation    Boolean              @default(true)
-  safetyPolicyVersion           String?              @db.VarChar(64)
-  highRiskReviewRequired        Boolean              @default(false)
-  reviewApprovalCount           Int                  @default(0)
+  requiresSafetyRevalidation    Boolean                 @default(true)
+  safetyPolicyVersion           String?                 @db.VarChar(64)
+  highRiskReviewRequired        Boolean                 @default(false)
+  reviewApprovalCount           Int                     @default(0)
   firstApprovedByNutritionistId String?
-  firstApprovedByNutritionist   NutritionistProfile? @relation("FirstMealPlanApproval", fields: [firstApprovedByNutritionistId], references: [id], onDelete: Restrict)
+  firstApprovedByNutritionist   NutritionistProfile?    @relation("FirstMealPlanApproval", fields: [firstApprovedByNutritionistId], references: [id], onDelete: Restrict)
   firstApprovedAt               DateTime?
   selectionEvidence             Json?
+  candidateProvenance           MealCandidateProvenance @default(AI_FROM_SCRATCH)
+  sourceRawRecipeCandidateId    String?
+  sourceRawRecipeCandidate      RawRecipeCandidate?     @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: Restrict)
 
   // Relations
-  ingredients MealIngredient[]
-  mealLogs    MealLog[]
-  swapLogs    SwapLog[]
+  ingredients     MealIngredient[]
+  mealLogs        MealLog[]
+  swapLogs        SwapLog[]
+  clearanceUsages MealPlanClearanceUsage[]
+  reviewDecisions MealPlanReviewDecision[]
 
   @@index([requiresSafetyRevalidation, status], map: "MealPlan_revalidation_status_idx")
   @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
+  @@index([sourceRawRecipeCandidateId])
+}
+
+model MealPlanReviewDecision {
+  id                    String                      @id @default(cuid())
+  mealPlanId            String
+  mealPlan              MealPlan                    @relation(fields: [mealPlanId], references: [id], onDelete: Restrict)
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile         @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  stage                 ClearanceDecisionStage
+  decision              MealPlanReviewDecisionValue
+  rationale             String?                     @db.VarChar(1000)
+  evidenceSnapshot      Json
+  submittedAt           DateTime                    @default(now())
+
+  @@unique([mealPlanId, nutritionistProfileId, stage])
+  @@index([mealPlanId, submittedAt])
 }
 
 model MealLibrary {
-  id                             String                            @id @default(cuid())
-  verifiedByNutritionistId       String?
-  verifiedByNutritionist         NutritionistProfile?              @relation(fields: [verifiedByNutritionistId], references: [id])
-  safetyReviewedByNutritionistId String?
-  safetyReviewedByNutritionist   NutritionistProfile?              @relation("MealLibrarySafetyReviewer", fields: [safetyReviewedByNutritionistId], references: [id], onDelete: Restrict)
-  mealName                       String
-  description                    String?                           @db.Text
-  mealType                       MealType
-  calories                       Float
-  proteinG                       Float
-  carbsG                         Float
-  fatG                           Float
-  suitableConditions             Json?
-  allergenFree                   Json?
-  dietaryTags                    Json?
-  usageCount                     Int                               @default(0)
-  status                         MealLibraryStatus                 @default(APPROVED)
-  safetyEvidenceStatus           MealLibrarySafetyEvidenceStatus   @default(INCOMPLETE)
-  safetyEvidenceOrigin           MealLibrarySafetyEvidenceOrigin   @default(NUTRITIONIST_DRAFT)
-  conditionDeclarationState      MealLibraryDeclarationState       @default(NOT_REVIEWED)
-  allergenDeclarationState       MealLibraryDeclarationState       @default(NOT_REVIEWED)
-  crossContactAssessment         MealLibraryCrossContactAssessment @default(NOT_ASSESSED)
-  safetyEvidenceRevision         Int                               @default(0)
-  certifiedEvidenceRevision      Int?
-  safetyPolicyVersion            String?                           @db.VarChar(64)
-  safetyReviewedAt               DateTime?
-  safetyInvalidatedAt            DateTime?
-  safetyInvalidationReason       String?                           @db.VarChar(64)
-  imagePublicId                  String?                           @unique @db.VarChar(255)
-  imageVersion                   String?                           @db.VarChar(32)
-  imageFormat                    String?                           @db.VarChar(16)
-  imageWidth                     Int?
-  imageHeight                    Int?
-  imageBytes                     Int?
-  imageKind                      MealImageKind?
-  imageAltText                   String?                           @db.VarChar(240)
-  imageCreator                   String?                           @db.VarChar(180)
-  imageSourcePageUrl             String?                           @db.VarChar(2048)
-  imageLicenseCode               String?                           @db.VarChar(64)
-  imageLicenseUrl                String?                           @db.VarChar(2048)
-  imageAssignedAt                DateTime?
-  addedAt                        DateTime                          @default(now())
-  updatedAt                      DateTime                          @default(now()) @updatedAt
+  id                               String                             @id @default(cuid())
+  verifiedByNutritionistId         String?
+  verifiedByNutritionist           NutritionistProfile?               @relation(fields: [verifiedByNutritionistId], references: [id])
+  safetyReviewedByNutritionistId   String?
+  safetyReviewedByNutritionist     NutritionistProfile?               @relation("MealLibrarySafetyReviewer", fields: [safetyReviewedByNutritionistId], references: [id], onDelete: Restrict)
+  mealName                         String
+  description                      String?                            @db.Text
+  mealType                         MealType
+  calories                         Float
+  proteinG                         Float
+  carbsG                           Float
+  fatG                             Float
+  /// Extended nutrient evidence is stored per recipe serving. Null means the
+  /// source did not supply a usable value; zero is a measured zero.
+  sodiumMg                         Float?
+  sugarG                           Float?
+  fiberG                           Float?
+  potassiumMg                      Float?
+  phosphorusMg                     Float?
+  saturatedFatG                    Float?
+  nutritionEvidenceSource          MealNutritionEvidenceSource        @default(UNKNOWN)
+  nutritionServingDescription      String?                            @db.VarChar(180)
+  ingredientClassificationStatus   MealIngredientClassificationStatus @default(UNCLASSIFIED)
+  ingredientClassificationVersion  String?                            @db.VarChar(64)
+  ingredientClassifiedAt           DateTime?
+  ingredientClassificationFindings Json?
+  recipeSignature                  String?                            @unique @db.VarChar(64)
+  suitableConditions               Json?
+  allergenFree                     Json?
+  dietaryTags                      Json?
+  usageCount                       Int                                @default(0)
+  status                           MealLibraryStatus                  @default(APPROVED)
+  /// Completeness of the base recipe evidence only. Condition and allergen
+  /// coverage are represented and enforced independently below.
+  safetyEvidenceStatus             MealLibrarySafetyEvidenceStatus    @default(INCOMPLETE)
+  safetyEvidenceOrigin             MealLibrarySafetyEvidenceOrigin    @default(NUTRITIONIST_DRAFT)
+  conditionDeclarationState        MealLibraryDeclarationState        @default(NOT_REVIEWED)
+  allergenDeclarationState         MealLibraryDeclarationState        @default(NOT_REVIEWED)
+  crossContactAssessment           MealLibraryCrossContactAssessment  @default(NOT_ASSESSED)
+  safetyEvidenceRevision           Int                                @default(0)
+  certifiedEvidenceRevision        Int?
+  safetyPolicyVersion              String?                            @db.VarChar(64)
+  safetyReviewedAt                 DateTime?
+  safetyInvalidatedAt              DateTime?
+  safetyInvalidationReason         String?                            @db.VarChar(64)
+  imagePublicId                    String?                            @unique @db.VarChar(255)
+  imageVersion                     String?                            @db.VarChar(32)
+  imageFormat                      String?                            @db.VarChar(16)
+  imageWidth                       Int?
+  imageHeight                      Int?
+  imageBytes                       Int?
+  imageKind                        MealImageKind?
+  imageAltText                     String?                            @db.VarChar(240)
+  imageCreator                     String?                            @db.VarChar(180)
+  imageSourcePageUrl               String?                            @db.VarChar(2048)
+  imageLicenseCode                 String?                            @db.VarChar(64)
+  imageLicenseUrl                  String?                            @db.VarChar(2048)
+  imageAssignedAt                  DateTime?
+  addedAt                          DateTime                           @default(now())
+  updatedAt                        DateTime                           @default(now()) @updatedAt
 
   // Relations
-  mealPlans          MealPlan[]                     @relation("PlanLibraryMeal")
-  flags              MealLibraryFlag[]              @relation("MealFlags")
-  ingredients        MealLibraryIngredient[]
-  safetyDeclarations MealLibrarySafetyDeclaration[]
-  safetyReviews      MealLibrarySafetyReview[]
-  outsideMealItems   OutsideMealLogItem[]
+  mealPlans           MealPlan[]                     @relation("PlanLibraryMeal")
+  flags               MealLibraryFlag[]              @relation("MealFlags")
+  ingredients         MealLibraryIngredient[]
+  safetyDeclarations  MealLibrarySafetyDeclaration[]
+  safetyReviews       MealLibrarySafetyReview[]
+  outsideMealItems    OutsideMealLogItem[]
+  conditionClearances MealConditionClearance[]
 
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
+}
+
+model RawRecipeCandidate {
+  id                 String                   @id @default(cuid())
+  sourceRecordId     String                   @unique @db.VarChar(191)
+  sourceName         String                   @default("PANLASANG_PINOY") @db.VarChar(80)
+  sourceUrl          String                   @db.VarChar(2048)
+  sourceImageUrl     String?                  @db.VarChar(2048)
+  sourceVideoUrl     String?                  @db.VarChar(2048)
+  recipeName         String                   @db.VarChar(240)
+  normalizedName     String                   @db.VarChar(240)
+  contentSignature   String                   @unique @db.VarChar(64)
+  category           String?                  @db.VarChar(120)
+  cuisines           Json
+  description        String?                  @db.Text
+  mealType           MealType
+  dietaryTags        Json
+  ingredients        Json
+  publishedNutrition Json?
+  calories           Float?
+  proteinG           Float?
+  carbsG             Float?
+  fatG               Float?
+  originalServings   Float?
+  status             RawRecipeCandidateStatus @default(AVAILABLE)
+  indexedAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  mealPlans          MealPlan[]
+
+  @@index([status, mealType, calories])
+  @@index([normalizedName])
+}
+
+model MealConditionClearance {
+  id                       String                           @id @default(cuid())
+  mealLibraryId            String
+  mealLibrary              MealLibrary                      @relation(fields: [mealLibraryId], references: [id], onDelete: Restrict)
+  userScopeId              String?
+  userScope                User?                            @relation("ConditionClearanceUserScope", fields: [userScopeId], references: [id], onDelete: Cascade)
+  condition                HealthConditionType
+  recipeSignature          String                           @db.VarChar(64)
+  evidenceRevision         Int
+  policyVersion            String?                          @db.VarChar(64)
+  rulePolicyVersionId      String?
+  rulePolicyVersion        ConditionRulePolicyVersion?      @relation(fields: [rulePolicyVersionId], references: [id], onDelete: Restrict)
+  assuranceTier            AssuranceTier
+  provenance               ConditionClearanceProvenance
+  state                    ConditionClearanceState          @default(REVIEW_DUE)
+  evidenceSnapshot         Json
+  activatedAt              DateTime?
+  auditDueAt               DateTime?
+  expiresAt                DateTime?
+  suspendedAt              DateTime?
+  suspensionReason         String?                          @db.VarChar(240)
+  resolvedByNutritionistId String?
+  resolvedByNutritionist   NutritionistProfile?             @relation("ConditionClearanceResolver", fields: [resolvedByNutritionistId], references: [id], onDelete: Restrict)
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime                         @updatedAt
+  decisions                MealConditionClearanceDecision[]
+  planUsages               MealPlanClearanceUsage[]
+
+  @@index([mealLibraryId, condition, state])
+  @@index([condition, state, auditDueAt])
+  @@index([userScopeId, condition, state])
+  @@index([policyVersion, state])
+  @@index([rulePolicyVersionId, state])
+}
+
+model MealConditionClearanceDecision {
+  id                    String                 @id @default(cuid())
+  clearanceId           String
+  clearance             MealConditionClearance @relation(fields: [clearanceId], references: [id], onDelete: Restrict)
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile    @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  stage                 ClearanceDecisionStage
+  decision              ClearanceDecisionValue
+  rationale             String?                @db.VarChar(1000)
+  evidenceSnapshot      Json
+  submittedAt           DateTime               @default(now())
+
+  @@unique([clearanceId, nutritionistProfileId, stage])
+  @@index([clearanceId, submittedAt])
+  @@index([nutritionistProfileId, submittedAt])
+}
+
+model MealPlanClearanceUsage {
+  id          String                 @id @default(cuid())
+  mealPlanId  String
+  mealPlan    MealPlan               @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  clearanceId String
+  clearance   MealConditionClearance @relation(fields: [clearanceId], references: [id], onDelete: Restrict)
+  condition   HealthConditionType
+  recordedAt  DateTime               @default(now())
+
+  @@unique([mealPlanId, condition])
+  @@index([clearanceId, mealPlanId])
+}
+
+model ConditionRulePolicyVersion {
+  id                String                        @id @default(cuid())
+  condition         HealthConditionType
+  policyVersion     String                        @db.VarChar(64)
+  assuranceTier     AssuranceTier
+  automationAllowed Boolean                       @default(false)
+  state             ConditionRulePolicyState      @default(DRAFT)
+  impactReport      Json?
+  activatedAt       DateTime?
+  suspendedAt       DateTime?
+  suspensionReason  String?                       @db.VarChar(240)
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  approvals         ConditionRulePolicyApproval[]
+  derivedClearances MealConditionClearance[]
+
+  @@unique([condition, policyVersion])
+  @@index([condition, state])
+}
+
+model ConditionRulePolicyApproval {
+  id                    String                     @id @default(cuid())
+  policyVersionId       String
+  policyVersion         ConditionRulePolicyVersion @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile        @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  decision              RuleApprovalDecision
+  rationale             String?                    @db.VarChar(1000)
+  createdAt             DateTime                   @default(now())
+
+  @@unique([policyVersionId, nutritionistProfileId])
+  @@index([policyVersionId, createdAt])
 }
 
 model MealLibraryIngredient {
@@ -1104,11 +1410,59 @@ model MealLibrarySafetyDeclaration {
   declarationType         MealLibrarySafetyDeclarationType
   canonicalKey            String?                          @db.VarChar(64)
   customKey               String?                          @db.VarChar(120)
+  provenance              SafetyDeclarationProvenance      @default(NUTRITIONIST_REVIEW)
+  policyVersion           String?                          @db.VarChar(64)
+  evidenceSnapshot        Json?
   createdAt               DateTime                         @default(now())
   updatedAt               DateTime                         @default(now()) @updatedAt
 
   @@index([mealLibraryId])
   @@index([mealLibraryIngredientId])
+}
+
+model ConditionNutrientRule {
+  id                       String                    @id @default(cuid())
+  condition                HealthConditionType
+  nutrient                 ConditionRuleNutrient
+  operator                 ConditionRuleOperator
+  threshold                Float
+  unit                     String                    @db.VarChar(32)
+  basis                    ConditionRuleBasis
+  severity                 ConditionRuleSeverity
+  rationale                String                    @db.Text
+  sourceTitle              String                    @db.VarChar(240)
+  sourceCitation           String                    @db.VarChar(1000)
+  approvedByNutritionistId String?
+  approvedByNutritionist   NutritionistProfile?      @relation("ConditionNutrientRuleApprover", fields: [approvedByNutritionistId], references: [id], onDelete: Restrict)
+  reviewStatus             ConditionRuleReviewStatus @default(DRAFT)
+  policyVersion            String                    @db.VarChar(64)
+  active                   Boolean                   @default(false)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+
+  @@unique([condition, nutrient, operator, threshold, basis, policyVersion])
+  @@index([condition, reviewStatus, active])
+}
+
+model ConditionIngredientRule {
+  id                       String                    @id @default(cuid())
+  condition                HealthConditionType
+  ingredientCategory       String                    @db.VarChar(80)
+  matchingTerms            Json
+  severity                 ConditionRuleSeverity
+  rationale                String                    @db.Text
+  sourceTitle              String                    @db.VarChar(240)
+  sourceCitation           String                    @db.VarChar(1000)
+  approvedByNutritionistId String?
+  approvedByNutritionist   NutritionistProfile?      @relation("ConditionIngredientRuleApprover", fields: [approvedByNutritionistId], references: [id], onDelete: Restrict)
+  reviewStatus             ConditionRuleReviewStatus @default(DRAFT)
+  policyVersion            String                    @db.VarChar(64)
+  active                   Boolean                   @default(false)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+
+  @@unique([condition, ingredientCategory, policyVersion])
+  @@index([condition, reviewStatus, active])
 }
 
 model MealLibrarySafetyReview {
@@ -1541,10 +1895,12 @@ enum MealLibrarySafetyDeclarationType {
   ALLERGEN_PRESENT
   ALLERGEN_REVIEWED_ABSENT
   CONDITION_REVIEWED
+  CONDITION_RULESET_CLEARED
 }
 
 enum MealLibrarySafetyReviewOutcome {
   DRAFT_CREATED
+  CERTIFICATION_PENDING_SECOND_REVIEW
   CERTIFIED
   INVALIDATED
 }
@@ -1631,16 +1987,19 @@ model HealthProfileRevision {
 }
 
 model AiUsageEvent {
-  id        String        @id @default(cuid())
-  provider  String        @db.VarChar(32)
-  model     String?       @db.VarChar(80)
+  id        String           @id @default(cuid())
+  provider  String           @db.VarChar(32)
+  model     String?          @db.VarChar(80)
   status    AiUsageStatus
   attempts  Int
   latencyMs Int
-  errorCode String?       @db.VarChar(64)
-  createdAt DateTime      @default(now())
+  errorCode String?          @db.VarChar(64)
+  operation AiUsageOperation @default(OTHER)
+  purpose   String?          @db.VarChar(120)
+  createdAt DateTime         @default(now())
 
   @@index([createdAt, status])
+  @@index([operation, createdAt])
 }
 
 enum MealPlanGenerationJobStatus {

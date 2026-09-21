@@ -60,6 +60,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
+  const isAccountPrivacyRoute = pathname.startsWith('/profile/security');
   const isAdminRoute = pathname.startsWith('/admin');
   const isNutritionistRoute = pathname.startsWith('/nutritionist');
   const isUserRoute = [
@@ -83,7 +84,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       const isEntryRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
       if (isEntryRoute) {
         redirectTarget = getAuthenticatedHome(user);
-      } else if (!user.emailVerified && !isVerifyPage && !isPublicRoute) {
+      } else if (!user.emailVerified && !isVerifyPage && !isPublicRoute && !isAccountPrivacyRoute) {
         redirectTarget = '/verify-email';
       } else if (isVerifyPage && user.emailVerified) {
         redirectTarget = getRoleHome(user.role);
@@ -94,9 +95,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       } else if (isUserRoute && user.role !== 'USER') {
         redirectTarget = '/unauthorized';
       } else if (!isPublicRoute && user.role === 'USER') {
-        if (!user.onboardingDone && !isOnboardingPage) {
+        if (!user.onboardingDone && !isOnboardingPage && !isAccountPrivacyRoute) {
           redirectTarget = user.onboardingNextPath || '/onboarding/stats';
-        } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos')) {
+        } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isAccountPrivacyRoute) {
           redirectTarget = '/onboarding/tos';
         }
       }

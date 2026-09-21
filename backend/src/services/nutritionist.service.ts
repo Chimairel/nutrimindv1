@@ -1,6 +1,7 @@
 import { NutritionistLibraryService } from './nutritionist-library.service';
 import { NutritionistProfileService } from './nutritionist-profile.service';
 import { NutritionistReviewService } from './nutritionist-review.service';
+import { createOrReuseLibraryDraftFromApprovedPlan } from './meal-library-publication.service';
 
 /**
  * Stable service façade used by existing controllers.
@@ -13,11 +14,14 @@ export class NutritionistService {
   static readonly getReviewCardDetails = NutritionistReviewService.getReviewCardDetails.bind(NutritionistReviewService);
   static readonly approveMealPlan = NutritionistReviewService.approveMealPlan.bind(NutritionistReviewService);
   static readonly rejectMealPlan = NutritionistReviewService.rejectMealPlan.bind(NutritionistReviewService);
+  static readonly resolveMealPlanDispute =
+    NutritionistReviewService.resolveMealPlanDispute.bind(NutritionistReviewService);
   static readonly generateReplacementCandidate =
     NutritionistReviewService.generateReplacementCandidate.bind(NutritionistReviewService);
   static readonly replaceAndApproveMealPlan =
     NutritionistReviewService.replaceAndApproveMealPlan.bind(NutritionistReviewService);
   static readonly getApprovedMeals = NutritionistReviewService.getApprovedMeals.bind(NutritionistReviewService);
+  static readonly createReusableLibraryDraft = createOrReuseLibraryDraftFromApprovedPlan;
 
   static readonly getProfile = NutritionistProfileService.getProfile.bind(NutritionistProfileService);
   static readonly updateProfile = NutritionistProfileService.updateProfile.bind(NutritionistProfileService);

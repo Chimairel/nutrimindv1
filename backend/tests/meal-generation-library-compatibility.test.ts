@@ -8,6 +8,20 @@ import {
   type MealGenerationUserRestrictions,
 } from '../src/domain/meal-generation-library-compatibility.adapter';
 
+function completeEvidence(overrides: Record<string, unknown> = {}) {
+  return {
+    complete: true,
+    baseComplete: true,
+    detectedAllergens: [],
+    reviewedAbsentAllergens: [],
+    allergenDomainReviewed: false,
+    crossContactCleared: false,
+    conditionRuleMatches: [],
+    conditionDomainReviewed: false,
+    ...overrides,
+  };
+}
+
 function completeCandidate(
   overrides: Partial<MealGenerationLibraryCandidateEvidence> = {}
 ): MealGenerationLibraryCandidateEvidence {
@@ -15,7 +29,7 @@ function completeCandidate(
     status: 'APPROVED',
     suitableConditions: [],
     allergenFree: [],
-    safetyEvidence: { complete: true, detectedAllergens: [] },
+    safetyEvidence: completeEvidence(),
     ingredients: [{ dataSource: 'FNRI', foodItemId: 'synthetic-food-001' }],
     ...overrides,
   };
@@ -37,8 +51,18 @@ test('[TEST-027] approved candidate with no restrictions and complete evidence i
   assert.equal(result.metadataComplete, true);
 });
 
-test('[TEST-027] known allergy with complete non-conflicting evidence is eligible as ALLOW/CAUTION', () => {
-  const result = evaluate({ allergies: ['DAIRY'] }, completeCandidate({ allergenFree: ['DAIRY'] }));
+test('[TEST-027] known allergy with explicit independent coverage is eligible as ALLOW/CAUTION', () => {
+  const result = evaluate(
+    { allergies: ['DAIRY'] },
+    completeCandidate({
+      allergenFree: ['DAIRY'],
+      safetyEvidence: completeEvidence({
+        reviewedAbsentAllergens: ['DAIRY'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
+    })
+  );
 
   assert.equal(result.eligible, true);
   assert.equal(result.evaluation.decision, 'ALLOW');
@@ -50,7 +74,11 @@ test('[TEST-027] exact canonical allergy conflict is ineligible', () => {
     { allergies: ['NUTS'] },
     completeCandidate({
       allergenFree: ['NUTS'],
-      safetyEvidence: { complete: true, detectedAllergens: ['NUTS'] },
+      safetyEvidence: completeEvidence({
+        detectedAllergens: ['NUTS'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
     })
   );
 
@@ -64,7 +92,11 @@ test('[TEST-027] exact approved-alias conflict is ineligible with provenance', (
     { customAllergies: 'peanuts' },
     completeCandidate({
       allergenFree: ['TREE_NUTS'],
-      safetyEvidence: { complete: true, detectedAllergens: ['tree-nuts'] },
+      safetyEvidence: completeEvidence({
+        detectedAllergens: ['tree-nuts'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
     })
   );
 
@@ -75,7 +107,17 @@ test('[TEST-027] exact approved-alias conflict is ineligible with provenance', (
 });
 
 test('[TEST-027] resolved approved alias with complete non-conflicting evidence is eligible', () => {
-  const result = evaluate({ customAllergies: 'egg' }, completeCandidate({ allergenFree: ['EGGS'] }));
+  const result = evaluate(
+    { customAllergies: 'egg' },
+    completeCandidate({
+      allergenFree: ['EGGS'],
+      safetyEvidence: completeEvidence({
+        reviewedAbsentAllergens: ['EGGS'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
+    })
+  );
 
   assert.equal(result.eligible, true);
   assert.equal(result.evaluation.decision, 'ALLOW');
@@ -83,10 +125,16 @@ test('[TEST-027] resolved approved alias with complete non-conflicting evidence 
   assert.equal(result.evaluation.normalizedRestrictions[0]?.aliasInput, 'EGG');
 });
 
-test('[TEST-027] a complete certified diabetes or hypertension match is eligible', () => {
+test('[TEST-027] a complete manually certified condition match is eligible', () => {
   const result = evaluate(
     { conditions: ['HYPERTENSION'] },
-    completeCandidate({ suitableConditions: ['HYPERTENSION'] })
+    completeCandidate({
+      suitableConditions: ['HYPERTENSION'],
+      safetyEvidence: completeEvidence({
+        conditionRuleMatches: ['HYPERTENSION'],
+        conditionDomainReviewed: true,
+      }),
+    })
   );
 
   assert.equal(result.eligible, true);
@@ -94,15 +142,46 @@ test('[TEST-027] a complete certified diabetes or hypertension match is eligible
   assert.ok(result.reasonCodes.includes('CERTIFIED_CONDITION_MATCH'));
 });
 
-test('[TEST-027] high-risk condition matches remain review-required', () => {
+test('[TEST-027] high-risk condition needs an explicit manual clearance but can then be reused', () => {
   const result = evaluate(
     { conditions: ['KIDNEY_DISEASE'] },
-    completeCandidate({ suitableConditions: ['KIDNEY_DISEASE'] })
+    completeCandidate({
+      suitableConditions: ['KIDNEY_DISEASE'],
+      safetyEvidence: completeEvidence({
+        conditionRuleMatches: ['KIDNEY_DISEASE'],
+        conditionDomainReviewed: true,
+      }),
+    })
   );
 
-  assert.equal(result.eligible, false);
-  assert.equal(result.evaluation.decision, 'REVIEW');
-  assert.ok(result.reasonCodes.includes('KNOWN_CONDITION_REQUIRES_REVIEW'));
+  assert.equal(result.eligible, true);
+  assert.equal(result.evaluation.decision, 'ALLOW');
+  assert.ok(result.reasonCodes.includes('CERTIFIED_CONDITION_MATCH'));
+});
+
+test('[TEST-027] condition and allergen coverage are required only for the relevant profile domains', () => {
+  const conditionOnly = completeCandidate({
+    suitableConditions: ['DIABETES'],
+    safetyEvidence: completeEvidence({
+      conditionRuleMatches: ['DIABETES'],
+      conditionDomainReviewed: true,
+    }),
+  });
+  assert.equal(evaluate({ conditions: ['DIABETES'] }, conditionOnly).eligible, true);
+  assert.equal(evaluate({ allergies: ['DAIRY'] }, conditionOnly).eligible, false);
+
+  const allergenOnly = completeCandidate({
+    allergenFree: ['DAIRY'],
+    safetyEvidence: completeEvidence({
+      reviewedAbsentAllergens: ['DAIRY'],
+      allergenDomainReviewed: true,
+      crossContactCleared: true,
+    }),
+  });
+  assert.equal(evaluate({ allergies: ['DAIRY'] }, allergenOnly).eligible, true);
+  assert.equal(evaluate({ conditions: ['DIABETES'] }, allergenOnly).eligible, false);
+
+  assert.equal(evaluate({}, completeCandidate()).eligible, true);
 });
 
 test('[TEST-027] comma-stored unmapped custom restriction preserves provenance and is ineligible', () => {
@@ -154,7 +233,7 @@ test('[TEST-027] unknown compatibility or safety metadata keys are ineligible', 
   const safetyUnknown = evaluate(
     {},
     completeCandidate({
-      safetyEvidence: { complete: true, detectedAllergens: [], futureMarker: true },
+      safetyEvidence: { ...completeEvidence(), futureMarker: true },
     })
   );
 
@@ -191,7 +270,17 @@ test('[TEST-027] unresolved or unlinked ingredient provenance is ineligible', ()
 });
 
 test('[TEST-027] NONE combined with another restriction is ineligible', () => {
-  const result = evaluate({ allergies: ['NONE', 'DAIRY'] }, completeCandidate({ allergenFree: ['DAIRY'] }));
+  const result = evaluate(
+    { allergies: ['NONE', 'DAIRY'] },
+    completeCandidate({
+      allergenFree: ['DAIRY'],
+      safetyEvidence: completeEvidence({
+        reviewedAbsentAllergens: ['DAIRY'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
+    })
+  );
 
   assert.equal(result.eligible, false);
   assert.ok(result.reasonCodes.includes('NONE_WITH_POSITIVE_RESTRICTION'));
@@ -208,7 +297,14 @@ test('[TEST-027] FLAGGED and unknown future library statuses deny eligibility', 
 test('[TEST-027] identical inputs produce identical output without mutation', () => {
   const input = {
     userRestrictions: { allergies: ['DAIRY'], customConditions: '' },
-    candidate: completeCandidate({ allergenFree: ['DAIRY'] }),
+    candidate: completeCandidate({
+      allergenFree: ['DAIRY'],
+      safetyEvidence: completeEvidence({
+        reviewedAbsentAllergens: ['DAIRY'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
+    }),
   };
   const before = JSON.stringify(input);
 
@@ -258,7 +354,11 @@ test('[TEST-028] REVIEW and BLOCK candidates are removed from generation selecti
     id: 'library-block',
     ...completeCandidate({
       allergenFree: ['NUTS'],
-      safetyEvidence: { complete: true, detectedAllergens: ['NUTS'] },
+      safetyEvidence: completeEvidence({
+        detectedAllergens: ['NUTS'],
+        allergenDomainReviewed: true,
+        crossContactCleared: true,
+      }),
     }),
   };
 

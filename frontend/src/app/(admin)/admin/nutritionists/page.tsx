@@ -130,7 +130,20 @@ export default function AdminNutritionistsPage() {
         </>
       ) : (
         <section>
-          <ProfessionalGrid nutritionists={verified} />
+          <ProfessionalGrid
+            nutritionists={verified}
+            workingId={workingId}
+            onToggleLead={(nutritionist) =>
+              void act(
+                nutritionist.id,
+                () =>
+                  api.patch(`/admin/nutritionists/${nutritionist.id}/lead-capability`, {
+                    canLeadReview: !nutritionist.canLeadReview,
+                  }),
+                `Lead capability ${nutritionist.canLeadReview ? 'removed' : 'granted'}.`
+              )
+            }
+          />
         </section>
       )}
     </div>

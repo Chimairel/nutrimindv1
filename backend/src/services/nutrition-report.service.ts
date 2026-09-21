@@ -178,7 +178,10 @@ export class NutritionReportService {
       foodsRecommended: string[];
       drinksGuidance: string[];
       generalSummary: string;
-    }>(prompt, clinicalSystemInstruction, NutritionReportSchema);
+    }>(prompt, clinicalSystemInstruction, NutritionReportSchema, {
+      operation: 'NUTRITION_REPORT',
+      purpose: 'PROFILE_NUTRITION_REPORT',
+    });
 
     // Validate structure format
     if (

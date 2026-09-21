@@ -61,7 +61,7 @@ export interface LibraryMeal {
     ingredientName: string;
     category?: string | null;
     foodItemId?: string | null;
-    dataSource: 'FNRI' | 'GEMINI_ESTIMATED';
+    dataSource: 'FNRI' | 'GEMINI_ESTIMATED' | 'SOURCE_RECIPE';
     position: number;
   }[];
   safetyReviewedByNutritionist?: { user: { name: string } } | null;
@@ -123,10 +123,6 @@ export const AVAILABLE_DIETS = [
   { label: 'Vegetarian', value: 'VEGETARIAN' },
   { label: 'Vegan', value: 'VEGAN' },
   { label: 'Pescatarian', value: 'PESCATARIAN' },
-  { label: 'Lose Weight', value: 'LOSE_WEIGHT' },
-  { label: 'Gain Weight', value: 'GAIN_WEIGHT' },
-  { label: 'Maintain Weight', value: 'MAINTAIN' },
-  { label: 'Build Muscle', value: 'BUILD_MUSCLE' },
 ];
 
 export function useNutritionistLibrary() {
@@ -168,7 +164,6 @@ export function useNutritionistLibrary() {
   });
   const [flagReason, setFlagReason] = useState('');
   const [evidenceForm, setEvidenceForm] = useState({
-    suitableConditions: [] as string[],
     allergensPresent: [] as string[],
     allergensReviewedAbsent: [] as string[],
     crossContactAcknowledged: false,
@@ -258,7 +253,6 @@ export function useNutritionistLibrary() {
   const handleOpenCertification = (meal: LibraryMeal) => {
     setSelectedMeal(meal);
     setEvidenceForm({
-      suitableConditions: normalizeExclusiveNone(meal.suitableConditions),
       allergensPresent: [],
       allergensReviewedAbsent: normalizeExclusiveNone(meal.allergenFree),
       crossContactAcknowledged: meal.crossContactAssessment === 'ASSESSED_NO_KNOWN_RISK',
@@ -277,15 +271,21 @@ export function useNutritionistLibrary() {
       const allergenCount = evidenceForm.allergensPresent.length + evidenceForm.allergensReviewedAbsent.length;
       const res = await api.post(`/nutritionist/library/${selectedMeal.id}/safety-evidence/certify`, {
         expectedRevision: selectedMeal.safetyEvidenceRevision,
-        conditionDeclarationState:
-          evidenceForm.suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
+        conditionDeclarationState: 'NOT_REVIEWED',
         allergenDeclarationState: allergenCount > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
         crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
-        suitableConditions: evidenceForm.suitableConditions,
+        suitableConditions: [],
         allergensPresent: evidenceForm.allergensPresent,
         allergensReviewedAbsent: evidenceForm.allergensReviewedAbsent,
       });
       if (res.data?.success) {
+        if (res.data.data?.certificationAwaitingSecondReview) {
+          setActionError(
+            'First review recorded. A different nutritionist must submit the same kidney/pregnancy evidence before certification.'
+          );
+          await fetchLibrary();
+          return;
+        }
         await Promise.all([fetchLibrary(), fetchCoverage()]);
         setActiveModal(null);
       }
@@ -408,15 +408,6 @@ export function useNutritionistLibrary() {
     }));
   };
 
-  const toggleEvidenceCondition = (value: string) => {
-    setEvidenceForm((current) => ({
-      ...current,
-      suitableConditions: current.suitableConditions.includes(value)
-        ? current.suitableConditions.filter((item) => item !== value)
-        : [...current.suitableConditions, value],
-    }));
-  };
-
   const setEvidenceAllergen = (value: string, mode: 'present' | 'absent' | 'clear') => {
     setEvidenceForm((current) => ({
       ...current,
@@ -476,7 +467,6 @@ export function useNutritionistLibrary() {
     handleFlagSubmit,
     handleResolveFlag,
     handleToggleDiet,
-    toggleEvidenceCondition,
     setEvidenceAllergen,
   };
 }

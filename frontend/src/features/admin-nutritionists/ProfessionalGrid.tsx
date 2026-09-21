@@ -3,7 +3,15 @@ import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import type { NutritionistRow } from './model';
 
-export function ProfessionalGrid({ nutritionists }: { nutritionists: NutritionistRow[] }) {
+export function ProfessionalGrid({
+  nutritionists,
+  workingId,
+  onToggleLead,
+}: {
+  nutritionists: NutritionistRow[];
+  workingId?: string | null;
+  onToggleLead?: (nutritionist: NutritionistRow) => void;
+}) {
   if (!nutritionists.length) {
     return <Card className="p-10 text-center text-sm text-brand-muted">No activated nutritionists yet.</Card>;
   }
@@ -38,6 +46,24 @@ export function ProfessionalGrid({ nutritionists }: { nutritionists: Nutritionis
               <p className="font-display text-xl font-black text-brand-green">{nutritionist.totalVerified}</p>
               <p className="text-[9px] uppercase tracking-wider text-brand-muted">meals verified</p>
             </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-brand-border pt-3">
+            <div>
+              <p className="text-xs font-bold text-brand-text">Lead review capability</p>
+              <p className="text-[10px] text-brand-muted">Enhanced second reviews and governance actions</p>
+            </div>
+            <button
+              type="button"
+              disabled={!onToggleLead || workingId === nutritionist.id}
+              onClick={() => onToggleLead?.(nutritionist)}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                nutritionist.canLeadReview
+                  ? 'bg-brand-green text-[#07100d]'
+                  : 'border border-brand-border text-brand-muted'
+              } disabled:opacity-50`}
+            >
+              {workingId === nutritionist.id ? 'Saving…' : nutritionist.canLeadReview ? 'Lead enabled' : 'Enable Lead'}
+            </button>
           </div>
         </Card>
       ))}

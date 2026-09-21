@@ -31,6 +31,16 @@ import { UserPrivacyService } from '@/services/user-privacy.service';
 import { getActivePlanningLocationOptions } from '@/services/food-consumption-context.service';
 
 const router = Router();
+const accountDeletionSchema = z
+  .object({
+    password: z.string().min(8).max(128).optional(),
+    googleIdToken: z.string().min(20).max(8192).optional(),
+    confirmation: z.union([z.literal('DELETE MY KAINARA ACCOUNT'), z.literal('DELETE MY NUTRIMIND ACCOUNT')]),
+  })
+  .strict()
+  .refine((value) => Boolean(value.password || value.googleIdToken), {
+    message: 'Reauthenticate with your password or Google account.',
+  });
 
 // Apply auth on all /api/user routes
 router.use(authenticate);
@@ -179,9 +189,8 @@ router.put(
 );
 router.put('/profile/settings', requireReportEligible, UserController.updateAccountSettings);
 
-// Meal-related actions retain the complete readiness chain.
-router.use(requireReadyUser);
-
+// Privacy rights remain available to authenticated patient accounts even when
+// onboarding, consent, or report acknowledgement is incomplete.
 router.get('/account/export', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const payload = await UserPrivacyService.exportAccount(req.user!.userId);
@@ -194,24 +203,26 @@ router.get('/account/export', async (req: AuthenticatedRequest, res: Response) =
   }
 });
 
-router.delete(
-  '/account',
-  validateZodBody(
-    z.object({
-      password: z.string().min(8).max(128),
-      confirmation: z.union([z.literal('DELETE MY KAINARA ACCOUNT'), z.literal('DELETE MY NUTRIMIND ACCOUNT')]),
-    })
-  ),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      await UserPrivacyService.deleteAccount(req.user!.userId, req.body.password);
-      res.clearCookie('nutrimind_refresh');
-      return res.status(200).json({ success: true });
-    } catch (error: unknown) {
-      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete account.') });
-    }
+router.delete('/account', validateZodBody(accountDeletionSchema), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await UserPrivacyService.deleteAccount(req.user!.userId, {
+      password: req.body.password,
+      googleIdToken: req.body.googleIdToken,
+    });
+    res.clearCookie('nutrimind_refresh', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+    return res.status(200).json({ success: true });
+  } catch (error: unknown) {
+    return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete account.') });
   }
-);
+});
+
+// Meal-related actions retain the complete readiness chain.
+router.use(requireReadyUser);
 
 router.get('/water/today', async (req: AuthenticatedRequest, res: Response) => {
   const data = await WaterService.getToday(req.user!.userId);

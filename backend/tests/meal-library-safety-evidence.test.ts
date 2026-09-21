@@ -30,7 +30,16 @@ test('[TEST-050] exact current certification maps to complete adapter evidence',
 
   assert.equal(result.complete, true);
   assert.deepEqual(result.reasons, []);
-  assert.deepEqual(result.adapterEvidence, { complete: true, detectedAllergens: [] });
+  assert.deepEqual(result.adapterEvidence, {
+    complete: true,
+    baseComplete: true,
+    detectedAllergens: [],
+    reviewedAbsentAllergens: [],
+    allergenDomainReviewed: true,
+    crossContactCleared: true,
+    conditionRuleMatches: [],
+    conditionDomainReviewed: true,
+  });
 });
 
 test('[TEST-050] incomplete, stale, revision-mismatched, or unsupported evidence fails closed', () => {
@@ -39,12 +48,39 @@ test('[TEST-050] incomplete, stale, revision-mismatched, or unsupported evidence
     { safetyEvidenceStatus: 'STALE', safetyInvalidatedAt: new Date() },
     { certifiedEvidenceRevision: 1 },
     { safetyPolicyVersion: 'FUTURE_VERSION' },
-    { reviewerEligible: false },
   ];
 
   for (const overrides of cases) {
     assert.equal(evaluateMealLibrarySafetyEvidence(certifiedCandidate(overrides)).complete, false);
   }
+});
+
+test('[TEST-050] base completeness is independent from condition and allergen review coverage', () => {
+  const result = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      conditionDeclarationState: 'NOT_REVIEWED',
+      allergenDeclarationState: 'NOT_REVIEWED',
+      crossContactAssessment: 'NOT_ASSESSED',
+    })
+  );
+
+  assert.equal(result.complete, true);
+  assert.deepEqual(result.reasons, []);
+  assert.equal(result.adapterEvidence.baseComplete, true);
+  assert.equal(result.adapterEvidence.conditionDomainReviewed, false);
+  assert.equal(result.adapterEvidence.allergenDomainReviewed, false);
+  assert.ok(result.coverageReasons.includes('CONDITION_DOMAIN_NOT_REVIEWED'));
+  assert.ok(result.coverageReasons.includes('ALLERGEN_DOMAIN_NOT_REVIEWED'));
+});
+
+test('[TEST-050] a complete data shape without eligible review provenance is not certified base evidence', () => {
+  const result = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({ safetyEvidenceOrigin: 'NUTRITIONIST_DRAFT', reviewerEligible: false })
+  );
+
+  assert.equal(result.complete, false);
+  assert.ok(result.reasons.includes('EVIDENCE_ORIGIN_NOT_REVIEWED'));
+  assert.ok(result.reasons.includes('REVIEWER_NOT_ELIGIBLE'));
 });
 
 test('[TEST-050] first-class ingredients must all be linked FNRI evidence', () => {
@@ -76,6 +112,8 @@ test('[TEST-050] exact declarations map without inferring custom or contradictor
   assert.deepEqual(result.suitableConditions, ['HYPERTENSION']);
   assert.deepEqual(result.allergenFree, ['DAIRY']);
   assert.deepEqual(result.adapterEvidence.detectedAllergens, ['NUTS']);
+  assert.equal(result.adapterEvidence.conditionDomainReviewed, true);
+  assert.equal(result.adapterEvidence.allergenDomainReviewed, true);
 
   const custom = evaluateMealLibrarySafetyEvidence(
     certifiedCandidate({
@@ -83,8 +121,9 @@ test('[TEST-050] exact declarations map without inferring custom or contradictor
       safetyDeclarations: [{ declarationType: 'ALLERGEN_PRESENT', canonicalKey: null, customKey: 'SESAME' }],
     })
   );
-  assert.equal(custom.complete, false);
-  assert.ok(custom.reasons.includes('UNSUPPORTED_DECLARATION_KEY'));
+  assert.equal(custom.complete, true);
+  assert.equal(custom.adapterEvidence.allergenDomainReviewed, false);
+  assert.ok(custom.coverageReasons.includes('UNSUPPORTED_DECLARATION_KEY'));
 });
 
 test('[TEST-050] missing cross-contact assessment and declaration state mismatches fail closed', () => {
@@ -96,7 +135,68 @@ test('[TEST-050] missing cross-contact assessment and declaration state mismatch
     })
   );
 
-  assert.equal(result.complete, false);
-  assert.ok(result.reasons.includes('CROSS_CONTACT_NOT_CLEARED'));
-  assert.ok(result.reasons.includes('DECLARATION_STATE_MISMATCH'));
+  assert.equal(result.complete, true);
+  assert.equal(result.adapterEvidence.allergenDomainReviewed, false);
+  assert.ok(result.coverageReasons.includes('CROSS_CONTACT_NOT_CLEARED'));
+  assert.ok(result.coverageReasons.includes('DECLARATION_STATE_MISMATCH'));
+});
+
+test('[TEST-050] malformed condition declarations do not erase valid allergen coverage', () => {
+  const result = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      conditionDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      safetyDeclarations: [
+        { declarationType: 'CONDITION_REVIEWED', canonicalKey: null, customKey: 'GOUT' },
+        { declarationType: 'ALLERGEN_REVIEWED_ABSENT', canonicalKey: 'DAIRY', customKey: null },
+      ],
+    })
+  );
+
+  assert.equal(result.complete, true);
+  assert.equal(result.adapterEvidence.conditionDomainReviewed, false);
+  assert.equal(result.adapterEvidence.allergenDomainReviewed, true);
+  assert.deepEqual(result.adapterEvidence.reviewedAbsentAllergens, ['DAIRY']);
+});
+
+test('[TEST-050] approved-ruleset provenance can clear hypertension but cannot impersonate manual high-risk review', () => {
+  const hypertension = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      safetyEvidenceOrigin: 'NUTRITIONIST_DRAFT',
+      reviewerEligible: false,
+      conditionDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      safetyDeclarations: [
+        {
+          declarationType: 'CONDITION_RULESET_CLEARED',
+          canonicalKey: 'HYPERTENSION',
+          customKey: null,
+          provenance: 'APPROVED_RULESET',
+          policyVersion: 'HTN_RULESET_V1',
+          evidenceSnapshot: { allRulesApproved: true, decision: 'PASS' },
+        },
+      ],
+    })
+  );
+  assert.equal(hypertension.adapterEvidence.conditionDomainReviewed, true);
+  assert.deepEqual(hypertension.suitableConditions, ['HYPERTENSION']);
+
+  const kidney = evaluateMealLibrarySafetyEvidence(
+    certifiedCandidate({
+      safetyEvidenceOrigin: 'NUTRITIONIST_DRAFT',
+      reviewerEligible: false,
+      conditionDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+      safetyDeclarations: [
+        {
+          declarationType: 'CONDITION_RULESET_CLEARED',
+          canonicalKey: 'KIDNEY_DISEASE',
+          customKey: null,
+          provenance: 'APPROVED_RULESET',
+          policyVersion: 'KIDNEY_RULESET_V1',
+          evidenceSnapshot: { allRulesApproved: true, decision: 'PASS' },
+        },
+      ],
+    })
+  );
+  assert.equal(kidney.adapterEvidence.conditionDomainReviewed, false);
+  assert.ok(kidney.coverageReasons.includes('RULESET_CLEARANCE_UNSUPPORTED'));
 });

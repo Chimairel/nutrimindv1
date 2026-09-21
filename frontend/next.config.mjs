@@ -19,7 +19,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''} https://accounts.google.com`,
   "style-src 'self' 'unsafe-inline' https://accounts.google.com",
-  "img-src 'self' data: blob: https://api.dicebear.com https://lh3.googleusercontent.com https://res.cloudinary.com",
+  "img-src 'self' data: blob: https://api.dicebear.com https://lh3.googleusercontent.com https://res.cloudinary.com https://i.ytimg.com",
   `connect-src 'self' ${apiOrigin} https://accounts.google.com${isDevelopment ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
   "frame-src 'self' https://accounts.google.com https://www.google.com https://maps.google.com",
   "font-src 'self' data:",
@@ -29,7 +29,10 @@ const contentSecurityPolicy = [
 const nextConfig = {
   distDir: process.env.NUTRIMIND_REPAIR_E2E === 'true' ? '.next-repair' : '.next',
   images: {
-    remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+    ],
   },
   allowedDevOrigins: ['127.0.0.1'],
   devIndicators: {

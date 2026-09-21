@@ -241,6 +241,7 @@ export function isMealPlanHistoryVisible(status: unknown): boolean {
     case MealPlanStatus.APPROVED:
     case MealPlanStatus.REJECTED:
     case MealPlanStatus.CANCELLED:
+    case MealPlanStatus.DISPUTED:
       return true;
     default:
       return false;

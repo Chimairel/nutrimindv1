@@ -4,6 +4,8 @@ import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Avatar from '@/components/ui/Avatar';
 import { Stethoscope, ShieldAlert, Salad } from 'lucide-react';
+import { useState } from 'react';
+import api from '@/lib/axios';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 import {
   AVAILABLE_ALLERGENS,
@@ -34,7 +36,6 @@ export function NutritionistLibraryModals({ workspace }: Props) {
     handleFlagSubmit,
     handleResolveFlag,
     handleToggleDiet,
-    toggleEvidenceCondition,
     setEvidenceAllergen,
   } = workspace;
 
@@ -98,19 +99,21 @@ export function NutritionistLibraryModals({ workspace }: Props) {
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase text-brand-muted">Reusable evidence</span>
+                <span className="text-xs font-bold uppercase text-brand-muted">Base recipe evidence</span>
                 <span className="text-xs font-bold text-brand-text">
                   {selectedMeal.safetyEvidenceStatus} · revision {selectedMeal.safetyEvidenceRevision}
                 </span>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-brand-muted">
                 {selectedMeal.safetyEvidenceStatus === 'COMPLETE'
-                  ? `Certified for deterministic library matching by ${selectedMeal.safetyReviewedByNutritionist?.user.name || 'qualified staff'}. User-specific restrictions are still checked every time.`
+                  ? 'Ingredient and nutrition provenance is complete for this revision. Condition and allergen coverage are checked independently for each user.'
                   : selectedMeal.safetyEvidenceStatus === 'STALE'
-                    ? `Re-review required${selectedMeal.safetyInvalidationReason ? `: ${selectedMeal.safetyInvalidationReason.replaceAll('_', ' ').toLowerCase()}` : ''}.`
-                    : 'This meal is approved for its original user, but its reusable evidence has not yet been certified.'}
+                    ? `Base evidence must be refreshed${selectedMeal.safetyInvalidationReason ? `: ${selectedMeal.safetyInvalidationReason.replaceAll('_', ' ').toLowerCase()}` : ''}.`
+                    : 'This meal does not yet have complete base ingredient and nutrition evidence.'}
               </p>
             </div>
+
+            {selectedMeal.safetyEvidenceStatus === 'COMPLETE' && <ConditionClearancePanel mealId={selectedMeal.id} />}
 
             <div>
               <span className="text-xs font-bold text-brand-muted uppercase">Stable ingredient evidence</span>
@@ -267,36 +270,16 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               </div>
             </div>
 
-            <div>
-              <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Condition review scope</span>
-              <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
-                Record only conditions you explicitly considered. Current complete diabetes and hypertension
-                declarations may authorize reusable matching; heart, kidney, pregnancy, custom, and incomplete cases
-                remain individually review-gated.
-              </p>
-              <div className="grid grid-cols-1 gap-2 rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 sm:grid-cols-2">
-                {AVAILABLE_CONDITIONS.map((condition) => (
-                  <label
-                    key={condition.value}
-                    className="flex cursor-pointer items-center gap-2 text-xs text-brand-text"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={evidenceForm.suitableConditions.includes(condition.value)}
-                      onChange={() => toggleEvidenceCondition(condition.value)}
-                      className="rounded border-brand-border bg-brand-bg text-brand-green focus:ring-brand-green"
-                    />
-                    {condition.label}
-                  </label>
-                ))}
-              </div>
+            <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-4 text-xs leading-relaxed text-brand-muted">
+              Condition clearance is reviewed separately after base evidence certification. Each clearance is scoped to
+              this exact recipe revision and condition, with enhanced conditions requiring an independent Lead review.
             </div>
 
             <div>
               <span className="mb-2 block text-xs font-bold uppercase text-brand-muted">Allergen declarations</span>
               <p className="mb-3 text-[11px] leading-relaxed text-brand-muted">
-                Choose Present, Reviewed absent, or Not declared for every canonical allergen. Reviewed absent describes
-                this evidence review only; it is not laboratory or manufacturing certification.
+                Choose Present or Reviewed absent for every supported allergen. Reviewed absent describes this evidence
+                review only; it is not laboratory or manufacturing certification.
               </p>
               <div className="space-y-2">
                 {AVAILABLE_ALLERGENS.map((allergen) => {
@@ -304,7 +287,7 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                     ? 'present'
                     : evidenceForm.allergensReviewedAbsent.includes(allergen.value)
                       ? 'absent'
-                      : 'clear';
+                      : '';
                   return (
                     <div
                       key={allergen.value}
@@ -318,7 +301,9 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                         }
                         className="rounded-lg border border-brand-border bg-brand-surface px-2 py-1.5 text-xs text-brand-text outline-none focus:border-brand-green"
                       >
-                        <option value="clear">Not declared</option>
+                        <option value="" disabled>
+                          Select a finding
+                        </option>
                         <option value="present">Present</option>
                         <option value="absent">Reviewed absent</option>
                       </select>
@@ -352,6 +337,8 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                 disabled={
                   actionLoading ||
                   !evidenceForm.crossContactAcknowledged ||
+                  evidenceForm.allergensPresent.length + evidenceForm.allergensReviewedAbsent.length !==
+                    AVAILABLE_ALLERGENS.length ||
                   (selectedMeal.ingredients || []).length === 0 ||
                   (selectedMeal.ingredients || []).some(
                     (ingredient) => ingredient.dataSource !== 'FNRI' || !ingredient.foodItemId
@@ -439,7 +426,9 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               </div>
 
               <div>
-                <span className="block text-xs font-bold text-brand-muted uppercase mb-1.5">Dietary & Goal Tags</span>
+                <span className="block text-xs font-bold text-brand-muted uppercase mb-1.5">
+                  Dietary compatibility tags
+                </span>
                 <div className="grid grid-cols-2 gap-2 p-3 bg-brand-bg rounded-xl border border-brand-border/60">
                   {AVAILABLE_DIETS.map((d) => (
                     <label key={d.value} className="flex items-center gap-2 cursor-pointer text-xs text-brand-text">
@@ -567,5 +556,95 @@ export function NutritionistLibraryModals({ workspace }: Props) {
         </Modal>
       )}
     </>
+  );
+}
+
+function ConditionClearancePanel({ mealId }: { mealId: string }) {
+  const [condition, setCondition] = useState('HYPERTENSION');
+  const [userScopeId, setUserScopeId] = useState('');
+  const [rationale, setRationale] = useState('');
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const requiresUserScope = condition === 'KIDNEY_DISEASE' || condition === 'HEART_CONDITION';
+
+  const submit = async (decision: 'APPROVE' | 'REJECT') => {
+    setWorking(true);
+    setMessage(null);
+    try {
+      const response = await api.post(`/nutritionist/library/${mealId}/condition-clearances`, {
+        condition,
+        decision,
+        rationale: rationale.trim() || undefined,
+        userScopeId: userScopeId.trim() || null,
+      });
+      setMessage(
+        response.data?.data?.state === 'REVIEW_DUE'
+          ? 'First enhanced review recorded. A different Lead must submit the blind second decision.'
+          : `Decision recorded: ${response.data?.data?.state || 'complete'}.`
+      );
+      setRationale('');
+    } catch {
+      setMessage(
+        'Decision could not be recorded. Check base evidence, reviewer independence, Lead capability, and scope.'
+      );
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-brand-green/20 bg-brand-green/5 p-4">
+      <p className="text-xs font-bold uppercase text-brand-green">Condition clearance for this revision</p>
+      <p className="mt-2 text-[11px] leading-relaxed text-brand-muted">
+        This is separate from base and allergen evidence. Kidney and heart clearance requires the exact user ID because
+        the current profile does not capture stage, labs, or medication context.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <select
+          value={condition}
+          onChange={(event) => setCondition(event.target.value)}
+          className="rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-xs text-brand-text"
+        >
+          {AVAILABLE_CONDITIONS.filter((item) => item.value !== 'NONE').map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        {requiresUserScope && (
+          <input
+            value={userScopeId}
+            onChange={(event) => setUserScopeId(event.target.value)}
+            placeholder="Required user ID"
+            className="rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-xs text-brand-text"
+          />
+        )}
+      </div>
+      <textarea
+        value={rationale}
+        onChange={(event) => setRationale(event.target.value)}
+        placeholder="Clinical rationale"
+        rows={2}
+        className="mt-2 w-full rounded-lg border border-brand-border bg-brand-surface p-3 text-xs text-brand-text"
+      />
+      {message && (
+        <p role="status" className="mt-2 text-xs text-brand-muted">
+          {message}
+        </p>
+      )}
+      <div className="mt-3 flex justify-end gap-2">
+        <Button type="button" size="sm" variant="secondary" disabled={working} onClick={() => void submit('REJECT')}>
+          Reject
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={working || (requiresUserScope && !userScopeId.trim())}
+          onClick={() => void submit('APPROVE')}
+        >
+          Approve clearance
+        </Button>
+      </div>
+    </div>
   );
 }
