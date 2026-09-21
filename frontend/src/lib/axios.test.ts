@@ -1,11 +1,12 @@
 import axios, { type AxiosAdapter } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import api from './axios';
+import api, { setSessionRefreshSuppressed } from './axios';
 import { cookieHelper } from './auth';
 
 describe('session recovery during background requests', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    setSessionRefreshSuppressed(false);
     cookieHelper.clear('nutrimind_session');
   });
 
@@ -30,5 +31,16 @@ describe('session recovery during background requests', () => {
     }));
     await expect(api.get('/user/meals/generation-status', { adapter })).resolves.toMatchObject({ status: 200 });
     expect(cookieHelper.get('nutrimind_session')).toBe('renewed-session');
+  });
+
+  it('does not start a refresh race while a session is being deliberately terminated', async () => {
+    cookieHelper.set('nutrimind_session', 'ending-session');
+    setSessionRefreshSuppressed(true);
+    const refresh = vi.spyOn(axios, 'post');
+    const adapter = vi.fn<AxiosAdapter>(async (config) => Promise.reject({ config, response: { status: 401 } }));
+
+    await expect(api.get('/user/notifications', { adapter })).rejects.toBeDefined();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(cookieHelper.get('nutrimind_session')).toBe('ending-session');
   });
 });

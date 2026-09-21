@@ -11,6 +11,7 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
+import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
 import {
   getRegistrationFieldErrors,
   type RegistrationField,
@@ -18,7 +19,7 @@ import {
 } from '@/validation/auth.schemas';
 
 export default function RegisterPage() {
-  const { login } = useAuth();
+  const { login, logout, user } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -29,6 +30,10 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+
+  if (user) {
+    return <AuthenticatedEntryRedirect user={user} logout={logout} />;
+  }
 
   const clearFieldError = (field: RegistrationField) => {
     setFieldErrors((current) => {
@@ -95,7 +100,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <AuthFormPrelude googleLabel="signup_with" error={error} compact />
+      <AuthFormPrelude googleLabel="signup_with" googleIntent="register" error={error} compact />
 
       <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-3">

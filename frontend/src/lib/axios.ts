@@ -42,6 +42,11 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
+let sessionRefreshSuppressed = false;
+
+export function setSessionRefreshSuppressed(suppressed: boolean) {
+  sessionRefreshSuppressed = suppressed;
+}
 interface FailedRequest {
   resolve: (token: string | null) => void;
   reject: (error: unknown) => void;
@@ -80,7 +85,7 @@ api.interceptors.response.use(
     }
 
     // Check if error is a 401 and we haven't already retried this request
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    if (error.response && error.response.status === 401 && !originalRequest._retry && !sessionRefreshSuppressed) {
       // Guard: don't redirect/refresh if we're already on an auth page
       const authPages = [
         '/login',

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -12,41 +11,25 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
-  const { login, user, isLoading: isAuthLoading } = useAuth();
-  const router = useRouter();
+  const { login, logout, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  useEffect(() => setIsReady(true), []);
-
+  const [accountDeleted, setAccountDeleted] = useState(false);
   useEffect(() => {
-    if (!isAuthLoading && user) {
-      const destination = !user.emailVerified
-        ? '/verify-email'
-        : user.role === 'ADMIN'
-          ? '/admin/overview'
-          : user.role === 'NUTRITIONIST'
-            ? '/nutritionist/reviews'
-            : !user.onboardingDone
-              ? user.onboardingNextPath || '/onboarding/stats'
-              : !user.tosAccepted
-                ? '/onboarding/tos'
-                : !user.reportAcknowledged
-                  ? '/nutrition-report'
-                  : '/dashboard';
-      router.replace(destination);
-    }
-  }, [user, isAuthLoading, router]);
+    setIsReady(true);
+    setAccountDeleted(new URLSearchParams(window.location.search).get('accountDeleted') === '1');
+  }, []);
 
   if (user) {
-    return <PortalLoadingState fullScreen message="Redirecting to your workspace..." />;
+    return <AuthenticatedEntryRedirect user={user} logout={logout} />;
   }
 
   const clearFieldError = (field: LoginField) => {
@@ -106,7 +89,12 @@ export default function LoginPage() {
         </>
       }
     >
-      <AuthFormPrelude googleLabel="signin_with" error={error} compact />
+      {accountDeleted ? (
+        <div className="mb-5 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm font-semibold text-brand-green">
+          Your account and health data were deleted.
+        </div>
+      ) : null}
+      <AuthFormPrelude googleLabel="signin_with" googleIntent="login" error={error} compact />
 
       <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <Input

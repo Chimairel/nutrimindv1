@@ -11,7 +11,7 @@ import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
 import AvatarSettings from '@/features/profile/AvatarSettings';
-import api from '@/lib/axios';
+import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { User, Lock, CheckCircle, AlertTriangle, LogOut, Mail, Palette, ShieldCheck, Trash2 } from 'lucide-react';
 
@@ -19,7 +19,7 @@ type ProfilePanel = 'account' | 'security' | 'avatar' | 'privacy';
 const ACCOUNT_DELETION_CONFIRMATION = 'DELETE MY KAINARA ACCOUNT';
 
 export default function AccountSettings({ initialPanel = 'account' }: { initialPanel?: ProfilePanel }) {
-  const { logout, user, updateUserSession } = useAuth();
+  const { logout, completeAccountDeletion, user, updateUserSession } = useAuth();
   const [activePanel, setActivePanel] = useState<ProfilePanel>(initialPanel);
 
   // Account settings form state
@@ -46,13 +46,19 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const deletionConfirmationMismatch = deletionConfirmation.length > 0 && !deletionConfirmed;
 
   const deleteAccount = async (credential: { password?: string; googleIdToken?: string }) => {
-    await api.delete('/user/account', {
-      data: {
-        ...credential,
-        confirmation: deletionConfirmation,
-      },
-    });
-    await logout();
+    setSessionRefreshSuppressed(true);
+    try {
+      await api.delete('/user/account', {
+        data: {
+          ...credential,
+          confirmation: deletionConfirmation,
+        },
+      });
+      completeAccountDeletion();
+    } catch (error) {
+      setSessionRefreshSuppressed(false);
+      throw error;
+    }
   };
 
   const handleDeleteAccount = async (event: React.FormEvent) => {

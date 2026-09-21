@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import { AlertTriangle } from 'lucide-react';
 
 /**
@@ -26,6 +27,7 @@ declare global {
 
 interface GoogleSignInButtonProps {
   label?: string;
+  intent?: 'login' | 'register';
   disabled?: boolean;
   onCredential?: (credential: string) => Promise<void>;
 }
@@ -67,6 +69,7 @@ function loadGoogleIdentityServices(): Promise<void> {
 
 export default function GoogleSignInButton({
   label = 'signin_with',
+  intent = 'login',
   disabled = false,
   onCredential,
 }: GoogleSignInButtonProps) {
@@ -74,6 +77,7 @@ export default function GoogleSignInButton({
   const buttonRef = useRef<HTMLDivElement>(null);
   const credentialActionRef = useRef(onCredential);
   const [error, setError] = useState<string | null>(null);
+  const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
@@ -127,24 +131,32 @@ export default function GoogleSignInButton({
 
   const handleGoogleCallback = async (response: GoogleCredentialResponse) => {
     setError(null);
+    setRecoveryLink(null);
     setIsLoading(true);
     try {
       if (credentialActionRef.current) {
         await credentialActionRef.current(response.credential);
         return;
       }
-      const res = await api.post('/auth/google', {
+      const res = await api.post(`/auth/google/${intent}`, {
         idToken: response.credential,
       });
 
       if (res.data && res.data.success) {
         const { accessToken } = res.data.data;
-        await login(accessToken);
+        const currentUser = await login(accessToken);
+        if (!currentUser) setError('Your account was authenticated, but its profile could not be loaded. Please try again.');
       } else {
         setError(res.data.error || 'Google sign-in failed.');
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Google authentication failed. Please try again.'));
+      const errorCode = getApiErrorCode(err);
+      if (errorCode === 'ACCOUNT_NOT_FOUND') {
+        setRecoveryLink({ href: '/register', label: 'Create an account with Google' });
+      } else if (errorCode === 'ACCOUNT_EXISTS') {
+        setRecoveryLink({ href: '/login', label: 'Sign in instead' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -158,9 +170,16 @@ export default function GoogleSignInButton({
   return (
     <div className="w-full flex flex-col items-center gap-2">
       {error && (
-        <div className="w-full p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-status-error-text" />
-          <span>{error}</span>
+        <div className="w-full rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-status-error-text" />
+            <span>{error}</span>
+          </div>
+          {recoveryLink ? (
+            <Link href={recoveryLink.href} className="mt-2 inline-flex font-bold underline underline-offset-2">
+              {recoveryLink.label}
+            </Link>
+          ) : null}
         </div>
       )}
       <div

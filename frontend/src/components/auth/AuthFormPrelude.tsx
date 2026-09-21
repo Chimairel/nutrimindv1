@@ -3,16 +3,18 @@ import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 export default function AuthFormPrelude({
   googleLabel,
+  googleIntent,
   error,
   compact = false,
 }: {
   googleLabel: string;
+  googleIntent: 'login' | 'register';
   error?: string | null;
   compact?: boolean;
 }) {
   return (
     <>
-      <GoogleSignInButton label={googleLabel} />
+      <GoogleSignInButton label={googleLabel} intent={googleIntent} />
       {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID &&
         process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE' && (
           <div className={`${compact ? 'my-5' : 'my-6'} flex items-center gap-4`}>

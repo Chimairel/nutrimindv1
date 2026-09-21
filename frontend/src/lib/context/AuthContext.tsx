@@ -4,7 +4,7 @@ import React, { createContext, useState, useEffect, useRef, ReactNode } from 're
 import { useRouter } from 'next/navigation';
 import { Role } from '@/types';
 import { decodeToken, cookieHelper } from '@/lib/auth';
-import api from '@/lib/axios';
+import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 
 export interface UserSession {
@@ -27,8 +27,9 @@ export interface UserSession {
 export interface AuthContextType {
   user: UserSession | null;
   isLoading: boolean;
-  login: (token: string) => Promise<void>;
+  login: (token: string) => Promise<UserSession | null>;
   logout: () => Promise<void>;
+  completeAccountDeletion: () => void;
   refreshSession: () => Promise<UserSession | null>;
   updateUserSession: (updates: Partial<UserSession>) => void;
 }
@@ -150,6 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (token: string) => {
+    setSessionRefreshSuppressed(false);
     clearSessionResourceCache();
     // Save access token in cookie for the client middleware & interceptor
     // Refresh token is now stored as an HttpOnly cookie by the backend
@@ -174,28 +176,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Load the authoritative profile before navigating. The request id inside
       // refreshSession prevents an older hydration response from restoring the
       // role that was active before this login.
-      const currentUser = await refreshSession();
-      if (!currentUser) return;
-
-      if (!currentUser.emailVerified) {
-        router.replace('/verify-email');
-      } else if (currentUser.role === 'ADMIN') {
-        router.replace('/admin/overview');
-      } else if (currentUser.role === 'NUTRITIONIST') {
-        router.replace('/nutritionist/reviews');
-      } else if (!currentUser.onboardingDone) {
-        router.replace(currentUser.onboardingNextPath || '/onboarding/stats');
-      } else if (!currentUser.tosAccepted) {
-        router.replace('/onboarding/tos');
-      } else {
-        router.replace('/dashboard');
-      }
+      return refreshSession();
     }
+    cookieHelper.clear('nutrimind_session');
+    setUser(null);
+    setIsLoading(false);
+    return null;
   };
 
   const logout = async () => {
     sessionRequestId.current += 1;
     setIsLoading(true);
+    setSessionRefreshSuppressed(true);
     try {
       await api.post('/auth/logout');
     } catch (error) {
@@ -207,8 +199,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearSessionResourceCache();
       setUser(null);
       setIsLoading(false);
-      router.push('/login');
+      router.replace('/login');
     }
+  };
+
+  const completeAccountDeletion = () => {
+    sessionRequestId.current += 1;
+    setSessionRefreshSuppressed(true);
+    cookieHelper.clear('nutrimind_session');
+    clearSessionResourceCache();
+    setUser(null);
+    setIsLoading(false);
+    router.replace('/login?accountDeleted=1');
   };
 
   const updateUserSession = (updates: Partial<UserSession>) => {
@@ -222,6 +224,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         login,
         logout,
+        completeAccountDeletion,
         refreshSession,
         updateUserSession,
       }}

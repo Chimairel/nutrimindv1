@@ -44,6 +44,28 @@ async function createRefreshSession(userId: string, payload: JWTPayload): Promis
   return refreshToken;
 }
 
+export type GoogleAuthIntent = 'LOGIN' | 'REGISTER';
+
+export type VerifiedGoogleIdentity = {
+  email: string;
+  sub: string;
+  given_name?: string;
+  family_name?: string;
+  name?: string;
+  picture?: string;
+};
+
+export class GoogleAuthFlowError extends Error {
+  constructor(
+    public readonly code: 'ACCOUNT_NOT_FOUND' | 'ACCOUNT_EXISTS' | 'GOOGLE_IDENTITY_MISMATCH',
+    public readonly status: 404 | 409,
+    message: string
+  ) {
+    super(message);
+    this.name = 'GoogleAuthFlowError';
+  }
+}
+
 export class AuthService {
   /**
    * Registers a brand-new user into the system.
@@ -123,7 +145,7 @@ export class AuthService {
    * Verifies a Google ID token without creating a session or mutating an account.
    * Used by destructive-account reauthentication as well as Google login.
    */
-  static async verifyGoogleIdentity(idToken: string) {
+  static async verifyGoogleIdentity(idToken: string): Promise<VerifiedGoogleIdentity> {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new Error('Google OAuth is not configured on the server.');
@@ -141,43 +163,103 @@ export class AuthService {
     }
 
     const payload = ticket.getPayload();
-    if (!payload?.email || payload.email_verified === false) {
+    if (!payload?.email || !payload.sub || payload.email_verified === false) {
       throw new Error('Unable to retrieve a verified account identity from Google.');
     }
-    return { ...payload, email: payload.email };
+    return {
+      email: payload.email,
+      sub: payload.sub,
+      given_name: payload.given_name,
+      family_name: payload.family_name,
+      name: payload.name,
+      picture: payload.picture,
+    };
   }
 
   /**
-   * Authenticates a user via Google OAuth.
-   * Verifies the Google ID token, creates or finds the user, and returns JWT tokens.
-   * Google-authenticated users have emailVerified=true automatically.
+   * Authenticates an existing Google user. This endpoint never provisions a
+   * missing KAINARA account; account creation is an explicit registration act.
    */
-  static async googleAuth(idToken: string) {
+  static async googleLogin(idToken: string) {
     const payload = await this.verifyGoogleIdentity(idToken);
+    return this.completeGoogleAuth(payload, 'LOGIN');
+  }
 
-    const { email, given_name, family_name, name: googleName, picture } = payload;
+  /**
+   * Creates a new KAINARA account from a verified Google identity. Google has
+   * already verified the email, so the new user can continue to onboarding.
+   */
+  static async googleRegister(idToken: string) {
+    const payload = await this.verifyGoogleIdentity(idToken);
+    return this.completeGoogleAuth(payload, 'REGISTER');
+  }
+
+  /**
+   * Continues the flow after cryptographic Google-token verification. Keeping
+   * this boundary explicit makes the login-vs-registration policy testable
+   * without weakening token verification at the HTTP boundary.
+   */
+  static async completeGoogleAuth(payload: VerifiedGoogleIdentity, intent: GoogleAuthIntent) {
+    const { email, given_name, family_name, name: googleName, picture, sub } = payload;
     const sanitizedEmail = email.trim().toLowerCase();
     const displayName = [given_name, family_name].filter(Boolean).join(' ') || googleName || 'Google User';
-    console.log('[googleAuth] Google token payload:', {
-      email,
-      sanitizedEmail,
-      picture: picture ? picture.slice(0, 40) + '...' : undefined,
-      sub: payload.sub,
-    });
 
-    // Check if user already exists
-    let user = await prisma.user.findUnique({
-      where: { email: sanitizedEmail },
+    const linkedAccount = await prisma.account.findFirst({
+      where: { provider: 'google', providerAccountId: sub },
+      include: { user: true },
     });
-    console.log(
-      '[googleAuth] Matched user in DB:',
-      user ? { id: user.id, email: user.email, image: user.image } : 'NOT_FOUND'
-    );
+    let user = linkedAccount?.user ?? (await prisma.user.findUnique({
+      where: { email: sanitizedEmail },
+    }));
+
+    if (intent === 'LOGIN' && !user) {
+      throw new GoogleAuthFlowError(
+        'ACCOUNT_NOT_FOUND',
+        404,
+        'No KAINARA account exists for this Google address. Create an account first.'
+      );
+    }
+    if (intent === 'REGISTER' && user) {
+      throw new GoogleAuthFlowError(
+        'ACCOUNT_EXISTS',
+        409,
+        'A KAINARA account already exists for this Google address. Sign in instead.'
+      );
+    }
 
     if (user) {
       if (user.isSuspended) throw new Error('This account has been suspended.');
-      // Existing user — just log them in
-      // If they registered with email/password before, upgrade their emailVerified to true
+      const existingGoogleAccount = await prisma.account.findFirst({
+        where: { userId: user.id, provider: 'google' },
+      });
+      if (existingGoogleAccount && existingGoogleAccount.providerAccountId !== sub) {
+        throw new GoogleAuthFlowError(
+          'GOOGLE_IDENTITY_MISMATCH',
+          409,
+          'This KAINARA account is already linked to a different Google identity.'
+        );
+      }
+
+      // A verified Google email may link an existing password account with the
+      // same normalized address. The durable subject link never depends on a
+      // profile picture being present in the Google token.
+      if (existingGoogleAccount) {
+        await prisma.account.update({
+          where: { id: existingGoogleAccount.id },
+          data: picture ? { access_token: picture } : {},
+        });
+      } else {
+        await prisma.account.create({
+          data: {
+            userId: user.id,
+            type: 'oauth',
+            provider: 'google',
+            providerAccountId: sub,
+            access_token: picture ?? null,
+          },
+        });
+      }
+
       if (!user.emailVerified) {
         await prisma.user.update({
           where: { id: user.id },
@@ -203,32 +285,9 @@ export class AuthService {
         });
         user = { ...user, image: picture };
       }
-
-      // Persist Google OAuth profile photo to Account record
-      if (picture) {
-        const existingAccount = await prisma.account.findFirst({
-          where: { userId: user.id, provider: 'google' },
-        });
-        if (existingAccount) {
-          await prisma.account.update({
-            where: { id: existingAccount.id },
-            data: { access_token: picture },
-          });
-        } else {
-          await prisma.account.create({
-            data: {
-              userId: user.id,
-              type: 'oauth',
-              provider: 'google',
-              providerAccountId: payload.sub || user.id,
-              access_token: picture,
-            },
-          });
-        }
-      }
     } else {
-      // New user — create account with emailVerified=true (Google already verified)
-      // Generate a random password hash (they can only login via Google)
+      // Explicit Google registration. The random password is deliberately
+      // unknowable; this account signs in through its linked Google identity.
       const randomPassword = crypto.randomBytes(32).toString('hex');
       const salt = await bcrypt.genSalt(12);
       const passwordHash = await bcrypt.hash(randomPassword, salt);
@@ -241,16 +300,14 @@ export class AuthService {
           role: 'USER',
           emailVerified: true,
           image: picture || null,
-          accounts: picture
-            ? {
-                create: {
-                  type: 'oauth',
-                  provider: 'google',
-                  providerAccountId: payload.sub || 'google-' + Date.now(),
-                  access_token: picture,
-                },
-              }
-            : undefined,
+          accounts: {
+            create: {
+              type: 'oauth',
+              provider: 'google',
+              providerAccountId: sub,
+              access_token: picture ?? null,
+            },
+          },
         },
       });
     }

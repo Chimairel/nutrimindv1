@@ -65,11 +65,19 @@ router.post(
   AuthController.login
 );
 
-/**
- * Route: POST /api/auth/google
- * Description: Authenticates using a Google ID token (OAuth).
- */
-router.post('/google', authLimiter, AuthController.googleAuth);
+const googleCredentialValidation = [
+  body('idToken').isString().isLength({ min: 20, max: 8192 }).withMessage('A valid Google credential is required.'),
+  validate,
+];
+
+/** Existing-account Google sign-in. Never creates a missing account. */
+router.post('/google/login', authLimiter, googleCredentialValidation, AuthController.googleLogin);
+
+/** Explicit Google account creation. Verified Google email skips OTP. */
+router.post('/google/register', authLimiter, googleCredentialValidation, AuthController.googleRegister);
+
+/** Backwards-compatible alias with safe login-only behavior. */
+router.post('/google', authLimiter, googleCredentialValidation, AuthController.googleLogin);
 
 /**
  * Route: POST /api/auth/verify-email

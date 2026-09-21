@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import AuthService from '@/services/auth.service';
+import AuthService, { GoogleAuthFlowError } from '@/services/auth.service';
 import { AuthenticatedRequest } from '@/types';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
@@ -84,11 +84,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/auth/google
-   * Authenticates via Google ID token.
-   */
-  static async googleAuth(req: Request, res: Response) {
+  private static async handleGoogleAuth(req: Request, res: Response, intent: 'LOGIN' | 'REGISTER') {
     try {
       const { idToken } = req.body;
 
@@ -99,7 +95,8 @@ export class AuthController {
         });
       }
 
-      const result = await AuthService.googleAuth(idToken);
+      const result =
+        intent === 'REGISTER' ? await AuthService.googleRegister(idToken) : await AuthService.googleLogin(idToken);
 
       // Set refresh token as HttpOnly cookie, send only accessToken in body
       setRefreshCookie(res, result.refreshToken);
@@ -112,11 +109,28 @@ export class AuthController {
         },
       });
     } catch (error: any) {
+      if (error instanceof GoogleAuthFlowError) {
+        return res.status(error.status).json({
+          success: false,
+          errorCode: error.code,
+          error: error.message,
+        });
+      }
       return res.status(400).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Google authentication failed.'),
       });
     }
+  }
+
+  /** Authenticates an existing KAINARA account with Google. */
+  static async googleLogin(req: Request, res: Response) {
+    return AuthController.handleGoogleAuth(req, res, 'LOGIN');
+  }
+
+  /** Creates a new KAINARA account from a verified Google identity. */
+  static async googleRegister(req: Request, res: Response) {
+    return AuthController.handleGoogleAuth(req, res, 'REGISTER');
   }
 
   /**

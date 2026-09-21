@@ -4,32 +4,11 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import { getPostAuthDestination } from '@/lib/post-auth-destination';
 
 interface RouteGuardProps {
   children: React.ReactNode;
 }
-
-const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
-  if (role === 'ADMIN') return '/admin/overview';
-  if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
-  return '/dashboard';
-};
-
-const getAuthenticatedHome = (user: {
-  role: 'USER' | 'NUTRITIONIST' | 'ADMIN';
-  emailVerified: boolean;
-  onboardingDone?: boolean;
-  onboardingNextPath?: string | null;
-  tosAccepted?: boolean;
-  reportAcknowledged?: boolean;
-}) => {
-  if (!user.emailVerified) return '/verify-email';
-  if (user.role === 'ADMIN') return '/admin/overview';
-  if (user.role === 'NUTRITIONIST') return '/nutritionist/reviews';
-  if (!user.onboardingDone) return user.onboardingNextPath || '/onboarding/stats';
-  if (!user.tosAccepted) return '/onboarding/tos';
-  return '/dashboard';
-};
 
 /**
  * RouteGuard is a layout wrapper component that enforces roles,
@@ -83,11 +62,11 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     } else if (user) {
       const isEntryRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
       if (isEntryRoute) {
-        redirectTarget = getAuthenticatedHome(user);
+        redirectTarget = getPostAuthDestination(user);
       } else if (!user.emailVerified && !isVerifyPage && !isPublicRoute && !isAccountPrivacyRoute) {
         redirectTarget = '/verify-email';
       } else if (isVerifyPage && user.emailVerified) {
-        redirectTarget = getRoleHome(user.role);
+        redirectTarget = getPostAuthDestination(user);
       } else if (!isPublicRoute && isAdminRoute && user.role !== 'ADMIN') {
         redirectTarget = '/unauthorized';
       } else if (!isPublicRoute && isNutritionistRoute && user.role !== 'NUTRITIONIST') {
