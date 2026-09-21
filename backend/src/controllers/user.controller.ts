@@ -439,6 +439,12 @@ export class UserController {
 
       // Handle password change if requested
       if (currentPassword || newPassword) {
+        if (!user.passwordLoginEnabled) {
+          return res.status(400).json({
+            success: false,
+            error: 'This account uses Google sign-in and does not have a KAINARA password.',
+          });
+        }
         if (!currentPassword || !newPassword) {
           return res.status(400).json({
             success: false,

@@ -675,6 +675,7 @@ model User {
   name                            String
   email                           String    @unique
   passwordHash                    String
+  passwordLoginEnabled            Boolean   @default(true)
   role                            Role      @default(USER)
   emailVerified                   Boolean   @default(false)
   emailVerificationToken          String?

@@ -61,13 +61,18 @@ export class UserPrivacyService {
         email: true,
         role: true,
         passwordHash: true,
+        passwordLoginEnabled: true,
         accounts: { where: { provider: 'google' }, select: { providerAccountId: true } },
       },
     });
     if (!user || user.role !== 'USER') throw new Error('Only patient accounts can use self-service deletion.');
 
     let reauthenticationMethod: 'PASSWORD' | 'GOOGLE';
-    if (credential.password && (await bcrypt.compare(credential.password, user.passwordHash))) {
+    if (
+      user.passwordLoginEnabled &&
+      credential.password &&
+      (await bcrypt.compare(credential.password, user.passwordHash))
+    ) {
       reauthenticationMethod = 'PASSWORD';
     } else if (credential.googleIdToken) {
       const identity = await AuthService.verifyGoogleIdentity(credential.googleIdToken);

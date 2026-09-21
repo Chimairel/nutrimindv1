@@ -28,12 +28,18 @@ async function main() {
       include: { accounts: true, sessions: true },
     });
     assert.equal(created.emailVerified, true);
+    assert.equal(created.passwordLoginEnabled, false);
     assert.equal(created.onboardingDone, false);
     assert.equal(created.accounts.length, 1);
     assert.equal(created.accounts[0].provider, 'google');
     assert.equal(created.accounts[0].providerAccountId, identity.sub);
     assert.equal(created.accounts[0].access_token, null);
     assert.equal(created.sessions.length, 1);
+
+    await AuthService.forgotPassword(identity.email);
+    const afterRecoveryAttempt = await prisma.user.findUniqueOrThrow({ where: { id: createdUserId } });
+    assert.equal(afterRecoveryAttempt.passwordResetToken, null);
+    assert.equal(afterRecoveryAttempt.passwordResetExpiry, null);
 
     await assert.rejects(
       () => AuthService.completeGoogleAuth(identity, 'REGISTER'),
@@ -51,6 +57,8 @@ async function main() {
           pass: true,
           missingLoginDidNotProvision: true,
           explicitRegistrationCreatedAccount: true,
+          googleRegistrationHasNoPasswordLogin: true,
+          googleOnlyRecoveryDidNotIssueToken: true,
           googleLinkPersistedWithoutPicture: true,
           repeatRegistrationRejected: true,
           existingAccountLoginSucceeded: true,

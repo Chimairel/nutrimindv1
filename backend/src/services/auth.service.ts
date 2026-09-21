@@ -297,6 +297,7 @@ export class AuthService {
           name: displayName,
           email: sanitizedEmail,
           passwordHash,
+          passwordLoginEnabled: false,
           role: 'USER',
           emailVerified: true,
           image: picture || null,
@@ -457,7 +458,7 @@ export class AuthService {
       where: { email: sanitizedEmail },
     });
 
-    if (!user) {
+    if (!user || !user.passwordLoginEnabled) {
       throw new Error('Invalid email or password credentials.');
     }
     if (user.isSuspended) throw new Error('This account has been suspended.');
@@ -504,7 +505,7 @@ export class AuthService {
     });
 
     // Always return success to prevent email enumeration
-    if (!user) {
+    if (!user || !user.passwordLoginEnabled) {
       return { message: 'If an account with that email exists, a reset link has been sent.' };
     }
 
@@ -556,6 +557,9 @@ export class AuthService {
     }
 
     if (!matchedUser) {
+      throw new Error('Invalid or expired reset link. Please request a new one.');
+    }
+    if (!matchedUser.passwordLoginEnabled) {
       throw new Error('Invalid or expired reset link. Please request a new one.');
     }
 

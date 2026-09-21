@@ -291,6 +291,7 @@ export class UserProfileService {
         email: true,
         role: true,
         emailVerified: true,
+        passwordLoginEnabled: true,
         tosAccepted: true,
         tosAcceptedAt: true,
         acceptedTermsVersion: true,
@@ -337,7 +338,7 @@ export class UserProfileService {
         },
         accounts: {
           where: { provider: 'google' },
-          select: { access_token: true },
+          select: { access_token: true, provider: true },
         },
       },
     });
@@ -359,6 +360,10 @@ export class UserProfileService {
       email: user.email,
       role: user.role,
       emailVerified: user.emailVerified,
+      authMethods: {
+        password: user.passwordLoginEnabled,
+        google: Boolean(googleAccount),
+      },
       tosAccepted: user.tosAccepted,
       tosAcceptedAt: user.tosAcceptedAt,
       acceptedTermsVersion: user.acceptedTermsVersion,

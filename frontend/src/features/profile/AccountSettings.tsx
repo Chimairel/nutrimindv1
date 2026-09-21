@@ -44,6 +44,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const deletionConfirmed =
     deletionConfirmation === ACCOUNT_DELETION_CONFIRMATION || deletionConfirmation === 'DELETE MY NUTRIMIND ACCOUNT';
   const deletionConfirmationMismatch = deletionConfirmation.length > 0 && !deletionConfirmed;
+  const passwordLoginEnabled = user?.authMethods?.password !== false;
+  const googleLoginEnabled = Boolean(user?.authMethods?.google);
 
   const deleteAccount = async (credential: { password?: string; googleIdToken?: string }) => {
     setSessionRefreshSuppressed(true);
@@ -285,9 +287,11 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
                 <Lock className="h-5 w-5" />
               </span>
-              <h2 className="mt-5 font-display text-lg font-black text-brand-text">Change password</h2>
+              <h2 className="mt-5 font-display text-lg font-black text-brand-text">Password</h2>
               <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                Use a unique password you do not reuse elsewhere. Changing it will protect future sessions.
+                {passwordLoginEnabled
+                  ? 'Use a unique password you do not reuse elsewhere. Changing it will protect future sessions.'
+                  : 'This account uses Google sign-in and does not have a KAINARA password.'}
               </p>
             </div>
             <div className="p-5 sm:p-6">
@@ -303,6 +307,15 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   {passwordError}
                 </div>
               )}
+              {!passwordLoginEnabled && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 p-3.5 text-xs font-semibold leading-relaxed text-brand-text">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-cyan" />
+                  <span>
+                    Continue using the Google account connected to {user.email}. Password reset and password sign-in
+                    are unavailable for this account.
+                  </span>
+                </div>
+              )}
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <PasswordInput
                   id="current-password"
@@ -311,6 +324,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   autoComplete="current-password"
+                  disabled={!passwordLoginEnabled}
                   required
                 />
                 <div className="grid gap-4 md:grid-cols-2">
@@ -321,6 +335,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!passwordLoginEnabled}
                     required
                   />
                   <PasswordInput
@@ -330,6 +345,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
+                    disabled={!passwordLoginEnabled}
                     error={passwordsMismatch ? 'New passwords do not match.' : undefined}
                     required
                   />
@@ -338,10 +354,14 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                   <Button
                     variant="primary"
                     type="submit"
-                    disabled={isUpdatingPassword}
+                    disabled={isUpdatingPassword || !passwordLoginEnabled}
                     className="px-6 py-2.5 text-xs font-bold shadow-md"
                   >
-                    {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
+                    {isUpdatingPassword
+                      ? 'Updating Password...'
+                      : passwordLoginEnabled
+                        ? 'Update Password'
+                        : 'Google sign-in account'}
                   </Button>
                 </div>
               </form>
@@ -375,14 +395,16 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                 {deletionError}
               </div>
             )}
-            <PasswordInput
-              id="delete-account-password"
-              name="currentPassword"
-              autoComplete="current-password"
-              label="Current password (email and password accounts)"
-              value={deletionPassword}
-              onChange={(event) => setDeletionPassword(event.target.value)}
-            />
+            {passwordLoginEnabled && (
+              <PasswordInput
+                id="delete-account-password"
+                name="currentPassword"
+                autoComplete="current-password"
+                label="Current password"
+                value={deletionPassword}
+                onChange={(event) => setDeletionPassword(event.target.value)}
+              />
+            )}
             <Input
               id="delete-account-confirmation"
               name="confirmation"
@@ -392,31 +414,39 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               error={deletionConfirmationMismatch ? `Type ${ACCOUNT_DELETION_CONFIRMATION} exactly.` : undefined}
               required
             />
-            <div className="flex justify-end border-t border-brand-border/60 pt-4">
-              <Button
-                variant="danger"
-                type="submit"
-                disabled={isDeleting || !deletionConfirmed || deletionPassword.length < 8}
-              >
-                {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
-              </Button>
-            </div>
-            <div className="flex items-center gap-3" aria-hidden="true">
-              <span className="h-px flex-1 bg-brand-border/70" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">or</span>
-              <span className="h-px flex-1 bg-brand-border/70" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs leading-relaxed text-brand-muted">
-                Google accounts can reauthenticate and delete without a password. The selected Google identity must
-                match this KAINARA account.
-              </p>
-              <GoogleSignInButton
-                label="continue_with"
-                disabled={isDeleting || !deletionConfirmed}
-                onCredential={handleGoogleDeleteAccount}
-              />
-            </div>
+            {passwordLoginEnabled && (
+              <div className="flex justify-end border-t border-brand-border/60 pt-4">
+                <Button
+                  variant="danger"
+                  type="submit"
+                  disabled={isDeleting || !deletionConfirmed || deletionPassword.length < 8}
+                >
+                  {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
+                </Button>
+              </div>
+            )}
+            {googleLoginEnabled && (
+              <>
+                {passwordLoginEnabled && (
+                  <div className="flex items-center gap-3" aria-hidden="true">
+                    <span className="h-px flex-1 bg-brand-border/70" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">or</span>
+                    <span className="h-px flex-1 bg-brand-border/70" />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <p className="text-xs leading-relaxed text-brand-muted">
+                    Reauthenticate with the Google identity connected to this KAINARA account to permanently delete
+                    it.
+                  </p>
+                  <GoogleSignInButton
+                    label="continue_with"
+                    disabled={isDeleting || !deletionConfirmed}
+                    onCredential={handleGoogleDeleteAccount}
+                  />
+                </div>
+              </>
+            )}
           </form>
         </Card>
       )}

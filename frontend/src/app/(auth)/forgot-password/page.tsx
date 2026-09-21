@@ -65,8 +65,8 @@ export default function ForgotPasswordPage() {
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-left text-sm text-brand-text">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
             <span className="leading-6">
-              If an account with that email exists, we&apos;ve sent a password reset link. Check your inbox and spam
-              folder.
+              If that account supports password sign-in, we&apos;ve sent a reset link. Google-only accounts continue
+              using Google sign-in.
             </span>
           </div>
           <Link

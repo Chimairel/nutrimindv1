@@ -19,6 +19,10 @@ export interface UserSession {
   onboardingNextPath?: string;
   image?: string;
   googleImage?: string;
+  authMethods?: {
+    password: boolean;
+    google: boolean;
+  };
   isPremium?: boolean;
   testPremiumAllowed?: boolean;
   premiumExpiresAt?: string | null;
@@ -59,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           googleImage,
+          authMethods,
           userProfile,
           nutritionReport,
           onboardingStatus,
@@ -85,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           tosAccepted,
           image,
           googleImage,
+          authMethods: authMethods ?? { password: true, google: false },
           isPremium: Boolean(isPremium),
           testPremiumAllowed: Boolean(testPremiumAllowed),
           premiumExpiresAt: premiumExpiresAt ?? null,
