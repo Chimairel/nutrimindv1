@@ -3966,8 +3966,9 @@ Reproduced the reported generic 500 response by sending an application POST thro
 ## 93. YouTube meal-thumbnail rendering repair (2026-09-21)
 
 - Added `i.ytimg.com` to both the Next.js remote image allowlist and the page content-security policy. Raw-corpus YouTube thumbnails can now pass through `next/image` without throwing the unconfigured-host exception that previously sent the dashboard into its page error boundary.
+- Completed the missing API delivery link: when a meal has no governed Cloudinary assignment, the backend now parses its persisted recipe-specific YouTube video URL and returns that video's exact `i.ytimg.com` thumbnail. Cloudinary remains first priority, malformed or non-YouTube URLs fail closed, and meals with neither source retain the clearly labelled representative fallback. Raw-corpus plan rows use the same bounded thumbnail resolver.
 - Every shared modal now renders a Radix `Dialog.Description`; dialogs without visible description copy receive a screen-reader-only title-derived description. This removes the development accessibility warning while retaining visible descriptions where supplied.
-- Verification: the live Next image optimizer returned HTTP 200 and JPEG content for an `i.ytimg.com` thumbnail, the frontend production build generated all 55 routes, lint passed, and all 194 frontend tests across 49 files passed. The development server remains available at `localhost:3000`; an already-open error boundary requires a normal page reload to render the repaired dashboard.
+- Verification: the live current-plan API now returns exact YouTube thumbnails for the reported Longsilog, Fried Eggplant/Talong Okoy, and Tuscan Salmon rows. The image policy accepts valid watch, short, and embed URLs while rejecting unrelated hosts. Backend verification passes **559 tests / 0 failures / 1 existing TODO**, build, and lint. The live Next image optimizer previously returned HTTP 200 and JPEG content for the same host; the development server remains available at `localhost:3000`.
 
 ## 94. Self-service account deletion repair (2026-09-21)
 

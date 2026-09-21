@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { toPublicMealImage } from '../src/domain/meal-image.policy';
+import { toPublicMealImage, toPublicYouTubeThumbnail } from '../src/domain/meal-image.policy';
 import { mealImageMetadataSchema } from '../src/validation/meal-image.schemas';
 
 const base = {
@@ -47,6 +47,44 @@ test('[TEST-204] incomplete image records fail closed instead of emitting broken
     if (previous === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
     else process.env.CLOUDINARY_CLOUD_NAME = previous;
   }
+});
+
+test('[TEST-204] exact recipe video thumbnail replaces the generic representative fallback', () => {
+  const image = toPublicMealImage({
+    ...base,
+    mealName: 'Longsilog Recipe',
+    description:
+      'Recipe inspired by Panlasang Pinoy.\nVideo: https://www.youtube.com/watch?v=uXi6QDOdhGg\nSource: https://panlasangpinoy.com/how-to-cook-longsilog/',
+    imagePublicId: null,
+    imageVersion: null,
+    imageFormat: null,
+    imageKind: null,
+    imageAltText: null,
+  });
+  assert.deepEqual(image, {
+    url: 'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg',
+    altText: 'Recipe video thumbnail for Longsilog Recipe',
+    kind: 'EXACT',
+    attribution: {
+      creator: null,
+      sourcePageUrl: 'https://www.youtube.com/watch?v=uXi6QDOdhGg',
+      licenseCode: null,
+      licenseUrl: null,
+      modifications: null,
+    },
+  });
+});
+
+test('[TEST-204] raw-corpus video URLs support watch, short, and embed formats and reject unsafe hosts', () => {
+  assert.equal(
+    toPublicYouTubeThumbnail({ sourceVideoUrl: 'https://youtu.be/uXi6QDOdhGg', mealName: 'Longsilog' })?.url,
+    'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg'
+  );
+  assert.equal(
+    toPublicYouTubeThumbnail({ sourceVideoUrl: 'https://www.youtube.com/embed/uXi6QDOdhGg' })?.url,
+    'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg'
+  );
+  assert.equal(toPublicYouTubeThumbnail({ sourceVideoUrl: 'https://example.com/watch?v=uXi6QDOdhGg' }), null);
 });
 
 test('[TEST-204] third-party delivery discloses display transformations', () => {

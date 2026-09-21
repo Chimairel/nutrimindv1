@@ -21,7 +21,7 @@ import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domai
 import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
 import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
-import { toPublicMealImage, type MealImageRecord } from '@/domain/meal-image.policy';
+import { toPublicMealImage, toPublicYouTubeThumbnail, type MealImageRecord } from '@/domain/meal-image.policy';
 
 function toPublicVerifier(
   nutritionist: {
@@ -57,17 +57,23 @@ function serializeActionableMeal<
     selectionEvidence: unknown;
     libraryMealId: string | null;
     libraryMeal?: MealImageRecord | null;
+    sourceRawRecipeCandidate?: {
+      recipeName: string;
+      sourceVideoUrl: string | null;
+    } | null;
     status: string;
     aiConfidenceFlag: string;
     calories: number;
     ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
   },
 >(meal: T) {
-  const { nutritionist, selectionEvidence, libraryMeal, ...publicMeal } = meal;
+  const { nutritionist, selectionEvidence, libraryMeal, sourceRawRecipeCandidate, ...publicMeal } = meal;
   const verifier = toPublicVerifier(nutritionist);
   return {
     ...publicMeal,
-    image: libraryMeal ? toPublicMealImage(libraryMeal) : null,
+    image:
+      (libraryMeal ? toPublicMealImage(libraryMeal) : null) ||
+      (sourceRawRecipeCandidate ? toPublicYouTubeThumbnail(sourceRawRecipeCandidate) : null),
     verifier,
     explanation: buildMealExplanation({
       libraryMealId: meal.libraryMealId,
@@ -287,6 +293,9 @@ export class MealsController {
           include: {
             ingredients: true,
             libraryMeal: true,
+            sourceRawRecipeCandidate: {
+              select: { recipeName: true, sourceVideoUrl: true },
+            },
             mealLogs: {
               where: { userId },
             },
@@ -367,6 +376,9 @@ export class MealsController {
         include: {
           ingredients: true,
           libraryMeal: true,
+          sourceRawRecipeCandidate: {
+            select: { recipeName: true, sourceVideoUrl: true },
+          },
           mealLogs: {
             where: { userId },
           },
