@@ -83,28 +83,24 @@ export class UserPrivacyService {
       throw new Error('Current password is incorrect.');
     }
 
-    await prisma.$transaction(async (tx) => {
-      const mealPlans = await tx.mealPlan.findMany({ where: { userId }, select: { id: true } });
-      const scopedClearances = await tx.mealConditionClearance.findMany({
-        where: { userScopeId: userId },
-        select: { id: true },
-      });
-      const mealPlanIds = mealPlans.map(({ id }) => id);
-      const clearanceIds = scopedClearances.map(({ id }) => id);
+    const [mealPlans, scopedClearances] = await Promise.all([
+      prisma.mealPlan.findMany({ where: { userId }, select: { id: true } }),
+      prisma.mealConditionClearance.findMany({ where: { userScopeId: userId }, select: { id: true } }),
+    ]);
+    const mealPlanIds = mealPlans.map(({ id }) => id);
+    const clearanceIds = scopedClearances.map(({ id }) => id);
 
-      // These clinical decisions intentionally use RESTRICT during ordinary
-      // operations. A verified self-deletion must remove the user-owned review
-      // graph explicitly before the database cascades the remaining health data.
-      if (clearanceIds.length) {
-        await tx.mealPlanClearanceUsage.deleteMany({ where: { clearanceId: { in: clearanceIds } } });
-        await tx.mealConditionClearanceDecision.deleteMany({ where: { clearanceId: { in: clearanceIds } } });
-        await tx.mealConditionClearance.deleteMany({ where: { id: { in: clearanceIds } } });
-      }
-      if (mealPlanIds.length) {
-        await tx.mealPlanReviewDecision.deleteMany({ where: { mealPlanId: { in: mealPlanIds } } });
-      }
-
-      await tx.auditEvent.create({
+    // The review graph intentionally uses RESTRICT during ordinary operations.
+    // Use a batch transaction here instead of an interactive transaction: the
+    // development database is remote, and the default five-second interactive
+    // transaction lease can expire between these dependent statements. Prisma
+    // sends this ordered batch as one atomic database transaction.
+    await prisma.$transaction([
+      prisma.mealPlanClearanceUsage.deleteMany({ where: { clearanceId: { in: clearanceIds } } }),
+      prisma.mealConditionClearanceDecision.deleteMany({ where: { clearanceId: { in: clearanceIds } } }),
+      prisma.mealConditionClearance.deleteMany({ where: { id: { in: clearanceIds } } }),
+      prisma.mealPlanReviewDecision.deleteMany({ where: { mealPlanId: { in: mealPlanIds } } }),
+      prisma.auditEvent.create({
         data: {
           actorUserId: userId,
           action: 'USER_SELF_DELETION',
@@ -112,8 +108,8 @@ export class UserPrivacyService {
           entityId: userId,
           metadata: { initiatedBy: 'SELF_SERVICE', reauthenticationMethod },
         },
-      });
-      await tx.user.delete({ where: { id: userId } });
-    });
+      }),
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
   }
 }
