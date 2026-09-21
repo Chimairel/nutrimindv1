@@ -338,6 +338,9 @@ export class MealGenerationService {
 
     const localizedConsumption = await getLocalizedFoodConsumptionContext(profile);
     const localizedFoodIds = new Set(localizedConsumption.items.map((food) => food.id));
+    const localizedFoodGroupScores = new Map(
+      localizedConsumption.foodGroups.map((group) => [group.code, group.score] as const)
+    );
 
     // --- STEP 1: Check MealLibrary for pre-verified clinical matches ---
     console.log(`[Meal Generation] Step 1: Checking MealLibrary for pre-verified clinical matches...`);
@@ -365,7 +368,8 @@ export class MealGenerationService {
     const eligibleLibraryMeals = libraryMeals;
     const localizedCertifiedMealReference = rankMealsByLocalizedFoodEvidence(
       [...eligibleLibraryMeals].sort((left, right) => right.usageCount - left.usageCount),
-      localizedFoodIds
+      localizedFoodIds,
+      localizedFoodGroupScores
     )
       .slice(0, 24)
       .map(
@@ -413,7 +417,11 @@ export class MealGenerationService {
         // also fits this user's allocated meal target. Prefer the closest fit;
         // smaller recipes fall through to personalized generation.
         const calorieEligibleMatches = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType);
-        const selected = rankMealsByLocalizedFoodEvidence(calorieEligibleMatches, localizedFoodIds)[0];
+        const selected = rankMealsByLocalizedFoodEvidence(
+          calorieEligibleMatches,
+          localizedFoodIds,
+          localizedFoodGroupScores
+        )[0];
 
         if (selected) {
           selectedLibraryMealIds.add(selected.id);
@@ -448,6 +456,8 @@ export class MealGenerationService {
         otherConditions,
         otherAllergies,
         excludeCandidateIds: [...excludedRawCandidateIds],
+        localityFoodGroupScores: localizedFoodGroupScores,
+        localityEvidenceText: localizedConsumption.text,
       });
       const acceptedSlotKeys = new Set<string>();
       for (const meal of rawCorpusResult.meals) {

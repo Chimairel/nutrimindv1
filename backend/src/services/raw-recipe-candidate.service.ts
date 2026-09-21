@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
+import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -27,6 +28,7 @@ export interface SourcedRawRecipeMeal {
 type CandidateRow = Prisma.RawRecipeCandidateGetPayload<Record<string, never>>;
 
 const MAX_CANDIDATES_PER_TYPE = 24;
+const MAX_CANDIDATE_SCAN_PER_TYPE = 120;
 
 export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
@@ -57,6 +59,15 @@ function candidateFitsPreference(candidate: CandidateRow, preference: DietaryPre
   return stringArray(candidate.dietaryTags).includes(preference);
 }
 
+function candidateLocalityScore(candidate: CandidateRow, scores: ReadonlyMap<EnnsFoodGroupCode, number>): number {
+  const groups = new Set<EnnsFoodGroupCode>();
+  for (const ingredient of ingredientArray(candidate.ingredients)) {
+    const group = classifyIngredientIntoEnnsFoodGroup({ name: ingredient.name });
+    if (group) groups.add(group);
+  }
+  return [...groups].reduce((total, group) => total + (scores.get(group) ?? 0), 0);
+}
+
 export async function sourceRawRecipeCandidates(input: {
   slots: readonly RawCandidateSlot[];
   dailyCalorieTarget: number;
@@ -66,6 +77,8 @@ export async function sourceRawRecipeCandidates(input: {
   otherConditions?: string | null;
   otherAllergies?: string | null;
   excludeCandidateIds?: readonly string[];
+  localityFoodGroupScores?: ReadonlyMap<EnnsFoodGroupCode, number>;
+  localityEvidenceText?: string;
 }): Promise<{ meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] }> {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
 
@@ -82,9 +95,17 @@ export async function sourceRawRecipeCandidates(input: {
           ...(input.excludeCandidateIds?.length ? { id: { notIn: [...input.excludeCandidateIds] } } : {}),
         },
         orderBy: [{ calories: 'asc' }, { recipeName: 'asc' }],
-        take: MAX_CANDIDATES_PER_TYPE,
+        take: MAX_CANDIDATE_SCAN_PER_TYPE,
       });
-      return rows.filter((row) => candidateFitsPreference(row, input.dietaryPreference));
+      const localityScores = input.localityFoodGroupScores ?? new Map<EnnsFoodGroupCode, number>();
+      return rows
+        .filter((row) => candidateFitsPreference(row, input.dietaryPreference))
+        .sort(
+          (left, right) =>
+            candidateLocalityScore(right, localityScores) - candidateLocalityScore(left, localityScores) ||
+            left.recipeName.localeCompare(right.recipeName)
+        )
+        .slice(0, MAX_CANDIDATES_PER_TYPE);
     })
   );
   const candidates = candidateGroups.flat();
@@ -132,6 +153,9 @@ export async function sourceRawRecipeCandidates(input: {
     `Dietary preference: ${input.dietaryPreference}`,
     `Conditions for general fit only: ${input.conditions.join(', ') || 'NONE'}${input.otherConditions ? `; ${input.otherConditions}` : ''}`,
     `Allergens to avoid proposing: ${input.allergens.join(', ') || 'NONE'}${input.otherAllergies ? `; ${input.otherAllergies}` : ''}`,
+    input.localityEvidenceText
+      ? `Local familiarity evidence (ranking preference only, never safety evidence):\n${input.localityEvidenceText}`
+      : 'No locality consumption evidence is available; do not infer local popularity.',
     `Requested slots: ${JSON.stringify(input.slots.map(({ dayNumber, mealType }) => ({ dayNumber, mealType })))}`,
     `Candidates: ${JSON.stringify(
       candidates.map((candidate) => ({

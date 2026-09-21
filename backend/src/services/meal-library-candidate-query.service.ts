@@ -21,7 +21,10 @@ import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance 
 import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
 
 export const certifiedLibraryMealInclude = {
-  ingredients: { orderBy: { position: 'asc' as const } },
+  ingredients: {
+    orderBy: { position: 'asc' as const },
+    include: { foodItem: { select: { name: true, category: true } } },
+  },
   safetyDeclarations: true,
   safetyReviewedByNutritionist: {
     include: { user: { select: { role: true, name: true, image: true, isSuspended: true } } },

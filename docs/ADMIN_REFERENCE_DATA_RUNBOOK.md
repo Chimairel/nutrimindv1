@@ -72,6 +72,16 @@ This preserves historical reproducibility. NutriMind does not scrape or silently
 
 If DOST-FNRI requires a personal user agreement for public-use files, the person obtaining the data must personally accept those terms. Do not automate acceptance, redistribute restricted raw files into the repository, or upload personally identifiable/respondent-level data through the admin CSV endpoint. Derive and document an authorized aggregate table first.
 
+### ENNS individual dietary locality release
+
+The locally received 2018, 2019, and 2021 ENNS individual dietary delivery is kept under `backend/data/enns/2018-2019-2021-dietary-individual/source-delivery/`, which Git ignores. The application and database never read or persist respondent identifiers.
+
+Run `npm run enns:derive-locality` from `backend` to verify the reviewed source hashes and regenerate the committed aggregate. The derivation uses the supplied national sampling weight for national and derived regional summaries and the supplied provincial sampling weight for province/HUC summaries. It emits weighted food-group mean intake, weighted percent consuming, unweighted sample size, survey-year coverage, and a relative-to-national familiarity index.
+
+Run `npm run enns:locality:dry-run` before `npm run enns:locality:apply`. The apply command requires an existing administrator, publishes the versioned aggregate release, records its SHA-256 fingerprint and activation audit, and persists no respondent-level rows. The release influences familiarity ranking only. It cannot certify a meal, resolve an ingredient, or supply clinical evidence.
+
+Historical domains are reconciled to the current planning hierarchy only when identity is clear. The historical Maguindanao domain is retained in the BARMM regional aggregate but is not duplicated into Maguindanao del Norte or Maguindanao del Sur. Those two local selections therefore fall back to regional evidence. Pateros and Isabela City likewise contribute only to their current regional aggregate because they are outside the app's province/HUC selection set.
+
 ## Local verification
 
 The committed acceptance script is locked to the task-owned loopback database name and port used during development:

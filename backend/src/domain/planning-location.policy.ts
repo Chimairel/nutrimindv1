@@ -1,3 +1,5 @@
+import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
+
 export type PlanningGeographyLevel = 'NATIONAL' | 'REGION' | 'PROVINCE_HUC';
 export type MealLocalityPreference = 'NATIONAL' | 'NATIONAL_REGIONAL' | 'REGIONAL' | 'REGIONAL_LOCAL' | 'LOCAL';
 
@@ -21,7 +23,13 @@ export interface ScopedConsumptionResult<T> {
 }
 
 interface MealWithGroundedIngredients {
-  ingredients: Array<{ foodItemId?: string | null }>;
+  ingredients: Array<{
+    foodItemId?: string | null;
+    ingredientName?: string | null;
+    name?: string | null;
+    category?: string | null;
+    foodItem?: { name?: string | null; category?: string | null } | null;
+  }>;
 }
 
 function clean(value?: string | null): string | null {
@@ -147,13 +155,23 @@ export function interleaveScopeRows<T>(groups: Array<{ scope: ConsumptionScope; 
  */
 export function rankMealsByLocalizedFoodEvidence<TMeal extends MealWithGroundedIngredients>(
   meals: readonly TMeal[],
-  localizedFoodIds: ReadonlySet<string>
+  localizedFoodIds: ReadonlySet<string>,
+  localizedFoodGroupScores: ReadonlyMap<EnnsFoodGroupCode, number> = new Map()
 ): TMeal[] {
-  const score = (meal: TMeal) =>
-    meal.ingredients.reduce(
-      (total, ingredient) => total + (ingredient.foodItemId && localizedFoodIds.has(ingredient.foodItemId) ? 1 : 0),
-      0
-    );
+  const score = (meal: TMeal) => {
+    const matchedGroups = new Set<EnnsFoodGroupCode>();
+    let total = 0;
+    for (const ingredient of meal.ingredients) {
+      if (ingredient.foodItemId && localizedFoodIds.has(ingredient.foodItemId)) total += 1;
+      const group = classifyIngredientIntoEnnsFoodGroup({
+        name: ingredient.foodItem?.name ?? ingredient.ingredientName ?? ingredient.name,
+        category: ingredient.foodItem?.category ?? ingredient.category,
+      });
+      if (group) matchedGroups.add(group);
+    }
+    for (const group of matchedGroups) total += localizedFoodGroupScores.get(group) ?? 0;
+    return total;
+  };
 
   return [...meals].sort((left, right) => score(right) - score(left));
 }

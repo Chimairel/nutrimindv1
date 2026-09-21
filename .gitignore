@@ -33,3 +33,6 @@ codex/Install VALORANT.exe
 codex/toothless.jpg
 # Isolated disposable browser acceptance output
 /frontend/.next-repair/
+
+# FNRI public-use respondent records are kept locally and reduced to committed aggregates.
+/backend/data/enns/*/source-delivery/

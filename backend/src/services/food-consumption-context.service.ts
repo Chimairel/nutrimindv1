@@ -6,6 +6,10 @@ import {
   type PlanningLocation,
 } from '@/domain/planning-location.policy';
 import { PSGC_PLANNING_GEOGRAPHY, PSGC_PROVINCE_HUCS, PSGC_REGIONS } from '@/data/philippine-planning-geography';
+import {
+  calculateFoodGroupFamiliarityScore,
+  type EnnsFoodGroupCode,
+} from '@/domain/enns-food-group.policy';
 
 interface ConsumptionContextItem {
   id: string;
@@ -17,10 +21,22 @@ interface ConsumptionContextItem {
   fatG: number;
 }
 
+export interface LocalizedFoodGroupSignal {
+  code: EnnsFoodGroupCode;
+  name: string;
+  score: number;
+  rank: number | null;
+  percentConsuming: number | null;
+  meanIntakeG: number | null;
+  relativeToNational: number | null;
+  scopeLabels: string[];
+}
+
 export interface LocalizedFoodConsumptionContext {
   text: string;
   matchedScope: ConsumptionScope | null;
   items: ConsumptionContextItem[];
+  foodGroups: LocalizedFoodGroupSignal[];
   releaseLabel: string | null;
 }
 
@@ -46,7 +62,10 @@ export async function getActivePlanningLocationOptions(): Promise<PlanningLocati
         source: { isEnabled: true, domain: 'FOOD_CONSUMPTION' },
       },
       geographyLevel: { in: ['REGION', 'PROVINCE_HUC'] },
-      mappingStatus: { in: ['EXACT', 'MANUAL'] },
+      OR: [
+        { mappingStatus: { in: ['EXACT', 'MANUAL'] } },
+        { foodGroupCode: { not: null } },
+      ],
       regionName: { not: null },
     },
     select: { regionName: true, provinceHucName: true },
@@ -81,7 +100,8 @@ export async function getActivePlanningLocationOptions(): Promise<PlanningLocati
 
 /**
  * Builds a compact, provenance-backed popularity hint for meal generation.
- * Only active aggregate releases and explicit FNRI mappings are eligible.
+ * Only active aggregate releases are eligible. Exact-food hints require an
+ * explicit FNRI mapping; ENNS group hints require a recognized group code.
  * The hint never overrides calorie, dietary, allergy, or clinical constraints.
  */
 export async function getLocalizedFoodConsumptionContext(
@@ -102,8 +122,10 @@ export async function getLocalizedFoodConsumptionContext(
         ...(scope.provinceHucName
           ? { provinceHucName: { equals: scope.provinceHucName, mode: 'insensitive' as const } }
           : {}),
-        foodItemId: { not: null },
-        mappingStatus: { in: ['EXACT', 'MANUAL'] },
+        OR: [
+          { foodItemId: { not: null }, mappingStatus: { in: ['EXACT', 'MANUAL'] } },
+          { foodGroupCode: { not: null } },
+        ],
       },
       take: boundedLimit,
       orderBy: [{ rank: 'asc' }, { percentConsuming: 'desc' }, { meanIntakeG: 'desc' }],
@@ -111,6 +133,9 @@ export async function getLocalizedFoodConsumptionContext(
         rank: true,
         percentConsuming: true,
         meanIntakeG: true,
+        foodGroupCode: true,
+        foodNameRaw: true,
+        relativeToNational: true,
         populationGroup: true,
         foodItem: {
           select: {
@@ -128,7 +153,7 @@ export async function getLocalizedFoodConsumptionContext(
     })
   );
 
-  if (!groups.length) return { text: '', matchedScope: null, items: [], releaseLabel: null };
+  if (!groups.length) return { text: '', matchedScope: null, items: [], foodGroups: [], releaseLabel: null };
 
   const scope = { ...groups[0].scope, label: groups.map((group) => group.scope.label).join(' + ') };
   const rows = interleaveScopeRows(groups);
@@ -143,7 +168,7 @@ export async function getLocalizedFoodConsumptionContext(
     })
     .slice(0, boundedLimit);
   const items = uniqueRows.map(({ row }) => row.foodItem!);
-  const text = uniqueRows
+  const exactFoodText = uniqueRows
     .map(({ row, scope: rowScope }) => {
       const measures = [
         row.rank ? `rank ${row.rank}` : null,
@@ -154,11 +179,74 @@ export async function getLocalizedFoodConsumptionContext(
     })
     .join('\n');
 
-  const releases = [...new Set(uniqueRows.map(({ row }) => `${row.release.source.code} ${row.release.versionLabel}`))];
+  const groupSignals = new Map<
+    string,
+    {
+      code: EnnsFoodGroupCode;
+      name: string;
+      scores: number[];
+      ranks: number[];
+      percents: number[];
+      means: number[];
+      relatives: number[];
+      scopeLabels: Set<string>;
+    }
+  >();
+  for (const { row, scope: rowScope } of rows) {
+    if (!row.foodGroupCode) continue;
+    const existing = groupSignals.get(row.foodGroupCode) ?? {
+      code: row.foodGroupCode as EnnsFoodGroupCode,
+      name: row.foodNameRaw,
+      scores: [],
+      ranks: [],
+      percents: [],
+      means: [],
+      relatives: [],
+      scopeLabels: new Set<string>(),
+    };
+    existing.scores.push(calculateFoodGroupFamiliarityScore(row));
+    if (row.rank !== null) existing.ranks.push(row.rank);
+    if (row.percentConsuming !== null) existing.percents.push(row.percentConsuming);
+    if (row.meanIntakeG !== null) existing.means.push(row.meanIntakeG);
+    if (row.relativeToNational !== null) existing.relatives.push(row.relativeToNational);
+    existing.scopeLabels.add(rowScope.label);
+    groupSignals.set(row.foodGroupCode, existing);
+  }
+  const average = (values: number[]): number | null =>
+    values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+  const foodGroups = [...groupSignals.values()]
+    .map<LocalizedFoodGroupSignal>((signal) => ({
+      code: signal.code,
+      name: signal.name,
+      score: average(signal.scores) ?? 0,
+      rank: signal.ranks.length ? Math.round(average(signal.ranks)!) : null,
+      percentConsuming: average(signal.percents),
+      meanIntakeG: average(signal.means),
+      relativeToNational: average(signal.relatives),
+      scopeLabels: [...signal.scopeLabels],
+    }))
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+  const groupText = foodGroups
+    .map((group) => {
+      const measures = [
+        group.rank ? `rank ${group.rank}` : null,
+        group.percentConsuming !== null ? `${group.percentConsuming.toFixed(1)}% consuming` : null,
+        group.meanIntakeG !== null ? `${group.meanIntakeG.toFixed(1)} g/day mean` : null,
+        group.relativeToNational !== null ? `${group.relativeToNational.toFixed(2)}x national mean` : null,
+      ].filter(Boolean);
+      return `- [ENNS_GROUP=${group.code}] ${group.name} (${measures.join(', ')}; scope ${group.scopeLabels.join(' + ')})`;
+    })
+    .join('\n');
+  const text = [groupText, exactFoodText].filter(Boolean).join('\n');
+
+  const releases = [
+    ...new Set(rows.map(({ row }) => `${row.release.source.code} ${row.release.versionLabel}`)),
+  ];
   return {
     text,
     matchedScope: scope,
     items,
+    foodGroups,
     releaseLabel: releases.length ? releases.join(' + ') : null,
   };
 }

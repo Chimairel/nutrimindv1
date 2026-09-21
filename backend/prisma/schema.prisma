@@ -1082,30 +1082,36 @@ model ReferenceDataReleaseActivation {
 }
 
 model FoodConsumptionStat {
-  id               String                    @id @default(cuid())
-  releaseId        String
-  release          ReferenceDataRelease      @relation(fields: [releaseId], references: [id], onDelete: Cascade)
-  sourceRowKey     String                    @db.VarChar(191)
-  populationGroup  String                    @db.VarChar(120)
-  geographyLevel   ConsumptionGeographyLevel
-  regionCode       String?                   @db.VarChar(40)
-  regionName       String?                   @db.VarChar(120)
-  provinceHucCode  String?                   @db.VarChar(40)
-  provinceHucName  String?                   @db.VarChar(160)
-  placeType        String?                   @db.VarChar(40)
-  foodNameRaw      String                    @db.VarChar(240)
-  foodItemId       String?
-  foodItem         FoodItem?                 @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
-  mappingStatus    ConsumptionMappingStatus
-  rank             Int?
-  percentConsuming Float?
-  meanIntakeG      Float?
-  sampleSize       Int?
-  createdAt        DateTime                  @default(now())
+  id                 String                    @id @default(cuid())
+  releaseId          String
+  release            ReferenceDataRelease      @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  sourceRowKey       String                    @db.VarChar(191)
+  populationGroup    String                    @db.VarChar(120)
+  geographyLevel     ConsumptionGeographyLevel
+  regionCode         String?                   @db.VarChar(40)
+  regionName         String?                   @db.VarChar(120)
+  provinceHucCode    String?                   @db.VarChar(40)
+  provinceHucName    String?                   @db.VarChar(160)
+  placeType          String?                   @db.VarChar(40)
+  foodNameRaw        String                    @db.VarChar(240)
+  foodGroupCode      String?                   @db.VarChar(40)
+  sourceVariable     String?                   @db.VarChar(40)
+  foodItemId         String?
+  foodItem           FoodItem?                 @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  mappingStatus      ConsumptionMappingStatus
+  rank               Int?
+  percentConsuming   Float?
+  meanIntakeG        Float?
+  sampleSize         Int?
+  weightedPopulation Float?
+  relativeToNational Float?
+  surveyYears        String?                   @db.VarChar(20)
+  createdAt          DateTime                  @default(now())
 
   @@unique([releaseId, sourceRowKey])
   @@index([releaseId, geographyLevel, populationGroup, rank], map: "FoodConsumptionStat_release_geo_population_rank_idx")
   @@index([foodItemId, geographyLevel])
+  @@index([releaseId, geographyLevel, foodGroupCode, rank], map: "FoodConsumptionStat_release_geo_group_rank_idx")
   @@index([mappingStatus, releaseId])
 }
 

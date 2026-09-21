@@ -8,6 +8,11 @@ import {
   resolveFirstAvailableConsumptionScope,
 } from '../src/domain/planning-location.policy';
 import { onboardingProfileSchema } from '../src/validation/onboarding.schemas';
+import {
+  calculateFoodGroupFamiliarityScore,
+  classifyIngredientIntoEnnsFoodGroup,
+  resolveEnnsPlanningGeography,
+} from '../src/domain/enns-food-group.policy';
 
 test('[TEST-196] planning location falls back from province/HUC to region and national evidence', () => {
   const scopes = buildConsumptionScopeChain({
@@ -143,4 +148,60 @@ test('[TEST-196] local evidence ranks only already-eligible certified meals and 
     ranked.map((meal) => meal.id),
     ['localized-fit', 'same-local-score-later', 'same-local-score-earlier', 'closer-calorie-fit']
   );
+});
+
+test('[TEST-201] ENNS food groups classify grounded and plain-text meal ingredients', () => {
+  assert.equal(
+    classifyIngredientIntoEnnsFoodGroup({ name: 'Bangus, cooked', category: 'Fish & Shellfish' }),
+    'FISH_PRODUCTS'
+  );
+  assert.equal(classifyIngredientIntoEnnsFoodGroup({ name: 'Steamed white rice' }), 'RICE_PRODUCTS');
+  assert.equal(classifyIngredientIntoEnnsFoodGroup({ name: 'Chicken breast' }), 'POULTRY');
+  assert.equal(
+    classifyIngredientIntoEnnsFoodGroup({ name: 'Pechay leaves', category: 'Vegetables' }),
+    'GREEN_LEAFY_YELLOW_VEGETABLES'
+  );
+});
+
+test('[TEST-201] historical ENNS geography resolves to current planning names without fabricating split-province data', () => {
+  assert.deepEqual(resolveEnnsPlanningGeography('Lapu-Lapu City (Opon)', '7'), {
+    provinceHucName: 'Lapu-Lapu',
+    regionName: 'Central Visayas',
+    isHistoricalProxy: false,
+  });
+  assert.deepEqual(resolveEnnsPlanningGeography('Negros Occidental', '6'), {
+    provinceHucName: 'Negros Occidental',
+    regionName: 'Negros Island Region',
+    isHistoricalProxy: false,
+  });
+  assert.deepEqual(resolveEnnsPlanningGeography('Maguindanao', '15'), {
+    provinceHucName: null,
+    regionName: 'Bangsamoro Autonomous Region in Muslim Mindanao',
+    isHistoricalProxy: true,
+  });
+});
+
+test('[TEST-201] weighted locality signals prioritize a locally stronger food group', () => {
+  const fishScore = calculateFoodGroupFamiliarityScore({
+    rank: 2,
+    percentConsuming: 68.3,
+    relativeToNational: 1.3,
+  });
+  const meatScore = calculateFoodGroupFamiliarityScore({
+    rank: 9,
+    percentConsuming: 28,
+    relativeToNational: 0.7,
+  });
+  const ranked = rankMealsByLocalizedFoodEvidence(
+    [
+      { id: 'meat', ingredients: [{ ingredientName: 'Beef strips' }] },
+      { id: 'fish', ingredients: [{ ingredientName: 'Grilled tuna' }] },
+    ],
+    new Set(),
+    new Map([
+      ['MEAT_PRODUCTS', meatScore],
+      ['FISH_PRODUCTS', fishScore],
+    ])
+  );
+  assert.deepEqual(ranked.map(({ id }) => id), ['fish', 'meat']);
 });
