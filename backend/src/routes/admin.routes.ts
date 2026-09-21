@@ -1,4 +1,3 @@
-import { TestPremiumService } from '@/services/test-premium.service';
 import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
@@ -12,7 +11,6 @@ import {
   applicationScheduleSchema,
   applicationStageSchema,
 } from '@/validation/nutritionist-application.schemas';
-import { billingOperationsStatusService } from '@/billing/runtime';
 import { emptyBodySchema } from '@/validation/onboarding.schemas';
 import { CompensationAdminService } from '@/services/compensation-admin.service';
 import {
@@ -34,16 +32,6 @@ router.use(authenticate);
 router.use(requireRole('ADMIN'));
 router.use('/data', adminDataRouter);
 router.use('/meal-images', adminMealImagesRouter);
-router.patch('/users/:id/test-premium-permission', async (req: AuthenticatedRequest, res: Response) => {
-  if (typeof req.body?.allowed !== 'boolean')
-    return res.status(400).json({ success: false, error: 'allowed must be a boolean.' });
-  try {
-    const data = await TestPremiumService.setPermission(req.user!.userId, req.params.id, req.body.allowed);
-    return res.json({ success: true, data });
-  } catch {
-    return res.status(400).json({ success: false, error: 'Could not update test Premium permission.' });
-  }
-});
 
 /**
  * GET /api/admin/analytics
@@ -474,14 +462,5 @@ router.post(
     }
   }
 );
-
-router.get('/billing-operations', async (_req: AuthenticatedRequest, res: Response) => {
-  try {
-    const data = await billingOperationsStatusService.getStatus();
-    return res.json({ success: true, data });
-  } catch {
-    return res.status(500).json({ success: false, error: 'Failed to retrieve billing operations.' });
-  }
-});
 
 export default router;

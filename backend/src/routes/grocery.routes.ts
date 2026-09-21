@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { GroceryCostService } from '@/services/grocery-cost.service';
 import { GroceryService } from '@/services/grocery.service';
 import { AuthenticatedRequest } from '@/types';
-import prisma from '@/lib/prisma';
-import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { GroceryController } from '@/controllers/grocery.controller';
@@ -31,14 +29,6 @@ router.post('/generate', GroceryController.generate);
  */
 router.get('/cost', async (req: AuthenticatedRequest, res) => {
   try {
-    const entitlement = await resolveUserBillingEntitlement(prisma, req.user!.userId, new Date());
-    if (entitlement.tier !== 'PREMIUM') {
-      return res.status(403).json({
-        success: false,
-        error: 'Shopping cost estimates require Premium.',
-        code: 'PREMIUM_REQUIRED',
-      });
-    }
     return res.json({ success: true, data: await GroceryCostService.estimate(req.user!.userId) });
   } catch {
     return res.status(503).json({ success: false, error: 'Price estimates are unavailable.' });

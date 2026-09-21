@@ -52,8 +52,6 @@ interface MealCardProps {
   mealLogs?: MealLog[];
   onStatusToggle?: (mealId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void>;
   onSwapClick?: (mealId: string) => void;
-  swapsUsed?: number;
-  swapCap?: number;
   scheduledDate?: string;
   onCardClick?: () => void;
   verifier?: PublicVerifier | null;
@@ -77,8 +75,6 @@ export default function MealCard({
   mealLogs = [],
   onStatusToggle,
   onSwapClick,
-  swapsUsed = 0,
-  swapCap = 3,
   scheduledDate,
   onCardClick,
   verifier,
@@ -644,15 +640,9 @@ export default function MealCard({
                                   setIsOpen(false);
                                   onSwapClick(id);
                                 }}
-                                disabled={swapsUsed >= swapCap || isPastDate}
+                                disabled={isPastDate}
                                 className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                                title={
-                                  isPastDate
-                                    ? 'Past scheduled meals cannot be swapped.'
-                                    : swapsUsed >= swapCap
-                                      ? `You've used all ${swapCap} swaps for this weekly plan.`
-                                      : undefined
-                                }
+                                title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
                               >
                                 <RefreshCw className="h-3 w-3 animate-spin-hover" /> Swap Meal
                               </Button>

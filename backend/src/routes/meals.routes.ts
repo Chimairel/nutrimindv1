@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { generateNextPlan } from '@/controllers/next-plan.controller';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { MealsController } from '@/controllers/meals.controller';
@@ -41,12 +40,7 @@ router.post('/rollover', MealsController.ensureCurrentPlanRollover);
  * Route: GET /api/user/meals/current
  * Description: Returns current active meal plan items.
  */
-router.get(
-  '/current',
-  validateZodRequest({ query: z.object({ view: z.enum(['current', 'next']).optional() }).strict() }),
-  MealsController.getCurrentPlan
-);
-router.post('/next/generate', validateZodRequest({ body: z.object({}).strict() }), generateNextPlan);
+router.get('/current', validateZodRequest({ query: z.object({}).strict() }), MealsController.getCurrentPlan);
 
 /**
  * Route: GET /api/user/meals/history

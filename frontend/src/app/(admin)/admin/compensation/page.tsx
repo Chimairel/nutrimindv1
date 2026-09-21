@@ -118,9 +118,8 @@ export default function AdminCompensationPage() {
         }
       />
       <div className="rounded-2xl border border-brand-cyan/20 bg-brand-cyan/5 p-4 text-sm text-brand-muted">
-        <strong className="text-brand-text">Separate accounting domain.</strong> Subscription revenue does not fund or
-        trigger a nutritionist payout. This workspace records manual evidence only and stores no bank or e-wallet
-        details.
+        <strong className="text-brand-text">Independent work records.</strong> User access does not fund or trigger a
+        nutritionist payout. This workspace records manual evidence only and stores no bank or e-wallet details.
       </div>
       {notice && (
         <div

@@ -54,9 +54,9 @@ const HELP_ITEMS: HelpItem[] = [
   {
     id: 'swap-limits',
     category: 'swaps',
-    question: 'How many meal swaps can I make per week?',
+    question: 'How many meal swaps can I make?',
     answer:
-      'You are provided 3 meal swaps per weekly cycle. Swapping allows you to replace a meal slot with a dietitian-curated recipe from the Meal Library that matches your dietary preferences.',
+      'Meal swaps are unlimited. Each replacement still has to come from the reviewed Meal Library and match the meal slot, your dietary preferences, and your recorded safety profile.',
   },
   {
     id: 'calorie-delta',

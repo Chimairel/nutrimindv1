@@ -9,14 +9,8 @@ import {
   type EnnsFoodGroupCode,
 } from '@/domain/enns-food-group.policy';
 
-const DELIVERY_DIRECTORY = path.resolve(
-  process.cwd(),
-  'data/enns/2018-2019-2021-dietary-individual/source-delivery'
-);
-const DERIVED_DIRECTORY = path.resolve(
-  process.cwd(),
-  'data/enns/2018-2019-2021-dietary-individual/derived'
-);
+const DELIVERY_DIRECTORY = path.resolve(process.cwd(), 'data/enns/2018-2019-2021-dietary-individual/source-delivery');
+const DERIVED_DIRECTORY = path.resolve(process.cwd(), 'data/enns/2018-2019-2021-dietary-individual/derived');
 const DATASET_FILE = path.join(DELIVERY_DIRECTORY, '2018-2019-2021 ENNS_data-set_dietary_indiv.csv');
 const DICTIONARY_FILE = path.join(DELIVERY_DIRECTORY, '2018-2019-2021 ENNS_data-dictionary_dietary_indiv.csv');
 const OUTPUT_FILE = path.join(DERIVED_DIRECTORY, 'enns-food-group-locality-v1.csv');
@@ -71,18 +65,23 @@ function aggregateKey(
 
 function addObservation(
   aggregates: Map<string, Aggregate>,
-  geography: Omit<Aggregate, 'foodGroupCode' | 'sourceVariable' | 'foodName' | 'weightSum' | 'consumerWeightSum' | 'weightedIntakeSum' | 'sampleSize' | 'years'>,
+  geography: Omit<
+    Aggregate,
+    | 'foodGroupCode'
+    | 'sourceVariable'
+    | 'foodName'
+    | 'weightSum'
+    | 'consumerWeightSum'
+    | 'weightedIntakeSum'
+    | 'sampleSize'
+    | 'years'
+  >,
   group: (typeof ENNS_FOOD_GROUPS)[number],
   intakeG: number,
   weight: number,
   year: number
 ) {
-  const key = aggregateKey(
-    geography.geographyLevel,
-    geography.regionName,
-    geography.provinceHucName,
-    group.code
-  );
+  const key = aggregateKey(geography.geographyLevel, geography.regionName, geography.provinceHucName, group.code);
   const aggregate = aggregates.get(key) ?? {
     ...geography,
     foodGroupCode: group.code,
@@ -158,7 +157,11 @@ async function main() {
     const year = Number(value('enns_year'));
     const nationalWeight = Number(value('fwgti_natl2_var'));
     const provincialWeight = Number(value('fwgti_prov2'));
-    if (![year, nationalWeight, provincialWeight].every(Number.isFinite) || nationalWeight <= 0 || provincialWeight <= 0) {
+    if (
+      ![year, nationalWeight, provincialWeight].every(Number.isFinite) ||
+      nationalWeight <= 0 ||
+      provincialWeight <= 0
+    ) {
       throw new Error(`Invalid survey year or sampling weight on data row ${rowCount + 2}.`);
     }
 
@@ -242,7 +245,8 @@ async function main() {
       .sort(
         (left, right) =>
           right.percentConsuming * Math.log1p(right.meanIntakeG) -
-            left.percentConsuming * Math.log1p(left.meanIntakeG) || left.foodGroupCode.localeCompare(right.foodGroupCode)
+            left.percentConsuming * Math.log1p(left.meanIntakeG) ||
+          left.foodGroupCode.localeCompare(right.foodGroupCode)
       )
       .map((row, index) => ({ ...row, rank: index + 1 }))
   );

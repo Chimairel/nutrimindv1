@@ -5,7 +5,7 @@ import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy'
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealLogService } from '@/services/meal-log.service';
-import { MealSwapService, SwapLimitReachedError } from '@/services/meal-swap.service';
+import { MealSwapService } from '@/services/meal-swap.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealType } from '@prisma/client';
@@ -18,8 +18,6 @@ import {
   isUserActionableMealPlanStatus,
 } from '@/domain/meal-actionability.policy';
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
-import { resolveUserBillingEntitlement } from '@/services/user-entitlement-reader.service';
-import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
 import { toPublicMealImage, toPublicYouTubeThumbnail, type MealImageRecord } from '@/domain/meal-image.policy';
 
@@ -170,18 +168,11 @@ export class MealsController {
       }
 
       const now = new Date();
-      const entitlement = await resolveUserBillingEntitlement(prisma, userId, now);
-      const swapCap = weeklySwapCapForTier(entitlement.tier);
-      const viewNext = req.query.view === 'next';
-      if (viewNext && entitlement.tier !== 'PREMIUM')
-        return res.status(403).json({ success: false, error: 'Next-week planning requires Premium.' });
       const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
       const currentWindow = getCurrentWeeklyCycleWindow(profile, now);
       const nextWindow = getNextWeeklyCycleWindow(profile, now);
       const schedule = {
-        scheduledDate: viewNext
-          ? { gte: nextWindow.startDate, lte: nextWindow.endDate }
-          : { gte: currentWindow.startDate, lt: nextWindow.startDate },
+        scheduledDate: { gte: currentWindow.startDate, lt: nextWindow.startDate },
       };
 
       // Find the latest plan group containing an approved row in the active cycle.
@@ -197,7 +188,7 @@ export class MealsController {
       });
 
       // Fallback for ad-hoc bridge starter plans that may have started earlier than current cycle
-      if (!latestPlan && !viewNext) {
+      if (!latestPlan) {
         latestPlan = await prisma.mealPlan.findFirst({
           where: {
             userId,
@@ -221,7 +212,7 @@ export class MealsController {
           select: { planGroupId: true },
         });
 
-        if (!latestPendingPlan && !viewNext) {
+        if (!latestPendingPlan) {
           latestPendingPlan = await prisma.mealPlan.findFirst({
             where: {
               userId,
@@ -233,48 +224,40 @@ export class MealsController {
           });
         }
 
-        const [pendingPlanRows, pendingSwapTracker] = latestPendingPlan
-          ? await Promise.all([
-              prisma.mealPlan.findMany({
-                where: {
-                  userId,
-                  planGroupId: latestPendingPlan.planGroupId,
-                  status: MealPlanStatus.PENDING_REVIEW,
-                  ...schedule,
-                },
-                select: {
-                  planType: true,
-                  status: true,
-                  mealName: true,
-                  mealType: true,
-                  description: true,
-                  calories: true,
-                  proteinG: true,
-                  carbsG: true,
-                  fatG: true,
-                  scheduledDate: true,
-                  ingredients: {
-                    select: {
-                      ingredientName: true,
-                      category: true,
-                    },
+        const pendingPlanRows = latestPendingPlan
+          ? await prisma.mealPlan.findMany({
+              where: {
+                userId,
+                planGroupId: latestPendingPlan.planGroupId,
+                status: MealPlanStatus.PENDING_REVIEW,
+                ...schedule,
+              },
+              select: {
+                planType: true,
+                status: true,
+                mealName: true,
+                mealType: true,
+                description: true,
+                calories: true,
+                proteinG: true,
+                carbsG: true,
+                fatG: true,
+                scheduledDate: true,
+                ingredients: {
+                  select: {
+                    ingredientName: true,
+                    category: true,
                   },
                 },
-              }),
-              prisma.planSwapTracker.findUnique({
-                where: { planGroupId: latestPendingPlan.planGroupId },
-                select: { swapsUsed: true },
-              }),
-            ])
-          : ([[], null] as const);
+              },
+            })
+          : [];
 
         return res.status(200).json({
           success: true,
           data: [],
           meta: {
             pendingReview: buildPendingMealPlanPreview(pendingPlanRows),
-            swapsUsed: pendingSwapTracker?.swapsUsed ?? 0,
-            swapCap,
           },
         });
       }
@@ -283,33 +266,27 @@ export class MealsController {
       // the remaining pending rows stay visible as a non-actionable preview.
       // A plan is reviewed meal-by-meal, so returning only approved rows would
       // make the rest of the user's schedule appear to disappear.
-      const [groupMeals, swapTracker] = await Promise.all([
-        prisma.mealPlan.findMany({
-          where: {
-            userId,
-            planGroupId: latestPlan.planGroupId,
-            ...schedule,
+      const groupMeals = await prisma.mealPlan.findMany({
+        where: {
+          userId,
+          planGroupId: latestPlan.planGroupId,
+          ...schedule,
+        },
+        include: {
+          ingredients: true,
+          libraryMeal: true,
+          sourceRawRecipeCandidate: {
+            select: { recipeName: true, sourceVideoUrl: true },
           },
-          include: {
-            ingredients: true,
-            libraryMeal: true,
-            sourceRawRecipeCandidate: {
-              select: { recipeName: true, sourceVideoUrl: true },
-            },
-            mealLogs: {
-              where: { userId },
-            },
-            nutritionist: {
-              include: { user: { select: { name: true, image: true } } },
-            },
+          mealLogs: {
+            where: { userId },
           },
-          orderBy: { scheduledDate: 'asc' },
-        }),
-        prisma.planSwapTracker.findUnique({
-          where: { planGroupId: latestPlan.planGroupId },
-          select: { swapsUsed: true },
-        }),
-      ]);
+          nutritionist: {
+            include: { user: { select: { name: true, image: true } } },
+          },
+        },
+        orderBy: { scheduledDate: 'asc' },
+      });
       const meals = groupMeals
         .filter((meal) => isUserActionableMealPlanStatus(meal.status) && meal.requiresSafetyRevalidation === false)
         .map(serializeActionableMeal);
@@ -319,8 +296,6 @@ export class MealsController {
         data: meals,
         meta: {
           pendingReview: buildPendingMealPlanPreview(groupMeals),
-          swapsUsed: swapTracker?.swapsUsed ?? 0,
-          swapCap,
         },
       });
     } catch (error: any) {
@@ -690,14 +665,6 @@ export class MealsController {
       console.error('[MealsController] executeSwap error:', sanitizeErrorMessage(error, 'Meal swap failure.'));
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({ success: false, error: error.message });
-      }
-      if (error instanceof SwapLimitReachedError) {
-        return res.status(403).json({
-          success: false,
-          error: error.message,
-          errorCode: error.code,
-          swapCap: error.cap,
-        });
       }
       return res.status(400).json({
         success: false,

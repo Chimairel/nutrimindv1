@@ -124,7 +124,6 @@ export function summarizeOutsideMealNutrition(items: readonly OutsideMealResolve
 }
 
 export function resolveOutsideMealAiAllowance(input: {
-  tier: 'FREE' | 'PREMIUM';
   requestedItems: number;
   usedToday: number;
   usedRolling30Days: number;
@@ -135,9 +134,6 @@ export function resolveOutsideMealAiAllowance(input: {
   const rolling30DayCap = input.rolling30DayCap ?? OUTSIDE_MEAL_AI_ROLLING_30_DAY_CAP;
   const remainingToday = Math.max(0, dailyCap - input.usedToday);
   const remainingRolling = Math.max(0, rolling30DayCap - input.usedRolling30Days);
-  if (input.tier !== 'PREMIUM') {
-    return { allowed: false, reason: 'PREMIUM_REQUIRED', remainingToday, remainingRolling } as const;
-  }
   if (input.requestedItems <= 0) {
     return { allowed: true, reason: 'NO_AI_NEEDED', remainingToday, remainingRolling } as const;
   }

@@ -66,7 +66,6 @@ async function main() {
   } finally {
     if (planGroupId) {
       await prisma.mealPlan.deleteMany({ where: { planGroupId } });
-      await prisma.planSwapTracker.deleteMany({ where: { planGroupId } });
     }
     await prisma.notification.deleteMany({
       where: { userId: user.id, createdAt: { gte: startedAt }, title: 'New Meal Plan Awaiting Verification' },

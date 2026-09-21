@@ -1,6 +1,6 @@
 # NutriMind deployment runbook
 
-This runbook packages the existing Next.js and Express applications. It does not bypass the clinical-policy production gate, change the database, or enable PayMongo automatically.
+This runbook packages the existing Next.js and Express applications. It does not bypass the clinical-policy production gate or change the database outside reviewed Prisma migrations.
 
 ## Build and verify images
 
@@ -21,7 +21,7 @@ Run `npm run check` before publishing images. CI performs the same source gates 
 - Host Nginx or Caddy terminating HTTPS and proxying `/api` to `127.0.0.1:5000` and other traffic to `127.0.0.1:3000`
 - Container images published under immutable SHA-256 digests
 
-Start from [`backend/.env.example`](../backend/.env.example). Production startup intentionally fails unless all required secrets, exact CORS origins, and the approved clinical-policy version are present. Keep PayMongo in TEST and its feature flags disabled until its separate release checklist passes.
+Start from [`backend/.env.example`](../backend/.env.example). Production startup intentionally fails unless all required secrets, exact CORS origins, and the approved clinical-policy version are present.
 
 ## Release
 

@@ -163,10 +163,10 @@ test('[TEST-141] role UIs disclose separation, own-only scope, outcome neutralit
     join(process.cwd(), '..', 'frontend', 'src', 'app', '(nutritionist)', 'nutritionist', 'compensation', 'page.tsx'),
     'utf8'
   );
-  assert.match(admin, /Subscription revenue does not fund or\s+trigger a nutritionist payout/);
+  assert.match(admin, /User access does not fund or\s+trigger a\s+nutritionist payout/);
   assert.match(admin, /stores no bank or e-wallet\s+details/);
   assert.match(admin, /Prepare payout evidence/);
-  assert.doesNotMatch(admin, /PayMongo|bankAccount|walletNumber/);
+  assert.doesNotMatch(admin, /bankAccount|walletNumber/);
   assert.match(own, /Only your records/);
   assert.match(own, /same credit whether it is approved, rejected, or escalated/);
   assert.match(own, /Claims and expired or abandoned\s+work do\s+not count/);

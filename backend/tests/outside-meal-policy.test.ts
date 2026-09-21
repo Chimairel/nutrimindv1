@@ -73,23 +73,20 @@ test('[TEST-176] provisional AI values count now while unresolved values never b
   assert.equal(summary.completeness, 'PARTIAL');
 });
 
-test('[TEST-177] AI estimation is Premium-only and subject to both quotas', () => {
+test('[TEST-177] AI estimation is available to users and subject to both quotas', () => {
   assert.equal(
-    resolveOutsideMealAiAllowance({ tier: 'FREE', requestedItems: 1, usedToday: 0, usedRolling30Days: 0 }).reason,
-    'PREMIUM_REQUIRED'
+    resolveOutsideMealAiAllowance({ requestedItems: 1, usedToday: 0, usedRolling30Days: 0 }).reason,
+    'ALLOWED'
   );
   assert.equal(
-    resolveOutsideMealAiAllowance({ tier: 'PREMIUM', requestedItems: 1, usedToday: 5, usedRolling30Days: 5 }).reason,
+    resolveOutsideMealAiAllowance({ requestedItems: 1, usedToday: 5, usedRolling30Days: 5 }).reason,
     'DAILY_LIMIT_REACHED'
   );
   assert.equal(
-    resolveOutsideMealAiAllowance({ tier: 'PREMIUM', requestedItems: 1, usedToday: 0, usedRolling30Days: 30 }).reason,
+    resolveOutsideMealAiAllowance({ requestedItems: 1, usedToday: 0, usedRolling30Days: 30 }).reason,
     'ROLLING_LIMIT_REACHED'
   );
-  assert.equal(
-    resolveOutsideMealAiAllowance({ tier: 'PREMIUM', requestedItems: 2, usedToday: 1, usedRolling30Days: 10 }).allowed,
-    true
-  );
+  assert.equal(resolveOutsideMealAiAllowance({ requestedItems: 2, usedToday: 1, usedRolling30Days: 10 }).allowed, true);
 });
 
 test('[TEST-177] AI limits have bounded server configuration', () => {

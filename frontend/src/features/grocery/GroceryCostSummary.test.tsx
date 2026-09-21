@@ -12,21 +12,6 @@ describe('GroceryCostSummary', () => {
     mockedGet.mockReset();
   });
 
-  it('renders locked Premium upgrade teaser when cost endpoint returns 403 PREMIUM_REQUIRED', async () => {
-    mockedGet.mockRejectedValueOnce({
-      response: {
-        status: 403,
-        data: { success: false, error: 'Shopping cost estimates require Premium.', code: 'PREMIUM_REQUIRED' },
-      },
-    });
-
-    render(<GroceryCostSummary revision="1" />);
-
-    expect(await screen.findByText(/Shopping Cost & Budget Estimates/i)).toBeInTheDocument();
-    expect(screen.getByText('Premium')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Upgrade to Premium/i })).toHaveAttribute('href', '/profile/membership');
-  });
-
   it('renders unlocked details with covered subtotal when cost endpoint succeeds', async () => {
     mockedGet.mockResolvedValueOnce({
       data: {
@@ -47,11 +32,10 @@ describe('GroceryCostSummary', () => {
 
     expect(await screen.findByText(/Shopping cost estimate/i)).toHaveTextContent('₱150.00–₱185.00 covered subtotal');
   });
-  it('does not mislabel unrelated access failures as a Premium upsell', async () => {
+  it('shows a neutral unavailable state for endpoint failures', async () => {
     mockedGet.mockRejectedValueOnce({ response: { status: 403, data: { code: 'REPORT_REQUIRED' } } });
     render(<GroceryCostSummary revision="1" />);
     expect(await screen.findByText('Price estimates are currently unavailable.')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Upgrade to Premium/i })).not.toBeInTheDocument();
   });
   it('explains missing price configuration without displaying a zero-cost estimate', async () => {
     mockedGet.mockResolvedValueOnce({

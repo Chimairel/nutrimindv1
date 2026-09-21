@@ -6,8 +6,6 @@ import {
   getNextWeeklyCycleWindow,
   getOnDemandMealPlanWindow,
   getScheduledMealDate,
-  getWeeklyPlanPreparationDate,
-  isWeeklyPlanPreparationDue,
 } from '../src/domain/meal-plan-cycle.policy';
 
 test('[TEST-017] Thursday generation creates the exact weekend starter bridge', () => {
@@ -46,7 +44,7 @@ test('[TEST-017] all seven scheduled dates retain Manila midnight', () => {
   ]);
 });
 
-test('[TEST-017] Saturday-night cron targets the upcoming Sunday cycle', () => {
+test('[TEST-017] Saturday night resolves the upcoming Sunday cycle', () => {
   const saturdayNightInManila = new Date('2026-08-22T15:00:00.000Z');
   const cycle = getNextWeeklyCycleWindow(ShoppingDayGroup.WEEKEND, saturdayNightInManila);
 
@@ -54,7 +52,7 @@ test('[TEST-017] Saturday-night cron targets the upcoming Sunday cycle', () => {
   assert.equal(cycle.endDate.toISOString(), '2026-08-28T16:00:00.000Z');
 });
 
-test('[TEST-017] Sunday-night cron targets the upcoming Monday cycle', () => {
+test('[TEST-017] Sunday night resolves the upcoming Monday cycle', () => {
   const sundayNightInManila = new Date('2026-08-23T14:00:00.000Z');
   const cycle = getNextWeeklyCycleWindow(ShoppingDayGroup.WEEKDAY, sundayNightInManila);
 
@@ -85,13 +83,4 @@ test('[TEST-051] a mid-cycle signup receives only the bridge through shopping da
   assert.equal(window.planType, PlanType.STARTER);
   assert.equal(window.numDays, 6);
   assert.equal(window.startDate.toISOString(), '2026-08-27T16:00:00.000Z');
-});
-
-test('[TEST-051] preparation opens three days before the exact grocery day', () => {
-  const sundayInManila = new Date('2026-08-30T10:00:00+08:00');
-  const schedule = { shoppingDayOfWeek: 3 };
-
-  assert.equal(getWeeklyPlanPreparationDate(schedule, sundayInManila).toISOString(), '2026-08-29T16:00:00.000Z');
-  assert.equal(isWeeklyPlanPreparationDue(schedule, sundayInManila), true);
-  assert.equal(isWeeklyPlanPreparationDue(schedule, new Date('2026-08-29T10:00:00+08:00')), false);
 });

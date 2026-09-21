@@ -159,8 +159,8 @@ export default function OnboardingShoppingDayPage() {
                 <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                 <span>
                   <span className="font-semibold text-brand-text/70">How this works:</span> Your starter plan bridges
-                  the days until your first full cycle. Future plans are prepared three days before your grocery day so
-                  staff have time to review any newly generated meals.
+                  the days until your first full cycle. When a new cycle begins, KAINARA builds the current plan from
+                  eligible reviewed meals and sends any newly sourced meals through the normal review flow.
                 </span>
               </p>
             </div>

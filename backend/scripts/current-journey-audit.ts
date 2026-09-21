@@ -201,7 +201,6 @@ async function main() {
           '/api/admin/nutritionists',
           '/api/admin/nutritionist-applications',
           '/api/admin/data',
-          '/api/admin/billing-operations',
           '/api/admin/compensation',
         ],
       ],
@@ -328,7 +327,8 @@ async function main() {
     const key = randomUUID();
     const success = await MealSwapService.swapMeal(user.id, plan.id, library.id, true, true, preview.previewToken, key);
     const replay = await MealSwapService.swapMeal(user.id, plan.id, library.id, true, true, preview.previewToken, key);
-    assert.equal(success.swapsUsed, replay.swapsUsed);
+    assert.deepEqual(replay, success);
+    assert.equal(await prisma.swapLog.count({ where: { requestKey: `${user.id}:${key}` } }), 1);
     const boughtList = await GroceryService.getGroceryList(user.id);
     const eggItem = boughtList!.groceryItems.find((item) => item.ingredientName === food.name)!;
     const partial = await GroceryService.recordPurchase(user.id, eggItem.id, 50);
@@ -342,7 +342,7 @@ async function main() {
     observations.sameDaySwap =
       'PASS: acknowledged same-day swap, idempotent replay and purchased quantity preservation';
     observations.swapWarning = 'PASS: server rejects missing calorie warning acknowledgement';
-    observations.swapGroceryFailure = 'PASS: projection outage rolls back meal and quota';
+    observations.swapGroceryFailure = 'PASS: projection outage rolls back meal and swap audit';
 
     const currentProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
     const upcoming = await prisma.mealPlan.create({
@@ -377,24 +377,7 @@ async function main() {
         .parse(currentRead.body)
         .data.some((meal: { id: string }) => meal.id === upcoming.id)
     );
-    assert.equal((await request('/api/user/meals/current?view=next', 'GET', undefined, token)).status, 403);
-    await prisma.entitlementGrant.create({
-      data: {
-        userId: user.id,
-        billingSubjectKey: run,
-        entitlementKey: 'PREMIUM',
-        source: 'ADMIN_ADJUSTMENT',
-        sourceKey: 'audit-premium-' + run,
-        effectiveFrom: new Date(Date.now() - 60000),
-        effectiveUntil: new Date(Date.now() + 86400000),
-      },
-    });
-    const nextRead = await request('/api/user/meals/current?view=next', 'GET', undefined, token);
-    assert.equal(nextRead.status, 200);
-    assert.equal(
-      z.object({ data: z.array(z.object({ id: z.string() })) }).parse(nextRead.body).data[0].id,
-      upcoming.id
-    );
+    assert.equal((await request('/api/user/meals/current?view=next', 'GET', undefined, token)).status, 400);
     const legacyList = await prisma.groceryList.create({
       data: {
         userId: user.id,
@@ -412,12 +395,11 @@ async function main() {
         },
       },
     });
-    const nextList = await GroceryService.getGroceryList(user.id, 'next');
-    assert.notEqual(nextList!.id, legacyList.id);
+    const currentList = await GroceryService.getGroceryList(user.id);
+    assert.notEqual(currentList!.id, legacyList.id);
     assert.equal((await prisma.groceryList.findUniqueOrThrow({ where: { id: legacyList.id } })).planGroupId, null);
-    assert.equal(nextList!.groceryItems[0].purchasedQuantity, 0);
     observations.futurePlanning =
-      'PASS: Premium next-cycle access, Free rejection, independent grocery purchases and current-cycle selection';
+      'PASS: current-cycle reads exclude future plans and reject the removed next-cycle query';
     const profileUpdate = await request('/api/user/onboarding/profile', 'POST', { dietaryPreference: 'VEGAN' }, token);
     assert.equal(profileUpdate.status, 200);
     const afterDiet = await prisma.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });

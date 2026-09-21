@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { User, HeartPulse, Soup, ClipboardList, Crown, ShieldCheck, ChevronRight, LogOut } from 'lucide-react';
+import { User, HeartPulse, Soup, ClipboardList, ShieldCheck, ChevronRight, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -28,12 +28,6 @@ const sections = [
     icon: ClipboardList,
   },
   {
-    href: '/profile/membership',
-    title: 'Membership',
-    description: 'Your plan, available swaps and Premium benefits',
-    icon: Crown,
-  },
-  {
     href: '/profile/security',
     title: 'Security & privacy',
     description: 'Password, downloads and account controls',
@@ -51,15 +45,10 @@ export default function ProfilePage() {
         description="Your information, preferences and account settings."
       />
       <div className="flex items-center gap-4 rounded-2xl border border-brand-border bg-brand-surface p-4">
-        <Avatar src={user?.image} fallbackText={user?.name} size="md" showSalakot={Boolean(user?.isPremium)} />
+        <Avatar src={user?.image} fallbackText={user?.name} size="md" showSalakot />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-xl font-bold">{user?.name}</h2>
-            {user?.isPremium && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-brand-accent/40 bg-brand-accent/15 px-2 py-0.5 text-[11px] font-semibold text-brand-green">
-                👑 Premium
-              </span>
-            )}
           </div>
           <p className="break-all text-sm text-brand-muted">{user?.email}</p>
         </div>

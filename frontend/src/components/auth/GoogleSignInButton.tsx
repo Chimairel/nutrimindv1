@@ -145,7 +145,8 @@ export default function GoogleSignInButton({
       if (res.data && res.data.success) {
         const { accessToken } = res.data.data;
         const currentUser = await login(accessToken);
-        if (!currentUser) setError('Your account was authenticated, but its profile could not be loaded. Please try again.');
+        if (!currentUser)
+          setError('Your account was authenticated, but its profile could not be loaded. Please try again.');
       } else {
         setError(res.data.error || 'Google sign-in failed.');
       }

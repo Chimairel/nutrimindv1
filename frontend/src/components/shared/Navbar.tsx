@@ -92,12 +92,6 @@ const getBreadcrumbSegments = (
         { label: 'Food & Planning', current: true },
       ];
     }
-    if (pathname === '/profile/membership') {
-      return [
-        { label: 'Profile', href: '/profile' },
-        { label: 'Premium Access', current: true },
-      ];
-    }
     if (pathname === '/profile/security') {
       return [
         { label: 'Profile', href: '/profile' },

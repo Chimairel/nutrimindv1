@@ -30,7 +30,6 @@ const getInitialExpandedCategory = (items: GroceryItem[]) => {
 export default function GroceryListPage() {
   const { user } = useAuth();
   const ownerId = user?.userId;
-  const [view, setView] = useState<'current' | 'next'>('current');
   const cachedPage = readSessionResource<GroceryPageSnapshot>(ownerId, 'user-grocery-page');
   const [groceryList, setGroceryList] = useState<GroceryList | null>(cachedPage?.groceryList ?? null);
   const [isLoading, setIsLoading] = useState(!cachedPage);
@@ -58,7 +57,7 @@ export default function GroceryListPage() {
   const fetchGroceryList = useCallback(async () => {
     setError(null);
     try {
-      const snapshot = await fetchCurrentGrocery(view);
+      const snapshot = await fetchCurrentGrocery();
       const nextList = snapshot.groceryList;
       setPendingMealCount(snapshot.pendingMealCount);
       setGroceryList(nextList);
@@ -71,7 +70,7 @@ export default function GroceryListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [cachePage, view]);
+  }, [cachePage]);
 
   useEffect(() => {
     if (user) {
@@ -119,7 +118,6 @@ export default function GroceryListPage() {
     try {
       const response = await api.get('/user/grocery/pdf', {
         responseType: 'blob',
-        params: { view },
       });
       const file = new Blob([response.data], { type: 'application/pdf' });
       const fileURL = URL.createObjectURL(file);
@@ -231,22 +229,6 @@ export default function GroceryListPage() {
         }
       />
 
-      <div className="mb-4 flex gap-2">
-        {(['current', 'next'] as const).map((option) => (
-          <button
-            type="button"
-            key={option}
-            aria-pressed={view === option}
-            className="rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm aria-pressed:text-brand-green"
-            onClick={() => {
-              setGroceryList(null);
-              setView(option);
-            }}
-          >
-            {option === 'current' ? 'This week' : 'Next week · Premium'}
-          </button>
-        ))}
-      </div>
       {error && !error.toLowerCase().includes('nutrition report') ? (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
           <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />

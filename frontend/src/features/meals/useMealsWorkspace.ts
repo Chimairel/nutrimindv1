@@ -56,8 +56,6 @@ interface PendingReviewState {
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReviewState | null;
-  swapsUsed: number;
-  swapCap: number;
 }
 
 const planResource = 'user-meals-current';
@@ -68,8 +66,7 @@ const libraryResource = (search: string, mealType: string) => `user-meals-librar
 export function useMealsWorkspace() {
   const { user } = useAuth();
   const ownerId = user?.userId;
-  const [planView, setPlanView] = useState<'current' | 'next'>('current');
-  const currentPlanResource = planResource + ':' + planView;
+  const currentPlanResource = planResource;
   const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
   const cachedHistory = readSessionResource<MealHistoryLog[]>(ownerId, historyResource('', 'All', 'All'));
   const cachedLibrary = readSessionResource<SwapOption[]>(ownerId, libraryResource('', 'All'));
@@ -89,8 +86,6 @@ export function useMealsWorkspace() {
   const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
 
   // Meal swap states
-  const [swapsUsed, setSwapsUsed] = useState(cachedPlan?.swapsUsed ?? 0);
-  const [swapCap, setSwapCap] = useState(cachedPlan?.swapCap ?? 3);
   const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);
   const [swapOptions, setSwapOptions] = useState<SwapOption[]>([]);
   const [isOptionsLoading, setIsOptionsLoading] = useState(false);
@@ -143,8 +138,6 @@ export function useMealsWorkspace() {
     (snapshot: CurrentPlanSnapshot) => {
       setMeals(snapshot.meals);
       setPendingReview(snapshot.pendingReview);
-      setSwapsUsed(snapshot.swapsUsed);
-      setSwapCap(snapshot.swapCap);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
     [ownerId, currentPlanResource]
@@ -155,13 +148,11 @@ export function useMealsWorkspace() {
     currentPlanRequestInFlight.current = true;
     setError(null);
     try {
-      const res = await api.get('/user/meals/current', { params: { view: planView } });
+      const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
-          swapsUsed: res.data.meta?.swapsUsed ?? 0,
-          swapCap: res.data.meta?.swapCap ?? 3,
         });
       }
     } catch (err: unknown) {
@@ -170,7 +161,7 @@ export function useMealsWorkspace() {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan, planView]);
+  }, [applyCurrentPlan]);
 
   const fetchHistory = useCallback(async () => {
     const resource = historyResource(historySearch, historySource, historyStatus);
@@ -312,8 +303,6 @@ export function useMealsWorkspace() {
       const res = await api.get(`/user/meals/${mealId}/swap-options`);
       if (res.data?.success) {
         setSwapOptions(res.data.data.swapOptions);
-        setSwapsUsed(res.data.data.swapsUsed);
-        setSwapCap(res.data.data.swapCap ?? 3);
         if (preferred) {
           if (!res.data.data.swapOptions.some((option: SwapOption) => option.id === preferred.id))
             throw new Error('This recipe is not eligible for that slot.');
@@ -373,8 +362,6 @@ export function useMealsWorkspace() {
       });
 
       if (res.data?.success) {
-        setSwapsUsed(res.data.data.swapsUsed);
-        setSwapCap(res.data.data.swapCap ?? swapCap);
         setActiveSwapMeal(null);
         setSwapOptions([]);
         setConfirmSwapMeal(null);
@@ -394,13 +381,11 @@ export function useMealsWorkspace() {
     try {
       await api.patch(`/user/meals/${mealPlanId}/status`, { status: newStatus });
       // Reload current meals to update checkboxes and macro sums
-      const res = await api.get('/user/meals/current', { params: { view: planView } });
+      const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
-          swapsUsed: res.data.meta?.swapsUsed ?? 0,
-          swapCap: res.data.meta?.swapCap ?? 3,
         });
       }
       // Reload history so history tab and heatmap immediately update
@@ -415,7 +400,7 @@ export function useMealsWorkspace() {
     async (options?: { replaceExisting?: boolean; skipConfirm?: boolean }) => {
       if (pendingReview) return;
 
-      if (planView === 'current' && meals.length > 0 && !options?.skipConfirm) {
+      if (meals.length > 0 && !options?.skipConfirm) {
         if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
           return;
       }
@@ -424,20 +409,12 @@ export function useMealsWorkspace() {
       regenerationProgress.begin('Preparing a replacement weekly plan.');
       setError(null);
       try {
-        if (planView === 'next') {
-          await api.post('/user/meals/next/generate', {});
-          await fetchMeals();
-          regenerationProgress.complete('Next week is ready for review.');
-          return;
-        }
         const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
         if (res.data && res.data.success) {
           regenerationProgress.complete('Your replacement plan is ready for review.');
           applyCurrentPlan({
             meals: res.data.data.meals,
             pendingReview: res.data.data.pendingReview ?? null,
-            swapsUsed: 0,
-            swapCap,
           });
         }
       } catch (err: unknown) {
@@ -446,7 +423,7 @@ export function useMealsWorkspace() {
         setIsRegenerating(false);
       }
     },
-    [pendingReview, planView, meals.length, regenerationProgress, fetchMeals, applyCurrentPlan, swapCap]
+    [pendingReview, meals.length, regenerationProgress, applyCurrentPlan]
   );
 
   const autoRegeneratedRef = useRef(false);
@@ -633,17 +610,7 @@ export function useMealsWorkspace() {
   })();
   const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
   const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
-  const remainingSwapCount = Math.max(0, swapCap - swapsUsed);
-
   return {
-    planView,
-    setPlanView: (view: 'current' | 'next') => {
-      setMeals([]);
-      setPendingReview(null);
-      setIsLoading(true);
-      setSelectedPlanDateKey(null);
-      setPlanView(view);
-    },
     user,
     activeTab,
     setActiveTab,
@@ -655,8 +622,6 @@ export function useMealsWorkspace() {
     pendingReview,
     selectedPlanDateKey,
     setSelectedPlanDateKey,
-    swapsUsed,
-    swapCap,
     activeSwapMeal,
     setActiveSwapMeal,
     swapOptions,
@@ -713,6 +678,5 @@ export function useMealsWorkspace() {
     nextCycleDay,
     displayedMealCount,
     completedMealCount,
-    remainingSwapCount,
   };
 }

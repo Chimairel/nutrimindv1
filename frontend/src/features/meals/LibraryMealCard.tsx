@@ -11,7 +11,6 @@ export default function LibraryMealCard({
 }: {
   meal: SwapOption;
   meals: MealPlan[];
-  planView?: 'current' | 'next';
   onSwap: (id: string, meal: SwapOption) => Promise<void>;
   onVerifier: (verifier: PublicVerifier) => void;
 }) {

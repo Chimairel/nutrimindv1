@@ -215,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                       size="sm"
                       src={user.image}
                       fallbackText={user.name}
-                      showSalakot={Boolean(user.isPremium)}
+                      showSalakot
                       className="!h-full !w-full rounded-full"
                     />
                   </DockAvatar>
@@ -335,7 +335,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 size="sm"
                 src={user.image}
                 fallbackText={user.name}
-                showSalakot={Boolean(user.isPremium)}
+                showSalakot
                 className="h-9 w-9 rounded-full transition-transform duration-100 ease-out group-hover:scale-110"
               />
               <div className="min-w-0 flex-1">

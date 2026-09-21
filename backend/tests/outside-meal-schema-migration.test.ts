@@ -29,7 +29,7 @@ test('[TEST-179] nutritionist outside-meal decisions remain authenticated, role-
 
 test('[TEST-181] user UI explains comma input, sources, provisional totals, and unresolved exclusions', () => {
   assert.match(outsideMealModal, /separate each one with a comma/);
-  assert.match(outsideMealModal, /Use Premium AI if unresolved/);
+  assert.match(outsideMealModal, /Use AI if unresolved/);
   assert.match(outsideMealModal, /nutrition-label or menu values/);
   assert.match(outsideMealModal, /AI estimate/);
   assert.match(outsideMealModal, /Not counted/);

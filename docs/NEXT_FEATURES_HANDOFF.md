@@ -4,7 +4,7 @@
 
 **Purpose:** Preserve owner decisions and the next implementation path independently of chat history.
 
-**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. Billing Phase 1 and both Phase 2 migration gates are complete. Phase 3A now supplies disabled TEST-only PayMongo checkout and signed-webhook boundaries with deterministic fakes; runtime HTTP/database adapters remain disconnected. All 22 billing tables remain empty. Real sandbox/provider traffic, webhook persistence/processing, reconciliation, entitlement activation, UI, credentials, money movement, and deployment have not started.
+**Status:** Structured safety and the minimum combined-coverage catalogue addition are implemented. The owner removed the subscription product on September 22, 2026. Premium tiers, payment adapters, entitlements, advance future-cycle plans, paid swap caps, admin access grants, and billing UI are no longer part of the active application. Historical branch and ADR references below are retained only as provenance for the abandoned experiment.
 
 ## 1. Resume point
 
@@ -112,38 +112,22 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 - Cleanup restored only the selected replacement's fixture-owned counter increment through compare-and-set and deleted the exact `e2e.structured-replacement.acceptance@example.invalid` namespace. A read-only post-check proved zero reserved users, structured entries, plans, meal ingredients, grocery lists/items, revisions, notifications, and replacement logs plus both involved meal counters at their baseline of zero. No external service or permanent catalogue write occurred.
 - The fixture cleaned itself before a browser could reuse its authenticated actor. Authenticated coverage/review/admin and replacement/grocery UI surfaces therefore remain static/build evidence; the public shell and unauthenticated route guard retain E2E-008 browser evidence.
 
-## 5. Planned payments and subscriptions
+## 5. Subscription removal decision
 
-### Provider direction
-
-- ADR-017 selects PayMongo as the first **sandbox collection adapter**. Production remains conditional on account verification/capability activation, written approval of NutriMind's exact business model, confirmed commercial terms, tax/refund decisions, and the production gates in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md).
-- The sandbox MVP uses one monthly Premium test price and card/Maya only when the account exposes those test capabilities. PHP 199 may be used only as a demo placeholder; it is not an approved commercial price. GCash is not promised because current official provider material leaves its subscription availability account/support dependent.
-- Begin in sandbox/test mode. A live-money demonstration requires an explicit owner decision and approved operational checklist.
-
-### User subscriptions
-
-- Keep collection, user entitlement, and compensation in separate models and ledgers.
-- Create provider resources on the backend only; provider secret keys and raw payment credentials must never reach NutriMind browser state, persistence, or logs.
-- Mount the future raw-body webhook before the current global JSON middleware, verify the environment-specific signature over the exact body, persist an immutable idempotent inbox/outbox record before 2xx, process asynchronously, and reconcile independently.
-- Grant Premium from durable paid-invoice periods established by verified webhooks or server reconciliation. Redirects and client flags never grant access.
-- Preserve an already-paid period through cancellation; bound any `past_due` grace to 72 hours; do not create a new grant for incomplete or unpaid periods. Refund-to-entitlement behavior must be explicit and auditable.
-
-### Realistic benefit candidates
-
-- The only Premium MVP behavior is a six-swap weekly cap versus the existing Free cap of three. Both tiers use the same complete-profile compatibility and meal-actionability rules.
-- All safety intake, restriction enforcement, warnings, verification labels, weekly safe planning, logging, grocery data/PDF, compatible-library access, and account data export remain available to Free users.
-- Longer derived comparisons, richer convenience exports, and favorites are candidates after the MVP. Existing raw history cannot be removed from Free.
-- Household/multi-person planning, price-aware budgets, unlimited AI, priority licensed review/SLA, and promised medical outcomes are deferred.
+- KAINARA has one user access level. Meal planning, compatible swaps, recipe browsing, grocery tools, outside-meal intelligence within fair-use compute quotas, reports, and the Salakot avatar accent are available to every user.
+- The application does not pre-generate or expose a paid next-cycle plan. It generates the active cycle on demand or through the idempotent current-cycle rollover path.
+- The forward cleanup migration removes the abandoned billing, payment, entitlement, and provider projection tables while retaining historical migrations so already-migrated databases remain reproducible.
+- Reintroducing monetization requires a new product decision and a new forward implementation. Historical payment code is available from Git history and is not maintained in the active branch.
 
 ## 6. Nutritionist compensation
 
-- User billing and nutritionist compensation are separate accounting domains. A subscription payment must never directly and automatically pay a reviewer.
+- Nutritionist compensation is an internal work-record domain and is independent of user access.
 - Do not use a raw per-approved-meal salary formula; it incentivizes approval volume and weakens review quality.
 - `feature/nutritionist-compensation-admin` now writes first-class immutable work credits with valid completed review actions. It does not infer compensation from `NutritionistProfile.totalVerified`, mutable plan state, claims, timeouts, or approval counts.
 - The implemented engine uses a versioned base retainer plus capped workload-band allowance plus independently approved signed adjustments. Approve/reject/escalate outcomes receive equal ordinary-review credit; independent high-risk second review has its declared fixed weight.
 - ADMIN policy, period, deterministic statement, adjustment, reconciliation, and manual payout-evidence workflows enforce maker-checker separation. The NUTRITIONIST view is profile-derived and own-only. Payout amount is server-derived; no bank/e-wallet detail or provider movement exists.
 - Source tests, all-migration disposable PostgreSQL lifecycle acceptance, and authenticated desktop/mobile browser checks pass. The new additive migration remains unapplied to shared development. Commercial amounts/contracts, tax/legal treatment, dispute operations, retention, deployment, and any automated disbursement remain separate gates.
-- PayMongo **Disbursements**, rather than merchant **Payouts**, is the potentially relevant later provider function. It remains deferred behind a separate ADR covering employment/tax status, provider approval, wallet funding, recipient data, maker-checker controls, retries/reversals, and reconciliation.
+- Automated disbursement remains deferred behind a separate decision covering employment/tax status, provider approval, wallet funding, recipient data, maker-checker controls, retries/reversals, and reconciliation.
 
 ## 7. Budget and ingredient-price roadmap
 
@@ -158,24 +142,22 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 
 ## 8. Accepted architecture and remaining production decisions
 
-ADR-017 is recorded in the engineering record and fully specified in [`PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md). It fixes the sandbox provider direction, domain boundaries, MVP entitlement, webhook/idempotency design, financial and compensation records, failure/reconciliation behavior, phased tests, rollback boundaries, and capstone scope.
-
-Payment Phase 1 supplies additive persistence definitions, deterministic SQL, and pure policies for state, paid-period entitlement, 3-versus-6 swap caps, money/refund invariants, provider-event idempotency, append-only work-credit reversal, capped workload-band compensation, payout bounds, and maker-checker separation. Its shared-development migration is applied, while the adapter remains disabled and no provider call has occurred.
+The historical ADR-017 payment experiment is superseded by the September 22 subscription-removal decision. Its commits remain in Git history but no active route, UI, environment variable, service, schema model, or product claim depends on it.
 
 Budget-price Phase 1 supplies six append-only evidence models, deterministic additive SQL, and DB-independent policies for units, PHP ranges, exact mapping, freshness/locality, supersession, partial coverage, and clinical-first ranking. Disposable rehearsal and guarded shared-development acceptance both passed for the foundation (`54ee88a…feab210ff7d`) and normalization hardening (`f3b92e5c…d5aefd4f11`) migrations. Shared development now has 19 accepted migrations and six empty price tables; all 56 old-domain hashes were preserved.
 
-The bounded PSA ingestion foundation uses City of Cebu code `072217000` directly. Its eight-commodity selection represents 47.69% of catalogue ingredient rows across 86.27% of meals. Seven source-to-raw-FNRI mappings are exact and green munggo is ambiguous. Current cells produce only 22.05% exact same-identity row coverage across 68.63% of meals because cooked identities remain separate and munggo, chicken breast, and tilapia are unavailable. The snapshot and importer remain internal, with no endpoint, UI, scheduler, runtime estimate, or Premium behavior.
+The bounded PSA ingestion foundation uses City of Cebu code `072217000` directly. Its eight-commodity selection represents 47.69% of catalogue ingredient rows across 86.27% of meals. Seven source-to-raw-FNRI mappings are exact and green munggo is ambiguous. Current cells produce only 22.05% exact same-identity row coverage across 68.63% of meals because cooked identities remain separate and munggo, chicken breast, and tilapia are unavailable. The snapshot and importer remain internal, with no endpoint, UI, scheduler, or runtime estimate.
 
 DEF-031 is resolved in source: Prisma now declares the exact mapped names and column order of both `MealPlan` indexes already created by `20260831090000_production_workflow_hardening`. No migration or shared-database write was required. The revalidation index directly supports the approved legacy-plan revalidation query; the high-risk index remains faithful physical-schema metadata while the current queue prioritizes those fields in memory.
 
-Production remains blocked on PayMongo's written business approval and actual account capabilities, final commercial terms and PHP price, Philippine tax invoice/official-receipt and refund policy, financial retention/pseudonymization, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist. These open decisions do not authorize provider calls, accounts, credentials, or live money.
+Production remains blocked on clinical evidence, nutritionist contracts and compensation amounts, external security review, and the recorded go-live checklist.
 
 ## 9. Recommended execution order
 
 1. Review the committed bounded PSA/OpenSTAT snapshot, mapping decisions, and coverage report. If accepted, authorize a separate guarded shared-development import; the current CLI rejects non-loopback databases.
 2. Define reviewed purchased-weight-to-edible-weight and raw-to-cooked conversion evidence before connecting a price repository or estimator to meal quantities.
-3. Add internal query adapters only after those gates. Public endpoints, frontend estimates, scheduled retrieval, basket expansion, and Premium claims remain later phases.
-4. PayMongo Phase 3B is paused indefinitely at the existing manual provider gate. Resume only on a new owner instruction after account/business acceptance and sandbox capability are available.
+3. Add internal query adapters only after those gates. Public endpoints, frontend estimates, scheduled retrieval, and basket expansion remain later phases.
+4. Treat subscriptions and payment collection as removed scope. Any future return starts as a new owner-approved architecture rather than reviving stale runtime code.
 
 ## 10. Instructions for the next agent or conversation
 

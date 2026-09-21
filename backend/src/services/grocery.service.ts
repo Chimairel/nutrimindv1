@@ -2,7 +2,6 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getNextWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
-import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
 import { lockUserProfile } from './profile-revision.service';
 import { purchaseState } from '@/domain/grocery-purchase.policy';
 import { getApprovedMealPlanStatusWhere, getUserActionableMealPlanWhere } from '@/domain/meal-actionability.policy';
@@ -139,15 +138,10 @@ export class GroceryService {
   /**
    * Fetches the user's current grocery list.
    */
-  static async getGroceryList(userId: string, view: 'current' | 'next' = 'current') {
+  static async getGroceryList(userId: string) {
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     const next = getNextWeeklyCycleWindow(profile);
-    if (view === 'next' && (await resolveUserBillingEntitlement(prisma, userId, new Date())).tier !== 'PREMIUM')
-      throw new Error('Next-week planning requires Premium.');
-    const schedule =
-      view === 'next'
-        ? { gte: next.startDate, lte: next.endDate }
-        : { gte: getStartOfManilaBusinessDay(), lt: next.startDate };
+    const schedule = { gte: getStartOfManilaBusinessDay(), lt: next.startDate };
     const active = await prisma.mealPlan.findFirst({
       where: { userId, ...getUserActionableMealPlanWhere(), scheduledDate: schedule },
       orderBy: { scheduledDate: 'asc' },
@@ -200,7 +194,7 @@ export class GroceryService {
   }
 
   /**
-   * Standardizes and capitalizes food categories for premium UI groupings.
+   * Standardizes and capitalizes food categories for grocery UI groupings.
    */
   private static standardizeCategory(cat: string): string {
     const trimmed = cat.trim().toLowerCase();

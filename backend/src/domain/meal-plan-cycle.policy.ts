@@ -20,8 +20,6 @@ export interface ShoppingSchedule {
   shoppingDayGroup?: ShoppingDayGroup | null;
 }
 
-export const WEEKLY_PLAN_REVIEW_LEAD_DAYS = 3;
-
 function getManilaDateParts(value: Date): { dateKey: string; dayOfWeek: number } {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: MEAL_PLAN_BUSINESS_TIME_ZONE,
@@ -156,31 +154,6 @@ export function getNextWeeklyCycleWindow(
     startDate: getManilaMidnight(startKey),
     endDate: getManilaMidnight(addCalendarDays(startKey, 6)),
   };
-}
-
-export function getWeeklyPlanPreparationDate(
-  schedule: ShoppingSchedule | ShoppingDayGroup | number,
-  now: Date = new Date(),
-  leadDays: number = WEEKLY_PLAN_REVIEW_LEAD_DAYS
-): Date {
-  if (!Number.isInteger(leadDays) || leadDays < 0 || leadDays > 6) {
-    throw new Error('Weekly plan review lead days must be an integer from 0 to 6.');
-  }
-  const nextCycle = getNextWeeklyCycleWindow(schedule, now);
-  const shoppingDateKey = addCalendarDays(getManilaDateKey(nextCycle.startDate), -1);
-  return getManilaMidnight(addCalendarDays(shoppingDateKey, -leadDays));
-}
-
-export function isWeeklyPlanPreparationDue(
-  schedule: ShoppingSchedule | ShoppingDayGroup | number,
-  now: Date = new Date(),
-  leadDays: number = WEEKLY_PLAN_REVIEW_LEAD_DAYS
-): boolean {
-  const todayKey = getManilaDateKey(now);
-  const preparationKey = getManilaDateKey(getWeeklyPlanPreparationDate(schedule, now, leadDays));
-  const nextCycle = getNextWeeklyCycleWindow(schedule, now);
-  const shoppingDayKey = addCalendarDays(getManilaDateKey(nextCycle.startDate), -1);
-  return todayKey >= preparationKey && todayKey <= shoppingDayKey;
 }
 
 export function getDayBefore(date: Date): Date {

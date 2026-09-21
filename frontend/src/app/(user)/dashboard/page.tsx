@@ -34,8 +34,6 @@ import { useMealGenerationProgress } from '@/features/meals/useMealGenerationPro
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReview | null;
-  swapsUsed: number;
-  swapCap: number;
 }
 
 interface CheckinSnapshot {
@@ -219,8 +217,6 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
-          swapsUsed: res.data.meta?.swapsUsed ?? 0,
-          swapCap: res.data.meta?.swapCap ?? 3,
         });
       }
     } catch (err: unknown) {
@@ -285,8 +281,6 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
-          swapsUsed: res.data.meta?.swapsUsed ?? 0,
-          swapCap: res.data.meta?.swapCap ?? 3,
         });
       }
     } catch (err) {
@@ -310,8 +304,6 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: res.data.data.meals,
           pendingReview: res.data.data.pendingReview ?? null,
-          swapsUsed: 0,
-          swapCap: 3,
         });
       }
     } catch (err: unknown) {

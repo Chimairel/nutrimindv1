@@ -208,9 +208,11 @@ export class AuthService {
       where: { provider: 'google', providerAccountId: sub },
       include: { user: true },
     });
-    let user = linkedAccount?.user ?? (await prisma.user.findUnique({
-      where: { email: sanitizedEmail },
-    }));
+    let user =
+      linkedAccount?.user ??
+      (await prisma.user.findUnique({
+        where: { email: sanitizedEmail },
+      }));
 
     if (intent === 'LOGIN' && !user) {
       throw new GoogleAuthFlowError(

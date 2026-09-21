@@ -29,7 +29,6 @@ import {
   Clock3,
   ShieldCheck,
   CircleCheckBig,
-  Repeat2,
   ListChecks,
   ChevronLeft,
   ChevronRight,
@@ -55,8 +54,6 @@ export default function WeeklyPlanPage() {
     error,
     pendingReview,
     setSelectedPlanDateKey,
-    swapsUsed,
-    swapCap,
     historyLogs,
     isHistoryLoading,
     historyTotalCount,
@@ -87,7 +84,6 @@ export default function WeeklyPlanPage() {
     nextCycleDay,
     displayedMealCount,
     completedMealCount,
-    remainingSwapCount,
   } = workspace;
 
   const { setSubTab } = useBreadcrumb();
@@ -188,13 +184,6 @@ export default function WeeklyPlanPage() {
                 : 'Browse compatible, nutritionist-verified recipes for your profile.'
           }
           className="mb-1"
-          meta={
-            activeTab === 'plan' && meals.length > 0 ? (
-              <span className="font-mono text-[9px] uppercase tracking-wider text-brand-muted">
-                {swapsUsed} of {swapCap} swaps used
-              </span>
-            ) : undefined
-          }
           actions={
             activeTab === 'plan' && !pendingReview ? (
               <details className="relative">
@@ -274,7 +263,6 @@ export default function WeeklyPlanPage() {
                 value: pendingReview ? pendingReview.mealCount : completedMealCount,
                 icon: pendingReview ? ShieldCheck : CircleCheckBig,
               },
-              { label: 'Swaps available', value: remainingSwapCount, icon: Repeat2 },
             ].map((metric) => {
               const MetricIcon = metric.icon;
               return (
@@ -518,8 +506,6 @@ export default function WeeklyPlanPage() {
                           mealLogs={meal.mealLogs}
                           onStatusToggle={handleMealStatusToggle}
                           onSwapClick={handleSwapClick}
-                          swapsUsed={swapsUsed}
-                          swapCap={swapCap}
                           scheduledDate={meal.scheduledDate}
                           verifier={meal.verifier}
                           explanation={meal.explanation}

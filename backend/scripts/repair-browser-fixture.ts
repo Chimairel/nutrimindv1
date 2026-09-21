@@ -179,9 +179,6 @@ async function main() {
       },
     },
   });
-  await prisma.planSwapTracker.deleteMany({
-    where: { userId: user.id, planGroupId: 'repair-browser-current' },
-  });
   const list = await GroceryService.generateGroceryList(user.id);
   await GroceryService.recordPurchase(user.id, list.groceryItems[0].id, 300);
   console.log('Synthetic browser fixture ready for USER, NUTRITIONIST and ADMIN.');

@@ -24,8 +24,15 @@ describe('Avatar', () => {
     expect(salakotImg).toHaveClass('absolute');
   });
 
-  it('omits the salakot overlay by default when showSalakot is false or omitted', () => {
+  it('renders the salakot overlay by default for every account', () => {
     const { container } = render(<Avatar fallbackText="Maria Clara" />);
+
+    const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
+    expect(salakotImg).toBeInTheDocument();
+  });
+
+  it('allows the salakot overlay to be omitted for a decorative avatar', () => {
+    const { container } = render(<Avatar fallbackText="Maria Clara" showSalakot={false} />);
 
     const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
     expect(salakotImg).not.toBeInTheDocument();

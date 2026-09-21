@@ -142,7 +142,7 @@ export default function DocsPage() {
                   <span>Need help?</span>
                 </div>
                 <p className="mt-2 text-[11px] leading-5 text-brand-muted">
-                  Questions regarding clinical profiles, meal plans, or billing? Reach our team directly.
+                  Questions regarding clinical profiles, meal plans, or account access? Reach our team directly.
                 </p>
                 <a
                   href="mailto:support@kainara.ph"
@@ -382,18 +382,17 @@ export default function DocsPage() {
                   (Omnivore, Vegetarian, Pescatarian, Low Carb).
                 </p>
                 <p>
-                  To encourage dietary consistency and shopping preparation, swaps are subject to two clinical
-                  safeguards: a weekly swap limit and an energy divergence alert.
+                  Every user can swap meals from the compatible library. KAINARA still shows an energy divergence alert
+                  when a replacement differs substantially from the planned slot.
                 </p>
               </div>
 
               <div className="mt-10 grid gap-6 sm:grid-cols-2">
                 <div className="surface-panel rounded-[26px] p-6">
-                  <span className="font-mono text-xs font-bold text-brand-green">CAPACITY</span>
-                  <h3 className="mt-2 font-display text-lg font-bold text-brand-text">3 Swaps Per Week</h3>
+                  <span className="font-mono text-xs font-bold text-brand-green">ACCESS</span>
+                  <h3 className="mt-2 font-display text-lg font-bold text-brand-text">Unlimited compatible swaps</h3>
                   <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Each weekly plan allows up to 3 recipe replacements. Your remaining swap count updates
-                    automatically.
+                    Replace a planned slot whenever an eligible meal matches your current dietary and safety profile.
                   </p>
                 </div>
 

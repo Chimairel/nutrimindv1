@@ -25,8 +25,6 @@ Captured September 10, 2026 on the repaired worktree preview using synthetic acc
 - [admin-overview-mobile](admin-overview-mobile.png)
 - [admin-users-desktop](admin-users-desktop.png)
 - [admin-users-mobile](admin-users-mobile.png)
-- [billing-desktop](billing-desktop.png)
-- [billing-mobile](billing-mobile.png)
 - [dashboard-desktop](dashboard-desktop.png)
 - [dashboard-mobile](dashboard-mobile.png)
 - [dashboard-theme-check](dashboard-theme-check.png)

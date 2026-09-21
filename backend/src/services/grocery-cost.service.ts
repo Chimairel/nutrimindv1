@@ -119,7 +119,7 @@ export class GroceryCostService {
       budgetGuaranteed: false,
       explanation:
         availabilityReason === 'PRICE_DATA_NOT_CONFIGURED'
-          ? 'Market prices have not been published in this system yet. Premium access is active, but an administrator must import price data before estimates can be calculated.'
+          ? 'Market prices have not been published in this system yet. An administrator must import price data before estimates can be calculated.'
           : availabilityReason === 'PRICE_MAPPINGS_NOT_CONFIGURED'
             ? 'Prices are available, but ingredient mappings still need to be reviewed before estimates can be calculated.'
             : availabilityReason === 'NOTHING_TO_PRICE'

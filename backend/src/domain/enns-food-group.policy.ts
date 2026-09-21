@@ -30,7 +30,7 @@ const currentProvinceHucByKey = new Map(
 );
 
 const provinceAliases: Record<string, string> = {
-  'lapulapucityopon': 'Lapu-Lapu',
+  lapulapucityopon: 'Lapu-Lapu',
   westernsamar: 'Samar',
   compostelavalley: 'Davao de Oro',
   northcotabato: 'Cotabato',
@@ -116,21 +116,37 @@ export function classifyIngredientIntoEnnsFoodGroup(input: {
   if (!combined.trim()) return null;
 
   if (category.includes('egg') || hasAny(name, /\begg(?:s)?\b|balut|penoy/)) return 'EGGS';
-  if (category.includes('fish') || hasAny(name, /fish|tilapia|bangus|tuna|sardine|salmon|galunggong|shrimp|prawn|crab|squid|pusit|clam|mussel|shellfish/))
+  if (
+    category.includes('fish') ||
+    hasAny(
+      name,
+      /fish|tilapia|bangus|tuna|sardine|salmon|galunggong|shrimp|prawn|crab|squid|pusit|clam|mussel|shellfish/
+    )
+  )
     return 'FISH_PRODUCTS';
   if (hasAny(name, /chicken|poultry|turkey|duck|itik/)) return 'POULTRY';
-  if (category.includes('meat') || hasAny(name, /pork|beef|carabao|goat|mutton|lamb|ham|bacon|sausage|longgani|hotdog|meat/))
+  if (
+    category.includes('meat') ||
+    hasAny(name, /pork|beef|carabao|goat|mutton|lamb|ham|bacon|sausage|longgani|hotdog|meat/)
+  )
     return 'MEAT_PRODUCTS';
   if (hasAny(name, /\brice\b|palay|malagkit|glutinous rice/)) return 'RICE_PRODUCTS';
   if (hasAny(name, /\bcorn\b|maize/)) return 'CORN_PRODUCTS';
-  if (category.includes('cereal') || category.includes('grain') || hasAny(name, /bread|flour|oat|noodle|pasta|pandesal|biscuit/))
+  if (
+    category.includes('cereal') ||
+    category.includes('grain') ||
+    hasAny(name, /bread|flour|oat|noodle|pasta|pandesal|biscuit/)
+  )
     return 'OTHER_CEREAL_PRODUCTS';
   if (category.includes('starchy') || hasAny(name, /potato|kamote|cassava|kamoteng kahoy|gabi|taro|ube|yam/))
     return 'STARCHY_ROOTS_TUBERS';
   if (category.includes('sugar') || hasAny(name, /sugar|syrup|honey|molasses/)) return 'SUGAR_SYRUPS';
   if (category.includes('bean') || hasAny(name, /monggo|mung|bean|pea|lentil|chickpea|nut|seed/)) return 'DRIED_BEANS';
   if (category.includes('vegetable')) {
-    return hasAny(name, /malunggay|moringa|pechay|kangkong|spinach|lettuce|mustasa|saluyot|camote tops|squash|kalabasa|carrot/)
+    return hasAny(
+      name,
+      /malunggay|moringa|pechay|kangkong|spinach|lettuce|mustasa|saluyot|camote tops|squash|kalabasa|carrot/
+    )
       ? 'GREEN_LEAFY_YELLOW_VEGETABLES'
       : 'OTHER_VEGETABLES';
   }
@@ -140,11 +156,16 @@ export function classifyIngredientIntoEnnsFoodGroup(input: {
       : 'OTHER_FRUITS';
   }
   if (category.includes('milk') || category.includes('dairy') || hasAny(name, /milk|cheese|yogurt|cream/)) {
-    return hasAny(name, /whole milk|fresh milk|cow'?s milk|carabao milk|goat milk/) && !hasAny(name, /powder|cheese|yogurt|cream/)
+    return hasAny(name, /whole milk|fresh milk|cow'?s milk|carabao milk|goat milk/) &&
+      !hasAny(name, /powder|cheese|yogurt|cream/)
       ? 'WHOLE_MILK'
       : 'MILK_PRODUCTS';
   }
-  if (category.includes('fat') || category.includes('oil') || hasAny(name, /cooking oil|coconut oil|butter|margarine|lard/))
+  if (
+    category.includes('fat') ||
+    category.includes('oil') ||
+    hasAny(name, /cooking oil|coconut oil|butter|margarine|lard/)
+  )
     return 'FATS_OILS';
   if (category.includes('beverage') || hasAny(name, /coffee|tea|juice|soft drink|soda|beverage/)) return 'BEVERAGES';
   if (hasAny(name, /salt|pepper|soy sauce|vinegar|patis|fish sauce|bagoong|spice|seasoning|condiment/))

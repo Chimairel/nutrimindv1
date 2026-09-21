@@ -24,7 +24,6 @@ import {
   summarizeOutsideMealNutrition,
   type OutsideMealMacros,
 } from '@/domain/outside-meal.policy';
-import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
 import { isCertifiedLibraryMealCompatible } from './meal-swap.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
@@ -216,7 +215,6 @@ export class MealLogService {
 
     if (input.useAiEstimate && unresolvedIndexes.length > 0) {
       const now = new Date();
-      const entitlement = await resolveUserBillingEntitlement(prisma, input.userId, now);
       const dayStart = getManilaMidnight(getManilaDateKey(now));
       const tomorrow = getScheduledMealDate(dayStart, 1);
       const rollingStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -234,7 +232,6 @@ export class MealLogService {
             }),
           ]);
           const allowance = resolveOutsideMealAiAllowance({
-            tier: entitlement.tier,
             requestedItems: unresolvedIndexes.length,
             usedToday: today._sum.itemCount ?? 0,
             usedRolling30Days: rolling._sum.itemCount ?? 0,
@@ -243,10 +240,8 @@ export class MealLogService {
           });
           if (!allowance.allowed) {
             throw new AppError(
-              allowance.reason === 'PREMIUM_REQUIRED'
-                ? 'Premium is required only for AI nutrition estimates. You can still use FNRI portions or nutrition-label values on Free.'
-                : 'Your AI estimate limit has been reached. Use nutrition-label values or try again when the quota resets.',
-              allowance.reason === 'PREMIUM_REQUIRED' ? 403 : 429,
+              'Your AI estimate limit has been reached. Use nutrition-label values or try again when the quota resets.',
+              429,
               allowance.reason
             );
           }

@@ -207,7 +207,7 @@ th {
     box-shadow 0.2s ease;
 }
 
-/* Custom premium scrollbar */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

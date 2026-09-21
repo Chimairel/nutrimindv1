@@ -291,8 +291,7 @@ Minimum floor: 500 kcal (starvation prevention)
 | Model | Key Fields | Purpose |
 |-------|-----------|---------|
 | **Notification** | userId, title, message, type, isRead | In-app notification records |
-| **PlanSwapTracker** | planGroupId, userId, swapsUsed | Tracks swap count per weekly cycle (max 3) |
-| **SwapLog** | planSwapTrackerId, mealPlanId, originalMealName, newMealName, calorieDelta, warningShown | Individual swap transaction records |
+| **SwapLog** | requestKey, mealPlanId, originalMealName, newMealName, calorieDelta, warningShown | Idempotent individual swap transaction records |
 
 #### Professional Review
 | Model | Key Fields | Purpose |
@@ -614,7 +613,7 @@ Before confirming a meal swap, the system:
 
 ### Addendum 5: User-Initiated Meal Swapping — June 13, 2026
 - Swap Meal button on active plan slots
-- 3-swaps-per-week cap with PlanSwapTracker
+- SwapLog request-key audit for user-initiated replacements; the former weekly counter and cap were removed on September 22, 2026
 - Atomic transaction for swap execution
 
 ### Addendum 6: Unified /meals Page & Calorie Warning — June 20, 2026
@@ -631,7 +630,7 @@ Before confirming a meal swap, the system:
 **Bug encountered (June 21):** CSS not loading in browser — root cause was the dev server running on a different port (3001 instead of 3000) while CORS only allowed 3000. Fix: kill existing port 3000 process. This bug recurred multiple times.
 
 **Changes implemented:**
-- Premium light theme with off-white background, dark text
+- Polished light theme with off-white background and dark text
 - Sage green secondary accent (`#e3efea`)
 - Collapsible sidebar (localStorage-persisted state)
 - DRY portal layouts (unified Sidebar + Navbar across USER/NUTRITIONIST/ADMIN)
@@ -1056,7 +1055,7 @@ npm run build         # Production build
 
 ### UC-004: Swap a Meal
 - **Actor:** Authenticated User
-- **Preconditions:** User has active plan with swaps remaining (< 3 used this cycle)
+- **Preconditions:** User has an active, uneaten plan slot and at least one compatible reviewed replacement
 - **Main Flow:**
   1. User opens meal detail modal/page
   2. User clicks "Swap Meal"
@@ -1064,11 +1063,11 @@ npm run build         # Production build
   4. System calculates calorie delta between original and replacement
   5. If delta causes day total to shift ±15% → warning modal shown
   6. User confirms swap
-  7. System atomically: updates MealPlan record, recreates ingredients, updates grocery list, logs SwapLog, increments PlanSwapTracker
+  7. System atomically updates MealPlan, recreates ingredients, updates the grocery list, and writes an idempotent SwapLog
   8. Dashboard refreshes with new meal
 - **Alternative Flow (No Library Match):** System generates AI alternative via Gemini → marked as PENDING_REVIEW
-- **Alternative Flow (Cap Reached):** "Swap Meal" button is disabled with tooltip "You've used all 3 swaps for this week"
-- **Postconditions:** Meal replaced; swap count incremented; grocery list regenerated
+- **Alternative Flow (No Compatible Replacement):** The user is told that no reviewed meal currently matches the slot and profile.
+- **Postconditions:** Meal replaced; swap audit recorded; grocery list regenerated
 
 ### UC-005: Nutritionist Reviews Plan
 - **Actor:** Verified Nutritionist (RND)
@@ -1097,18 +1096,17 @@ npm run build         # Production build
   6. Nutritionist gains access to review queue
 - **Postconditions:** NutritionistProfile updated; full portal access granted
 
-### UC-007: Weekly Plan Regeneration (Automated)
-- **Actor:** System (Cron Job)
-- **Preconditions:** Weekly cycle transition day reached for a shopping day group
+### UC-007: Current-Cycle Plan Rollover
+- **Actor:** Authenticated User / application
+- **Preconditions:** The previous plan ended immediately before the newly active shopping cycle and no current-cycle group exists
 - **Main Flow:**
-  1. Cron endpoint triggered with CRON_SECRET
-  2. System queries all active users in the transitioning group
-  3. For each user: generates new 7-day WEEKLY plan via Gemini AI
-  4. New plan linked to new planGroupId
-  5. PlanSwapTracker reset (new tracker for new group)
-  6. Grocery list regenerated for new plan
-  7. Previous plan remains in history but is no longer "current"
-- **Postconditions:** All users in group have fresh weekly plans
+  1. The application checks the signed-in user's active cycle
+  2. The service uses a durable user/cycle generation key to avoid duplicate work
+  3. The current plan uses eligible reviewed library meals first, then raw-corpus sourcing, then bounded generation for remaining gaps
+  4. Approved slots become actionable; pending slots enter the normal review queue
+  5. The grocery list is generated for the current plan
+  6. The previous plan remains in history but is no longer current
+- **Postconditions:** The requesting user has one current-cycle plan; no future cycle was prepared in advance
 
 ### UC-008: Profile Health Update with Safety Recheck
 - **Actor:** Authenticated User
@@ -1177,8 +1175,8 @@ npm run build         # Production build
 
 | Rule ID | Rule |
 |---------|------|
-| BR-SWAP-001 | Maximum 3 user-initiated swaps per weekly plan cycle |
-| BR-SWAP-002 | Safety-triggered swaps (from profile updates) are exempt from the 3-swap cap |
+| BR-SWAP-001 | User-initiated swaps have no paid-tier quantity cap; every replacement must still pass current eligibility checks |
+| BR-SWAP-002 | Safety-triggered replacements do not count as user-initiated swap activity |
 | BR-SWAP-003 | If a swap causes day total to shift ±15% from target, a calorie imbalance warning shall be shown |
 | BR-SWAP-004 | Swap replacement must match: same meal type, allergen-safe, condition-safe |
 | BR-SWAP-005 | Swaps are atomic: MealPlan update + ingredient recreation + grocery update + swap log, all in one transaction |

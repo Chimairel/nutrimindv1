@@ -201,7 +201,7 @@ Values prefixed with `NEXT_PUBLIC_` are exposed to browser code and must never c
 
 ### Scheduled jobs
 
-Call `POST /api/cron/daily-checkin` once per day for daily nutrition aggregates and `POST /api/cron/weekly-plan-preparation` once per day for upcoming meal plans. Both require `Authorization: Bearer <CRON_SECRET>`. The weekly scheduler evaluates each user's exact grocery-shopping day in `Asia/Manila`, prepares the next cycle three days ahead, catches up a missed run within the preparation window, and relies on a durable per-user/per-cycle generation key to prevent duplicate plans. The two older shopping-group weekly endpoints remain compatibility wrappers only and should not be configured for new deployments.
+Call `POST /api/cron/daily-checkin` once per day for daily nutrition aggregates. It requires `Authorization: Bearer <CRON_SECRET>`. Weekly plans are generated for the current cycle when the user requests one or when the application detects that an existing plan has rolled into its next active cycle; KAINARA does not pre-generate a future paid-tier plan.
 
 ## Available verification commands
 
@@ -215,7 +215,7 @@ npm run test:e2e
 
 `npm run check` starts with a source-architecture guard. Handwritten backend and frontend modules must remain at or below 900 lines; additions that cross the boundary must first separate transport, state, policy, persistence, or presentation responsibilities.
 
-The backend `npm test` command uses Node's built-in test runner through `tsx` and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, billing/compensation policies, bounded weight/list input, fail-closed ingredient matching, runtime configuration, API contracts, and user-action validation. Frontend tests use Vitest and Testing Library; Playwright covers the public landing and adversarial registration paths. `npm run test:integration:production` and acceptance scripts require an explicitly authorized disposable database target. These local checks do not establish full authenticated-browser coverage, accessibility conformance, deployment monitoring, clinical verification, or production payment readiness.
+The backend `npm test` command uses Node's built-in test runner through `tsx` and requires no live database or external service. It covers actionability, deterministic restrictions, mixed-cuisine generation, nutritionist review ownership, meal-library evidence eligibility, exact shopping-day cycles, conservative weekly adaptation, FNRI category mapping, compensation policies, bounded weight/list input, fail-closed ingredient matching, runtime configuration, API contracts, and user-action validation. Frontend tests use Vitest and Testing Library; Playwright covers the public landing and adversarial registration paths. `npm run test:integration:production` and acceptance scripts require an explicitly authorized disposable database target. These local checks do not establish full authenticated-browser coverage, accessibility conformance, deployment monitoring, clinical verification, or production readiness.
 
 ## Optional local Docker workflow
 
@@ -263,7 +263,6 @@ Consult the engineering record for the ranked register. Important limitations in
 
 - [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md): canonical current evidence, ADRs, requirements, risks, defects, tests, and change history.
 - [`docs/NUTRIMIND_CLEANUP_PLAN.md`](docs/NUTRIMIND_CLEANUP_PLAN.md): completed Batches 1, 2A, and 3 plus proposed future cleanup batches.
-- [`docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md`](docs/PAYMENT_SUBSCRIPTION_COMPENSATION_ARCHITECTURE.md): accepted payment and compensation architecture. The empty compensation schema is applied to shared development; work credits, policies, statements, payouts, commercial/legal decisions, refunds, recurring collection, automated disbursement, and production activation remain separate gates.
 - [`chatgptcontext.md`](chatgptcontext.md): August 19 audit snapshot; useful context but not the canonical living record.
 - Root legacy prompts, addenda, handoff guides, and system references: historical, aspirational, or partially superseded as described by their notices.
 

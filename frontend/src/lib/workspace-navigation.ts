@@ -2,7 +2,6 @@ import {
   Activity,
   BookOpen,
   ClipboardList,
-  Crown,
   Database,
   Download,
   HeartPulse,
@@ -61,13 +60,6 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       description: 'Goals, conditions, allergies, location, and food preferences.',
       group: 'Your health',
       icon: HeartPulse,
-    },
-    {
-      label: 'Premium access',
-      href: '/profile/membership',
-      description: 'View your plan, entitlements, and payment status.',
-      group: 'Your account',
-      icon: Crown,
     },
     {
       label: 'Profile',

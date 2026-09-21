@@ -230,7 +230,7 @@ function OutsideMealForm(props: Props) {
         />
         <span>
           <strong className="flex items-center gap-1 text-brand-text">
-            <Sparkles className="h-3.5 w-3.5" /> Use Premium AI if unresolved
+            <Sparkles className="h-3.5 w-3.5" /> Use AI if unresolved
           </strong>
           <span className="text-brand-muted">
             AI values count immediately as provisional and enter nutritionist review. Limits: 5 items/day and 30/30
@@ -252,7 +252,7 @@ function OutsideMealForm(props: Props) {
         <span>
           <strong className="block text-brand-text">I have nutrition-label or menu values</strong>
           <span className="text-brand-muted">
-            Free and counted immediately. Log one food at a time when entering manual values.
+            Counted immediately. Log one food at a time when entering manual values.
           </span>
         </span>
       </label>

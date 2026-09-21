@@ -203,5 +203,8 @@ test('[TEST-201] weighted locality signals prioritize a locally stronger food gr
       ['FISH_PRODUCTS', fishScore],
     ])
   );
-  assert.deepEqual(ranked.map(({ id }) => id), ['fish', 'meat']);
+  assert.deepEqual(
+    ranked.map(({ id }) => id),
+    ['fish', 'meat']
+  );
 });

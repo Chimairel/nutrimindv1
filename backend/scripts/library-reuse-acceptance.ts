@@ -189,9 +189,8 @@ async function verify() {
     'Gemini usage changed during a fully matched plan.'
   );
 
-  const [allergies, swapTracker, checkinStatus, doneMeals, analytics] = await Promise.all([
+  const [allergies, checkinStatus, doneMeals, analytics] = await Promise.all([
     prisma.allergy.findMany({ where: { userId: fixture.id }, select: { allergen: true } }),
-    prisma.planSwapTracker.findFirst({ where: { userId: fixture.id }, select: { swapsUsed: true } }),
     CheckinService.getCheckinStatus(fixture.id),
     prisma.mealLog.count({ where: { userId: fixture.id, status: 'DONE' } }),
     AdminService.getAnalytics(),
@@ -259,7 +258,6 @@ async function verify() {
         geminiCallsRecorded: 0,
         allergies: allergyKeys,
         eggConflicts: 0,
-        swapsUsed: swapTracker?.swapsUsed ?? 0,
         completedMealLogs: doneMeals,
         firstWeekCheckinDue: checkinStatus.isDue,
         nextCheckinDueAt: checkinStatus.nextDueAt,

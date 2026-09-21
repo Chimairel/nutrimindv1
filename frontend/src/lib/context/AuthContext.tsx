@@ -23,9 +23,6 @@ export interface UserSession {
     password: boolean;
     google: boolean;
   };
-  isPremium?: boolean;
-  testPremiumAllowed?: boolean;
-  premiumExpiresAt?: string | null;
 }
 
 export interface AuthContextType {
@@ -67,9 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userProfile,
           nutritionReport,
           onboardingStatus,
-          isPremium,
-          testPremiumAllowed,
-          premiumExpiresAt,
         } = response.data.data;
 
         const isReportAcknowledged = Boolean(
@@ -91,9 +85,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           image,
           googleImage,
           authMethods: authMethods ?? { password: true, google: false },
-          isPremium: Boolean(isPremium),
-          testPremiumAllowed: Boolean(testPremiumAllowed),
-          premiumExpiresAt: premiumExpiresAt ?? null,
           reportAcknowledged: isReportAcknowledged,
           onboardingNextPath: onboardingStatus?.nextPath,
         };

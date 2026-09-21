@@ -6,10 +6,7 @@ import {
   type PlanningLocation,
 } from '@/domain/planning-location.policy';
 import { PSGC_PLANNING_GEOGRAPHY, PSGC_PROVINCE_HUCS, PSGC_REGIONS } from '@/data/philippine-planning-geography';
-import {
-  calculateFoodGroupFamiliarityScore,
-  type EnnsFoodGroupCode,
-} from '@/domain/enns-food-group.policy';
+import { calculateFoodGroupFamiliarityScore, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
 
 interface ConsumptionContextItem {
   id: string;
@@ -62,10 +59,7 @@ export async function getActivePlanningLocationOptions(): Promise<PlanningLocati
         source: { isEnabled: true, domain: 'FOOD_CONSUMPTION' },
       },
       geographyLevel: { in: ['REGION', 'PROVINCE_HUC'] },
-      OR: [
-        { mappingStatus: { in: ['EXACT', 'MANUAL'] } },
-        { foodGroupCode: { not: null } },
-      ],
+      OR: [{ mappingStatus: { in: ['EXACT', 'MANUAL'] } }, { foodGroupCode: { not: null } }],
       regionName: { not: null },
     },
     select: { regionName: true, provinceHucName: true },
@@ -239,9 +233,7 @@ export async function getLocalizedFoodConsumptionContext(
     .join('\n');
   const text = [groupText, exactFoodText].filter(Boolean).join('\n');
 
-  const releases = [
-    ...new Set(rows.map(({ row }) => `${row.release.source.code} ${row.release.versionLabel}`)),
-  ];
+  const releases = [...new Set(rows.map(({ row }) => `${row.release.source.code} ${row.release.versionLabel}`))];
   return {
     text,
     matchedScope: scope,

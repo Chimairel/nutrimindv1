@@ -16,8 +16,6 @@ import {
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
-import { weeklySwapCapForTier } from '@/domain/billing-entitlement.policy';
-import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { toPublicMealImage } from '@/domain/meal-image.policy';
 import {
@@ -27,16 +25,6 @@ import {
   type CertifiedLibraryMeal,
 } from './meal-library-candidate-query.service';
 
-export class SwapLimitReachedError extends Error {
-  readonly code = 'WEEKLY_SWAP_LIMIT_REACHED';
-
-  constructor(readonly cap: number) {
-    super(`Swap limit reached. Your current weekly limit is ${cap}.`);
-    this.name = 'SwapLimitReachedError';
-  }
-}
-
-type SwapReservationClient = Pick<Prisma.TransactionClient, 'planSwapTracker'>;
 type SwapMealReadClient = Pick<Prisma.TransactionClient, 'mealPlan'>;
 
 async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId: string, mealPlanId: string) {
@@ -51,22 +39,6 @@ async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId
     throw new Error('Cannot swap a meal that has already been eaten or skipped.');
   }
   return mealPlan;
-}
-
-export async function reserveWeeklySwap(
-  transaction: SwapReservationClient,
-  input: { trackerId: string; userId: string; cap: number }
-): Promise<number> {
-  const reserved = await transaction.planSwapTracker.updateMany({
-    where: { id: input.trackerId, userId: input.userId, swapsUsed: { lt: input.cap } },
-    data: { swapsUsed: { increment: 1 } },
-  });
-  if (reserved.count !== 1) throw new SwapLimitReachedError(input.cap);
-  const tracker = await transaction.planSwapTracker.findUniqueOrThrow({
-    where: { id: input.trackerId },
-    select: { swapsUsed: true },
-  });
-  return tracker.swapsUsed;
 }
 
 export { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible };
@@ -113,24 +85,7 @@ export class MealSwapService {
     const userConditions = healthConditions.map((c) => c.condition);
     const userAllergens = allergies.map((a) => a.allergen);
 
-    // 3. Find or create the PlanSwapTracker for this planGroupId
-    let swapTracker = await prisma.planSwapTracker.findUnique({
-      where: { planGroupId: mealPlan.planGroupId },
-    });
-
-    if (!swapTracker) {
-      swapTracker = await prisma.planSwapTracker.create({
-        data: {
-          planGroupId: mealPlan.planGroupId,
-          userId,
-          swapsUsed: 0,
-        },
-      });
-    }
-    const entitlement = await resolveUserBillingEntitlement(prisma, userId, new Date());
-    const swapCap = weeklySwapCapForTier(entitlement.tier);
-
-    // 4. Query APPROVED library meals matching this mealType
+    // 3. Query APPROVED library meals matching this mealType
     const usedLibraryMeals = await prisma.mealPlan.findMany({
       where: {
         userId,
@@ -154,7 +109,7 @@ export class MealSwapService {
       limit: 80,
     });
 
-    // 5. Only first-class, current, independently reviewed evidence can authorize a swap.
+    // 4. Only first-class, current, independently reviewed evidence can authorize a swap.
     const eligibleMeals = libraryMeals.filter(
       (meal) => meal.id !== mealPlan.libraryMealId && !usedLibraryMealIds.has(meal.id)
     );
@@ -163,8 +118,6 @@ export class MealSwapService {
       swapOptions: rankLibraryMeals(eligibleMeals, userProfile.dailyCalorieTarget ?? 2000, mealPlan.calories).map(
         toPublicSwapOption
       ),
-      swapsUsed: swapTracker.swapsUsed,
-      swapCap,
     };
   }
 
@@ -304,18 +257,12 @@ export class MealSwapService {
         await lockUserProfile(tx, userId);
         if (!requestKey || !previewToken) throw new Error('Preview this swap before confirming.');
         const key = userId + ':' + requestKey;
-        const previous = await tx.swapLog.findUnique({
-          where: { requestKey: key },
-          include: { planSwapTracker: true },
-        });
+        const previous = await tx.swapLog.findUnique({ where: { requestKey: key } });
         if (previous) {
           if (previous.mealPlanId !== mealPlanId || previous.newLibraryMealId !== newLibraryMealId)
             throw new Error('Request key already used for a different swap.');
-          const entitlement = await resolveUserBillingEntitlement(tx, userId, new Date());
           return {
             success: true,
-            swapsUsed: previous.planSwapTracker.swapsUsed,
-            swapCap: weeklySwapCapForTier(entitlement.tier),
             updatedPlan: await tx.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } }),
           };
         }
@@ -333,18 +280,7 @@ export class MealSwapService {
         const userConditions = healthConditions.map((c) => c.condition);
         const userAllergens = allergies.map((a) => a.allergen);
 
-        // 3. Find or create swap tracker
-        const swapTracker = await tx.planSwapTracker.upsert({
-          where: { planGroupId: mealPlan.planGroupId },
-          update: {},
-          create: { planGroupId: mealPlan.planGroupId, userId, swapsUsed: 0 },
-        });
-        if (swapTracker.userId !== userId) throw new Error('Swap tracker ownership mismatch.');
-        const entitlement = await resolveUserBillingEntitlement(tx, userId, new Date());
-        const swapCap = weeklySwapCapForTier(entitlement.tier);
-        const swapsUsed = await reserveWeeklySwap(tx, { trackerId: swapTracker.id, userId, cap: swapCap });
-
-        // 4. Fetch and verify replacement meal
+        // 3. Fetch and verify replacement meal
         const libraryMeal = await tx.mealLibrary.findUnique({
           where: { id: newLibraryMealId },
           include: certifiedLibraryMealInclude,
@@ -380,7 +316,7 @@ export class MealSwapService {
           throw new Error('Selected meal is not certified for your current health profile.');
         }
 
-        // 5. Update MealPlan row details
+        // 4. Update MealPlan row details
         const updatedPlan = await tx.mealPlan.update({
           where: { id: mealPlanId },
           data: {
@@ -404,7 +340,7 @@ export class MealSwapService {
           },
         });
 
-        // 6. Copy the certified first-class library ingredients, including quantities.
+        // 5. Copy the certified first-class library ingredients, including quantities.
         await tx.mealIngredient.deleteMany({
           where: { mealPlanId },
         });
@@ -432,7 +368,7 @@ export class MealSwapService {
           });
         }
 
-        // 7. Increment usageCount on newly selected library entry
+        // 6. Increment usageCount on newly selected library entry
         await tx.mealLibrary.update({
           where: { id: libraryMeal.id },
           data: {
@@ -440,10 +376,9 @@ export class MealSwapService {
           },
         });
 
-        // 8b. Create SwapLog entry for calorie tracking
+        // 7. Create the idempotent SwapLog audit entry.
         await tx.swapLog.create({
           data: {
-            planSwapTrackerId: swapTracker.id,
             mealPlanId,
             originalMealName: mealPlan.mealName,
             originalCalories: mealPlan.calories,
@@ -457,7 +392,7 @@ export class MealSwapService {
           },
         });
 
-        // 8c. Create MealLog with USER_SWAPPED source
+        // 8. Create MealLog with USER_SWAPPED source
         await tx.mealLog.upsert({
           where: { mealPlanId },
           update: {
@@ -487,8 +422,6 @@ export class MealSwapService {
         await GroceryService.generateGroceryList(userId, tx, mealPlan.planGroupId);
         return {
           success: true,
-          swapsUsed,
-          swapCap,
           updatedPlan,
         };
       },
@@ -504,8 +437,6 @@ export class MealSwapService {
 
     return {
       success: true,
-      swapsUsed: swapResult.swapsUsed,
-      swapCap: swapResult.swapCap,
     };
   }
 

@@ -12,7 +12,7 @@ The command first type-checks the isolated test project and then runs every `tes
 
 ## Current scope
 
-- Active tests cover the current pure domain, validation, migration, billing, compensation, actionability, restriction, generation, and operational policies recorded in the engineering record.
+- Active tests cover the current pure domain, validation, migration, compensation, actionability, restriction, generation, and operational policies recorded in the engineering record.
 - One TODO remains an executable specification for clinically approved calorie bounds; it is not a passing test.
 - The current result is 471 registered tests: 470 pass, 0 fail, 0 skipped, and 1 TODO.
 - Tests require no live database or network. The test-only mail-capture regression imports the email module but exits through an absolute local JSONL capture path before Nodemailer and proves that the seam rejects non-test use.

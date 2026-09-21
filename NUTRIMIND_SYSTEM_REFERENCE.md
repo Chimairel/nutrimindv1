@@ -23,7 +23,7 @@ The system consists of two separate, fully integrated codebases communicating vi
 * **Framework**: Next.js 14.2.35 (React 18, App Router) running in Node.js development mode.
 * **Network Layer**: `Axios` client instance utilizing a custom global interceptor that automatically catches `401 Unauthorized` responses, executes a silent refresh request to fetch a new short-lived JWT token, and replays the original request without user interruption.
 * **Token Caching**: Access token (`token`) and refresh token (`nutrimind_refresh`) are stored in JavaScript-readable browser cookies managed through frontend helper functions (`document.cookie`).
-* **Styling**: Tailwind CSS with custom global tokens implementing a premium glassmorphic dark theme.
+* **Styling**: Tailwind CSS with custom global tokens implementing a polished glassmorphic dark theme.
 * **Iconography**: `lucide-react` vector iconography.
 * **PWA Capability**: Standard PWA manifest and icons are configured in the `public` directory (`manifest.json`, `public/icons/icon-192.png`, and `public/icons/icon-512.png`). A service worker library (such as `next-pwa`) is not currently implemented.
 
@@ -66,8 +66,6 @@ erDiagram
     FoodItem ||--o{ FoodAlias : "has"
     FoodItem ||--o{ MealIngredient : "links to"
     
-    PlanSwapTracker ||--o{ SwapLog : "logs"
-    User ||--o| PlanSwapTracker : "has"
 ```
 
 ### 3.1 Data Dictionary
@@ -179,10 +177,8 @@ Stores ingredient items.
 * `category` (String, Nullable) - Category name.
 * `dataSource` (MealIngredientDataSource Enum: `FNRI`, `GEMINI_ESTIMATED`) - Tracks if nutrient data is FNRI-verified or AI-estimated.
 
-#### PlanSwapTracker & SwapLog Model
-Tracks user swaps.
-* `PlanSwapTracker`: Tracks `swapsUsed` (Int) for a `planGroupId`.
-* `SwapLog`: Logs individual swap deltas. Tracks `calorieDelta` (Float), `warningShown` (Boolean), and `warningAcknowledged` (Boolean).
+#### SwapLog Model
+Records each user replacement and supplies request-key idempotency. It tracks the original and replacement meal, `calorieDelta` (Float), `warningShown` (Boolean), and `warningAcknowledged` (Boolean). There is no weekly quantity counter.
 
 #### MealLibraryFlag Model (`MealLibraryFlag`)
 Tracks nutritionist flagging of database entries.
@@ -307,7 +303,7 @@ To avoid double-pickup conflicts when multiple nutritionists manage the pending 
 
 ### 4.7 User-Facing Meal Swaps
 * Users can swap planned meals using verified options in the `MealLibrary`.
-* Swaps are limited to **3 swaps per week** per `planGroupId`.
+* Compatible swaps are available without a weekly quantity cap. `SwapLog` preserves idempotent replacement evidence.
 * **Projected Calorie Preview**: Selecting a swap displays a delta preview. The system checks daily calorie targets and highlights a warning if the projected daily total falls outside a $\pm 15\%$ range of their target.
 
 ### 4.8 PDF Streaming Engine
@@ -678,9 +674,7 @@ Two reports are generated as PDF streams using server-side `@react-pdf/renderer`
     "data": {
       "swapOptions": [
         { "id": "lib-cuid", "mealName": "Vegan Champorado", "calories": 420 }
-      ],
-      "swapsUsed": 1,
-      "swapCap": 3
+      ]
     }
   }
   ```
@@ -860,7 +854,7 @@ Two reports are generated as PDF streams using server-side `@react-pdf/renderer`
 
 ---
 
-## 6. Premium UI Component Library
+## 6. UI Component Library
 The frontend is constructed using atomic UI components styled in Tailwind CSS:
 
 * **CalorieRing**: A SVG circular progress tracker. Integrates dynamic macro rings tracking daily targets, logs, and compliance indices.

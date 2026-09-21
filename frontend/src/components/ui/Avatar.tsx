@@ -106,7 +106,7 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
 ];
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
-  ({ className = '', src, seed, name, alt, fallbackText = 'NM', size = 'md', showSalakot = false, ...props }, ref) => {
+  ({ className = '', src, seed, name, alt, fallbackText = 'NM', size = 'md', showSalakot = true, ...props }, ref) => {
     const activeSrc = src !== undefined ? src : seed;
     const activeFallback = fallbackText !== 'NM' ? fallbackText : name || fallbackText;
 

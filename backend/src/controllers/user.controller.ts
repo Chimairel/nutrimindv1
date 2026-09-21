@@ -1,4 +1,3 @@
-import { TestPremiumService, TestPremiumPermissionError } from '@/services/test-premium.service';
 import { googleProfileImage } from '@/domain/google-profile-image';
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
@@ -560,19 +559,6 @@ export class UserController {
     } catch (error: any) {
       console.error('[UserController] getSuggestions error:', error);
       return res.status(500).json({ success: false, error: 'Failed to retrieve autocomplete suggestions.' });
-    }
-  }
-
-  static async toggleTestPremium(req: AuthenticatedRequest, res: Response) {
-    if (!['grant', 'revoke'].includes(req.body?.action))
-      return res.status(400).json({ success: false, error: 'Choose grant or revoke.' });
-    try {
-      const data = await TestPremiumService.toggle(req.user!.userId, req.body.action);
-      return res.json({ success: true, data });
-    } catch (error: unknown) {
-      if (error instanceof TestPremiumPermissionError)
-        return res.status(403).json({ success: false, code: 'TEST_PREMIUM_PERMISSION_REQUIRED', error: error.message });
-      return res.status(500).json({ success: false, error: 'Could not update test Premium.' });
     }
   }
 }

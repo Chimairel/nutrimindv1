@@ -24,8 +24,6 @@ import groceryRouter from '@/routes/grocery.routes';
 import progressRouter from '@/routes/progress.routes';
 import cronRouter from '@/routes/cron.routes';
 import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
-import billingRouter from '@/routes/billing.routes';
-import paymongoWebhookRouter from '@/routes/paymongo-webhook.routes';
 
 // Initialize Express app
 const app = express();
@@ -55,8 +53,6 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors(createCorsOptions(env.allowedCorsOrigins)));
-// PayMongo signs the exact request bytes. Keep this route before express.json().
-app.use('/api/webhooks/paymongo', apiLimiter, paymongoWebhookRouter);
 // Applicant media is bounded by its schema (1 MB headshot + 500 KB signature).
 app.use('/api/nutritionist-applications', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '256kb' }));
@@ -81,7 +77,6 @@ app.use('/api/user/meals', mealsRouter);
 app.use('/api/user/grocery', groceryRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/nutritionist-applications', nutritionistApplicationRouter);
-app.use('/api/billing', billingRouter);
 
 // Base health check endpoint
 app.get('/health', (req: Request, res: Response) => {

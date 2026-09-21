@@ -168,15 +168,6 @@ const routes: RouteDocumentation[] = [
   { method: 'patch', path: '/api/user/grocery/items/{id}/pantry', tag: 'Grocery', summary: 'Toggle pantry ownership' },
   { method: 'get', path: '/api/user/progress/history', tag: 'Tracking', summary: 'Read progress history' },
   { method: 'post', path: '/api/user/progress/weight', tag: 'Tracking', summary: 'Log a weight measurement' },
-  { method: 'get', path: '/api/billing/access', tag: 'Billing', summary: 'Read subscription access' },
-  { method: 'post', path: '/api/billing/subscriptions', tag: 'Billing', summary: 'Create a PayMongo hosted checkout' },
-  {
-    method: 'post',
-    path: '/api/webhooks/paymongo',
-    tag: 'Billing',
-    summary: 'Receive signed PayMongo events',
-    public: true,
-  },
   { method: 'get', path: '/api/nutritionist/queue', tag: 'Nutritionist', summary: 'List review queue' },
   {
     method: 'get',
@@ -231,7 +222,6 @@ const routes: RouteDocumentation[] = [
   { method: 'get', path: '/api/admin/safety-incidents', tag: 'Admin', summary: 'List safety incidents' },
   { method: 'get', path: '/api/admin/structured-safety-operations', tag: 'Admin', summary: 'Read safety operations' },
   { method: 'get', path: '/api/admin/compensation', tag: 'Compensation', summary: 'Read compensation workspace' },
-  { method: 'get', path: '/api/admin/billing-operations', tag: 'Billing', summary: 'Read billing operations' },
   { method: 'get', path: '/api/admin/data', tag: 'Data governance', summary: 'Read the reference-data workspace' },
   { method: 'get', path: '/api/admin/data/foods', tag: 'Data governance', summary: 'Search the FNRI food catalogue' },
   {
@@ -359,7 +349,7 @@ export const openApiDocument = new OpenApiGeneratorV31(registry.definitions, {
     title: 'NutriMind API',
     version: '1.0.0',
     description:
-      'REST API for NutriMind authentication, onboarding, meal planning, nutritionist review, billing, and administration.',
+      'REST API for NutriMind authentication, onboarding, meal planning, nutritionist review, and administration.',
   },
   servers: [{ url: '/', description: 'Current deployment' }],
   tags: [...new Set(routes.map((route) => route.tag))].sort().map((name) => ({ name })),

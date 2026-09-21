@@ -12,7 +12,6 @@ import {
   HealthConditionType,
   NotificationType,
   PlanType,
-  ShoppingDayGroup,
   MealPlanGenerationJobStatus,
   AiUsageOperation,
   MealCandidateProvenance,
@@ -25,11 +24,9 @@ import { runMealGenerationFallbackForUnmatchedSlots } from '@/domain/meal-genera
 import {
   getCurrentWeeklyCycleWindow,
   getManilaDateKey,
-  getNextWeeklyCycleWindow,
   getOnDemandMealPlanWindow,
   getScheduledMealDate,
   type MealPlanGenerationWindow,
-  type ShoppingSchedule,
   type WeeklyCycleWindow,
 } from '@/domain/meal-plan-cycle.policy';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
@@ -228,19 +225,6 @@ export class MealGenerationService {
     }
   }
 
-  static async generateNextWeeklyPlan(
-    userId: string,
-    schedule: ShoppingSchedule | ShoppingDayGroup | number,
-    now: Date = new Date()
-  ): Promise<string> {
-    const window = getNextWeeklyCycleWindow(schedule, now);
-    return MealGenerationService.generateWindowOnce(userId, {
-      planType: PlanType.WEEKLY,
-      numDays: 7,
-      startDate: window.startDate,
-    });
-  }
-
   static async ensureCurrentWeeklyRollover(
     userId: string,
     now: Date = new Date()
@@ -288,9 +272,8 @@ export class MealGenerationService {
       return { rolledOver: false, planGroupId: null };
     }
 
-    // Catch-up is schedule-derived and idempotent. If the preparation cron was
-    // missed, create only the remaining bridge to the next fixed cycle rather
-    // than backdating a seven-day plan.
+    // Rollover is schedule-derived and idempotent. Create only the active
+    // remainder of the cycle instead of backdating a seven-day plan.
     const catchUpWindow = getOnDemandMealPlanWindow(profile, now);
     const planGroupId = await MealGenerationService.generateWindowOnce(userId, catchUpWindow);
     return { rolledOver: true, planGroupId };
@@ -671,15 +654,6 @@ export class MealGenerationService {
             scheduledDate: { gte: startDate, lte: targetPlanEndDate },
           },
           data: { status: MealPlanStatus.CANCELLED },
-        });
-
-        // 1b. Create swap tracker row for this new planGroupId
-        await tx.planSwapTracker.create({
-          data: {
-            planGroupId: newPlanGroupId,
-            userId,
-            swapsUsed: 0,
-          },
         });
 
         // 2. Create matched library meals from the exact certified library snapshot.

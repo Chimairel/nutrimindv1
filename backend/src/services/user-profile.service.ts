@@ -1,4 +1,3 @@
-import { resolveUserBillingEntitlement } from './user-entitlement-reader.service';
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
 import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
@@ -298,7 +297,6 @@ export class UserProfileService {
         acceptedPrivacyVersion: true,
         healthDataConsentedAt: true,
         onboardingDone: true,
-        testPremiumAllowed: true,
         image: true,
         createdAt: true,
         updatedAt: true,
@@ -347,8 +345,6 @@ export class UserProfileService {
       return null;
     }
 
-    const entitlement = await resolveUserBillingEntitlement(prisma, user.id, new Date());
-
     const onboardingStatus = evaluateUserOnboardingStatus(user);
     const googleAccount = user.accounts?.[0];
     const googleImage = googleProfileImage(googleAccount?.access_token) || googleProfileImage(user.image);
@@ -372,9 +368,6 @@ export class UserProfileService {
       onboardingDone: user.onboardingDone,
       image: user.image,
       googleImage,
-      isPremium: entitlement.tier === 'PREMIUM',
-      premiumExpiresAt: entitlement.effectiveUntil?.toISOString() || null,
-      testPremiumAllowed: user.testPremiumAllowed,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       userProfile: user.userProfile,

@@ -42,7 +42,10 @@ function parseAggregate(content: string): Prisma.FoodConsumptionStatCreateManyIn
   const rows = parseCsv(content);
   const header = rows[0];
   if (!header?.length) throw new Error('Aggregate CSV is empty.');
-  const objects = rows.slice(1).filter((row) => row.some(Boolean)).map((row) => Object.fromEntries(header.map((key, index) => [key, row[index] ?? ''])));
+  const objects = rows
+    .slice(1)
+    .filter((row) => row.some(Boolean))
+    .map((row) => Object.fromEntries(header.map((key, index) => [key, row[index] ?? ''])));
   const knownGroups = new Set<string>(ENNS_FOOD_GROUPS.map(({ code }) => code));
   const seen = new Set<string>();
   const parsed = objects.map((row) => {
@@ -85,7 +88,9 @@ function parseAggregate(content: string): Prisma.FoodConsumptionStatCreateManyIn
       surveyYears: required(row, 'survey_years'),
     };
   });
-  const scopeCount = new Set(parsed.map((row) => `${row.geographyLevel}:${row.regionName ?? ''}:${row.provinceHucName ?? ''}`)).size;
+  const scopeCount = new Set(
+    parsed.map((row) => `${row.geographyLevel}:${row.regionName ?? ''}:${row.provinceHucName ?? ''}`)
+  ).size;
   if (parsed.length !== 2_620 || scopeCount !== 131) {
     throw new Error(`Expected 2,620 rows across 131 scopes; found ${parsed.length} rows across ${scopeCount} scopes.`);
   }
@@ -133,7 +138,9 @@ async function main() {
   });
   if (existing?.status === ReferenceDataReleaseStatus.ACTIVE) {
     if (existing.contentSha256 !== contentSha256) {
-      throw new Error('The active release has the same version label but a different fingerprint. Create a new version.');
+      throw new Error(
+        'The active release has the same version label but a different fingerprint. Create a new version.'
+      );
     }
     console.log(JSON.stringify({ ...summary, releaseId: existing.id, noOp: true }, null, 2));
     return;
@@ -155,7 +162,8 @@ async function main() {
               sourceUrl: 'https://enutrition.fnri.dost.gov.ph/puf-preview.php?xx=2018748',
               retrievedAt: new Date('2026-09-21T00:00:00.000Z'),
               contentSha256,
-              notes: 'Weighted food-group aggregates derived locally; respondent records are excluded from the database.',
+              notes:
+                'Weighted food-group aggregates derived locally; respondent records are excluded from the database.',
               status: ReferenceDataReleaseStatus.DRAFT,
             },
           })
@@ -166,7 +174,8 @@ async function main() {
               sourceUrl: 'https://enutrition.fnri.dost.gov.ph/puf-preview.php?xx=2018748',
               retrievedAt: new Date('2026-09-21T00:00:00.000Z'),
               contentSha256,
-              notes: 'Weighted food-group aggregates derived locally; respondent records are excluded from the database.',
+              notes:
+                'Weighted food-group aggregates derived locally; respondent records are excluded from the database.',
               createdByAdminId: admin.id,
             },
           });

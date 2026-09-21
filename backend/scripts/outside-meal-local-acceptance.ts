@@ -111,17 +111,18 @@ async function main(): Promise<void> {
     },
   });
 
+  await prisma.outsideMealAiUsage.create({ data: { userId: user.id, itemCount: 5 } });
   await rejectsWithCode(
     () =>
       MealLogService.logOutsideMeal({
         userId: user.id,
-        items: [{ name: `Unresolved premium estimate ${run}` }],
+        items: [{ name: `Unresolved quota estimate ${run}` }],
         mealType: MealType.SNACK,
         useAiEstimate: true,
       }),
-    'PREMIUM_REQUIRED'
+    'DAILY_LIMIT_REACHED'
   );
-  assert.equal(await prisma.outsideMealAiUsage.count({ where: { userId: user.id } }), 0);
+  await prisma.outsideMealAiUsage.deleteMany({ where: { userId: user.id } });
 
   const requestKey = `outside-meal-acceptance:${run}`;
   const input = {
@@ -274,18 +275,6 @@ async function main(): Promise<void> {
   let geminiCalls = 0;
   let geminiProviderAttempts = 0;
   if (process.env.OUTSIDE_MEAL_ACCEPTANCE_USE_GEMINI === '1') {
-    const now = new Date();
-    await prisma.entitlementGrant.create({
-      data: {
-        userId: user.id,
-        billingSubjectKey: `outside-meal:${run}`,
-        entitlementKey: 'PREMIUM',
-        source: 'ADMIN_ADJUSTMENT',
-        sourceKey: `outside-meal-acceptance:${run}:premium`,
-        effectiveFrom: new Date(now.getTime() - 60_000),
-        effectiveUntil: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-      },
-    });
     const livePreview = await MealLogService.logOutsideMeal({
       userId: user.id,
       items: [{ name: 'one medium turon with jackfruit' }],

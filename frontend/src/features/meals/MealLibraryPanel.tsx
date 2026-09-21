@@ -80,7 +80,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               key={meal.id}
               meal={meal}
               meals={meals}
-              planView={workspace.planView}
               onSwap={handleSwapClick}
               onVerifier={setSelectedVerifier}
             />

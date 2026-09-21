@@ -170,7 +170,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             size="lg"
             src={user.image}
             fallbackText={user.name}
-            showSalakot={Boolean(user.isPremium)}
+            showSalakot
             className="h-20 w-20 rounded-full shadow-lg"
           />
           <div className="min-w-0 flex-1">
@@ -311,8 +311,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                 <div className="mb-4 flex items-start gap-2 rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 p-3.5 text-xs font-semibold leading-relaxed text-brand-text">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-cyan" />
                   <span>
-                    Continue using the Google account connected to {user.email}. Password reset and password sign-in
-                    are unavailable for this account.
+                    Continue using the Google account connected to {user.email}. Password reset and password sign-in are
+                    unavailable for this account.
                   </span>
                 </div>
               )}
@@ -436,8 +436,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                 )}
                 <div className="space-y-2">
                   <p className="text-xs leading-relaxed text-brand-muted">
-                    Reauthenticate with the Google identity connected to this KAINARA account to permanently delete
-                    it.
+                    Reauthenticate with the Google identity connected to this KAINARA account to permanently delete it.
                   </p>
                   <GoogleSignInButton
                     label="continue_with"

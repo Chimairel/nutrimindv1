@@ -1,4 +1,4 @@
-import { assertCurrency, assertPositiveMoney, sumMinorAmounts } from './billing-money.policy';
+import { assertCurrency, assertPositiveMoney, sumMinorAmounts } from './money.policy';
 
 export type WorkCreditKind =
   'ORDINARY_PLAN_REVIEW' | 'HIGH_RISK_SECOND_REVIEW' | 'LIBRARY_SAFETY_CERTIFICATION' | 'SAFETY_FLAG_RESOLUTION';
