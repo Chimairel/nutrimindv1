@@ -16,6 +16,7 @@ import {
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { toPublicMealImage } from '@/domain/meal-image.policy';
 import {
@@ -189,8 +190,15 @@ export class MealSwapService {
     }
 
     // 5. Get daily target
-    const profile = await client.userProfile.findUnique({ where: { userId } });
-    const dailyTarget = profile?.dailyCalorieTarget || 2000;
+    const [profile, cycleSnapshot] = await Promise.all([
+      client.userProfile.findUnique({ where: { userId } }),
+      client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: mealPlan.planGroupId } }),
+    ]);
+    const dailyTarget = resolvePlanTargetCalories(
+      cycleSnapshot?.dailyCalorieTarget,
+      profile?.dailyCalorieTarget,
+      2000
+    );
 
     // 6. Determine if warning is needed (±15%)
     const lowerBound = dailyTarget * 0.85;
@@ -470,8 +478,22 @@ export class MealSwapService {
       },
     });
 
-    const profile = await prisma.userProfile.findUnique({ where: { userId } });
-    const targetCalories = profile?.dailyCalorieTarget || 2000;
+    const scheduledPlan = await prisma.mealPlan.findFirst({
+      where: { userId, scheduledDate: { gte: startOfDay, lte: endOfDay } },
+      orderBy: { createdAt: 'desc' },
+      select: { planGroupId: true },
+    });
+    const [profile, cycleSnapshot] = await Promise.all([
+      prisma.userProfile.findUnique({ where: { userId } }),
+      scheduledPlan
+        ? prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: scheduledPlan.planGroupId } })
+        : Promise.resolve(null),
+    ]);
+    const targetCalories = resolvePlanTargetCalories(
+      cycleSnapshot?.dailyCalorieTarget,
+      profile?.dailyCalorieTarget,
+      2000
+    );
 
     let totalCalories = 0;
     let totalProteinG = 0;

@@ -4,6 +4,7 @@ import { calculateDailyTarget } from '@/lib/calculations';
 import { getCurrentWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
 import { evaluateWeeklyAdaptation } from '@/domain/weekly-adaptation.policy';
 import type { WeeklyCheckinInput } from '@/validation/checkin.schemas';
+import { deriveMissedCheckinCycles } from '@/domain/checkin-cycle.policy';
 import {
   ActivityLevel,
   Goal,
@@ -56,11 +57,13 @@ export class CheckinService {
     const firstCheckinAnchor = profile.user.nutritionReport?.acknowledgedAt ?? profile.user.createdAt;
     const checkinAnchor = profile.lastCheckinAt ?? firstCheckinAnchor;
     const nextDueAt = new Date(checkinAnchor.getTime() + 7 * 86_400_000);
+    const missedCycles = deriveMissedCheckinCycles(checkinAnchor, now, Boolean(submittedThisCycle));
     return {
       isDue: !submittedThisCycle && now.getTime() >= nextDueAt.getTime(),
       streak: profile.checkinStreak,
       lastCheckinAt: profile.lastCheckinAt,
       nextDueAt,
+      missedCycles,
       latestAdaptation: submittedThisCycle,
     };
   }

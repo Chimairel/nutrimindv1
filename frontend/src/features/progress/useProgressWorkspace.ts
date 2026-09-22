@@ -320,6 +320,8 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         }
         if (profileRes.data && profileRes.data.success) {
           setProfileData(profileRes.data.data);
+          const savedReport = profileRes.data.data.nutritionReport;
+          updateUserSession({ reportAcknowledged: !!savedReport?.acknowledgedAt && !savedReport?.isStale });
         }
         writeSessionResource(ownerId, 'user-progress-page', {
           history: historyRes.data?.success ? historyRes.data.data : history,
@@ -393,6 +395,12 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         return {
           weightKg: avgWeight,
           dateLabel: label,
+          loggedAt:
+            timeframe === 'week'
+              ? new Date(key).toISOString()
+              : timeframe === 'month'
+                ? new Date(Number(key.split('-')[0]), Number(key.split('-')[1]), 1).toISOString()
+                : new Date(Number(key), 0, 1).toISOString(),
         };
       });
   }, [history?.weightLogs, timeframe]);

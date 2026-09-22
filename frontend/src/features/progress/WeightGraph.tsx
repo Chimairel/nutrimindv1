@@ -5,6 +5,13 @@ import type { useProgressWorkspace } from './useProgressWorkspace';
 
 type WeightGraphProps = Pick<ReturnType<typeof useProgressWorkspace>, 'groupedLogs' | 'targetWeight'>;
 
+export function getTimeScaleRatios(loggedAt: string[]): number[] {
+  const timestamps = loggedAt.map((value) => new Date(value).getTime());
+  const minTime = Math.min(...timestamps);
+  const maxTime = Math.max(...timestamps);
+  return timestamps.map((timestamp) => (maxTime > minTime ? (timestamp - minTime) / (maxTime - minTime) : 0.5));
+}
+
 export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphProps) {
   if (groupedLogs.length === 0) {
     return (
@@ -30,8 +37,9 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   const rangeW = maxW - minW || 10;
 
   // Map logs to coordinates
-  const points = groupedLogs.map((log, idx) => {
-    const ratio = groupedLogs.length > 1 ? idx / (groupedLogs.length - 1) : 0.5;
+  const timeRatios = getTimeScaleRatios(groupedLogs.map((log) => log.loggedAt));
+  const points = groupedLogs.map((log, index) => {
+    const ratio = timeRatios[index];
     const x = padding + ratio * (width - padding * 2);
     const y = height - padding - ((log.weightKg - minW) / rangeW) * (height - padding * 2);
     return { x, y, weight: log.weightKg, date: log.dateLabel };

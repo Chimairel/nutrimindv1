@@ -589,6 +589,7 @@ model User {
   notifications                    Notification[]
   mealPlanGenerationJobs           MealPlanGenerationJob[]
   weeklyCheckins                   WeeklyCheckin[]
+  mealPlanCycleSnapshots           MealPlanCycleSnapshot[]
   healthProfileRevisions           HealthProfileRevision[]
   safetyProfileEntries             SafetyProfileEntry[]
   auditEvents                      AuditEvent[]
@@ -657,6 +658,7 @@ model NutritionReportVersion {
 
 model UserProfile {
   revision                Int                       @default(0)
+  safetyRevision          Int                       @default(0)
   id                      String                    @id @default(cuid())
   userId                  String                    @unique
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1816,6 +1818,35 @@ model MealPlanGenerationJob {
 
   @@unique([userId, planType, cycleStartDate])
   @@index([status, updatedAt])
+}
+
+/// Immutable inputs and targets used to generate one plan cycle. Live profile
+/// edits never rewrite this record, so active and historical adherence retain
+/// the target that was actually in force for that plan.
+model MealPlanCycleSnapshot {
+  id                      String                    @id @default(cuid())
+  planGroupId             String                    @unique
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileRevision         Int
+  safetyRevision          Int
+  weightKg                Float
+  activityLevel           ActivityLevel
+  goal                    Goal
+  dailyCalorieTarget      Int
+  dailyMacroTargets       Json
+  dietaryPreference       DietaryPreference?
+  carbPreference          CarbPreference?
+  foodCulture             String?
+  planningGeographyLevel  ConsumptionGeographyLevel
+  planningRegionName      String?
+  planningProvinceHucName String?
+  mealLocalityPreference  MealLocalityPreference
+  shoppingDayGroup        ShoppingDayGroup?
+  shoppingDayOfWeek       Int?
+  generatedAt             DateTime                  @default(now())
+
+  @@index([userId, generatedAt])
 }
 
 model WeeklyCheckin {

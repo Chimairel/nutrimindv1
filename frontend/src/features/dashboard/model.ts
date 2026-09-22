@@ -60,6 +60,7 @@ export function calculateDashboardMetrics(input: {
   activeDate: Date;
   currentMeals: MealPlan[];
   dailyCalorieTarget?: number | null;
+  dailyMacroTargets?: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }> | null;
   outsideMealLogs: OutsideMealLog[];
   pendingMeals: PendingMealPreview[];
 }) {
@@ -78,7 +79,7 @@ export function calculateDashboardMetrics(input: {
     (meal) => meal.nutritionCompleteness && meal.nutritionCompleteness !== 'COMPLETE'
   ).length;
   const target = (field: 'calories' | 'proteinG' | 'carbsG' | 'fatG', fallback: number) =>
-    scheduled.reduce((sum, meal) => sum + meal[field], 0) || fallback;
+    input.dailyMacroTargets?.[dateKey]?.[field] ?? (scheduled.reduce((sum, meal) => sum + meal[field], 0) || fallback);
 
   return {
     mealsList,

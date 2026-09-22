@@ -3,6 +3,7 @@ import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy'
 import { UserSafetyRecheckService } from './user-safety-recheck.service';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 import { enforceClearanceCircuitBreakers } from './condition-clearance.service';
+import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 
 export class CronService {
   static async retrySafetyRevalidation() {
@@ -57,7 +58,18 @@ export class CronService {
     // 3. Process logs per user
     for (const user of users) {
       try {
-        const targetCalories = user.userProfile?.dailyCalorieTarget || 0;
+        const scheduledPlan = await prisma.mealPlan.findFirst({
+          where: { userId: user.id, scheduledDate: { gte: yesterdayStart, lte: yesterdayEnd } },
+          orderBy: { createdAt: 'desc' },
+          select: { planGroupId: true },
+        });
+        const cycleSnapshot = scheduledPlan
+          ? await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: scheduledPlan.planGroupId } })
+          : null;
+        const targetCalories = resolvePlanTargetCalories(
+          cycleSnapshot?.dailyCalorieTarget,
+          user.userProfile?.dailyCalorieTarget
+        );
         if (targetCalories <= 0) {
           console.log(`[CronService] Skipping user ${user.email} due to missing or invalid calorie targets.`);
           continue;

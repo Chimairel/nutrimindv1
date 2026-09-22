@@ -4,14 +4,29 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CheckinModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPlanRegenerated: () => void;
 }
 
-export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: CheckinModalProps) {
+type CheckinFormData = { weightKg: string; activityLevel: string; goal: string };
+
+export function buildDirtyCheckinUpdates(initial: CheckinFormData, current: CheckinFormData) {
+  const updates: { weightKg?: number; activityLevel?: string; goal?: string } = {};
+  if (current.weightKg !== initial.weightKg) {
+    const parsedWeight = Number(current.weightKg);
+    if (!Number.isFinite(parsedWeight)) throw new Error('Enter a valid weight.');
+    updates.weightKg = parsedWeight;
+  }
+  if (current.activityLevel !== initial.activityLevel) updates.activityLevel = current.activityLevel;
+  if (current.goal !== initial.goal) updates.goal = current.goal;
+  return updates;
+}
+
+export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
+  const { updateUserSession } = useAuth();
   const [step, setStep] = useState<'PROMPT' | 'FORM'>('PROMPT');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +36,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
     activityLevel: '',
     goal: '',
   });
+  const [initialFormData, setInitialFormData] = useState(formData);
 
   useEffect(() => {
     if (isOpen && step === 'FORM') {
@@ -30,11 +46,13 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
         .then((res) => {
           if (res.data?.success && res.data.data?.userProfile) {
             const profile = res.data.data.userProfile;
-            setFormData({
+            const next = {
               weightKg: profile.weightKg ? String(profile.weightKg) : '',
               activityLevel: profile.activityLevel || 'SEDENTARY',
               goal: profile.goal || 'MAINTAIN',
-            });
+            };
+            setFormData(next);
+            setInitialFormData(next);
           }
         })
         .catch((err) => {
@@ -60,17 +78,15 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
     setIsSubmitting(true);
     setError(null);
     try {
-      const updates = {
-        weightKg: parseFloat(formData.weightKg) || undefined,
-        activityLevel: formData.activityLevel,
-        goal: formData.goal,
-      };
+      const updates = buildDirtyCheckinUpdates(initialFormData, formData);
+      if (Object.keys(updates).length === 0) {
+        setError('Change at least one value, or choose “Everything is the same.”');
+        return;
+      }
 
       await api.post('/user/checkin/submit', { changed: true, updates });
 
-      // Refresh the dashboard. The updated profile is applied to the next
-      // schedule-derived plan; the current approved week is not discarded.
-      onPlanRegenerated();
+      updateUserSession({ reportAcknowledged: false });
       onClose();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to update check-in and regenerate plan.'));
@@ -83,7 +99,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
     return (
       <Modal
         isOpen={isOpen}
-        onClose={() => {}} // Force them to choose
+        onClose={onClose}
         title="Weekly Check-in Due"
         description="It's time for your weekly KAINARA check-in! Let's ensure your meal plan remains accurate for your current progress."
       >
@@ -110,7 +126,7 @@ export default function CheckinModal({ isOpen, onClose, onPlanRegenerated }: Che
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => setStep('PROMPT')}
+      onClose={onClose}
       title="Update Check-in Details"
       description="Update your current metrics. KAINARA will use them for the next scheduled plan without discarding your active approved week."
     >

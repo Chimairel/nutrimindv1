@@ -19,6 +19,8 @@ export interface UserProfileData {
   onboardingDone: boolean;
   createdAt: string;
   userProfile: {
+    revision?: number;
+    safetyRevision?: number;
     age?: number;
     biologicalSex?: string;
     heightCm?: number;

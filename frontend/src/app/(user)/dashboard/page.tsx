@@ -34,6 +34,10 @@ import { useMealGenerationProgress } from '@/features/meals/useMealGenerationPro
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReview | null;
+  planSnapshot: {
+    dailyCalorieTarget: number;
+    dailyMacroTargets: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }>;
+  } | null;
 }
 
 interface CheckinSnapshot {
@@ -66,6 +70,9 @@ export default function DashboardPage() {
   } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
+  const [planSnapshot, setPlanSnapshot] = useState<CurrentPlanSnapshot['planSnapshot']>(
+    cachedPlan?.planSnapshot ?? null
+  );
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
 
@@ -129,6 +136,7 @@ export default function DashboardPage() {
     (snapshot: CurrentPlanSnapshot) => {
       setCurrentMeals(snapshot.meals);
       setPendingReview(snapshot.pendingReview);
+      setPlanSnapshot(snapshot.planSnapshot);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
     [ownerId]
@@ -217,6 +225,7 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          planSnapshot: res.data.meta?.planSnapshot ?? null,
         });
       }
     } catch (err: unknown) {
@@ -281,6 +290,7 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          planSnapshot: res.data.meta?.planSnapshot ?? null,
         });
       }
     } catch (err) {
@@ -304,6 +314,7 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: res.data.data.meals,
           pendingReview: res.data.data.pendingReview ?? null,
+          planSnapshot: res.data.data.planSnapshot ?? null,
         });
       }
     } catch (err: unknown) {
@@ -377,7 +388,8 @@ export default function DashboardPage() {
   const metrics = calculateDashboardMetrics({
     activeDate,
     currentMeals,
-    dailyCalorieTarget: userProfile?.dailyCalorieTarget,
+    dailyCalorieTarget: planSnapshot?.dailyCalorieTarget ?? userProfile?.dailyCalorieTarget,
+    dailyMacroTargets: planSnapshot?.dailyMacroTargets,
     outsideMealLogs,
     pendingMeals: pendingReview?.meals ?? [],
   });
@@ -571,7 +583,7 @@ export default function DashboardPage() {
         warning={warningData}
       />
 
-      <CheckinModal isOpen={isCheckinDue} onClose={() => setIsCheckinDue(false)} onPlanRegenerated={fetchCurrentPlan} />
+      <CheckinModal isOpen={isCheckinDue} onClose={() => setIsCheckinDue(false)} />
     </div>
   );
 }

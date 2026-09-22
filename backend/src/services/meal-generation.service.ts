@@ -636,6 +636,37 @@ export class MealGenerationService {
     );
     if (finalCalorieIssues.length) throw new Error(finalCalorieIssues.join(' '));
 
+    const cycleMeals = [
+      ...matchedSlots.map((slot) => ({
+        scheduledDate: slot.scheduledDate,
+        calories: slot.libraryMeal.calories,
+        proteinG: slot.libraryMeal.proteinG,
+        carbsG: slot.libraryMeal.carbsG,
+        fatG: slot.libraryMeal.fatG,
+      })),
+      ...preparedAiMeals.map((meal) => ({
+        scheduledDate: meal.scheduledDate,
+        calories: meal.calories,
+        proteinG: meal.proteinG,
+        carbsG: meal.carbsG,
+        fatG: meal.fatG,
+      })),
+    ];
+    const dailyMacroTargets = cycleMeals.reduce<Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }>>(
+      (days, meal) => {
+        const key = getManilaDateKey(meal.scheduledDate);
+        const current = days[key] ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
+        days[key] = {
+          calories: current.calories + meal.calories,
+          proteinG: current.proteinG + meal.proteinG,
+          carbsG: current.carbsG + meal.carbsG,
+          fatG: current.fatG + meal.fatG,
+        };
+        return days;
+      },
+      {}
+    );
+
     // Save plans atomically in a Prisma Transaction (with a 30-second timeout to support sequential batch inserts)
     await prisma.$transaction(
       async (tx) => {
@@ -654,6 +685,29 @@ export class MealGenerationService {
             scheduledDate: { gte: startDate, lte: targetPlanEndDate },
           },
           data: { status: MealPlanStatus.CANCELLED },
+        });
+
+        await tx.mealPlanCycleSnapshot.create({
+          data: {
+            planGroupId: newPlanGroupId,
+            userId,
+            profileRevision: profile.revision,
+            safetyRevision: profile.safetyRevision,
+            weightKg,
+            activityLevel,
+            goal,
+            dailyCalorieTarget,
+            dailyMacroTargets: dailyMacroTargets as Prisma.InputJsonObject,
+            dietaryPreference: profile.dietaryPreference,
+            carbPreference: profile.carbPreference,
+            foodCulture: profile.foodCulture,
+            planningGeographyLevel: profile.planningGeographyLevel,
+            planningRegionName: profile.planningRegionName,
+            planningProvinceHucName: profile.planningProvinceHucName,
+            mealLocalityPreference: profile.mealLocalityPreference,
+            shoppingDayGroup: profile.shoppingDayGroup,
+            shoppingDayOfWeek: profile.shoppingDayOfWeek,
+          },
         });
 
         // 2. Create matched library meals from the exact certified library snapshot.

@@ -41,7 +41,6 @@ import {
   Activity,
   ClipboardList,
   Sparkles,
-  RefreshCw,
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
@@ -53,7 +52,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setActiveSection,
     history,
     profileData,
-    user,
     setProfileData,
     isLoading,
     error,
@@ -608,8 +606,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                   <Sparkles className="h-4 w-4 shrink-0 text-brand-green mt-0.5" />
                   <div>
                     <strong className="text-brand-text block mb-0.5">Plan Cycle Notice</strong>
-                    Changes made here will take effect starting on your next weekly meal cycle, or immediately if you
-                    choose to regenerate your current week&apos;s meal plan.
+                    Planning changes take effect on your next weekly meal cycle. Safety restrictions block conflicting
+                    uneaten meals immediately.
                   </div>
                 </div>
 
@@ -836,24 +834,14 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         footer={
           <div className="flex w-full flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
             <Button
-              variant="secondary"
+              variant="primary"
               onClick={() => {
                 setShowRegenerateModal(false);
-                router.push(
-                  user?.reportAcknowledged ? '/meals?regenerate=true' : '/profile/nutrition-report?next=regenerate'
-                );
+                router.push('/profile/nutrition-report');
               }}
-              className="text-xs font-bold flex items-center justify-center gap-2 w-full sm:w-auto"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Regenerate Plan</span>
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => setShowRegenerateModal(false)}
               className="text-xs font-bold w-full sm:w-auto shadow-md"
             >
-              OK
+              Review Updated Report
             </Button>
           </div>
         }
@@ -865,8 +853,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               <strong className="text-brand-text block mb-1">When will your changes take effect?</strong>
               Your saved preferences apply to future planning. Existing meals are checked again for safety.
               <br className="mb-2" />
-              To request a new plan, click <strong>Regenerate Plan</strong>. If your guidance needs updating, you will
-              review and acknowledge it first.
+              Review and acknowledge your updated nutrition report now. Your active plan keeps its original planning
+              targets unless a new safety restriction blocks an uneaten meal.
             </div>
           </div>
         </div>

@@ -27,7 +27,20 @@ export async function advanceProfileRevision(tx: Prisma.TransactionClient, userI
     where: { userId },
     data: { revision: { increment: 1 }, dailyCalorieTarget: target },
   });
-  await tx.nutritionReport.updateMany({ where: { userId }, data: { isStale: true, acknowledgedAt: null } });
+  await tx.nutritionReport.updateMany({
+    where: { userId },
+    data: { isStale: true, acknowledgedAt: null },
+  });
+  return updated;
+}
+
+/** Safety changes fail closed for every current/future uneaten slot. */
+export async function advanceSafetyRevision(tx: Prisma.TransactionClient, userId: string) {
+  const updated = await advanceProfileRevision(tx, userId);
+  const safetyUpdated = await tx.userProfile.update({
+    where: { userId },
+    data: { safetyRevision: { increment: 1 } },
+  });
   await tx.mealPlan.updateMany({
     where: {
       userId,
@@ -48,5 +61,5 @@ export async function advanceProfileRevision(tx: Prisma.TransactionClient, userI
     },
   });
   await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
-  return updated;
+  return { ...updated, safetyRevision: safetyUpdated.safetyRevision };
 }

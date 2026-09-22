@@ -8,7 +8,7 @@ import {
   SafetyEntrySupportState,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
+import { lockUserProfile, advanceSafetyRevision } from './profile-revision.service';
 import {
   getPublicSafetyCatalogue,
   resolveSafetyEntries,
@@ -241,7 +241,7 @@ export class SafetyIntakeService {
         } as Prisma.InputJsonObject,
       },
     });
-    await advanceProfileRevision(tx, userId);
+    await advanceSafetyRevision(tx, userId);
 
     return { ...preview, entries, changed: true };
   }

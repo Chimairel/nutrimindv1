@@ -116,6 +116,7 @@ export class MealsController {
       const meals = filterUserActionableMealPlans(generatedPlanRows);
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
       const pendingReview = buildPendingMealPlanPreview(generatedPlanRows);
+      const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } });
 
       // The grocery checklist is a projection of the actionable plan, not a
       // second user-generated artifact. Build it as part of successful plan
@@ -132,6 +133,7 @@ export class MealsController {
           meals,
           ...generationSummary,
           pendingReview,
+          planSnapshot,
         },
       });
     } catch (error: any) {
@@ -253,11 +255,15 @@ export class MealsController {
             })
           : [];
 
+        const pendingSnapshot = latestPendingPlan
+          ? await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: latestPendingPlan.planGroupId } })
+          : null;
         return res.status(200).json({
           success: true,
           data: [],
           meta: {
             pendingReview: buildPendingMealPlanPreview(pendingPlanRows),
+            planSnapshot: pendingSnapshot,
           },
         });
       }
@@ -290,12 +296,16 @@ export class MealsController {
       const meals = groupMeals
         .filter((meal) => isUserActionableMealPlanStatus(meal.status) && meal.requiresSafetyRevalidation === false)
         .map(serializeActionableMeal);
+      const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
+        where: { planGroupId: latestPlan.planGroupId },
+      });
 
       return res.status(200).json({
         success: true,
         data: meals,
         meta: {
           pendingReview: buildPendingMealPlanPreview(groupMeals),
+          planSnapshot,
         },
       });
     } catch (error: any) {

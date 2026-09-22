@@ -81,6 +81,8 @@ export interface User {
 }
 
 export interface UserProfile {
+  revision?: number;
+  safetyRevision?: number;
   id: string;
   userId: string;
   age?: number;

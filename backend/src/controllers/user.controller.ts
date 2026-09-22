@@ -9,6 +9,7 @@ import { NutritionReportService } from '@/services/nutrition-report.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { COMMON_ALLERGIES, COMMON_CONDITIONS } from '@/services/health-validation.service';
 import { SafetyIntakeService } from '@/services/safety-intake.service';
+import { introducesHardDietRestriction } from '@/domain/profile-update-policy';
 
 export class UserController {
   static async getSafetyCatalogue(_req: AuthenticatedRequest, res: Response) {
@@ -72,10 +73,14 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      await UserService.updateUserProfile(userId, req.body);
+      const previousProfile = await prisma.userProfile.findUnique({ where: { userId } });
+      const updatedProfile = await UserService.updateUserProfile(userId, req.body);
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (user?.onboardingDone) {
+      if (
+        user?.onboardingDone &&
+        introducesHardDietRestriction(previousProfile?.dietaryPreference, updatedProfile.dietaryPreference)
+      ) {
         await UserService.runSafetyRecheck(userId);
       }
 

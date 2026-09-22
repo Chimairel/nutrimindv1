@@ -1,6 +1,6 @@
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
-import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
+import { lockUserProfile, advanceProfileRevision, advanceSafetyRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
   Goal,
@@ -15,6 +15,7 @@ import {
 } from '@prisma/client';
 import { evaluateOnboardingStatus } from '@/domain/onboarding.policy';
 import { getCanonicalRegionName } from '@/data/philippine-planning-geography';
+import { introducesHardDietRestriction } from '@/domain/profile-update-policy';
 
 interface ProfileUpdateData {
   age?: number;
@@ -140,7 +141,10 @@ export class UserProfileService {
         const changed =
           !existing ||
           Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
-        return changed ? advanceProfileRevision(tx, userId) : profile;
+        if (!changed) return profile;
+        return introducesHardDietRestriction(existing?.dietaryPreference, profile.dietaryPreference)
+          ? advanceSafetyRevision(tx, userId)
+          : advanceProfileRevision(tx, userId);
       },
       { maxWait: 10000, timeout: 30000 }
     );
@@ -241,7 +245,11 @@ export class UserProfileService {
         await lockUserProfile(tx, userId);
         const current = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
         if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
-        if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) await advanceProfileRevision(tx, userId);
+        let reportProfileRevision = current.revision;
+        if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) {
+          const revised = await advanceProfileRevision(tx, userId);
+          reportProfileRevision = revised.revision;
+        }
         await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
 
         // Upsert baseline nutrition report with acknowledgedAt so user is immediately ready for dashboard
@@ -250,7 +258,7 @@ export class UserProfileService {
           where: { userId },
           create: {
             userId,
-            profileRevision: current.revision,
+            profileRevision: reportProfileRevision,
             isStale: false,
             version: 1,
             acknowledgedAt: now,
@@ -263,6 +271,7 @@ export class UserProfileService {
             basedOnAllergies: user.allergies.map((a) => a.allergen),
           },
           update: {
+            profileRevision: reportProfileRevision,
             acknowledgedAt: now,
             isStale: false,
           },
