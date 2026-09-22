@@ -4020,3 +4020,13 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - The document separates proposed behavior from implementation evidence, maps its concepts onto the current Prisma models, preserves the existing safety-evidence/assurance architecture, and defines system-wide invariants, state workflows, failure behavior, batch dependencies, test expectations, and an exit gate for each of eleven ordered batches.
 - Future-cycle preparation in this plan is universal core behavior. It does not restore the subscription system, payment code, entitlements, Premium swap limits, or paid next-plan access removed in section 98. The separately discussed full-paywall idea remains a deferred product consideration only.
 - This documentation change does not modify source code, schema, migrations, database records, runtime configuration, or deployed behavior. Every batch remains unchecked and must receive its own implementation and verification evidence before being described as implemented.
+
+## 100. Core-workflow consistency lock-ins (2026-09-22)
+
+**Documentation ID:** DOC-067
+
+- Tightened the forward implementation contract after a cross-feature consistency audit. Batch 1 now requires a first-class cycle root linked to slots, groceries, generation jobs, and the existing immutable snapshot; exact Asia/Manila shopping cutoffs; explicit `INCOMPLETE_AT_DEADLINE` handling; and a shopping-start freeze that prevents silent grocery expansion.
+- Added the missing rice architecture: explicit user rice preference, reviewed recipe rice role, included-rice evidence, FNRI-scaled paired rice, and composed-serving signatures. Removed monetary budget from the active profile/ranking contract because no corresponding user input exists.
+- Locked stable user-selected upcoming swaps, prohibited future eaten/skipped actions, separated safety/audit priority from shopping-deadline queues, required duplicate clinical-work coalescing, and made eligible-library pagination and totals explicit.
+- Corrected outside-meal capture so the immutable retrospective record is committed before its safety follow-up, narrowed scalable RND queue entry, and required separate consent for deidentified recipe-detail reuse and image reuse.
+- Corrected the user documentation to state that the full weekly cycle begins the day after shopping day. These changes clarify the accepted forward behavior; they do not implement Batch 1, change the schema, migrate the database, or alter runtime meal-planning behavior.

@@ -70,7 +70,8 @@ This is a forward implementation contract, not proof of current runtime behavior
 | **Confirmed outside meal** | One exact outside-log revision whose macro estimate was confirmed or corrected by an eligible RND. This confirms the estimate, not reusable safety. |
 | **Observed food reference** | A deidentified canonical food/serving record useful for autocomplete or estimation but not reproducible enough for meal-plan generation. |
 | **Observed recipe candidate** | A deidentified, reproducible meal derived from a confirmed outside log and admitted to the broader candidate corpus. |
-| **Ready to shop** | Every actionable slot in the upcoming cycle is cleared, grocery aggregation is current, and the list may be checked/exported. |
+| **Ready to shop** | Every expected slot in the upcoming cycle is cleared, grocery aggregation is current, and the complete list may be checked/exported. |
+| **Incomplete at deadline** | The shopping cutoff arrived with one or more unresolved slots. Confirmed ingredients may be shown as an explicitly incomplete subset, but missing slots stay unavailable and the cycle must never be represented as complete. |
 
 Avoid the unqualified word **verified** in new contracts. Use the specific evidence or state being described.
 
@@ -93,6 +94,11 @@ These invariants apply to every batch and are not optional optimizations.
 13. **Account deletion remains truthful.** Every new user-owned row and stored private image must follow the existing deletion contract.
 14. **Asia/Manila cycle time.** Shopping deadlines, cycle dates, preparation windows, and daily quota boundaries use the project's declared planning timezone.
 15. **Bounded work.** Queries are paginated/bounded, retries are finite, generation is idempotent, and mutations use transactions or compare-and-set guards where concurrent actors can race.
+16. **Shopping freezes automatic expansion.** Once shopping starts, delayed reviews, ranking, or ordinary profile changes cannot silently add ingredients. Any later replacement that changes groceries requires an explicit user action and delta warning.
+17. **User-selected upcoming slots are stable.** An eligible upcoming swap is pinned against ordinary re-ranking. Only a new user swap or a safety/profile change that invalidates it may replace it.
+18. **Future consumption is not loggable.** Future current-cycle and upcoming slots may be viewed or swapped where allowed, but cannot be marked eaten or skipped before their scheduled date.
+19. **Retrospective warnings follow truthful capture.** Outside-meal safety findings are shown after the immutable consumption record is committed; they cannot pressure a user to suppress or alter what was actually consumed.
+20. **Shared observations require consent.** A private outside log, note, or image never enters a shared candidate corpus without the applicable recorded reuse permission and deidentification boundary.
 
 ## 6. End-to-end target workflow
 
@@ -112,8 +118,11 @@ flowchart TD
     J --> K[Progressive next-week grocery preview from cleared slots only]
     J --> L{All slots cleared by shopping deadline?}
     L -- No --> M[Replace unresolved slots with eligible certified fallbacks]
-    M --> L
+    M --> P{Every expected slot now cleared?}
+    P -- No --> Q[Freeze INCOMPLETE_AT_DEADLINE with explicit gaps]
+    P -- Yes --> N
     L -- Yes --> N[Freeze READY_TO_SHOP plan and grocery]
+    Q --> R[Promote on cycle start with cleared slots and explicit gaps]
     N --> O[Promote to current cycle on cycle start]
 ```
 
@@ -208,16 +217,20 @@ For a Saturday shopper:
 
 ### Data contract
 
-Use the existing `MealPlanCycleSnapshot` for immutable planning inputs and targets. Add or derive a first-class lifecycle for the plan group. The implementation must represent at least:
+Keep the existing `MealPlanCycleSnapshot` for immutable planning inputs and targets. Add a first-class `MealPlanCycle`-equivalent root instead of deriving lifecycle from slot rows. Reuse the existing `planGroupId` value as the cycle identity where the migration audit confirms that this preserves current references. The cycle root owns:
 
 - cycle start and end;
 - preparation-open time;
 - shopping deadline;
 - activation time;
 - lifecycle state;
+- expected slot count and immutable deadline outcome;
 - profile revision and safety revision used;
 - whether shopping has begun;
+- incomplete-subset acknowledgment time where applicable;
 - supersession relationship when an unfrozen draft is replaced.
+
+`MealPlan`, `GroceryList`, and `MealPlanGenerationJob` must reference this cycle root through real relational integrity after backfill. The immutable snapshot remains a separate one-to-one evidence object. Mutable lifecycle fields do not belong in the snapshot, and the cycle must not duplicate mutable profile values that the snapshot already preserves.
 
 Do not overload per-slot `MealPlanStatus` to represent the entire cycle lifecycle. Slot review state and cycle preparation state are different dimensions.
 
@@ -233,6 +246,13 @@ PREPARING
   -> ACTIVE
   -> COMPLETED
 
+PREPARING | UNDER_REVIEW
+  -> INCOMPLETE_AT_DEADLINE
+
+INCOMPLETE_AT_DEADLINE
+  -> SHOPPING_STARTED after explicit gap acknowledgment
+  -> ACTIVE on cycle start with incomplete outcome retained
+
 PREPARING | UNDER_REVIEW | READY_TO_SHOP
   -> SUPERSEDED
 
@@ -241,6 +261,15 @@ Any nonterminal state
 ```
 
 Actual enum names may differ after schema mapping, but the distinctions must remain.
+
+### Deadline and shopping-start policy
+
+- The shopping deadline is `00:00` Asia/Manila at the beginning of the selected shopping day.
+- A plan that becomes complete later that day missed its deadline; it does not retroactively count as on time.
+- The first persisted grocery purchase/check action, or an explicit `Start shopping` action, atomically records `shoppingStartedAt` and advances the lifecycle.
+- Once shopping has started, automatic preparation may not enlarge the grocery list. A user-authorized swap or urgent safety replacement may change it only with an explicit grocery delta.
+- `READY_TO_SHOP` requires all expected slots for the cycle. `INCOMPLETE_AT_DEADLINE` is the only truthful deadline outcome when safe fallbacks cannot fill every slot.
+- Cycle activation does not depend on the user acknowledging grocery gaps. At the cycle start, cleared slots become active and gaps remain explicit; acknowledgment gates checking/exporting the incomplete grocery subset, not access to the available meals.
 
 ### First-account workflow
 
@@ -264,6 +293,7 @@ Actual enum names may differ after schema mapping, but the distinctions must rem
 - Repeated preparation jobs must return or continue the same job rather than duplicate plans.
 - Promotion must be compare-and-set and safe to retry.
 - Cycle lookup must use snapshot dates, not recalculate identity from a changed profile.
+- Provide one idempotent cycle-ensure operation that later event, scheduler, and page-access triggers can call without creating duplicate jobs or slots.
 
 ### Tests
 
@@ -272,6 +302,10 @@ Actual enum names may differ after schema mapping, but the distinctions must rem
 - Same-day current meals remain retrievable on shopping day.
 - Shopping-day changes before and after freeze.
 - Duplicate preparation and promotion requests.
+- Deadline boundary immediately before and after `00:00` Asia/Manila.
+- First grocery check records shopping start exactly once and freezes automatic expansion.
+- Complete readiness versus explicitly acknowledged incomplete-at-deadline behavior.
+- Incomplete cycle promotes on time even when the user has not acknowledged its grocery subset.
 - First-account starter plus upcoming separation.
 
 ### Exit gate
@@ -304,10 +338,14 @@ Apply onboarding/profile updates to the correct plan boundary while preserving i
 | Change | Active cycle | Unfrozen upcoming cycle | Frozen/shopping-started upcoming cycle |
 | --- | --- | --- | --- |
 | Weight, height, activity, goal | Keep snapshot | Pause until report acknowledgment, then recalculate/re-rank | Apply to following cycle |
-| Budget, locality, rice or ordinary food preference | Keep snapshot | Re-rank after acknowledgment | Apply to following cycle |
+| Locality, rice, or ordinary food preference | Keep snapshot | Re-rank after acknowledgment | Apply to following cycle |
 | Shopping day | Keep dates | Supersede/rebuild dates | Apply after prepared cycle |
 | Allergy, condition, pregnancy, hard dietary exclusion | Revalidate immediately | Revalidate immediately | Revalidate immediately |
 | Name, avatar, non-nutrition account metadata | No effect | No effect | No effect |
+
+The active product has grocery price evidence but no user monetary-budget input. Do not invent a budget profile field or budget ranking rule. Personal spending limits remain future work unless a separate product decision adds a real input and evidence contract.
+
+The nutrition-affecting field inventory must explicitly cover age/date of birth, biological sex, height, weight, target weight, goal, activity level, dietary preference, food culture/locality inputs, shopping schedule, rice preference, conditions, pregnancy, and allergies. Name, avatar, email, and other account metadata do not create a new nutrition report.
 
 ### Ordinary-change workflow
 
@@ -340,6 +378,8 @@ sequenceDiagram
 ### Portion and rice rule
 
 Changing only target calories does not invalidate a recipe's safety evidence. Changing a composed serving can do so. If rice quantity or another component changes the exact evidence scope used for a condition clearance, derive a new serving signature and revalidate it. Do not apply a recipe-only clearance to a materially different composed meal without an explicit policy allowing it.
+
+Replace the current carbohydrate-level onboarding choice with an explicit rice preference such as `NO_RICE`, `FLEXIBLE`, and `WITH_RICE`. Do not infer that preference from legacy `LOW`, `MODERATE`, or `HIGH` carbohydrate values. The migration must either default legacy profiles to `FLEXIBLE` with a recorded provenance or require confirmation at the next profile review. Preserve any clinically useful carbohydrate data only if it has a separate, honest purpose; do not keep it as a hidden proxy for rice behavior.
 
 ### Weekly check-in
 
@@ -384,6 +424,16 @@ Before migration, choose and document one representation:
 
 Do not infer applicability at request time from a title. The deterministic classifier may propose labels, and an eligible RND may correct them. `SNACK` remains a separate existing enum value and must not be silently dropped.
 
+### Rice role and composed serving
+
+Every planning-capable recipe has an explicit rice role:
+
+- `PAIR_WITH_RICE`: an ulam whose planned serving may add a separate cooked-rice component;
+- `STANDALONE`: normally planned without added rice;
+- `INCLUDES_RICE`: rice is already part of the recipe evidence.
+
+Names may follow schema conventions, but blank never means a reviewed rice role. `INCLUDES_RICE` records the rice quantity when the recipe evidence provides it; unknown included portions remain reviewable/unevaluable rather than guessed. For `PAIR_WITH_RICE`, the plan stores cooked-rice grams as an explicit component and calculates its nutrients from the governed FNRI rice record. Recipe signature, composed-serving signature, plan nutrition, grocery quantities, and condition-clearance scope must distinguish the base recipe from the recipe-plus-rice serving.
+
 ### Favorites
 
 Add a user-to-library-meal favorite relation with:
@@ -410,6 +460,10 @@ All non-certified sources expose a bounded common projection containing at least
 
 The existing Panlasang `RawRecipeCandidate` adapter is the first provider. Batch 9 adds an observed-meal provider. Gemini remains generation, not a stored corpus provider.
 
+### Eligible-library query contract
+
+Eligible-library responses use cursor pagination, a server-computed total count, stable ordering, and server-side search/filters for applicable meal type, favorite state, and rice role. A fixed-size first page must never be presented as the entire eligible library.
+
 ### Retrieval order
 
 ```text
@@ -428,10 +482,13 @@ The existing Panlasang `RawRecipeCandidate` adapter is the first provider. Batch
 ### Tests
 
 - Multi-label meal applicability.
+- Rice-role classification, included-rice uncertainty, and FNRI-scaled paired-rice composition.
+- Composed-serving signature changes when paired-rice grams change.
 - Favorite uniqueness and authorization.
 - Favorite retained but excluded from eligible result when evidence is suspended.
 - Exact duplicate collapse and variant preservation.
 - Provider pagination and deterministic ordering.
+- Eligible-library cursor pagination and authoritative total count.
 - Raw origin never changes safety state or review requirement.
 
 ### Exit gate
@@ -453,7 +510,9 @@ Prepare the next complete cycle before shopping day, using cleared meals first a
 The exact lead time is versioned application policy, not hardcoded across controllers. Initial product default:
 
 - open three Manila calendar days before shopping day for ordinary profiles;
-- permit an earlier window for profiles requiring `ENHANCED` review because two independent decisions take longer.
+- open five Manila calendar days before shopping day for profiles requiring `ENHANCED` review because two independent decisions take longer.
+
+Preparation is ensured through the same idempotent operation from three sources: a daily backend scheduler, dashboard/grocery access as a nonblocking recovery trigger, and report acknowledgment or applicable profile-change events. Correctness must not depend on a browser remaining open or on the scheduler being available during a local capstone demonstration.
 
 Changing the lead time must not alter historical snapshots.
 
@@ -483,7 +542,6 @@ Use an explainable score only after hard eligibility gates. Reason components ma
 - meal-type fit;
 - rice preference;
 - locality evidence;
-- budget evidence;
 - weekly variety and recent use.
 
 Persist or return reason codes. Never present the score as probability of safety or RND approval.
@@ -508,15 +566,15 @@ Each plan candidate exposes:
 - source provenance;
 - fallback availability.
 
-Server priority:
+Keep safety/audit work and deadline work as distinct queue views. `Disputed` and urgent `Audit` cases retain safety-first ordering. Inside `Pending` and `Second Review`, use:
 
-1. credible reports and disputes;
-2. ruleset/evidence suspension impact;
-3. plan slots approaching shopping deadline;
-4. earliest unresolved cooking date;
-5. `ENHANCED` second review requiring a Lead;
-6. standard review;
-7. general library curation and sampling.
+1. plan slots approaching shopping deadline;
+2. earliest unresolved cooking date;
+3. `ENHANCED` second review requiring a Lead;
+4. standard review;
+5. general library curation and sampling.
+
+Credible reports, disputes, and ruleset/evidence suspension impact remain above this list in their safety queues. Coalesce identical recipe-signature, evidence-revision, condition-scope, policy-version, and reviewer-requirement work so multiple users do not create duplicate clinical decisions. Each dependent user/slot still records its exact clearance usage.
 
 Preserve blind second review, different reviewer IDs, Lead requirements, ruleset governance, clearance lifecycle, and exact plan-slot clearance usage.
 
@@ -526,13 +584,15 @@ Preserve blind second review, different reviewer IDs, Lead requirements, ruleset
 - A superseded candidate's audit history remains.
 - If its review could still create reusable evidence, it may remain in general curation but loses the user's deadline priority.
 - At the shopping deadline, unresolved slots try eligible certified fallbacks using wider nutrition tolerance and reasonable repetition.
-- If no safe fallback exists, leave the slot unavailable. Never publish pending content.
+- If no safe fallback exists, leave the slot unavailable and transition the cycle to `INCOMPLETE_AT_DEADLINE`. Never publish pending content.
+- An incomplete cycle may expose only the confirmed grocery subset after an explicit user acknowledgment. Missing slots remain visible as gaps and may be covered by outside meals.
+- Once shopping starts, a delayed approval does not silently populate a missing slot or add groceries. The user must explicitly accept a replacement and its grocery delta.
 
 ### Plan publication
 
 An upcoming cycle reaches `READY_TO_SHOP` only when:
 
-- every actionable slot is cleared for this user;
+- every expected slot is cleared for this user;
 - every clearance/evidence reference is persisted;
 - the plan is bound to the acknowledged profile and safety revisions;
 - grocery aggregation succeeds;
@@ -547,6 +607,9 @@ An upcoming cycle reaches `READY_TO_SHOP` only when:
 - Candidate rejection and next-candidate substitution.
 - Standard and enhanced review deadlines.
 - Shopping-deadline fallback and unavailable-slot behavior.
+- Incomplete-at-deadline acknowledgment and frozen confirmed subset.
+- Scheduler, page-access, and report/profile event triggers converge on one cycle/job.
+- Duplicate clinical work is coalesced without losing per-slot clearance usage.
 - Evidence suspension during preparation.
 - Gemini is not invoked when earlier sources fill the slot.
 
@@ -594,10 +657,14 @@ The old paid next-week route, entitlement checks, paywall, and Premium labels mu
 | --- | ---: | ---: | ---: |
 | Preparing/under review | Cleared-slot preview only | No | No |
 | Ready to shop | Full frozen list | Yes | Yes |
-| Shopping started | Full frozen list | Yes | Yes |
+| Incomplete at deadline, not acknowledged | Confirmed subset plus explicit gaps | No | No |
+| Incomplete at deadline, acknowledged | Frozen confirmed subset plus explicit gaps | Yes | Export only as clearly incomplete |
+| Shopping started | Frozen complete list or acknowledged incomplete subset | Yes | Complete PDF, or clearly incomplete export for acknowledged gaps |
 | Revalidation required | Safe unaffected projection with warning | Pause affected actions | No new final export until resolved |
 
 Disabling early checkboxes prevents a user from checking 500 g chicken before a later cleared slot increases it to 900 g.
+
+After shopping starts, later candidate approvals do not automatically enlarge either a complete or incomplete list. A user-authorized swap or urgent replacement must show additions/removals before committing them.
 
 ### Atomicity
 
@@ -613,6 +680,8 @@ Disabling early checkboxes prevents a user from checking 500 g chicken before a 
 - Candidate approval adds ingredients.
 - Rejection does not leak provisional ingredients.
 - Finalization enables checkboxes/PDF.
+- Incomplete deadline state requires acknowledgment and never exports as a complete list.
+- Delayed approval after shopping start cannot silently add ingredients.
 - Swap and safety change produce correct deltas.
 - Promotion converts next to current without duplication.
 
@@ -646,6 +715,8 @@ Make the library a user-specific discovery surface and make swaps a contextual p
 - `Swap meal`
 
 Retain the existing historical logging grace rules. Past meals within the grace period may be marked eaten/skipped, but past scheduled meals may not be swapped.
+
+Consumption actions are date-bound: today may be marked eaten or skipped; recent past slots may use the historical grace period; future current-cycle and all upcoming slots cannot be marked eaten or skipped. Future slots may only be viewed or swapped where the state table permits.
 
 ### Swap query
 
@@ -697,6 +768,8 @@ Show:
 - Bind confirmation to a short-lived server preview/request key.
 - Persist the exact clearance usage.
 - Update plan totals and the correct grocery list transactionally.
+- Pin a user-selected upcoming replacement against ordinary preparation re-ranking. Only a later user swap or an eligibility/safety invalidation may supersede it.
+- If shopping has started, require an explicit grocery-delta acknowledgment before committing any allowed replacement.
 - Preserve idempotent `SwapLog.requestKey` audit behavior.
 - Do not restore the removed `PlanSwapTracker` or three-swap counter.
 - A quiet operational rate limit may protect the API; it is not a product entitlement.
@@ -706,6 +779,8 @@ Show:
 - Favorite ordering after hard filters.
 - Ineligible favorite excluded.
 - Current and upcoming swap paths.
+- Upcoming user-selected replacement remains stable across ordinary re-ranking.
+- Future meal cannot be marked eaten or skipped.
 - Pending replacement rejected.
 - Same request replay is idempotent.
 - Evidence suspended between preview and confirmation fails closed.
@@ -778,21 +853,24 @@ Separate estimation details from private notes. Ingredients, serving, preparatio
 ### Confirmation workflow
 
 1. Resolve or estimate items into a preview.
-2. Show meal, serving, macros, provenance, uncertainty, and warnings.
+2. Show meal, serving, macros, provenance, and uncertainty.
 3. Require an explicit “Log this meal?” confirmation bound to the preview/request key.
 4. Persist once; replay returns the same result.
-5. Count every resolved effective value immediately.
-6. Keep unresolved items excluded and disclose partial totals.
+5. Run deterministic compatibility evaluation against the committed immutable revision and show any safety follow-up immediately after persistence.
+6. Count every resolved effective value immediately.
+7. Keep unresolved items excluded and disclose partial totals.
 
 ### Safety warning
 
-After or as part of final confirmation, run deterministic compatibility evaluation:
+After persistence, present deterministic compatibility evaluation:
 
 - known conflict: log the meal and show the specific conflict;
 - insufficient evidence: log the meal and state that full compatibility could not be assessed;
 - no known conflict: use this label only when the evidence contract supports it.
 
 Use neutral language. The system records past consumption and does not call the food simply “bad.”
+
+The warning is never a prerequisite for saving a retrospective fact. Any correction after the warning creates a new revision; it does not rewrite the committed revision.
 
 ### Tracker presentation
 
@@ -819,6 +897,7 @@ Use neutral language. The system records past consumption and does not call the 
 - Vague AI request and quota handling.
 - Confirmation replay.
 - Conflict warning does not block persistence.
+- Conflict warning appears after the immutable record exists.
 - Revision append and tracker recomputation.
 
 ### Exit gate
@@ -879,11 +958,12 @@ This is not a general direct-message product. Messages exist only to resolve the
 Logging never waits for review. Queue candidates include:
 
 - user-requested confirmation;
-- Gemini estimates;
 - low-confidence or implausible values;
 - detected compatibility conflicts;
 - entries nominated for shared candidate reuse;
 - separately approved clinical-monitoring cases.
+
+An ordinary Gemini estimate is immediately tracked as estimated and does not automatically promise RND review. It enters the queue when one of the criteria above applies. A small capstone fixture may choose to queue all Gemini estimates for demonstration, but that is an explicit bounded environment policy rather than the scalable product contract.
 
 An untouched library-derived log normally needs no per-consumption RND confirmation. Outside-log review ranks below plan-blocking deadlines except credible urgent safety reports.
 
@@ -893,6 +973,7 @@ An untouched library-derived log normally needs no per-consumption RND confirmat
 - Eligible RND sees only records needed for the assigned/review queue function.
 - Admin receives operational/audit metadata only where authorized; do not expose health content merely because the user is an admin.
 - Account deletion removes patient-owned logs, messages, private images, reviews that cascade with those logs, and any reversible private content according to the existing deletion contract.
+- Review notifications and labels must say `eligible for review` or expose the actual queue state; they must not promise a response time unless a separately governed service guarantee exists.
 
 ### Tests
 
@@ -922,6 +1003,8 @@ Use real foods observed in the user population to reduce from-scratch generation
 ### Admission boundary
 
 A confirmed outside log does not automatically enter a shared corpus. Admission requires a separate explicit action and classification.
+
+Admission also requires recorded permission to reuse the reproducible meal details in a deidentified shared corpus. Image reuse requires its own permission because permission to reuse recipe facts does not imply media rights. Declining either permission does not affect nutrition tracking or the user's access to RND review.
 
 ### Outcome A: observed food reference
 
@@ -968,7 +1051,8 @@ flowchart TD
 ### Privacy and provenance
 
 - Never copy user identity or private notes into shared records.
-- Store an internal source-log revision link only where retention and access policy permit it.
+- Store an internal source-log revision link only where retention and access policy permit it, and make that link nullable/deidentifiable when the source account is deleted.
+- Record recipe-detail reuse consent independently from image reuse consent.
 - Reusing a user image requires explicit, recorded consent and suitable rights; otherwise use separately governed imagery.
 - Preserve source kind such as `USER_OBSERVED` for traceability only.
 - Record distinct-observation counts without treating popularity as safety.
@@ -987,6 +1071,8 @@ Observed candidates enter the same broader-corpus retrieval stage as Panlasang c
 ### Tests
 
 - Confirmed log not automatically shared.
+- Recipe-detail consent and separate image consent enforcement.
+- Account deletion removes private source data without leaving identity on an admitted deidentified candidate.
 - Food-reference versus recipe-candidate classification.
 - Privacy field exclusion.
 - Exact duplicate link and real variant preservation.
@@ -1157,11 +1243,13 @@ RND corrects and confirms
 | Preparation job crashes | Retry same idempotent job; do not duplicate cycle or slots |
 | Gemini unavailable | Use earlier sources/fallbacks; leave slot unavailable rather than invent success |
 | RND deadline missed | Try eligible certified fallback; never publish pending candidate |
+| Safe fallback still leaves gaps | Transition to `INCOMPLETE_AT_DEADLINE`; expose only an acknowledged, clearly incomplete confirmed subset |
 | Grocery aggregation fails | Keep plan non-ready and retry; do not show final list |
 | Profile changes during generation | Compare revision before commit; supersede/retry against current acknowledged revision |
 | Clearance suspended after selection | Matching fails closed; mark dependent slots for revalidation |
 | Swap evidence changes after preview | Reject confirmation and require refreshed options |
 | Outside preview replay | Return same committed log or reject consumed key; never duplicate intake |
+| Delayed review completes after shopping starts | Do not add the meal or ingredients automatically; require explicit user acceptance and grocery delta |
 | User edits item during RND claim | Old decision cannot apply to new revision |
 | Candidate dedup collision | Preserve existing canonical row and attach observation/source only after signature validation |
 | Image missing | Continue with governed fallback; image never affects nutrition or safety |
@@ -1173,10 +1261,12 @@ Track without converting metrics into safety claims:
 - percentage of slots filled by certified library, raw corpus, observed corpus, and Gemini;
 - Gemini invocation and failure rate by operation/purpose;
 - preparation lead time and percentage ready by shopping deadline;
+- incomplete-at-deadline rate, gap count, and acknowledged-subset use;
 - number of pending slots replaced by certified fallback;
 - median RND response time by assurance tier and deadline class;
 - candidate rejection and clarification rate;
 - next-week grocery readiness progression;
+- duplicate review work coalesced by exact evidence scope;
 - current and upcoming swap counts, without a user entitlement cap;
 - outside-log source mix and estimated versus confirmed contribution;
 - outside-log clarification and unverifiable rate;
@@ -1215,4 +1305,3 @@ For each checked batch, link:
 The owner raised, but explicitly did not add, the idea of placing the entire system behind a paywall because RND governance has operating cost.
 
 This plan does not restore monetization. The architecture reduces per-user review through reusable clearances, certified-library reuse, ruleset governance, candidate retrieval, and selective outside-log review. If monetization is reconsidered, it requires a separate product decision and forward implementation. Likely billable value would be individual consultations, formal reports, guaranteed review turnaround, or requested outside-log confirmation—not safety eligibility, essential warnings, or ordinary access to the core system.
-

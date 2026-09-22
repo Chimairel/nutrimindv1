@@ -242,7 +242,7 @@ export default function DocsPage() {
                   <h3 className="mt-3 font-display text-lg font-bold text-brand-text">Immediate first steps</h3>
                   <p className="mt-2 text-xs leading-relaxed text-brand-muted">
                     If you sign up on a Tuesday and shop on Saturday, KAINARA generates a 1 to 3-day Starter Bridge Plan
-                    using everyday pantry items. Your full 7-day cycle begins seamlessly on your shopping day.
+                    using everyday pantry items. Your full 7-day cycle begins the day after your shopping day.
                   </p>
                 </div>
 
