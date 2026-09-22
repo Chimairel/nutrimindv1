@@ -467,7 +467,7 @@ export class MealSwapService {
           },
         });
 
-        await GroceryService.generateGroceryList(userId, tx, mealPlan.planGroupId);
+        await GroceryService.generateGroceryList(userId, tx, mealPlan.planGroupId, 'EXPLICIT');
         return {
           success: true,
           updatedPlan,

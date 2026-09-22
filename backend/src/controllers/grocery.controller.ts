@@ -55,6 +55,19 @@ export class GroceryController {
     }
   }
 
+  /** Fetches current and next-cycle grocery projections with server-owned action gates. */
+  static async getWorkspace(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized user.' });
+      UpcomingPlanPreparationService.triggerNonBlocking(userId);
+      return res.status(200).json({ success: true, data: await GroceryService.getGroceryWorkspace(userId) });
+    } catch (error) {
+      console.error('[GroceryController] Workspace fetch failed:', error);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve grocery workspace.' });
+    }
+  }
+
   /**
    * Toggles the checked status of a grocery item.
    */
@@ -110,13 +123,27 @@ export class GroceryController {
         return res.status(401).json({ success: false, error: 'Unauthorized user.' });
       }
 
-      const groceryList = await GroceryService.getGroceryList(userId);
+      const cycleId = typeof req.query.cycleId === 'string' ? req.query.cycleId : undefined;
+      const projection = cycleId
+        ? await GroceryService.getCycleProjection(userId, cycleId)
+        : (await GroceryService.getGroceryWorkspace(userId)).current;
+      const groceryList = projection?.groceryList;
+      if (!projection || !projection.actionability.canExportPdf) {
+        return res.status(409).json({
+          success: false,
+          error: projection?.actionability.message || 'No exportable grocery list is available.',
+        });
+      }
       if (!groceryList || !groceryList.groceryItems || groceryList.groceryItems.length === 0) {
         return res.status(404).json({ success: false, error: 'No active grocery list found.' });
       }
 
       const { GroceryListPDF, streamPdf } = await import('@/lib/pdf');
-      const document = React.createElement(GroceryListPDF, { groceryList });
+      const document = React.createElement(GroceryListPDF, {
+        groceryList,
+        incomplete: projection.actionability.isIncomplete,
+        unresolvedSlotCount: projection.coverage.unresolvedSlotCount,
+      });
       const stream = await streamPdf(document);
 
       res.setHeader('Content-Type', 'application/pdf');

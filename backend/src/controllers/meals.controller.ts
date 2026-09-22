@@ -249,6 +249,14 @@ export class MealsController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      // Materialize the confirmed subset before acknowledgment freezes it.
+      // A zero-slot cycle may still be acknowledged, but has no actionable
+      // grocery rows until at least one slot is cleared.
+      try {
+        await GroceryService.generateGroceryList(userId, undefined, req.params.cycleId);
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('No approved meals')) throw error;
+      }
       const cycle = await MealPlanCycleService.acknowledgeIncompleteCycle(userId, req.params.cycleId);
       return res.status(200).json({ success: true, data: cycle });
     } catch (error) {

@@ -124,7 +124,15 @@ export const NutritionReportPDF = ({ user, report }: { user: any; report: any })
   );
 };
 
-export const GroceryListPDF = ({ groceryList }: { groceryList: any }) => {
+export const GroceryListPDF = ({
+  groceryList,
+  incomplete = false,
+  unresolvedSlotCount = 0,
+}: {
+  groceryList: any;
+  incomplete?: boolean;
+  unresolvedSlotCount?: number;
+}) => {
   // Group by category
   const grouped = groceryList.groceryItems.reduce((acc: any, item: any) => {
     const cat = item.category || 'Other';
@@ -139,9 +147,14 @@ export const GroceryListPDF = ({ groceryList }: { groceryList: any }) => {
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.header}>KAINARA Grocery List</Text>
-        <Text style={styles.text}>
-          <Text style={styles.bold}>Week:</Text> {groceryList.weekLabel}
-        </Text>
+          <Text style={styles.text}>
+            <Text style={styles.bold}>Week:</Text> {groceryList.weekLabel}
+          </Text>
+          {incomplete ? (
+            <Text style={styles.text}>
+              INCOMPLETE LIST — {unresolvedSlotCount} meal slot{unresolvedSlotCount === 1 ? '' : 's'} not included.
+            </Text>
+          ) : null}
 
         <View style={styles.divider} />
 

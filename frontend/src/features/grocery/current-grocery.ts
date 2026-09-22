@@ -19,6 +19,50 @@ export interface GroceryList {
   groceryItems: GroceryItem[];
 }
 
+export type GroceryCycleStatus =
+  | 'PREPARING'
+  | 'UNDER_REVIEW'
+  | 'READY_TO_SHOP'
+  | 'INCOMPLETE_AT_DEADLINE'
+  | 'SHOPPING_STARTED'
+  | 'ACTIVE'
+  | 'REVALIDATION_REQUIRED'
+  | 'COMPLETED'
+  | 'SUPERSEDED';
+
+export interface GroceryCycleProjection {
+  scope: 'CURRENT' | 'UPCOMING';
+  cycle: {
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: GroceryCycleStatus;
+    deadlineOutcome: 'COMPLETE' | 'INCOMPLETE' | null;
+    incompleteAcknowledgedAt: string | null;
+    shoppingStartedAt: string | null;
+  };
+  groceryList: GroceryList | null;
+  coverage: {
+    clearedSlotCount: number;
+    expectedSlotCount: number;
+    unresolvedSlotCount: number;
+  };
+  actionability: {
+    canCheckItems: boolean;
+    canExportPdf: boolean;
+    isFinal: boolean;
+    isIncomplete: boolean;
+    quantitiesMayIncrease: boolean;
+    requiresIncompleteAcknowledgment: boolean;
+    message: string;
+  };
+}
+
+export interface GroceryWorkspace {
+  current: GroceryCycleProjection | null;
+  upcoming: GroceryCycleProjection | null;
+}
+
 export interface GroceryPageSnapshot {
   groceryList: GroceryList | null;
   pendingMealCount: number;
@@ -39,4 +83,12 @@ export async function fetchCurrentGrocery(): Promise<GroceryPageSnapshot> {
     groceryList: meals.data.data.length > 0 ? (grocery.data.data ?? null) : null,
     pendingMealCount: meals.data.meta?.pendingReview?.mealCount ?? 0,
   };
+}
+
+export async function fetchGroceryWorkspace(): Promise<GroceryWorkspace> {
+  const response = await api.get<{ success: boolean; data: GroceryWorkspace }>('/user/grocery/workspace');
+  if (!response.data?.success || !response.data.data) {
+    throw new Error('Could not load the current and next grocery cycles.');
+  }
+  return response.data.data;
 }

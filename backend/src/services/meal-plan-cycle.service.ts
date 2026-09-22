@@ -54,6 +54,112 @@ export class MealPlanCycleService {
     return getManilaMidnight(getManilaDateKey(now));
   }
 
+  /**
+   * Returns only slots whose complete reusable/manual evidence is current for
+   * this cycle's user. Grocery projection and lifecycle readiness share this
+   * authority so APPROVED alone can never leak an invalidated meal.
+   */
+  static async getClearedMealPlanIds(
+    userId: string,
+    cycleId: string,
+    now: Date = new Date(),
+    client: CycleClient = prisma
+  ): Promise<string[]> {
+    const cycle = await client.mealPlanCycle.findFirst({
+      where: { id: cycleId, userId },
+      select: {
+        user: { select: { healthConditions: { select: { condition: true } } } },
+        mealPlans: {
+          where: { status: { not: MealPlanStatus.CANCELLED } },
+          select: {
+            id: true,
+            status: true,
+            requiresSafetyRevalidation: true,
+            libraryMealId: true,
+            baseRecipeSignature: true,
+            composedServingSignature: true,
+            safetyPolicyVersion: true,
+            highRiskReviewRequired: true,
+            reviewApprovalCount: true,
+            libraryMeal: {
+              select: {
+                status: true,
+                safetyEvidenceStatus: true,
+                safetyEvidenceRevision: true,
+                recipeSignature: true,
+              },
+            },
+            clearanceUsages: {
+              select: {
+                condition: true,
+                composedServingSignature: true,
+                clearance: {
+                  select: {
+                    state: true,
+                    recipeSignature: true,
+                    evidenceRevision: true,
+                    composedServingSignature: true,
+                    expiresAt: true,
+                  },
+                },
+              },
+            },
+            reviewDecisions: {
+              where: { decision: 'APPROVE' },
+              select: { nutritionistProfileId: true },
+            },
+          },
+        },
+      },
+    });
+    if (!cycle) return [];
+    const requiredConditions = new Set(
+      cycle.user.healthConditions.map((item) => item.condition).filter((condition) => condition !== 'NONE')
+    );
+    return cycle.mealPlans
+      .filter((meal) => {
+        if (
+          meal.status !== MealPlanStatus.APPROVED ||
+          meal.requiresSafetyRevalidation ||
+          !meal.baseRecipeSignature ||
+          !meal.composedServingSignature ||
+          !meal.safetyPolicyVersion
+        ) {
+          return false;
+        }
+        if (meal.libraryMealId) {
+          const library = meal.libraryMeal;
+          if (
+            !library ||
+            library.status !== MealLibraryStatus.APPROVED ||
+            library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE ||
+            library.recipeSignature !== meal.baseRecipeSignature
+          ) {
+            return false;
+          }
+          const validConditions = new Set(
+            meal.clearanceUsages
+              .filter(
+                (usage) =>
+                  usage.clearance.state === ConditionClearanceState.ACTIVE &&
+                  usage.clearance.recipeSignature === library.recipeSignature &&
+                  usage.clearance.evidenceRevision === library.safetyEvidenceRevision &&
+                  usage.composedServingSignature === meal.composedServingSignature &&
+                  (!usage.clearance.composedServingSignature ||
+                    usage.clearance.composedServingSignature === meal.composedServingSignature) &&
+                  (!usage.clearance.expiresAt || usage.clearance.expiresAt > now)
+              )
+              .map((usage) => usage.condition)
+          );
+          return [...requiredConditions].every((condition) => validConditions.has(condition));
+        }
+        const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
+        const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;
+        return meal.reviewApprovalCount >= requiredApprovals && distinctApprovers.size >= requiredApprovals;
+      })
+      .map((meal) => meal.id);
+  }
+
   static async synchronizeLifecycle(
     userId: string,
     now: Date = new Date(),
@@ -81,6 +187,7 @@ export class MealPlanCycleService {
         mealPlans: {
           where: { status: { not: MealPlanStatus.CANCELLED } },
           select: {
+            id: true,
             status: true,
             mealType: true,
             scheduledDate: true,
@@ -139,53 +246,8 @@ export class MealPlanCycleService {
         }
         continue;
       }
-      const requiredConditions = new Set(
-        cycle.user.healthConditions
-          .map((item) => item.condition)
-          .filter((condition) => condition !== 'NONE')
-      );
-      const clearedMeals = cycle.mealPlans.filter((meal) => {
-        if (
-          meal.status !== MealPlanStatus.APPROVED ||
-          meal.requiresSafetyRevalidation ||
-          !meal.baseRecipeSignature ||
-          !meal.composedServingSignature ||
-          !meal.safetyPolicyVersion
-        ) {
-          return false;
-        }
-
-        if (meal.libraryMealId) {
-          const library = meal.libraryMeal;
-          if (
-            !library ||
-            library.status !== MealLibraryStatus.APPROVED ||
-            library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE ||
-            library.recipeSignature !== meal.baseRecipeSignature
-          ) {
-            return false;
-          }
-          const validConditions = new Set(
-            meal.clearanceUsages
-              .filter(
-                (usage) =>
-                  usage.clearance.state === ConditionClearanceState.ACTIVE &&
-                  usage.clearance.recipeSignature === library.recipeSignature &&
-                  usage.clearance.evidenceRevision === library.safetyEvidenceRevision &&
-                  usage.composedServingSignature === meal.composedServingSignature &&
-                  (!usage.clearance.composedServingSignature ||
-                    usage.clearance.composedServingSignature === meal.composedServingSignature) &&
-                  (!usage.clearance.expiresAt || usage.clearance.expiresAt > now)
-              )
-              .map((usage) => usage.condition)
-          );
-          return [...requiredConditions].every((condition) => validConditions.has(condition));
-        }
-
-        const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
-        const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;
-        return meal.reviewApprovalCount >= requiredApprovals && distinctApprovers.size >= requiredApprovals;
-      });
+      const clearedMealPlanIds = new Set(await this.getClearedMealPlanIds(userId, cycle.id, now, client));
+      const clearedMeals = cycle.mealPlans.filter((meal) => clearedMealPlanIds.has(meal.id));
       const clearedSlots = new Set(
         clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
       );
@@ -335,7 +397,10 @@ export class MealPlanCycleService {
       const cycle = await tx.mealPlanCycle.findFirst({ where: { id: cycleId, userId } });
       if (!cycle) throw new Error('Meal-plan cycle not found.');
       if (cycle.incompleteAcknowledgedAt) return cycle;
-      if (cycle.status !== MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE) {
+      if (
+        cycle.status !== MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE &&
+        !(cycle.status === MealPlanCycleStatus.ACTIVE && cycle.deadlineOutcome === 'INCOMPLETE')
+      ) {
         throw new Error('Only an incomplete-at-deadline cycle can be acknowledged.');
       }
       return tx.mealPlanCycle.update({

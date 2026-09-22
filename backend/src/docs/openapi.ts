@@ -177,6 +177,12 @@ const routes: RouteDocumentation[] = [
   { method: 'get', path: '/api/user/meals/{id}/swap-preview', tag: 'Meals', summary: 'Preview a meal swap' },
   { method: 'post', path: '/api/user/meals/{id}/swap', tag: 'Meals', summary: 'Execute a meal swap' },
   { method: 'get', path: '/api/user/grocery/current', tag: 'Grocery', summary: 'Read the derived grocery list' },
+  {
+    method: 'get',
+    path: '/api/user/grocery/workspace',
+    tag: 'Grocery',
+    summary: 'Read current and upcoming cycle grocery projections with actionability',
+  },
   { method: 'post', path: '/api/user/grocery/generate', tag: 'Grocery', summary: 'Rebuild the grocery projection' },
   { method: 'get', path: '/api/user/grocery/pdf', tag: 'Grocery', summary: 'Download grocery PDF' },
   { method: 'patch', path: '/api/user/grocery/items/{id}/toggle', tag: 'Grocery', summary: 'Toggle a grocery item' },

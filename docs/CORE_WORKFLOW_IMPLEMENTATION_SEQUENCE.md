@@ -1284,7 +1284,7 @@ Update this checklist only with linked engineering evidence.
 - [x] Batch 2 — profile/report/cycle adaptation ([CHG-20260922-02 evidence](BATCH_2_PROFILE_CYCLE_ADAPTATION_IMPLEMENTATION.md))
 - [x] Batch 3 — multi-slot metadata, favorites, candidate provider ([CHG-20260922-03 evidence](BATCH_3_CATALOG_METADATA_IMPLEMENTATION.md))
 - [x] Batch 4 — preparation, ranking, and deadline-aware review ([CHG-20260923-01 evidence](BATCH_4_UPCOMING_PREPARATION_IMPLEMENTATION.md))
-- [ ] Batch 5 — progressive current/next groceries
+- [x] Batch 5 — progressive current/next groceries ([CHG-20260923-02 evidence](BATCH_5_PROGRESSIVE_GROCERY_IMPLEMENTATION.md))
 - [ ] Batch 6 — eligible library and swaps
 - [ ] Batch 7 — outside capture and immutable tracking
 - [ ] Batch 8 — outside RND clarification/confirmation

@@ -35,12 +35,17 @@ router.get('/cost', async (req: AuthenticatedRequest, res) => {
   }
 });
 router.get('/current', GroceryController.getCurrent);
+router.get('/workspace', validateZodRequest({ query: z.object({}).strict() }), GroceryController.getWorkspace);
 
 /**
  * Route: GET /api/user/grocery/pdf
  * Description: Streams the grocery list as a PDF.
  */
-router.get('/pdf', GroceryController.downloadGroceryPdf);
+router.get(
+  '/pdf',
+  validateZodRequest({ query: z.object({ cycleId: z.string().min(1).max(200).optional() }).strict() }),
+  GroceryController.downloadGroceryPdf
+);
 
 /**
  * Route: PATCH /api/user/grocery/items/:id/toggle

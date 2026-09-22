@@ -11,10 +11,9 @@ import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
-  fetchCurrentGrocery,
+  fetchGroceryWorkspace,
   type GroceryItem,
-  type GroceryList,
-  type GroceryPageSnapshot,
+  type GroceryWorkspace,
 } from '@/features/grocery/current-grocery';
 import { AlertTriangle, Check, ChevronDown, CircleCheckBig, Download, Search, ShoppingBasket } from 'lucide-react';
 
@@ -30,25 +29,26 @@ const getInitialExpandedCategory = (items: GroceryItem[]) => {
 export default function GroceryListPage() {
   const { user } = useAuth();
   const ownerId = user?.userId;
-  const cachedPage = readSessionResource<GroceryPageSnapshot>(ownerId, 'user-grocery-page');
-  const [groceryList, setGroceryList] = useState<GroceryList | null>(cachedPage?.groceryList ?? null);
+  const cachedPage = readSessionResource<GroceryWorkspace>(ownerId, 'user-grocery-workspace');
+  const [workspace, setWorkspace] = useState<GroceryWorkspace | null>(cachedPage ?? null);
+  const [scope, setScope] = useState<'CURRENT' | 'UPCOMING'>('CURRENT');
   const [isLoading, setIsLoading] = useState(!cachedPage);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroceryFilter>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    cachedPage?.groceryList?.groceryItems.length
-      ? new Set([getInitialExpandedCategory(cachedPage.groceryList.groceryItems)])
+    cachedPage?.current?.groceryList?.groceryItems.length
+      ? new Set([getInitialExpandedCategory(cachedPage.current.groceryList.groceryItems)])
       : new Set()
   );
-  const [pendingMealCount, setPendingMealCount] = useState(cachedPage?.pendingMealCount ?? 0);
+  const projection = scope === 'CURRENT' ? workspace?.current ?? null : workspace?.upcoming ?? null;
+  const groceryList = projection?.groceryList ?? null;
+  const pendingMealCount = projection?.coverage.unresolvedSlotCount ?? 0;
+  const canCheckItems = Boolean(projection?.actionability.canCheckItems);
 
   const cachePage = useCallback(
-    (nextList: GroceryList | null, nextPendingMealCount: number) => {
-      writeSessionResource(ownerId, 'user-grocery-page', {
-        groceryList: nextList,
-        pendingMealCount: nextPendingMealCount,
-      });
+    (nextWorkspace: GroceryWorkspace) => {
+      writeSessionResource(ownerId, 'user-grocery-workspace', nextWorkspace);
     },
     [ownerId]
   );
@@ -57,11 +57,11 @@ export default function GroceryListPage() {
   const fetchGroceryList = useCallback(async () => {
     setError(null);
     try {
-      const snapshot = await fetchCurrentGrocery();
-      const nextList = snapshot.groceryList;
-      setPendingMealCount(snapshot.pendingMealCount);
-      setGroceryList(nextList);
-      cachePage(nextList, snapshot.pendingMealCount);
+      const snapshot = await fetchGroceryWorkspace();
+      const nextProjection = scope === 'CURRENT' ? snapshot.current : snapshot.upcoming;
+      const nextList = nextProjection?.groceryList ?? null;
+      setWorkspace(snapshot);
+      cachePage(snapshot);
       setExpandedCategories(
         nextList?.groceryItems?.length ? new Set([getInitialExpandedCategory(nextList.groceryItems)]) : new Set()
       );
@@ -70,7 +70,7 @@ export default function GroceryListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [cachePage]);
+  }, [cachePage, scope]);
 
   useEffect(() => {
     if (user) {
@@ -81,15 +81,7 @@ export default function GroceryListPage() {
   const handleToggleItem = async (itemId: string) => {
     try {
       const response = await api.patch('/user/grocery/items/' + itemId + '/toggle');
-      setGroceryList((current) => {
-        if (!current) return current;
-        const next = {
-          ...current,
-          groceryItems: current.groceryItems.map((item) => (item.id === itemId ? response.data.data : item)),
-        };
-        cachePage(next, pendingMealCount);
-        return next;
-      });
+      if (response.data?.success) await fetchGroceryList();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Could not save purchase. Refresh the list and try again.'));
     }
@@ -97,26 +89,19 @@ export default function GroceryListPage() {
 
   const handleTogglePantry = async (itemId: string) => {
     if (!groceryList) return;
-    const previous = groceryList;
-    const nextList = {
-      ...groceryList,
-      groceryItems: groceryList.groceryItems.map((item) =>
-        item.id === itemId ? { ...item, isPantryStaple: !item.isPantryStaple } : item
-      ),
-    };
-    setGroceryList(nextList);
-    cachePage(nextList, pendingMealCount);
     try {
       await api.patch(`/user/grocery/items/${itemId}/pantry`);
+      await fetchGroceryList();
     } catch {
-      setGroceryList(previous);
-      cachePage(previous, pendingMealCount);
+      setError('Could not update the pantry item. Refresh and try again.');
     }
   };
 
   const handleDownloadPDF = async () => {
     try {
+      if (!projection) return;
       const response = await api.get('/user/grocery/pdf', {
+        params: { cycleId: projection.cycle.id },
         responseType: 'blob',
       });
       const file = new Blob([response.data], { type: 'application/pdf' });
@@ -130,6 +115,16 @@ export default function GroceryListPage() {
     } catch (err) {
       console.error('[Grocery] Failed to download PDF:', err);
       alert('Failed to generate PDF. Make sure you have an active grocery list.');
+    }
+  };
+
+  const handleAcknowledgeIncomplete = async () => {
+    if (!projection) return;
+    try {
+      await api.post(`/user/meals/cycles/${projection.cycle.id}/acknowledge-incomplete`);
+      await fetchGroceryList();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Could not acknowledge this partial grocery list.'));
     }
   };
 
@@ -214,7 +209,7 @@ export default function GroceryListPage() {
         description="Shopping-cycle totals with purchased amounts and what remains to buy."
         className="mb-6"
         actions={
-          groceryList ? (
+          groceryList && projection?.actionability.canExportPdf ? (
             <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
@@ -228,6 +223,35 @@ export default function GroceryListPage() {
           ) : undefined
         }
       />
+
+      {!isLoading && workspace ? (
+        <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-brand-border/70 bg-brand-surface/80 p-1.5">
+          {(['CURRENT', 'UPCOMING'] as const).map((value) => {
+            const available = value === 'CURRENT' ? workspace.current : workspace.upcoming;
+            return (
+              <button
+                key={value}
+                type="button"
+                disabled={!available}
+                onClick={() => {
+                  setScope(value);
+                  setQuery('');
+                  setFilter('all');
+                  const items = available?.groceryList?.groceryItems ?? [];
+                  setExpandedCategories(items.length ? new Set([getInitialExpandedCategory(items)]) : new Set());
+                }}
+                className={`rounded-xl px-4 py-3 text-xs font-bold transition ${
+                  scope === value
+                    ? 'bg-brand-green text-brand-dark shadow-sm'
+                    : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'
+                } disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                {value === 'CURRENT' ? 'Current week' : 'Next week'}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {error && !error.toLowerCase().includes('nutrition report') ? (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
@@ -249,16 +273,31 @@ export default function GroceryListPage() {
             href: '/profile/nutrition-report',
           }}
         />
+      ) : !projection ? (
+        <UnauthorizedState
+          imageSrc="/logo/verifying.svg"
+          imageAlt="Plan preparation"
+          eyebrow={scope === 'UPCOMING' ? 'Preparation opens soon' : 'No active cycle'}
+          title={scope === 'UPCOMING' ? 'Next Week Is Not Preparing Yet' : 'No Current Grocery Cycle'}
+          description={
+            scope === 'UPCOMING'
+              ? 'The next grocery preview appears automatically when advance meal preparation opens.'
+              : 'Your current grocery list will appear when an active meal-plan cycle is available.'
+          }
+          action={{ label: 'View Meal Plan', href: '/meals' }}
+        />
       ) : !groceryList ? (
         <UnauthorizedState
           imageSrc="/logo/verifying.svg"
           imageAlt="Verifying Meals"
-          eyebrow={pendingMealCount > 0 ? 'Review in progress' : 'Nutritionist audit'}
-          title="Grocery Checklist Pending"
+          eyebrow={pendingMealCount > 0 ? 'Review in progress' : 'Plan preparation'}
+          title={scope === 'UPCOMING' ? 'Next-week Preview Pending' : 'Grocery Checklist Pending'}
           description={
-            pendingMealCount > 0
-              ? `Your ${pendingMealCount} planned meals are still being reviewed. Approved ingredients will appear here automatically—there is nothing else to generate.`
-              : 'Your checklist will appear automatically as meals in your current plan are approved by a nutritionist.'
+            projection.cycle.status === 'REVALIDATION_REQUIRED'
+              ? projection.actionability.message
+              : pendingMealCount > 0
+              ? `${pendingMealCount} meal slot${pendingMealCount === 1 ? '' : 's'} remain unresolved. Ingredients appear only after each slot clears review.`
+              : 'Your checklist will appear automatically when cleared meal ingredients are available.'
           }
           action={{
             label: 'View Meal Plan',
@@ -267,12 +306,40 @@ export default function GroceryListPage() {
         />
       ) : (
         <div className="flex flex-col gap-5 text-left">
+          <section
+            className={`rounded-2xl border p-4 ${
+              projection.actionability.isFinal
+                ? 'border-brand-green/25 bg-brand-green/[0.06]'
+                : 'border-status-pending-text/30 bg-status-pending-bg/10'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-muted">
+                  {scope === 'CURRENT' ? 'Current cycle' : 'Next cycle'} · {projection.cycle.status.replaceAll('_', ' ')}
+                </p>
+                <p className="mt-1 font-display text-base font-bold text-brand-text">
+                  {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meals ready
+                </p>
+                <p className="mt-1 text-xs text-brand-muted">
+                  {projection.coverage.unresolvedSlotCount} unresolved · {projection.actionability.message}
+                </p>
+              </div>
+              {projection.actionability.requiresIncompleteAcknowledgment ? (
+                <Button variant="secondary" onClick={handleAcknowledgeIncomplete} className="text-xs">
+                  Use confirmed subset
+                </Button>
+              ) : null}
+            </div>
+          </section>
           {pendingMealCount > 0 && (
             <div className="flex items-start gap-3 rounded-2xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-xs text-status-pending-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p className="leading-5">
-                This checklist currently includes approved meals only. It updates automatically as the remaining{' '}
-                {pendingMealCount} meal{pendingMealCount === 1 ? '' : 's'} complete review.
+                This {projection.actionability.isFinal ? 'frozen list' : 'preview'} contains cleared meals only.
+                {projection.actionability.quantitiesMayIncrease
+                  ? ` Quantities may increase as the remaining ${pendingMealCount} slot${pendingMealCount === 1 ? '' : 's'} clear review.`
+                  : ` ${pendingMealCount} unresolved slot${pendingMealCount === 1 ? '' : 's'} are not included.`}
               </p>
             </div>
           )}
@@ -416,9 +483,10 @@ export default function GroceryListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleItem(item.id)}
+                                disabled={!canCheckItems}
                                 aria-pressed={item.isChecked}
                                 aria-label={`${item.isChecked ? 'Reset purchased amount for' : 'Mark fully purchased:'} ${item.ingredientName}`}
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90 motion-reduce:transform-none motion-reduce:transition-none ${
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90 motion-reduce:transform-none motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-40 ${
                                   item.isChecked
                                     ? 'border-brand-green bg-brand-green text-white shadow-sm'
                                     : 'border-brand-border bg-brand-bgAlt group-hover:border-brand-green/50'
@@ -439,15 +507,16 @@ export default function GroceryListPage() {
                                     ? `${Math.max(0, Math.round((item.quantity - (item.purchasedQuantity ?? 0)) * 1000) / 1000)} ${item.unit} to buy · ${item.purchasedQuantity ?? 0} purchased / ${item.quantity} needed`
                                     : `Used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}`}
                                 </span>
-                                {item.quantity !== null && (
+                                {item.quantity !== null && canCheckItems && (
                                   <PurchaseAmountEditor item={item} onSaved={fetchGroceryList} />
                                 )}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => handleTogglePantry(item.id)}
+                                disabled={!canCheckItems}
                                 aria-pressed={item.isPantryStaple}
-                                className={`shrink-0 rounded-lg px-2 py-1 text-[8px] font-bold uppercase tracking-wide transition ${item.isPantryStaple ? 'bg-brand-green text-white' : 'bg-brand-bgAlt text-brand-muted hover:text-brand-green'}`}
+                                className={`shrink-0 rounded-lg px-2 py-1 text-[8px] font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-40 ${item.isPantryStaple ? 'bg-brand-green text-white' : 'bg-brand-bgAlt text-brand-muted hover:text-brand-green'}`}
                               >
                                 Pantry
                               </button>

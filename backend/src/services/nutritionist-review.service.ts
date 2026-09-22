@@ -1044,7 +1044,7 @@ export class NutritionistReviewService {
     });
     if (certifiedFallback.replaced) {
       try {
-        await GroceryService.generateGroceryList(plan.userId, undefined, plan.planGroupId);
+        await GroceryService.generateGroceryList(plan.userId, undefined, plan.planGroupId, 'EXPLICIT');
       } catch (error) {
         console.error('[NutritionistService] Certified fallback grocery refresh failed:', error);
       }

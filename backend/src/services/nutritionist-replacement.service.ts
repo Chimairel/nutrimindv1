@@ -277,7 +277,7 @@ export class NutritionistReplacementService {
     // 8. Re-project user grocery list
     if (!isFirstHighRiskApproval) {
       try {
-        await GroceryService.generateGroceryList(plan.userId);
+        await GroceryService.generateGroceryList(plan.userId, undefined, plan.planGroupId, 'EXPLICIT');
       } catch (error) {
         console.error('[NutritionistService] Grocery projection refresh failed after replace-and-approve:', error);
       }
