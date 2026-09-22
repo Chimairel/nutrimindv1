@@ -314,7 +314,7 @@ export class NutritionistReviewService {
         goal: userProfile?.goal || 'MAINTAIN',
         dailyCalorieTarget: userProfile?.dailyCalorieTarget || 2000,
         dietaryPreference: userProfile?.dietaryPreference || 'OMNIVORE',
-        carbPreference: userProfile?.carbPreference || 'MODERATE',
+        ricePreference: userProfile?.ricePreference || 'FLEXIBLE',
         conditions: conditions,
         allergies: allergies,
         safetyEntries: safetyRestrictions.displayEntries,

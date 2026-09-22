@@ -31,7 +31,7 @@ const completeSnapshot: OnboardingSnapshot = {
     goal: 'LOSE_WEIGHT',
     activityLevel: 'ACTIVE',
     dietaryPreference: 'OMNIVORE',
-    carbPreference: 'MODERATE',
+    ricePreference: 'FLEXIBLE',
     foodCulture: 'Filipino',
     shoppingDayGroup: 'WEEKEND',
   },

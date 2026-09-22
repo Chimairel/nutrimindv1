@@ -64,7 +64,7 @@ async function main(): Promise<void> {
           goal: 'GAIN_WEIGHT',
           activityLevel: 'LIGHTLY_ACTIVE',
           dietaryPreference: 'OMNIVORE',
-          carbPreference: 'MODERATE',
+          ricePreference: 'FLEXIBLE',
           dailyCalorieTarget: 2_780,
         },
       },

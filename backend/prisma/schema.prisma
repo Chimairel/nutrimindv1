@@ -48,10 +48,15 @@ enum DietaryPreference {
   PESCATARIAN
 }
 
-enum CarbPreference {
-  LOW
-  MODERATE
-  HIGH
+enum RicePreference {
+  NO_RICE
+  FLEXIBLE
+  WITH_RICE
+}
+
+enum RicePreferenceProvenance {
+  DEFAULTED
+  USER_SELECTED
 }
 
 enum HealthConditionType {
@@ -327,6 +332,13 @@ enum MealPlanCycleStatus {
   REVALIDATION_REQUIRED
   COMPLETED
   SUPERSEDED
+}
+
+enum ProfileCycleAdaptationState {
+  CURRENT
+  AWAITING_REPORT_ACKNOWLEDGMENT
+  REBUILD_REQUIRED
+  SAFETY_REVALIDATION_REQUIRED
 }
 
 enum MealPlanCycleDeadlineOutcome {
@@ -688,7 +700,8 @@ model UserProfile {
   goal                    Goal?
   activityLevel           ActivityLevel?
   dietaryPreference       DietaryPreference?
-  carbPreference          CarbPreference?
+  ricePreference          RicePreference               @default(FLEXIBLE)
+  ricePreferenceProvenance RicePreferenceProvenance     @default(DEFAULTED)
   foodCulture             String?
   planningGeographyLevel  ConsumptionGeographyLevel @default(NATIONAL)
   planningRegionName      String?                   @db.VarChar(120)
@@ -1857,6 +1870,11 @@ model MealPlanCycle {
   shoppingDeadlineAt       DateTime
   expectedSlotCount        Int
   status                   MealPlanCycleStatus           @default(PREPARING)
+  profileAdaptationState   ProfileCycleAdaptationState   @default(CURRENT)
+  requestedProfileRevision Int?
+  requestedSafetyRevision  Int?
+  acknowledgedProfileRevision Int?
+  pendingProfileChangeKinds String[]                     @default([])
   deadlineOutcome          MealPlanCycleDeadlineOutcome?
   readyAt                  DateTime?
   activatedAt              DateTime?
@@ -1877,6 +1895,7 @@ model MealPlanCycle {
   @@unique([userId, planType, startDate, cycleRevision])
   @@index([userId, startDate, endDate, status])
   @@index([shoppingDeadlineAt, status])
+  @@index([userId, profileAdaptationState, startDate])
   @@index([supersededById])
 }
 
@@ -1897,7 +1916,8 @@ model MealPlanCycleSnapshot {
   dailyCalorieTarget      Int
   dailyMacroTargets       Json
   dietaryPreference       DietaryPreference?
-  carbPreference          CarbPreference?
+  ricePreference          RicePreference
+  ricePreferenceProvenance RicePreferenceProvenance
   foodCulture             String?
   planningGeographyLevel  ConsumptionGeographyLevel
   planningRegionName      String?

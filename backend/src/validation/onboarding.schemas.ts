@@ -5,7 +5,7 @@ import { isPsgcProvinceHucForRegion, isPsgcRegion } from '@/data/philippine-plan
 const goalSchema = z.enum(['LOSE_WEIGHT', 'GAIN_WEIGHT', 'MAINTAIN', 'BUILD_MUSCLE']);
 const activitySchema = z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE']);
 const dietarySchema = z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN']);
-const carbSchema = z.enum(['LOW', 'MODERATE', 'HIGH']);
+const ricePreferenceSchema = z.enum(['NO_RICE', 'FLEXIBLE', 'WITH_RICE']);
 const planningGeographySchema = z.enum(['NATIONAL', 'REGION', 'PROVINCE_HUC']);
 const mealLocalityPreferenceSchema = z.enum(['NATIONAL', 'NATIONAL_REGIONAL', 'REGIONAL', 'REGIONAL_LOCAL', 'LOCAL']);
 const sexSchema = z.enum(['MALE', 'FEMALE']);
@@ -45,7 +45,7 @@ export const onboardingProfileSchema = z
     goal: goalSchema.optional(),
     activityLevel: activitySchema.optional(),
     dietaryPreference: dietarySchema.optional(),
-    carbPreference: carbSchema.optional(),
+    ricePreference: ricePreferenceSchema.optional(),
     foodCulture: z.string().trim().min(1).max(80).optional(),
     planningGeographyLevel: planningGeographySchema.optional(),
     planningRegionName: z.string().trim().min(1).max(120).nullable().optional(),

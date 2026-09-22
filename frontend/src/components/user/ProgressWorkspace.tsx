@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import WeightGraph from '@/features/progress/WeightGraph';
 import {
   DIETARY_OPTIONS,
-  CARB_OPTIONS,
+  RICE_OPTIONS,
   SHOPPING_DAY_OPTIONS,
   BIOLOGICAL_SEX_OPTIONS,
   GOAL_OPTIONS,
@@ -75,8 +75,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setActivityLevel,
     dietaryPreference,
     setDietaryPreference,
-    carbPreference,
-    setCarbPreference,
+    ricePreference,
+    setRicePreference,
     planningGeographyLevel,
     setPlanningGeographyLevel,
     planningRegionName,
@@ -529,7 +529,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                 )}
                 {mode === 'planning' && (
                   <>
-                    {/* Top Row: Dietary, Carb, and Grocery Shopping Day (3 Columns) */}
+                    {/* Top Row: Dietary, rice, and grocery shopping day */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label
@@ -547,16 +547,16 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                       </div>
                       <div>
                         <label
-                          htmlFor="profile-carb"
+                          htmlFor="profile-rice"
                           className="block text-xs font-bold tracking-wider text-brand-muted uppercase mb-2"
                         >
-                          Carb Preference
+                          Rice Preference
                         </label>
                         <Select
-                          id="profile-carb"
-                          value={carbPreference}
-                          onChange={setCarbPreference}
-                          options={CARB_OPTIONS}
+                          id="profile-rice"
+                          value={ricePreference}
+                          onChange={(value) => setRicePreference(value as typeof ricePreference)}
+                          options={RICE_OPTIONS}
                         />
                       </div>
                       <div>

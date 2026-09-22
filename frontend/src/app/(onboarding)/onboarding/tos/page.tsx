@@ -113,7 +113,7 @@ export default function OnboardingTosPage() {
       editPath: '/onboarding/preferences?from=review',
       items: [
         ['Diet', formatOnboardingValue(userProfile?.dietaryPreference)],
-        ['Carbohydrate preference', formatOnboardingValue(userProfile?.carbPreference)],
+        ['Rice preference', formatOnboardingValue(userProfile?.ricePreference)],
         ['Food culture', normalizeFoodCulture(userProfile?.foodCulture)],
         ['Meal-planning location', formatPlanningLocation(userProfile)],
         ['Meal locality strength', formatMealLocality(userProfile)],

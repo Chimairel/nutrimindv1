@@ -6,8 +6,8 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
-import { DietaryPreference, CarbPreference } from '@/types';
-import { Egg, Apple, Wheat, Check, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { DietaryPreference, RicePreference } from '@/types';
+import { Ban, Shuffle, Utensils, Check, AlertTriangle, ArrowLeft, Info } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +22,7 @@ export default function OnboardingPreferencesPage() {
   const { profile, isLoading: isHydrating } = useProfile();
   const { refreshSession } = useAuth();
   const [dietary, setDietary] = useState<DietaryPreference>('OMNIVORE');
-  const [carb, setCarb] = useState<CarbPreference>('MODERATE');
+  const [ricePreference, setRicePreference] = useState<RicePreference>('FLEXIBLE');
   const [culture, setCulture] = useState('Filipino');
   const [planningLevel, setPlanningLevel] = useState<PlanningGeographyLevel>('NATIONAL');
   const [planningRegion, setPlanningRegion] = useState('');
@@ -35,7 +35,7 @@ export default function OnboardingPreferencesPage() {
     const saved = profile?.userProfile;
     if (!saved) return;
     if (saved.dietaryPreference) setDietary(saved.dietaryPreference as DietaryPreference);
-    if (saved.carbPreference) setCarb(saved.carbPreference as CarbPreference);
+    if (saved.ricePreference) setRicePreference(saved.ricePreference);
     if (saved.foodCulture) setCulture(normalizeFoodCulture(saved.foodCulture));
     if (saved.planningGeographyLevel) setPlanningLevel(saved.planningGeographyLevel);
     setPlanningRegion(saved.planningRegionName || '');
@@ -52,7 +52,7 @@ export default function OnboardingPreferencesPage() {
       // Send preference specs to backend profile endpoint to extend user profile
       await api.post('/user/onboarding/profile', {
         dietaryPreference: dietary,
-        carbPreference: carb,
+        ricePreference,
         foodCulture: normalizeFoodCulture(culture),
         planningGeographyLevel: planningLevel,
         planningRegionName: planningLevel === 'NATIONAL' ? null : planningRegion.trim(),
@@ -77,10 +77,10 @@ export default function OnboardingPreferencesPage() {
     { value: 'PESCATARIAN', label: 'Pescatarian', desc: 'Vegetarian + seafood' },
   ];
 
-  const carbList: { value: CarbPreference; label: string; icon: React.ReactNode }[] = [
-    { value: 'LOW', label: 'Low Carb', icon: <Egg className="w-5 h-5 text-brand-green" /> },
-    { value: 'MODERATE', label: 'Moderate Carb', icon: <Apple className="w-5 h-5 text-brand-green" /> },
-    { value: 'HIGH', label: 'High Carb', icon: <Wheat className="w-5 h-5 text-brand-green" /> },
+  const riceOptions: { value: RicePreference; label: string; desc: string; icon: React.ReactNode }[] = [
+    { value: 'NO_RICE', label: 'No rice', desc: 'Prefer meals normally eaten without rice', icon: <Ban className="w-5 h-5" /> },
+    { value: 'FLEXIBLE', label: 'Either', desc: 'Include meals with rice and meals without it', icon: <Shuffle className="w-5 h-5" /> },
+    { value: 'WITH_RICE', label: 'With rice', desc: 'Prefer meals commonly served with rice', icon: <Utensils className="w-5 h-5" /> },
   ];
 
   return (
@@ -162,20 +162,20 @@ export default function OnboardingPreferencesPage() {
               </div>
             </div>
 
-            {/* Carb preference */}
+            {/* Rice preference */}
             <div className="flex flex-col gap-2">
               <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
-                Carb Intake Target
+                How do you prefer rice with your meals?
               </label>
               <div className="grid grid-cols-3 gap-2.5">
-                {carbList.map((item) => {
-                  const isSelected = carb === item.value;
+                {riceOptions.map((item) => {
+                  const isSelected = ricePreference === item.value;
                   return (
                     <button
                       key={item.value}
                       type="button"
                       aria-pressed={isSelected}
-                      onClick={() => setCarb(item.value)}
+                      onClick={() => setRicePreference(item.value)}
                       className={`
                         flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-xl border-2 text-center transition-all duration-200 outline-none
                         ${
@@ -193,10 +193,18 @@ export default function OnboardingPreferencesPage() {
                       >
                         {item.label}
                       </span>
+                      <span className={`text-[10px] leading-tight ${isSelected ? 'text-white/80 dark:text-black/70' : 'text-brand-muted'}`}>
+                        {item.desc}
+                      </span>
                     </button>
                   );
                 })}
               </div>
+            </div>
+
+            <div className="flex gap-2 rounded-xl border border-brand-border bg-brand-bgAlt/50 p-3 text-[11px] text-brand-muted">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
+              <span>You can change these choices later. New ordinary preferences apply to a future plan after you review the updated nutrition report.</span>
             </div>
 
             <PlanningLocationFields

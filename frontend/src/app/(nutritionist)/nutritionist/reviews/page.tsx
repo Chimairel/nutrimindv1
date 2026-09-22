@@ -343,8 +343,8 @@ export default function ReviewsPage() {
                     <strong className="text-brand-text text-xs uppercase">{detailData.user.dietaryPreference}</strong>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-brand-muted">Carb Preference</span>
-                    <strong className="text-brand-text text-xs uppercase">{detailData.user.carbPreference}</strong>
+                    <span className="block text-[10px] text-brand-muted">Rice Preference</span>
+                    <strong className="text-brand-text text-xs uppercase">{detailData.user.ricePreference}</strong>
                   </div>
                 </div>
               </div>

@@ -52,7 +52,7 @@ export interface DetailData {
     goal: string;
     dailyCalorieTarget: number;
     dietaryPreference: string;
-    carbPreference: string;
+    ricePreference: string;
     conditions: string[];
     allergies: string[];
     safetyEntries?: Array<{

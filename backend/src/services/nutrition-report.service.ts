@@ -6,6 +6,7 @@ import { getFNRISubset } from '@/lib/fnri';
 import { formatMealLocalityPreference } from '@/domain/planning-location.policy';
 import { z } from 'zod';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
 
 const NUTRITION_REPORT_SYSTEM_CONTEXT = `
 You are generating a nutrition report for a system with this
@@ -57,7 +58,9 @@ export class NutritionReportService {
         where: { userId, version: report.version },
         data: { acknowledgedAt },
       });
-      return tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
+      const acknowledged = await tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
+      await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
+      return acknowledged;
     });
   }
 
@@ -131,7 +134,7 @@ export class NutritionReportService {
       `- Goal Target: ${goal} (Daily Caloric Target: ${dailyCalorieTarget} kcal/day)\n` +
       `- Activity Level: ${activityLevel}\n` +
       `- Dietary Preference Pattern: ${profile.dietaryPreference || 'OMNIVORE'}\n` +
-      `- Carb Intake Level: ${profile.carbPreference || 'MODERATE'}\n` +
+      `- Rice Serving Preference: ${profile.ricePreference}\n` +
       `- Regional Cooking Style & Cultural Background: ${profile.foodCulture || 'Filipino'}\n` +
       `- Meal Familiarity Preference: ${formatMealLocalityPreference(profile)}\n` +
       `\n` +

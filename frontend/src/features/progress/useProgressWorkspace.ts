@@ -67,7 +67,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [goal, setGoal] = useState(cachedProfile?.goal || 'MAINTAIN');
   const [activityLevel, setActivityLevel] = useState(cachedProfile?.activityLevel || 'SEDENTARY');
   const [dietaryPreference, setDietaryPreference] = useState(cachedProfile?.dietaryPreference || 'OMNIVORE');
-  const [carbPreference, setCarbPreference] = useState(cachedProfile?.carbPreference || 'MODERATE');
+  const [ricePreference, setRicePreference] = useState(cachedProfile?.ricePreference || 'FLEXIBLE');
   const [foodCulture, setFoodCulture] = useState(normalizeFoodCulture(cachedProfile?.foodCulture));
   const [planningGeographyLevel, setPlanningGeographyLevel] = useState<PlanningGeographyLevel>(
     cachedProfile?.planningGeographyLevel || 'NATIONAL'
@@ -139,7 +139,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           setGoal(data.userProfile.goal || 'MAINTAIN');
           setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
           setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
-          setCarbPreference(data.userProfile.carbPreference || 'MODERATE');
+          setRicePreference(data.userProfile.ricePreference || 'FLEXIBLE');
           setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
           setPlanningGeographyLevel(data.userProfile.planningGeographyLevel || 'NATIONAL');
           setPlanningRegionName(data.userProfile.planningRegionName || '');
@@ -207,7 +207,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
 
       const payload: Record<string, unknown> = {
         dietaryPreference,
-        carbPreference,
+        ricePreference,
         planningGeographyLevel: resolvedLevel,
         planningRegionName: resolvedLevel === 'NATIONAL' ? null : canonicalRegion,
         planningProvinceHucName: resolvedLevel === 'PROVINCE_HUC' ? planningProvinceHucName.trim() : null,
@@ -439,8 +439,8 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     setActivityLevel,
     dietaryPreference,
     setDietaryPreference,
-    carbPreference,
-    setCarbPreference,
+    ricePreference,
+    setRicePreference,
     foodCulture,
     setFoodCulture,
     planningGeographyLevel,

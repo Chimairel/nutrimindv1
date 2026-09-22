@@ -1,6 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { calculateDailyTarget } from '@/lib/calculations';
+import {
+  PROFILE_CHANGE_KIND,
+  ProfileCycleAdaptationService,
+  type ProfileChangeKind,
+} from './profile-cycle-adaptation.service';
 
 /** Shared transaction boundary: serialize profile changes against report publication and swaps. */
 export async function lockUserProfile(tx: Prisma.TransactionClient, userId: string) {
@@ -8,7 +13,12 @@ export async function lockUserProfile(tx: Prisma.TransactionClient, userId: stri
   await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
 }
 
-export async function advanceProfileRevision(tx: Prisma.TransactionClient, userId: string) {
+export async function advanceProfileRevision(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  changeKinds: readonly ProfileChangeKind[] = [PROFILE_CHANGE_KIND.BODY_TARGETS],
+  adaptCycles = true
+) {
   const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
   const conditions = await tx.healthCondition.findMany({ where: { userId } });
   const target =
@@ -31,12 +41,15 @@ export async function advanceProfileRevision(tx: Prisma.TransactionClient, userI
     where: { userId },
     data: { isStale: true, acknowledgedAt: null },
   });
+  if (adaptCycles) {
+    await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, updated.revision, changeKinds);
+  }
   return updated;
 }
 
 /** Safety changes fail closed for every current/future uneaten slot. */
 export async function advanceSafetyRevision(tx: Prisma.TransactionClient, userId: string) {
-  const updated = await advanceProfileRevision(tx, userId);
+  const updated = await advanceProfileRevision(tx, userId, [PROFILE_CHANGE_KIND.SAFETY], false);
   const safetyUpdated = await tx.userProfile.update({
     where: { userId },
     data: { safetyRevision: { increment: 1 } },
@@ -61,5 +74,11 @@ export async function advanceSafetyRevision(tx: Prisma.TransactionClient, userId
     },
   });
   await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
+  await ProfileCycleAdaptationService.recordSafetyChange(
+    tx,
+    userId,
+    updated.revision,
+    safetyUpdated.safetyRevision
+  );
   return { ...updated, safetyRevision: safetyUpdated.safetyRevision };
 }

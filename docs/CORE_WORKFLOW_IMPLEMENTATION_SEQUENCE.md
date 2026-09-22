@@ -1281,7 +1281,7 @@ Update this checklist only with linked engineering evidence.
 
 - [x] Batch 0 — baseline and contract mapping ([CHG-20260922-01 evidence](BATCH_1_CYCLE_IDENTITY_IMPLEMENTATION.md))
 - [x] Batch 1 — authoritative current/upcoming cycles ([CHG-20260922-01 evidence](BATCH_1_CYCLE_IDENTITY_IMPLEMENTATION.md))
-- [ ] Batch 2 — profile/report/cycle adaptation
+- [x] Batch 2 — profile/report/cycle adaptation ([CHG-20260922-02 evidence](BATCH_2_PROFILE_CYCLE_ADAPTATION_IMPLEMENTATION.md))
 - [ ] Batch 3 — multi-slot metadata, favorites, candidate provider
 - [ ] Batch 4 — preparation, ranking, and deadline-aware review
 - [ ] Batch 5 — progressive current/next groceries

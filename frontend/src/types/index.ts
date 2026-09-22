@@ -6,7 +6,8 @@ export type ActivityLevel = 'SEDENTARY' | 'LIGHTLY_ACTIVE' | 'ACTIVE' | 'VERY_AC
 
 export type DietaryPreference = 'OMNIVORE' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARIAN';
 
-export type CarbPreference = 'LOW' | 'MODERATE' | 'HIGH';
+export type RicePreference = 'NO_RICE' | 'FLEXIBLE' | 'WITH_RICE';
+export type RicePreferenceProvenance = 'DEFAULTED' | 'USER_SELECTED';
 
 export type HealthConditionType =
   'DIABETES' | 'HYPERTENSION' | 'KIDNEY_DISEASE' | 'HEART_CONDITION' | 'PREGNANT' | 'NONE';
@@ -92,7 +93,8 @@ export interface UserProfile {
   goal?: Goal;
   activityLevel?: ActivityLevel;
   dietaryPreference?: DietaryPreference;
-  carbPreference?: CarbPreference;
+  ricePreference?: RicePreference;
+  ricePreferenceProvenance?: RicePreferenceProvenance;
   foodCulture?: string;
   planningGeographyLevel?: PlanningGeographyLevel;
   planningRegionName?: string;

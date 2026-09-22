@@ -13,7 +13,7 @@ const promptInput = {
   dailyCalorieTarget: 2000,
   goal: 'MAINTAIN',
   dietaryPreference: 'OMNIVORE',
-  carbPreference: 'MODERATE',
+  ricePreference: 'FLEXIBLE',
   foodCulture: 'Filipino',
   planningLocationLabel: 'Cebu City, Central Visayas',
   conditions: ['HYPERTENSION'],

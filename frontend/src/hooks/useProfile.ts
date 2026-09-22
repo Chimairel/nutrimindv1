@@ -29,7 +29,8 @@ export interface UserProfileData {
     goal?: string;
     activityLevel?: string;
     dietaryPreference?: string;
-    carbPreference?: string;
+    ricePreference?: 'NO_RICE' | 'FLEXIBLE' | 'WITH_RICE';
+    ricePreferenceProvenance?: 'DEFAULTED' | 'USER_SELECTED';
     foodCulture?: string;
     planningGeographyLevel?: PlanningGeographyLevel;
     planningRegionName?: string;

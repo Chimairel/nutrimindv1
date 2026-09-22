@@ -5,10 +5,10 @@ export const DIETARY_OPTIONS = [
   { value: 'PESCATARIAN', label: 'Pescatarian' },
 ];
 
-export const CARB_OPTIONS = [
-  { value: 'LOW', label: 'Low Carb' },
-  { value: 'MODERATE', label: 'Moderate Carb' },
-  { value: 'HIGH', label: 'High Carb' },
+export const RICE_OPTIONS = [
+  { value: 'NO_RICE', label: 'No rice' },
+  { value: 'FLEXIBLE', label: 'Both with and without rice' },
+  { value: 'WITH_RICE', label: 'With rice' },
 ];
 
 export const SHOPPING_DAY_OPTIONS = [

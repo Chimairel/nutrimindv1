@@ -6,7 +6,8 @@ import {
   Goal,
   ActivityLevel,
   DietaryPreference,
-  CarbPreference,
+  RicePreference,
+  RicePreferenceProvenance,
   ConsumptionGeographyLevel,
   MealLocalityPreference,
   HealthConditionType,
@@ -16,6 +17,7 @@ import {
 import { evaluateOnboardingStatus } from '@/domain/onboarding.policy';
 import { getCanonicalRegionName } from '@/data/philippine-planning-geography';
 import { introducesHardDietRestriction } from '@/domain/profile-update-policy';
+import { PROFILE_CHANGE_KIND, type ProfileChangeKind } from './profile-cycle-adaptation.service';
 
 interface ProfileUpdateData {
   age?: number;
@@ -26,13 +28,40 @@ interface ProfileUpdateData {
   goal?: Goal;
   activityLevel?: ActivityLevel;
   dietaryPreference?: DietaryPreference;
-  carbPreference?: CarbPreference;
+  ricePreference?: RicePreference;
   foodCulture?: string;
   planningGeographyLevel?: ConsumptionGeographyLevel;
   planningRegionName?: string | null;
   planningProvinceHucName?: string | null;
   mealLocalityPreference?: MealLocalityPreference;
   shoppingDayOfWeek?: number;
+}
+
+const bodyTargetFields = new Set<keyof ProfileUpdateData>([
+  'age',
+  'biologicalSex',
+  'heightCm',
+  'weightKg',
+  'targetWeightKg',
+  'goal',
+  'activityLevel',
+]);
+const foodPreferenceFields = new Set<keyof ProfileUpdateData>([
+  'dietaryPreference',
+  'ricePreference',
+  'foodCulture',
+  'planningGeographyLevel',
+  'planningRegionName',
+  'planningProvinceHucName',
+  'mealLocalityPreference',
+]);
+
+function classifyProfileChanges(fields: readonly (keyof ProfileUpdateData)[]): ProfileChangeKind[] {
+  const kinds = new Set<ProfileChangeKind>();
+  if (fields.some((field) => bodyTargetFields.has(field))) kinds.add(PROFILE_CHANGE_KIND.BODY_TARGETS);
+  if (fields.some((field) => foodPreferenceFields.has(field))) kinds.add(PROFILE_CHANGE_KIND.FOOD_PREFERENCES);
+  if (fields.includes('shoppingDayOfWeek')) kinds.add(PROFILE_CHANGE_KIND.SHOPPING_SCHEDULE);
+  return [...kinds];
 }
 
 type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
@@ -66,7 +95,7 @@ export class UserProfileService {
       'goal',
       'activityLevel',
       'dietaryPreference',
-      'carbPreference',
+      'ricePreference',
       'foodCulture',
       'planningGeographyLevel',
       'planningRegionName',
@@ -123,28 +152,51 @@ export class UserProfileService {
           safeData.mealLocalityPreference = requestedLocality;
         }
 
+        const changedFields = Object.entries(safeData)
+          .filter(([key, value]) => !existing || existing[key as keyof typeof existing] !== value)
+          .map(([key]) => key as keyof ProfileUpdateData);
+        if (safeData.ricePreference !== undefined) {
+          const provenanceChanged = existing?.ricePreferenceProvenance !== RicePreferenceProvenance.USER_SELECTED;
+          if (provenanceChanged && !changedFields.includes('ricePreference')) changedFields.push('ricePreference');
+        }
+        if (existing && changedFields.length === 0) return existing;
+
         const profile = await tx.userProfile.upsert({
           where: { userId },
-          update: safeData,
+          update: {
+            ...safeData,
+            ...(safeData.ricePreference !== undefined
+              ? { ricePreferenceProvenance: RicePreferenceProvenance.USER_SELECTED }
+              : {}),
+          },
           create: {
             userId,
             ...safeData,
+            ...(safeData.ricePreference !== undefined
+              ? { ricePreferenceProvenance: RicePreferenceProvenance.USER_SELECTED }
+              : {}),
           },
         });
+        const hardSafetyChange = introducesHardDietRestriction(
+          existing?.dietaryPreference,
+          profile.dietaryPreference
+        );
+        const revised = hardSafetyChange
+          ? await advanceSafetyRevision(tx, userId)
+          : await advanceProfileRevision(tx, userId, classifyProfileChanges(changedFields));
         await tx.healthProfileRevision.create({
           data: {
             userId,
             revisionType: HealthProfileRevisionType.BODY_DIET_UPDATED,
-            snapshot: safeData as Prisma.InputJsonObject,
+            snapshot: {
+              profileRevision: revised.revision,
+              safetyRevision: revised.safetyRevision,
+              changedFields,
+              values: safeData,
+            } as unknown as Prisma.InputJsonObject,
           },
         });
-        const changed =
-          !existing ||
-          Object.entries(safeData).some(([key, value]) => existing[key as keyof typeof existing] !== value);
-        if (!changed) return profile;
-        return introducesHardDietRestriction(existing?.dietaryPreference, profile.dietaryPreference)
-          ? advanceSafetyRevision(tx, userId)
-          : advanceProfileRevision(tx, userId);
+        return revised;
       },
       { maxWait: 10000, timeout: 30000 }
     );
@@ -157,12 +209,7 @@ export class UserProfileService {
     if (!Number.isInteger(shoppingDayOfWeek) || shoppingDayOfWeek < 0 || shoppingDayOfWeek > 6) {
       throw new Error('Shopping day must be an integer from Sunday (0) to Saturday (6).');
     }
-    const shoppingDayGroup = shoppingDayOfWeek === 0 || shoppingDayOfWeek === 6 ? 'WEEKEND' : 'WEEKDAY';
-    return prisma.userProfile.upsert({
-      where: { userId },
-      update: { shoppingDayGroup, shoppingDayOfWeek },
-      create: { userId, shoppingDayGroup, shoppingDayOfWeek },
-    });
+    return this.updateUserProfile(userId, { shoppingDayOfWeek });
   }
 
   /**
@@ -274,6 +321,41 @@ export class UserProfileService {
             profileRevision: reportProfileRevision,
             acknowledgedAt: now,
             isStale: false,
+          },
+        });
+        await tx.nutritionReportVersion.upsert({
+          where: { userId_version: { userId, version: 1 } },
+          create: {
+            userId,
+            version: 1,
+            profileRevision: reportProfileRevision,
+            generatedAt: now,
+            acknowledgedAt: now,
+            content: {
+              generalSummary: `Initial nutritional baseline established. Daily calorie target: ${calculations.dailyCalorieTarget} kcal based on your biometric profile and health goals.`,
+              foodsToAvoid: [],
+              foodsToLimit: [],
+              foodsRecommended: [],
+              drinksGuidance: ['Stay hydrated with at least 8 glasses (2-2.5L) of water daily.'],
+              basedOnConditions: user.healthConditions.map((condition) => condition.condition),
+              basedOnAllergies: user.allergies.map((allergy) => allergy.allergen),
+            },
+            profileSnapshot: JSON.parse(JSON.stringify(current)),
+          },
+          update: {
+            profileRevision: reportProfileRevision,
+            generatedAt: now,
+            acknowledgedAt: now,
+            content: {
+              generalSummary: `Initial nutritional baseline established. Daily calorie target: ${calculations.dailyCalorieTarget} kcal based on your biometric profile and health goals.`,
+              foodsToAvoid: [],
+              foodsToLimit: [],
+              foodsRecommended: [],
+              drinksGuidance: ['Stay hydrated with at least 8 glasses (2-2.5L) of water daily.'],
+              basedOnConditions: user.healthConditions.map((condition) => condition.condition),
+              basedOnAllergies: user.allergies.map((allergy) => allergy.allergen),
+            },
+            profileSnapshot: JSON.parse(JSON.stringify(current)),
           },
         });
       },

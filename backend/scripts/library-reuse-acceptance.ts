@@ -93,7 +93,7 @@ async function setup() {
           goal: Goal.MAINTAIN,
           activityLevel: ActivityLevel.LIGHTLY_ACTIVE,
           dietaryPreference: DietaryPreference.OMNIVORE,
-          carbPreference: 'MODERATE',
+          ricePreference: 'FLEXIBLE',
           foodCulture: 'Flexible Filipino and everyday meals',
           dailyCalorieTarget: 1900,
           shoppingDayOfWeek,

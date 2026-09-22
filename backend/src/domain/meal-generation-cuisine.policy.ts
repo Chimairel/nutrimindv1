@@ -11,7 +11,7 @@ export interface MealGenerationPromptInput {
   existingMeals?: readonly { dayNumber: number; mealType: string; calories: number }[];
   goal: string;
   dietaryPreference: string;
-  carbPreference: string;
+  ricePreference: string;
   foodCulture: string;
   planningLocationLabel: string;
   conditions: string[];
@@ -102,7 +102,7 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `- Daily Target Calories: ${input.dailyCalorieTarget} kcal/day (distribute approximately 30% breakfast, 40% lunch, and 30% dinner)\n` +
     `- Goal Target: ${input.goal}\n` +
     `- Dietary Preference: ${input.dietaryPreference}\n` +
-    `- Carb Intake Level: ${input.carbPreference}\n` +
+    `- Rice Serving Preference: ${input.ricePreference}\n` +
     `- Preferred Food Culture: ${input.foodCulture} (influence only; this does not restrict the plan to one cuisine)\n\n` +
     `- Meal-planning location: ${input.planningLocationLabel} (coarse locality for availability and familiarity only)\n\n` +
     `[CLINICAL SAFEGUARDS]\n` +

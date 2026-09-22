@@ -26,7 +26,7 @@ export interface OnboardingSnapshot {
     goal?: string | null;
     activityLevel?: string | null;
     dietaryPreference?: string | null;
-    carbPreference?: string | null;
+    ricePreference?: string | null;
     foodCulture?: string | null;
     shoppingDayGroup?: string | null;
     shoppingDayOfWeek?: number | null;
@@ -82,10 +82,10 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   }
 
   const preferencesComplete = Boolean(
-    profile?.dietaryPreference && profile.carbPreference && profile.foodCulture?.trim()
+    profile?.dietaryPreference && profile.ricePreference && profile.foodCulture?.trim()
   );
   if (!preferencesComplete) {
-    missingFields.push('dietaryPreference', 'carbPreference', 'foodCulture');
+    missingFields.push('dietaryPreference', 'ricePreference', 'foodCulture');
   }
 
   const conditionsComplete = snapshot.conditions.length > 0;

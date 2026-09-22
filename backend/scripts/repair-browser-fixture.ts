@@ -42,7 +42,7 @@ async function main() {
                   goal: 'MAINTAIN',
                   activityLevel: 'LIGHTLY_ACTIVE',
                   dietaryPreference: 'OMNIVORE',
-                  carbPreference: 'MODERATE',
+                  ricePreference: 'FLEXIBLE',
                   foodCulture: 'Filipino',
                   dailyCalorieTarget: 2000,
                   shoppingDayOfWeek: 6,

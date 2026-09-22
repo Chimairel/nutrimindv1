@@ -4,7 +4,12 @@ import {
   getManilaDateKey,
   getManilaMidnight,
 } from '@/domain/meal-plan-cycle.policy';
-import { MealPlanStatus, MealPlanCycleStatus, Prisma } from '@prisma/client';
+import {
+  MealPlanStatus,
+  MealPlanCycleStatus,
+  Prisma,
+  ProfileCycleAdaptationState,
+} from '@prisma/client';
 
 type CycleClient = Pick<Prisma.TransactionClient, 'mealPlanCycle'>;
 
@@ -18,6 +23,11 @@ export const mealPlanCycleSummarySelect = {
   shoppingDeadlineAt: true,
   expectedSlotCount: true,
   status: true,
+  profileAdaptationState: true,
+  requestedProfileRevision: true,
+  requestedSafetyRevision: true,
+  acknowledgedProfileRevision: true,
+  pendingProfileChangeKinds: true,
   deadlineOutcome: true,
   readyAt: true,
   activatedAt: true,
@@ -54,6 +64,7 @@ export class MealPlanCycleService {
       select: {
         id: true,
         status: true,
+        profileAdaptationState: true,
         startDate: true,
         endDate: true,
         shoppingDeadlineAt: true,
@@ -77,6 +88,19 @@ export class MealPlanCycleService {
     });
 
     for (const cycle of cycles) {
+      if (cycle.profileAdaptationState !== ProfileCycleAdaptationState.CURRENT) {
+        const gatedStatus =
+          cycle.profileAdaptationState === ProfileCycleAdaptationState.SAFETY_REVALIDATION_REQUIRED
+            ? MealPlanCycleStatus.REVALIDATION_REQUIRED
+            : MealPlanCycleStatus.PREPARING;
+        if (cycle.status !== gatedStatus) {
+          await client.mealPlanCycle.updateMany({
+            where: { id: cycle.id, userId, status: cycle.status },
+            data: { status: gatedStatus },
+          });
+        }
+        continue;
+      }
       const clearedMeals = cycle.mealPlans.filter(
         (meal) =>
           meal.status === MealPlanStatus.APPROVED &&
@@ -188,6 +212,9 @@ export class MealPlanCycleService {
     await this.synchronizeLifecycle(userId, now, client);
     const cycle = await client.mealPlanCycle.findFirst({ where: { id: cycleId, userId } });
     if (!cycle) throw new Error('The shopping list is not attached to an accessible plan cycle.');
+    if (cycle.profileAdaptationState !== ProfileCycleAdaptationState.CURRENT) {
+      throw new Error('This cycle is waiting for profile review or rebuilding and cannot be used for shopping.');
+    }
     if (
       cycle.status === MealPlanCycleStatus.PREPARING ||
       cycle.status === MealPlanCycleStatus.UNDER_REVIEW ||

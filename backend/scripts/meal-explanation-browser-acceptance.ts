@@ -34,7 +34,7 @@ async function main() {
           goal: 'GAIN_WEIGHT',
           activityLevel: 'LIGHTLY_ACTIVE',
           dietaryPreference: 'OMNIVORE',
-          carbPreference: 'MODERATE',
+          ricePreference: 'FLEXIBLE',
           foodCulture: 'Filipino',
           planningGeographyLevel: 'PROVINCE_HUC',
           planningRegionName: 'Central Visayas',

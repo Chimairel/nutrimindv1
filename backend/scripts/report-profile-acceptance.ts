@@ -40,7 +40,7 @@ async function main() {
         goal: 'MAINTAIN',
         activityLevel: 'ACTIVE',
         dietaryPreference: 'OMNIVORE',
-        carbPreference: 'MODERATE',
+        ricePreference: 'FLEXIBLE',
         foodCulture: 'Filipino',
         dailyCalorieTarget: 2200,
         shoppingDayOfWeek: 6,
@@ -72,7 +72,7 @@ async function main() {
         basedOnAllergies: [],
       },
     });
-    const saved = await request('/user/profile', 'PUT', { carbPreference: 'LOW' });
+    const saved = await request('/user/profile', 'PUT', { ricePreference: 'NO_RICE' });
     assert.equal(saved.status, 200, JSON.stringify(saved.body));
     assert.equal(saved.body.data.nutritionReport.isStale, true);
     assert.equal(saved.body.data.nutritionReport.acknowledgedAt, null);

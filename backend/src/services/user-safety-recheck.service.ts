@@ -24,6 +24,7 @@ import {
 } from '@/domain/meal-plan-production-safety.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
+import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
 
 export class UserSafetyRecheckService {
   /**
@@ -403,6 +404,8 @@ export class UserSafetyRecheckService {
 
       replacedCount++;
     }
+
+    await prisma.$transaction((tx) => ProfileCycleAdaptationService.reconcileSafetyCycles(tx, userId));
 
     if (replacedCount > 0) {
       console.log(`[Safety Recheck] Successfully replaced ${replacedCount} meal(s) for user ${userId}`);

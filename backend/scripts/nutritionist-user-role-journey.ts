@@ -159,7 +159,7 @@ async function main() {
       goal: 'MAINTAIN',
       activityLevel: 'LIGHTLY_ACTIVE',
       dietaryPreference: 'OMNIVORE',
-      carbPreference: 'MODERATE',
+      ricePreference: 'FLEXIBLE',
       foodCulture: 'Filipino',
     },
   });
