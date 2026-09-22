@@ -34,7 +34,7 @@ Rules:
 | CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260907-02 |
 | TEST | Test case or verification procedure | TEST-153 |
 | UNC | Unresolved uncertainty | UNC-019 |
-| DOC | Documentation correction or addition | DOC-052 |
+| DOC | Documentation correction or addition | DOC-067 |
 
 ---
 
@@ -4011,3 +4011,12 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Historical migrations remain immutable so an already-migrated database can advance without reset. Forward migration `20260922020000_remove_subscription_system` removed the dormant subscription schema from the authorized development database. Its preflight found one product row, one price row, three entitlement grants, no checkout/payment/subscription rows, no test-access users, and no provider-linked compensation payouts. Core counts were unchanged across migration: 20 users, 100 meal-plan rows, 2,014 library rows, and zero compensation payouts/statements. Post-check found zero removed tables or columns.
 - Compensation stays as a separate internal work-record feature. Migration `20260922021000_generalize_compensation_payout_method` replaced the unused provider-specific enum label with generic `EXTERNAL_DISBURSEMENT`; no money-movement integration is active. Migration `20260922022000_remove_swap_cap_tracker` removed eight obsolete tracker rows and the tracker foreign key while preserving the zero existing swap-audit rows.
 - Prisma validates and the development database reports 51 applied migrations. Backend build/lint passed with **436 pass / 0 fail / 1 existing clinical TODO** across 437 tests. Frontend lint passed, **198/198** tests passed across 51 files, and a clean-cache production build completed with 51 routes and no billing or membership route.
+
+## 99. Ordered core-workflow implementation contract (2026-09-22)
+
+**Documentation ID:** DOC-066
+
+- Added [`CORE_WORKFLOW_IMPLEMENTATION_SEQUENCE.md`](CORE_WORKFLOW_IMPLEMENTATION_SEQUENCE.md) as the owner-approved forward execution contract for current/upcoming plan cycles, profile-revision boundaries, deadline-aware preparation, progressive groceries, eligible-library favorites and swaps, outside-meal capture/review, and observed-meal candidate reuse.
+- The document separates proposed behavior from implementation evidence, maps its concepts onto the current Prisma models, preserves the existing safety-evidence/assurance architecture, and defines system-wide invariants, state workflows, failure behavior, batch dependencies, test expectations, and an exit gate for each of eleven ordered batches.
+- Future-cycle preparation in this plan is universal core behavior. It does not restore the subscription system, payment code, entitlements, Premium swap limits, or paid next-plan access removed in section 98. The separately discussed full-paywall idea remains a deferred product consideration only.
+- This documentation change does not modify source code, schema, migrations, database records, runtime configuration, or deployed behavior. Every batch remains unchecked and must receive its own implementation and verification evidence before being described as implemented.
