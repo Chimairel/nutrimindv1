@@ -43,6 +43,22 @@ router.post('/rollover', MealsController.ensureCurrentPlanRollover);
 router.get('/current', validateZodRequest({ query: z.object({}).strict() }), MealsController.getCurrentPlan);
 
 /**
+ * Route: GET /api/user/meals/cycles
+ * Description: Returns authoritative current and upcoming cycle identities.
+ */
+router.get('/cycles', validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanCycles);
+router.post(
+  '/cycles/:cycleId/acknowledge-incomplete',
+  validateZodRequest({ params: z.object({ cycleId: z.string().min(1).max(200) }).strict() }),
+  MealsController.acknowledgeIncompleteCycle
+);
+router.post(
+  '/cycles/:cycleId/start-shopping',
+  validateZodRequest({ params: z.object({ cycleId: z.string().min(1).max(200) }).strict() }),
+  MealsController.startShopping
+);
+
+/**
  * Route: GET /api/user/meals/history
  * Description: Returns all historic meal plans.
  */

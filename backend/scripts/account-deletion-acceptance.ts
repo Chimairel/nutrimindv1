@@ -2,8 +2,9 @@ import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { MealPlanCycleStatus, PrismaClient } from '@prisma/client';
 import { UserPrivacyService } from '../src/services/user-privacy.service';
+import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 
 const prisma = new PrismaClient();
 
@@ -68,13 +69,22 @@ async function main() {
       },
       userProfile: { create: {} },
       waterLogs: { create: { amountMl: 250 } },
-      groceryLists: { create: { weekLabel: 'Disposable fixture' } },
     },
+  });
+
+  const planGroupId = `account-deletion-${marker}`;
+  await createFixturePlanCycle(prisma, {
+    id: planGroupId,
+    userId: user.id,
+    status: MealPlanCycleStatus.ACTIVE,
+  });
+  await prisma.groceryList.create({
+    data: { userId: user.id, planGroupId, weekLabel: 'Disposable fixture' },
   });
 
   const plan = await prisma.mealPlan.create({
     data: {
-      planGroupId: `account-deletion-${marker}`,
+      planGroupId,
       userId: user.id,
       libraryMealId: libraryMeal.id,
       status: 'APPROVED',
@@ -136,10 +146,11 @@ async function main() {
   const sharedMealCountBefore = await prisma.mealLibrary.count({ where: { id: libraryMeal.id } });
   await UserPrivacyService.deleteAccount(user.id, { password });
 
-  const [deletedUser, sessionCount, planCount, clearanceCount, reviewCount, decisionCount, waterCount, groceryCount] =
+  const [deletedUser, sessionCount, cycleCount, planCount, clearanceCount, reviewCount, decisionCount, waterCount, groceryCount] =
     await Promise.all([
       prisma.user.findUnique({ where: { id: user.id } }),
       prisma.session.count({ where: { userId: user.id } }),
+      prisma.mealPlanCycle.count({ where: { userId: user.id } }),
       prisma.mealPlan.count({ where: { userId: user.id } }),
       prisma.mealConditionClearance.count({ where: { userScopeId: user.id } }),
       prisma.mealPlanReviewDecision.count({ where: { mealPlanId: plan.id } }),
@@ -155,9 +166,10 @@ async function main() {
 
   assert.equal(deletedUser, null);
   assert.deepEqual(
-    { sessionCount, planCount, clearanceCount, reviewCount, decisionCount, waterCount, groceryCount },
+    { sessionCount, cycleCount, planCount, clearanceCount, reviewCount, decisionCount, waterCount, groceryCount },
     {
       sessionCount: 0,
+      cycleCount: 0,
       planCount: 0,
       clearanceCount: 0,
       reviewCount: 0,
@@ -176,6 +188,7 @@ async function main() {
       {
         pass: true,
         deletedPatientOwnedRecords: true,
+        deletedPlanCycleRoot: true,
         restrictiveReviewLinksHandled: true,
         sharedMealPreserved: true,
         deletionAuditPreservedAndDeidentified: true,

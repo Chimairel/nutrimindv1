@@ -1,10 +1,9 @@
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { getNextWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
-import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { lockUserProfile } from './profile-revision.service';
+import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { purchaseState } from '@/domain/grocery-purchase.policy';
-import { getApprovedMealPlanStatusWhere, getUserActionableMealPlanWhere } from '@/domain/meal-actionability.policy';
+import { getApprovedMealPlanStatusWhere } from '@/domain/meal-actionability.policy';
 import { aggregateGroceryIngredients, groceryItemKey } from '@/domain/grocery-quantity.policy';
 
 export class GroceryService {
@@ -15,26 +14,45 @@ export class GroceryService {
   static async generateGroceryList(userId: string, transaction?: Prisma.TransactionClient, requestedGroup?: string) {
     const rebuild = async (tx: Prisma.TransactionClient) => {
       await lockUserProfile(tx, userId);
-      const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
-      const next = getNextWeeklyCycleWindow(profile);
-      const latestMeal = await tx.mealPlan.findFirst({
-        where: {
-          userId,
-          ...getUserActionableMealPlanWhere(),
-          ...(requestedGroup
-            ? { planGroupId: requestedGroup }
-            : { scheduledDate: { gte: getStartOfManilaBusinessDay(), lt: next.startDate } }),
-        },
-        orderBy: { scheduledDate: 'asc' },
-        select: { planGroupId: true },
-      });
-      if (!latestMeal) throw new Error('No approved current meal plan is available for shopping.');
-      const planGroupId = latestMeal.planGroupId;
+      await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+      const now = new Date();
+      await MealPlanCycleService.synchronizeLifecycle(userId, now, tx);
+      const businessDay = MealPlanCycleService.getBusinessDay(now);
+      const cycle = requestedGroup
+        ? await tx.mealPlanCycle.findFirst({
+            where: { id: requestedGroup, userId },
+            select: { id: true, shoppingStartedAt: true },
+          })
+        : await tx.mealPlanCycle.findFirst({
+            where: {
+              userId,
+              startDate: { lte: businessDay },
+              endDate: { gte: businessDay },
+              status: { not: 'SUPERSEDED' },
+            },
+            orderBy: [{ startDate: 'desc' }, { cycleRevision: 'desc' }],
+            select: { id: true, shoppingStartedAt: true },
+          });
+      if (!cycle) throw new Error('No current meal-plan cycle is available for shopping.');
+      const planGroupId = cycle.id;
+      let list = await this.findCycleList(tx, userId, planGroupId);
+      if (cycle.shoppingStartedAt) {
+        if (!list) throw new Error('The frozen shopping list for this cycle is unavailable.');
+        if (list.isStale) {
+          list = await tx.groceryList.update({
+            where: { id: list.id },
+            data: { isStale: false },
+            include: { groceryItems: true },
+          });
+        }
+        return list;
+      }
       // Cycle quantities include consumed meals: purchases are cycle totals, not live pantry stock.
       const meals = await tx.mealPlan.findMany({
         where: { userId, planGroupId, ...getApprovedMealPlanStatusWhere() },
         include: { ingredients: true },
       });
+      if (!meals.length) throw new Error('No approved meals are available in this plan cycle for shopping.');
       const items = aggregateGroceryIngredients(
         meals.flatMap((meal) =>
           meal.ingredients.map((item) => ({
@@ -45,7 +63,6 @@ export class GroceryService {
           }))
         )
       );
-      let list = await this.findCycleList(tx, userId, planGroupId);
       if (!list)
         list = await tx.groceryList.create({
           data: { userId, planGroupId, weekLabel: 'Shopping list for this plan' },
@@ -99,61 +116,26 @@ export class GroceryService {
   }
 
   static async findCycleList(tx: Prisma.TransactionClient, userId: string, planGroupId: string) {
-    let list = await tx.groceryList.findFirst({
+    return tx.groceryList.findFirst({
       where: { userId, planGroupId },
       include: { groceryItems: true },
       orderBy: { generatedAt: 'desc' },
     });
-    if (!list) {
-      // A legacy list has no cycle key. Adopt only when its timestamp identifies this
-      // cycle unambiguously; never spend an older cycle's purchases on a future plan.
-      const legacy = await tx.groceryList.findFirst({
-        where: { userId, planGroupId: null },
-        include: { groceryItems: true },
-        orderBy: { generatedAt: 'desc' },
-      });
-      if (legacy) {
-        const groups = await tx.mealPlan.groupBy({
-          by: ['planGroupId'],
-          where: { userId },
-          _min: { scheduledDate: true },
-          _max: { scheduledDate: true },
-        });
-        const matching = groups.filter((group) => {
-          const start = group._min.scheduledDate?.getTime();
-          const end = group._max.scheduledDate?.getTime();
-          return (
-            start !== undefined &&
-            end !== undefined &&
-            legacy.generatedAt.getTime() >= start &&
-            legacy.generatedAt.getTime() < end + 86_400_000
-          );
-        });
-        if (matching.length === 1 && matching[0].planGroupId === planGroupId) list = legacy;
-      }
-    }
-    return list;
   }
 
   /**
    * Fetches the user's current grocery list.
    */
   static async getGroceryList(userId: string) {
-    const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
-    const next = getNextWeeklyCycleWindow(profile);
-    const schedule = { gte: getStartOfManilaBusinessDay(), lt: next.startDate };
-    const active = await prisma.mealPlan.findFirst({
-      where: { userId, ...getUserActionableMealPlanWhere(), scheduledDate: schedule },
-      orderBy: { scheduledDate: 'asc' },
-    });
-    if (!active) return null;
+    const cycle = await MealPlanCycleService.getCurrentCycle(userId);
+    if (!cycle) return null;
     const list = await prisma.groceryList.findFirst({
-      where: { userId, planGroupId: active.planGroupId },
+      where: { userId, planGroupId: cycle.id },
       include: { groceryItems: { orderBy: { ingredientName: 'asc' } } },
     });
     // A stale flag is durable work: reads retry the projection and never return stale quantities.
     if (!list || list.isStale || !list.planGroupId)
-      return this.generateGroceryList(userId, undefined, active.planGroupId);
+      return this.generateGroceryList(userId, undefined, cycle.id);
     return list;
   }
 
@@ -167,13 +149,17 @@ export class GroceryService {
   static async recordPurchase(userId: string, itemId: string, purchasedQuantity?: number) {
     return prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
-      const item = await tx.groceryItem.findFirst({ where: { id: itemId, groceryList: { userId, isStale: false } } });
+      const item = await tx.groceryItem.findFirst({
+        where: { id: itemId, groceryList: { userId, isStale: false } },
+        include: { groceryList: { select: { planGroupId: true } } },
+      });
       if (!item) throw new Error('Shopping list changed. Refresh before recording a purchase.');
       if (item.quantity === null && purchasedQuantity !== undefined)
         throw new Error('This ingredient has no verified quantity. Use the checkbox instead.');
       const quantity = purchasedQuantity ?? (item.isChecked ? 0 : Math.max(item.purchasedQuantity, item.quantity ?? 0));
       const { purchasedQuantity: recorded, isChecked } = purchaseState(item.quantity, quantity);
       const state = { purchasedQuantity: recorded, isChecked };
+      await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
       return tx.groceryItem.update({
         where: { id: item.id },
         data: item.quantity === null ? { isChecked: !item.isChecked } : state,

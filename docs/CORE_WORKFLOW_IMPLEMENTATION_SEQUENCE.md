@@ -1279,8 +1279,8 @@ Exposure and popularity increase audit priority only. They do not increase confi
 
 Update this checklist only with linked engineering evidence.
 
-- [ ] Batch 0 — baseline and contract mapping
-- [ ] Batch 1 — authoritative current/upcoming cycles
+- [x] Batch 0 — baseline and contract mapping ([CHG-20260922-01 evidence](BATCH_1_CYCLE_IDENTITY_IMPLEMENTATION.md))
+- [x] Batch 1 — authoritative current/upcoming cycles ([CHG-20260922-01 evidence](BATCH_1_CYCLE_IDENTITY_IMPLEMENTATION.md))
 - [ ] Batch 2 — profile/report/cycle adaptation
 - [ ] Batch 3 — multi-slot metadata, favorites, candidate provider
 - [ ] Batch 4 — preparation, ranking, and deadline-aware review

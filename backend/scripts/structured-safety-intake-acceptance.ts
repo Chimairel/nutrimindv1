@@ -1,8 +1,10 @@
+import { MealPlanCycleStatus } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '../src/domain/meal-plan-production-safety.policy';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { UserService } from '../src/services/user.service';
+import { createFixturePlanCycle, fixtureCycleEnd } from './helpers/plan-cycle-fixture';
 
 const fixtureNamespace = `structured-safety-${Date.now()}`;
 const email = `${fixtureNamespace}@example.invalid`;
@@ -43,6 +45,15 @@ async function main() {
   });
 
   try {
+    const cycleStart = new Date();
+    await createFixturePlanCycle(prisma, {
+      id: fixtureNamespace,
+      userId: user.id,
+      startDate: cycleStart,
+      endDate: fixtureCycleEnd(cycleStart, 2),
+      expectedSlotCount: 6,
+      status: MealPlanCycleStatus.ACTIVE,
+    });
     const plan = await prisma.mealPlan.create({
       data: {
         planGroupId: fixtureNamespace,

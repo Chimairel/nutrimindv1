@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
+import { MealPlanCycleStatus } from '@prisma/client';
+import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL || '');
@@ -79,6 +81,13 @@ async function main() {
       },
     });
     if (!(await prisma.mealPlan.count({ where: { userId: user.id } }))) {
+      if (!(await prisma.mealPlanCycle.findUnique({ where: { id: 'ui-test-plan' } }))) {
+        await createFixturePlanCycle(prisma, {
+          id: 'ui-test-plan',
+          userId: user.id,
+          status: MealPlanCycleStatus.ACTIVE,
+        });
+      }
       for (const mealType of ['BREAKFAST', 'LUNCH', 'DINNER'] as const)
         await prisma.mealPlan.create({
           data: {

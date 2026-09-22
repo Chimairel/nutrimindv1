@@ -27,6 +27,7 @@ import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safet
 import AuthService from '../src/services/auth.service';
 import { MealLogService } from '../src/services/meal-log.service';
 import { getReviewClaimCutoff } from '../src/domain/nutritionist-review.policy';
+import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 
 const runId = randomUUID();
 let syntheticUserId: string | null = null;
@@ -241,9 +242,17 @@ async function main() {
     /expired|already used/i
   );
 
+  const plannedPlanGroupId = `integration-idempotency-${runId}`;
+  await createFixturePlanCycle(prisma, {
+    id: plannedPlanGroupId,
+    userId: syntheticUser.id,
+    startDate: new Date('2099-01-02T00:00:00.000Z'),
+    endDate: new Date('2099-01-02T00:00:00.000Z'),
+    planType: PlanType.WEEKLY,
+  });
   const plannedMeal = await prisma.mealPlan.create({
     data: {
-      planGroupId: `integration-idempotency-${runId}`,
+      planGroupId: plannedPlanGroupId,
       userId: syntheticUser.id,
       status: MealPlanStatus.APPROVED,
       mealType: MealType.BREAKFAST,
@@ -303,9 +312,17 @@ async function main() {
     1
   );
 
+  const reviewPlanGroupId = `integration-review-${runId}`;
+  await createFixturePlanCycle(prisma, {
+    id: reviewPlanGroupId,
+    userId: syntheticUser.id,
+    startDate: new Date('2099-01-03T00:00:00.000Z'),
+    endDate: new Date('2099-01-03T00:00:00.000Z'),
+    planType: PlanType.WEEKLY,
+  });
   const reviewMeal = await prisma.mealPlan.create({
     data: {
-      planGroupId: `integration-review-${runId}`,
+      planGroupId: reviewPlanGroupId,
       userId: syntheticUser.id,
       status: MealPlanStatus.PENDING_REVIEW,
       mealType: MealType.DINNER,

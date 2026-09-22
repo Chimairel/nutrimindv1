@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL || '');
@@ -74,10 +75,12 @@ async function main() {
       include: { nutritionistProfile: true },
     });
     const reviewerId = rnd.nutritionistProfile!.id;
+    const planGroupId = `signature-audit-${stamp}`;
+    await createFixturePlanCycle(prisma, { id: planGroupId, userId: user.id });
     const meal = await prisma.mealPlan.create({
       data: {
         userId: user.id,
-        planGroupId: `signature-audit-${stamp}`,
+        planGroupId,
         mealName: 'Original synthetic meal',
         mealType: 'LUNCH',
         calories: 800,
@@ -112,7 +115,7 @@ async function main() {
     const excessive = await prisma.mealPlan.create({
       data: {
         userId: user.id,
-        planGroupId: `calorie-audit-${stamp}`,
+        planGroupId,
         mealName: 'Over target dinner',
         mealType: 'DINNER',
         calories: 1111,

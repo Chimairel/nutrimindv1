@@ -4030,3 +4030,16 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Locked stable user-selected upcoming swaps, prohibited future eaten/skipped actions, separated safety/audit priority from shopping-deadline queues, required duplicate clinical-work coalescing, and made eligible-library pagination and totals explicit.
 - Corrected outside-meal capture so the immutable retrospective record is committed before its safety follow-up, narrowed scalable RND queue entry, and required separate consent for deidentified recipe-detail reuse and image reuse.
 - Corrected the user documentation to state that the full weekly cycle begins the day after shopping day. These changes clarify the accepted forward behavior; they do not implement Batch 1, change the schema, migrate the database, or alter runtime meal-planning behavior.
+
+## 101. Authoritative current/upcoming plan cycles (2026-09-22)
+
+**Change ID:** CHG-20260922-01
+
+- Added `MealPlanCycle` as the authoritative dated lifecycle root while retaining `MealPlanCycleSnapshot` as immutable generation evidence. Plans, groceries, generation jobs, and snapshots now have database-enforced cycle relationships. Existing `planGroupId` values were preserved.
+- Backfilled the authorized development database into 8 completed and 2 superseded historical cycles. Three legacy null grocery identities were each mapped through one unambiguous user-and-timestamp match. Counts remained 100 plan rows, 4 groceries, 7 snapshots, and 6 generation jobs with zero orphans.
+- Added explicit preparation, review, ready, incomplete-at-deadline, shopping-started, active, revalidation, completed, and superseded lifecycle states. Deadline outcome is retained separately so late completion cannot be reported as on-time readiness.
+- Current and upcoming reads use authoritative cycle dates and remain stable across live shopping-day edits. Lifecycle reconciliation is retry safe, promotes on the cycle start date, and evaluates distinct cleared slots independently from per-slot review state.
+- Added authenticated current/upcoming, incomplete-acknowledgment, and start-shopping API operations. The first grocery purchase records shopping start atomically. Automatic grocery rebuilding freezes after shopping begins, preventing delayed approvals from silently adding ingredients.
+- Applied additive migrations `20260922150000_add_authoritative_plan_cycles` and `20260922160000_tighten_live_cycle_identity`. Both were dry-run transactionally first. The second migration enforces one non-superseded cycle per user and start date. Prisma reports 55 applied migrations and a current development schema.
+- Updated every direct plan/grocery acceptance fixture for the required cycle root. Account deletion now explicitly proves cycle cascade. Verification passed backend build, lint, script checking, **457 pass / 0 fail / 1 existing TODO** across 458 tests, cycle and deletion database acceptance, frontend **201/201** tests, lint, and the 51-route production build.
+- Full evidence, counts, naming map, and remaining batch boundaries are in [Batch 1 implementation evidence](BATCH_1_CYCLE_IDENTITY_IMPLEMENTATION.md). Automatic upcoming candidate population remains Batch 4, progressive next-week groceries remain Batch 5, and explicit user-authorized post-freeze grocery deltas remain Batch 6.

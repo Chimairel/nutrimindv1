@@ -1,4 +1,9 @@
-import { PlanType, ShoppingDayGroup } from '@prisma/client';
+import {
+  MealPlanCycleDeadlineOutcome,
+  MealPlanCycleStatus,
+  PlanType,
+  ShoppingDayGroup,
+} from '@prisma/client';
 
 export const MEAL_PLAN_BUSINESS_TIME_ZONE = 'Asia/Manila';
 
@@ -15,9 +20,88 @@ export interface WeeklyCycleWindow {
   endDate: Date;
 }
 
+export interface MealPlanCycleTiming extends WeeklyCycleWindow {
+  preparationOpensAt: Date;
+  shoppingDeadlineAt: Date;
+  expectedSlotCount: number;
+}
+
 export interface ShoppingSchedule {
   shoppingDayOfWeek?: number | null;
   shoppingDayGroup?: ShoppingDayGroup | null;
+}
+
+export interface MealPlanCycleLifecycleFacts {
+  status: MealPlanCycleStatus;
+  startDate: Date;
+  endDate: Date;
+  shoppingDeadlineAt: Date;
+  deadlineOutcome: MealPlanCycleDeadlineOutcome | null;
+  readyAt: Date | null;
+  shoppingStartedAt: Date | null;
+  hasAnySlots: boolean;
+  hasCompleteSlotSet: boolean;
+  now: Date;
+}
+
+export interface MealPlanCycleLifecycleResult {
+  status: MealPlanCycleStatus;
+  deadlineOutcome: MealPlanCycleDeadlineOutcome | null;
+}
+
+/**
+ * Reduces persisted cycle facts to one lifecycle state. Slot review status is
+ * intentionally an input rather than the lifecycle itself. Deadline outcome
+ * is write-once: a plan completed after the cutoff remains recorded as having
+ * missed that cutoff even if it later becomes ready to shop.
+ */
+export function deriveMealPlanCycleLifecycle(
+  facts: MealPlanCycleLifecycleFacts
+): MealPlanCycleLifecycleResult {
+  if (
+    facts.status === MealPlanCycleStatus.SUPERSEDED ||
+    facts.status === MealPlanCycleStatus.COMPLETED
+  ) {
+    return { status: facts.status, deadlineOutcome: facts.deadlineOutcome };
+  }
+
+  const businessDay = getManilaMidnight(getManilaDateKey(facts.now));
+  const cutoffReached = facts.now.getTime() >= facts.shoppingDeadlineAt.getTime();
+  const deadlineOutcome =
+    facts.deadlineOutcome ??
+    (cutoffReached
+      ? facts.hasCompleteSlotSet &&
+        facts.readyAt !== null &&
+        facts.readyAt.getTime() <= facts.shoppingDeadlineAt.getTime()
+        ? MealPlanCycleDeadlineOutcome.COMPLETE
+        : MealPlanCycleDeadlineOutcome.INCOMPLETE
+      : null);
+
+  if (facts.endDate.getTime() < businessDay.getTime()) {
+    return { status: MealPlanCycleStatus.COMPLETED, deadlineOutcome };
+  }
+  if (facts.status === MealPlanCycleStatus.REVALIDATION_REQUIRED) {
+    return { status: facts.status, deadlineOutcome };
+  }
+  if (
+    facts.startDate.getTime() <= businessDay.getTime() &&
+    facts.endDate.getTime() >= businessDay.getTime()
+  ) {
+    return { status: MealPlanCycleStatus.ACTIVE, deadlineOutcome };
+  }
+  if (facts.shoppingStartedAt) {
+    return { status: MealPlanCycleStatus.SHOPPING_STARTED, deadlineOutcome };
+  }
+  if (facts.hasCompleteSlotSet) {
+    return { status: MealPlanCycleStatus.READY_TO_SHOP, deadlineOutcome };
+  }
+  if (cutoffReached) {
+    return { status: MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE, deadlineOutcome };
+  }
+  return {
+    status: facts.hasAnySlots ? MealPlanCycleStatus.UNDER_REVIEW : MealPlanCycleStatus.PREPARING,
+    deadlineOutcome,
+  };
 }
 
 function getManilaDateParts(value: Date): { dateKey: string; dayOfWeek: number } {
@@ -70,6 +154,37 @@ export function getManilaMidnight(dateKey: string): Date {
 export function getScheduledMealDate(startDate: Date, dayOffset: number): Date {
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
   return new Date(startDate.getTime() + dayOffset * millisecondsPerDay);
+}
+
+export function getMealPlanCycleTiming(
+  planType: PlanType,
+  startDate: Date,
+  numDays: number,
+  preparationLeadDays: number = 3
+): MealPlanCycleTiming {
+  if (!Number.isInteger(numDays) || numDays < 1 || numDays > 7) {
+    throw new Error('Meal-plan cycle length must be between one and seven calendar days.');
+  }
+  if (!Number.isInteger(preparationLeadDays) || preparationLeadDays < 0 || preparationLeadDays > 14) {
+    throw new Error('Meal-plan preparation lead time is outside the supported range.');
+  }
+
+  const normalizedStart = getManilaMidnight(getManilaDateKey(startDate));
+  const endDate = getScheduledMealDate(normalizedStart, numDays - 1);
+  const shoppingDeadlineAt =
+    planType === PlanType.WEEKLY ? getScheduledMealDate(normalizedStart, -1) : normalizedStart;
+  const preparationOpensAt =
+    planType === PlanType.WEEKLY
+      ? getScheduledMealDate(shoppingDeadlineAt, -preparationLeadDays)
+      : normalizedStart;
+
+  return {
+    startDate: normalizedStart,
+    endDate,
+    preparationOpensAt,
+    shoppingDeadlineAt,
+    expectedSlotCount: numDays * 3,
+  };
 }
 
 function normalizeShoppingDay(

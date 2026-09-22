@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
+import { MealPlanCycleStatus } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
@@ -8,6 +9,7 @@ import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '.
 import { GroceryService } from '../src/services/grocery.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { UserService } from '../src/services/user.service';
+import { createFixturePlanCycle, fixtureCycleEnd } from './helpers/plan-cycle-fixture';
 
 const FIXTURE_EMAIL = 'e2e.structured-replacement.acceptance@example.invalid';
 const FIXTURE_PLAN_GROUP = 'e2e.structured-replacement.acceptance';
@@ -96,6 +98,15 @@ async function main() {
       },
     });
     userId = user.id;
+    const cycleStart = new Date();
+    await createFixturePlanCycle(prisma, {
+      id: FIXTURE_PLAN_GROUP,
+      userId,
+      startDate: cycleStart,
+      endDate: fixtureCycleEnd(cycleStart, 2),
+      expectedSlotCount: 6,
+      status: MealPlanCycleStatus.ACTIVE,
+    });
     const plan = await prisma.mealPlan.create({
       data: {
         planGroupId: FIXTURE_PLAN_GROUP,

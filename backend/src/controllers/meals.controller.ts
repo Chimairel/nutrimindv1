@@ -1,14 +1,13 @@
 import { Response } from 'express';
 import { lockUserProfile } from '@/services/profile-revision.service';
-import { getCurrentWeeklyCycleWindow, getNextWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
-import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
+import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
-import { MealLogSource, MealLogDataSource, MealLogStatus, MealPlanStatus, MealType } from '@prisma/client';
+import { MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
   assertUserLoggableMealPlan,
@@ -123,7 +122,7 @@ export class MealsController {
       // generation whenever at least one approved meal is available. A retry
       // remains safe because GroceryService replaces the prior projection.
       if (meals.length > 0) {
-        await GroceryService.generateGroceryList(userId);
+        await GroceryService.generateGroceryList(userId, undefined, planGroupId);
       }
 
       return res.status(200).json({
@@ -169,114 +168,25 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const now = new Date();
-      const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
-      const currentWindow = getCurrentWeeklyCycleWindow(profile, now);
-      const nextWindow = getNextWeeklyCycleWindow(profile, now);
-      const schedule = {
-        scheduledDate: { gte: currentWindow.startDate, lt: nextWindow.startDate },
-      };
-
-      // Find the latest plan group containing an approved row in the active cycle.
-      let latestPlan = await prisma.mealPlan.findFirst({
-        where: {
-          userId,
-          status: MealPlanStatus.APPROVED,
-          requiresSafetyRevalidation: false,
-          ...schedule,
-        },
-        orderBy: { scheduledDate: 'desc' },
-        select: { planGroupId: true },
-      });
-
-      // Fallback for ad-hoc bridge starter plans that may have started earlier than current cycle
-      if (!latestPlan) {
-        latestPlan = await prisma.mealPlan.findFirst({
-          where: {
-            userId,
-            status: MealPlanStatus.APPROVED,
-            requiresSafetyRevalidation: false,
-            scheduledDate: { gte: getStartOfManilaBusinessDay(now), lt: nextWindow.startDate },
-          },
-          orderBy: { scheduledDate: 'desc' },
-          select: { planGroupId: true },
-        });
-      }
-
-      if (!latestPlan) {
-        let latestPendingPlan = await prisma.mealPlan.findFirst({
-          where: {
-            userId,
-            status: MealPlanStatus.PENDING_REVIEW,
-            ...schedule,
-          },
-          orderBy: { scheduledDate: 'desc' },
-          select: { planGroupId: true },
-        });
-
-        if (!latestPendingPlan) {
-          latestPendingPlan = await prisma.mealPlan.findFirst({
-            where: {
-              userId,
-              status: MealPlanStatus.PENDING_REVIEW,
-              scheduledDate: { gte: getStartOfManilaBusinessDay(now), lt: nextWindow.startDate },
-            },
-            orderBy: { scheduledDate: 'desc' },
-            select: { planGroupId: true },
-          });
-        }
-
-        const pendingPlanRows = latestPendingPlan
-          ? await prisma.mealPlan.findMany({
-              where: {
-                userId,
-                planGroupId: latestPendingPlan.planGroupId,
-                status: MealPlanStatus.PENDING_REVIEW,
-                ...schedule,
-              },
-              select: {
-                planType: true,
-                status: true,
-                mealName: true,
-                mealType: true,
-                description: true,
-                calories: true,
-                proteinG: true,
-                carbsG: true,
-                fatG: true,
-                scheduledDate: true,
-                ingredients: {
-                  select: {
-                    ingredientName: true,
-                    category: true,
-                  },
-                },
-              },
-            })
-          : [];
-
-        const pendingSnapshot = latestPendingPlan
-          ? await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: latestPendingPlan.planGroupId } })
-          : null;
+      const cycle = await MealPlanCycleService.getCurrentCycle(userId);
+      if (!cycle) {
         return res.status(200).json({
           success: true,
           data: [],
           meta: {
-            pendingReview: buildPendingMealPlanPreview(pendingPlanRows),
-            planSnapshot: pendingSnapshot,
+            cycle: null,
+            pendingReview: buildPendingMealPlanPreview([]),
+            planSnapshot: null,
           },
         });
       }
 
-      // Fetch the complete current group. Approved rows are actionable while
-      // the remaining pending rows stay visible as a non-actionable preview.
-      // A plan is reviewed meal-by-meal, so returning only approved rows would
-      // make the rest of the user's schedule appear to disappear.
+      // The cycle row is the authoritative dated identity. Live profile
+      // shopping preferences do not move or hide an already-created cycle.
       const groupMeals = await prisma.mealPlan.findMany({
         where: {
           userId,
-          planGroupId: latestPlan.planGroupId,
-          ...schedule,
+          planGroupId: cycle.id,
         },
         include: {
           ingredients: true,
@@ -297,13 +207,14 @@ export class MealsController {
         .filter((meal) => isUserActionableMealPlanStatus(meal.status) && meal.requiresSafetyRevalidation === false)
         .map(serializeActionableMeal);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
-        where: { planGroupId: latestPlan.planGroupId },
+        where: { planGroupId: cycle.id },
       });
 
       return res.status(200).json({
         success: true,
         data: meals,
         meta: {
+          cycle,
           pendingReview: buildPendingMealPlanPreview(groupMeals),
           planSnapshot,
         },
@@ -314,6 +225,45 @@ export class MealsController {
         success: false,
         error: 'Failed to retrieve your current meal plan.',
       });
+    }
+  }
+
+  /** GET /api/user/meals/cycles — authoritative current/upcoming identities. */
+  static async getPlanCycles(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
+      return res.status(200).json({ success: true, data: cycles });
+    } catch (error) {
+      console.error('[MealsController] getPlanCycles error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve plan cycles.' });
+    }
+  }
+
+  /** POST /api/user/meals/cycles/:cycleId/acknowledge-incomplete */
+  static async acknowledgeIncompleteCycle(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      const cycle = await MealPlanCycleService.acknowledgeIncompleteCycle(userId, req.params.cycleId);
+      return res.status(200).json({ success: true, data: cycle });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to acknowledge the incomplete cycle.';
+      return res.status(400).json({ success: false, error: message });
+    }
+  }
+
+  /** POST /api/user/meals/cycles/:cycleId/start-shopping */
+  static async startShopping(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      const cycle = await MealPlanCycleService.startShopping(userId, req.params.cycleId);
+      return res.status(200).json({ success: true, data: cycle });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to start shopping.';
+      return res.status(400).json({ success: false, error: message });
     }
   }
 

@@ -13,6 +13,8 @@ import {
   NotificationType,
   PlanType,
   MealPlanGenerationJobStatus,
+  MealPlanCycleDeadlineOutcome,
+  MealPlanCycleStatus,
   AiUsageOperation,
   MealCandidateProvenance,
   Prisma,
@@ -23,12 +25,14 @@ import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/g
 import { runMealGenerationFallbackForUnmatchedSlots } from '@/domain/meal-generation-library-compatibility.adapter';
 import {
   getCurrentWeeklyCycleWindow,
+  getMealPlanCycleTiming,
   getManilaDateKey,
   getOnDemandMealPlanWindow,
   getScheduledMealDate,
   type MealPlanGenerationWindow,
   type WeeklyCycleWindow,
 } from '@/domain/meal-plan-cycle.policy';
+import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
@@ -79,6 +83,17 @@ export class MealGenerationService {
     now: Date = new Date(),
     options: { replaceExisting?: boolean } = {}
   ): Promise<string> {
+    const currentCycle = await MealPlanCycleService.getCurrentCycle(userId, now);
+    if (currentCycle) {
+      if (!options.replaceExisting) return currentCycle.id;
+      const numDays = Math.round((currentCycle.endDate.getTime() - currentCycle.startDate.getTime()) / 86_400_000) + 1;
+      return MealGenerationService.generateWindowOnce(
+        userId,
+        { planType: currentCycle.planType, numDays, startDate: currentCycle.startDate },
+        true
+      );
+    }
+
     const profile = await prisma.userProfile.findUnique({ where: { userId } });
     const window = getOnDemandMealPlanWindow(
       {
@@ -99,18 +114,19 @@ export class MealGenerationService {
     planType: PlanType,
     window: WeeklyCycleWindow
   ): Promise<string | null> {
-    const existingPlan = await prisma.mealPlan.findFirst({
+    const existingCycle = await prisma.mealPlanCycle.findFirst({
       where: {
         userId,
         planType,
-        status: { in: [MealPlanStatus.PENDING_REVIEW, MealPlanStatus.APPROVED] },
-        scheduledDate: { gte: window.startDate, lte: window.endDate },
+        status: { not: MealPlanCycleStatus.SUPERSEDED },
+        startDate: window.startDate,
+        endDate: window.endDate,
       },
-      orderBy: { createdAt: 'desc' },
-      select: { planGroupId: true },
+      orderBy: { cycleRevision: 'desc' },
+      select: { id: true },
     });
 
-    return existingPlan?.planGroupId ?? null;
+    return existingCycle?.id ?? null;
   }
 
   private static async generateWindowOnce(
@@ -246,6 +262,11 @@ export class MealGenerationService {
     userId: string,
     now: Date
   ): Promise<{ rolledOver: boolean; planGroupId: string | null }> {
+    const authoritativeCurrent = await MealPlanCycleService.getCurrentCycle(userId, now);
+    if (authoritativeCurrent) {
+      return { rolledOver: false, planGroupId: authoritativeCurrent.id };
+    }
+
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
       select: { shoppingDayGroup: true, shoppingDayOfWeek: true },
@@ -595,7 +616,8 @@ export class MealGenerationService {
         capturedAt: evidenceCapturedAt,
       };
     };
-    const targetPlanEndDate = getScheduledMealDate(startDate, Math.max(0, numDays - 1));
+    const cycleTiming = getMealPlanCycleTiming(planType, startDate, numDays);
+    const targetPlanEndDate = cycleTiming.endDate;
     const userHasConditions = userConditions.length > 0 && !userConditions.includes(HealthConditionType.NONE);
     const planConditions = userConditions.filter((condition) => condition !== HealthConditionType.NONE);
     const createdPlansList: any[] = [];
@@ -666,6 +688,21 @@ export class MealGenerationService {
       },
       {}
     );
+    const now = new Date();
+    const businessDay = MealPlanCycleService.getBusinessDay(now);
+    const completeSlotSet = preparedAiMeals.length === 0 && matchedSlots.length >= cycleTiming.expectedSlotCount;
+    const deadlinePassed = now.getTime() >= cycleTiming.shoppingDeadlineAt.getTime();
+    const cycleStatus =
+      cycleTiming.endDate < businessDay
+        ? MealPlanCycleStatus.COMPLETED
+        : cycleTiming.startDate <= businessDay
+          ? MealPlanCycleStatus.ACTIVE
+          : completeSlotSet
+            ? MealPlanCycleStatus.READY_TO_SHOP
+            : deadlinePassed
+              ? MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE
+              : MealPlanCycleStatus.UNDER_REVIEW;
+    const deadlineOutcome = deadlinePassed ? MealPlanCycleDeadlineOutcome.INCOMPLETE : null;
 
     // Save plans atomically in a Prisma Transaction (with a 30-second timeout to support sequential batch inserts)
     await prisma.$transaction(
@@ -676,6 +713,29 @@ export class MealGenerationService {
           throw new Error('Profile changed during generation. Please retry.');
         await assertGenerationIntegrity(tx, userId, startDate, targetPlanEndDate, compositionRevisions);
         await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
+        const overlappingCycles = await tx.mealPlanCycle.findMany({
+          where: {
+            userId,
+            status: { not: MealPlanCycleStatus.SUPERSEDED },
+            startDate: { lte: targetPlanEndDate },
+            endDate: { gte: cycleTiming.startDate },
+          },
+          select: { id: true },
+        });
+        const priorRevision = await tx.mealPlanCycle.aggregate({
+          where: { userId, planType, startDate: cycleTiming.startDate },
+          _max: { cycleRevision: true },
+        });
+        if (overlappingCycles.length) {
+          await tx.mealPlanCycle.updateMany({
+            where: { id: { in: overlappingCycles.map((cycle) => cycle.id) } },
+            data: {
+              status: MealPlanCycleStatus.SUPERSEDED,
+              supersededAt: now,
+              supersededById: null,
+            },
+          });
+        }
         // 1. Replace only plans that overlap this exact target window. A future
         // pending plan must never cancel the user's currently active approved week.
         await tx.mealPlan.updateMany({
@@ -686,6 +746,30 @@ export class MealGenerationService {
           },
           data: { status: MealPlanStatus.CANCELLED },
         });
+
+        await tx.mealPlanCycle.create({
+          data: {
+            id: newPlanGroupId,
+            userId,
+            planType,
+            cycleRevision: (priorRevision._max.cycleRevision ?? 0) + 1,
+            startDate: cycleTiming.startDate,
+            endDate: cycleTiming.endDate,
+            preparationOpensAt: cycleTiming.preparationOpensAt,
+            shoppingDeadlineAt: cycleTiming.shoppingDeadlineAt,
+            expectedSlotCount: cycleTiming.expectedSlotCount,
+            status: cycleStatus,
+            deadlineOutcome,
+            readyAt: completeSlotSet ? now : null,
+            activatedAt: cycleStatus === MealPlanCycleStatus.ACTIVE ? now : null,
+          },
+        });
+        if (overlappingCycles.length) {
+          await tx.mealPlanCycle.updateMany({
+            where: { id: { in: overlappingCycles.map((cycle) => cycle.id) } },
+            data: { supersededById: newPlanGroupId },
+          });
+        }
 
         await tx.mealPlanCycleSnapshot.create({
           data: {

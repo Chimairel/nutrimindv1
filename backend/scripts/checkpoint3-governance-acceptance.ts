@@ -7,6 +7,7 @@ import { ConditionClearanceService } from '../src/services/condition-clearance.s
 import { NutritionistReviewService } from '../src/services/nutritionist-review.service';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '../src/domain/meal-plan-production-safety.policy';
+import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 
 const prisma = new PrismaClient();
 
@@ -111,6 +112,7 @@ async function main() {
     });
     assert.equal(resolved.state, 'ACTIVE');
 
+    await createFixturePlanCycle(prisma, { id: marker, userId: user.id });
     const exposedPlan = await prisma.mealPlan.create({
       data: {
         planGroupId: marker,
@@ -138,9 +140,11 @@ async function main() {
       data: { mealPlanId: exposedPlan.id, clearanceId, condition: HealthConditionType.HEART_CONDITION },
     });
 
+    const blindPlanGroupId = `${marker}-blind`;
+    await createFixturePlanCycle(prisma, { id: blindPlanGroupId, userId: user.id });
     const blindPlan = await prisma.mealPlan.create({
       data: {
-        planGroupId: `${marker}-blind`,
+        planGroupId: blindPlanGroupId,
         userId: user.id,
         status: MealPlanStatus.PENDING_REVIEW,
         mealType: 'DINNER',

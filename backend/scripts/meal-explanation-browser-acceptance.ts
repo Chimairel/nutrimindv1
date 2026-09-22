@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
+import { MealPlanCycleStatus, PlanType } from '@prisma/client';
 import prisma from '../src/lib/prisma';
+import { createFixturePlanCycle, fixtureCycleEnd } from './helpers/plan-cycle-fixture';
 
 const email = 'meal-explanation-browser@example.invalid';
 const password = 'JourneyUser123!';
@@ -60,9 +62,20 @@ async function main() {
     },
   });
   const food = await prisma.foodItem.findFirstOrThrow();
+  const planGroupId = `browser-explanation-${user.id}`;
+  const cycleStart = new Date();
+  await createFixturePlanCycle(prisma, {
+    id: planGroupId,
+    userId: user.id,
+    startDate: cycleStart,
+    endDate: fixtureCycleEnd(cycleStart, 2),
+    planType: PlanType.WEEKLY,
+    expectedSlotCount: 6,
+    status: MealPlanCycleStatus.ACTIVE,
+  });
   const meal = await prisma.mealPlan.create({
     data: {
-      planGroupId: `browser-explanation-${user.id}`,
+      planGroupId,
       userId: user.id,
       status: 'APPROVED',
       mealType: 'LUNCH',

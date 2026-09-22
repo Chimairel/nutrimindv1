@@ -24,6 +24,7 @@
     "test:acceptance:account-deletion": "tsx scripts/account-deletion-acceptance.ts",
     "test:acceptance:google-auth-intent": "tsx scripts/google-auth-intent-acceptance.ts",
     "test:acceptance:enns-locality": "tsx scripts/enns-locality-acceptance.ts",
+    "test:acceptance:plan-cycles": "tsx scripts/plan-cycle-acceptance.ts",
     "test:acceptance:structured-safety": "tsx scripts/structured-safety-intake-acceptance.ts",
     "test:acceptance:structured-replacement": "tsx scripts/structured-safety-replacement-acceptance.ts",
     "measure:structured-coverage": "tsx scripts/measure-structured-library-coverage.ts",

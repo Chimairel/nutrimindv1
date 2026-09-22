@@ -20,6 +20,8 @@ import { getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
 import { ProgressService } from '../src/services/progress.service';
 import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../src/domain/onboarding.policy';
+import { MealPlanCycleStatus, PlanType } from '@prisma/client';
+import { createFixturePlanCycle, fixtureCycleEnd } from './helpers/plan-cycle-fixture';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL || '');
@@ -270,10 +272,20 @@ async function main() {
         allergensReviewedAbsent: [],
       })
     );
+    const currentPlanGroupId = `audit-${run}`;
+    const currentCycleStart = new Date();
+    await createFixturePlanCycle(prisma, {
+      id: currentPlanGroupId,
+      userId: user.id,
+      startDate: currentCycleStart,
+      endDate: fixtureCycleEnd(currentCycleStart, 2),
+      expectedSlotCount: 6,
+      status: MealPlanCycleStatus.ACTIVE,
+    });
     const plan = await prisma.mealPlan.create({
       data: {
         userId: user.id,
-        planGroupId: `audit-${run}`,
+        planGroupId: currentPlanGroupId,
         mealType: 'BREAKFAST',
         mealName: 'Original breakfast',
         calories: 600,
@@ -345,10 +357,21 @@ async function main() {
     observations.swapGroceryFailure = 'PASS: projection outage rolls back meal and swap audit';
 
     const currentProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
+    const upcomingPlanGroupId = 'future-' + run;
+    const upcomingStart = getNextWeeklyCycleWindow(currentProfile).startDate;
+    await createFixturePlanCycle(prisma, {
+      id: upcomingPlanGroupId,
+      userId: user.id,
+      startDate: upcomingStart,
+      endDate: fixtureCycleEnd(upcomingStart, 7),
+      expectedSlotCount: 21,
+      planType: PlanType.WEEKLY,
+      status: MealPlanCycleStatus.UNDER_REVIEW,
+    });
     const upcoming = await prisma.mealPlan.create({
       data: {
         userId: user.id,
-        planGroupId: 'future-' + run,
+        planGroupId: upcomingPlanGroupId,
         mealType: 'BREAKFAST',
         mealName: 'Next week eggs',
         calories: 600,
@@ -357,7 +380,7 @@ async function main() {
         fatG: 10,
         status: 'APPROVED',
         requiresSafetyRevalidation: false,
-        scheduledDate: getNextWeeklyCycleWindow(currentProfile).startDate,
+        scheduledDate: upcomingStart,
         ingredients: {
           create: { ingredientName: food.name, foodItemId: food.id, dataSource: 'FNRI', quantity: 150, unit: 'g' },
         },
@@ -378,10 +401,19 @@ async function main() {
         .data.some((meal: { id: string }) => meal.id === upcoming.id)
     );
     assert.equal((await request('/api/user/meals/current?view=next', 'GET', undefined, token)).status, 400);
-    const legacyList = await prisma.groceryList.create({
+    const historicalPlanGroupId = `historical-${run}`;
+    const historicalDate = new Date('2020-01-01T00:00:00+08:00');
+    await createFixturePlanCycle(prisma, {
+      id: historicalPlanGroupId,
+      userId: user.id,
+      startDate: historicalDate,
+      status: MealPlanCycleStatus.COMPLETED,
+    });
+    const historicalList = await prisma.groceryList.create({
       data: {
         userId: user.id,
-        weekLabel: 'Old unassigned cycle',
+        planGroupId: historicalPlanGroupId,
+        weekLabel: 'Historical cycle',
         generatedAt: new Date('2020-01-01T00:00:00Z'),
         groceryItems: {
           create: {
@@ -396,10 +428,13 @@ async function main() {
       },
     });
     const currentList = await GroceryService.getGroceryList(user.id);
-    assert.notEqual(currentList!.id, legacyList.id);
-    assert.equal((await prisma.groceryList.findUniqueOrThrow({ where: { id: legacyList.id } })).planGroupId, null);
+    assert.notEqual(currentList!.id, historicalList.id);
+    assert.equal(
+      (await prisma.groceryList.findUniqueOrThrow({ where: { id: historicalList.id } })).planGroupId,
+      historicalPlanGroupId
+    );
     observations.futurePlanning =
-      'PASS: current-cycle reads exclude future plans and reject the removed next-cycle query';
+      'PASS: authoritative current-cycle reads exclude future plans and historical grocery projections';
     const profileUpdate = await request('/api/user/onboarding/profile', 'POST', { dietaryPreference: 'VEGAN' }, token);
     assert.equal(profileUpdate.status, 200);
     const afterDiet = await prisma.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });

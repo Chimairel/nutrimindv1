@@ -317,6 +317,23 @@ enum PlanType {
   WEEKLY // normal 7-day repeating plan
 }
 
+enum MealPlanCycleStatus {
+  PREPARING
+  UNDER_REVIEW
+  READY_TO_SHOP
+  INCOMPLETE_AT_DEADLINE
+  SHOPPING_STARTED
+  ACTIVE
+  REVALIDATION_REQUIRED
+  COMPLETED
+  SUPERSEDED
+}
+
+enum MealPlanCycleDeadlineOutcome {
+  COMPLETE
+  INCOMPLETE
+}
+
 enum SafetyEntryDomain {
   CONDITION
   ALLERGY
@@ -589,6 +606,7 @@ model User {
   notifications                    Notification[]
   mealPlanGenerationJobs           MealPlanGenerationJob[]
   weeklyCheckins                   WeeklyCheckin[]
+  mealPlanCycles                   MealPlanCycle[]
   mealPlanCycleSnapshots           MealPlanCycleSnapshot[]
   healthProfileRevisions           HealthProfileRevision[]
   safetyProfileEntries             SafetyProfileEntry[]
@@ -987,6 +1005,7 @@ model FoodConsumptionStat {
 model MealPlan {
   id                            String                  @id @default(cuid())
   planGroupId                   String
+  cycle                         MealPlanCycle           @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
   userId                        String
   user                          User                    @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
   nutritionistId                String?
@@ -1032,6 +1051,7 @@ model MealPlan {
   @@index([requiresSafetyRevalidation, status], map: "MealPlan_revalidation_status_idx")
   @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
   @@index([sourceRawRecipeCandidateId])
+  @@index([planGroupId])
 }
 
 model MealPlanReviewDecision {
@@ -1503,13 +1523,14 @@ model DailyNutritionLog {
 }
 
 model GroceryList {
-  planGroupId String?
-  isStale     Boolean  @default(false)
-  id          String   @id @default(cuid())
+  planGroupId String        @unique
+  cycle       MealPlanCycle @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
+  isStale     Boolean       @default(false)
+  id          String        @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   weekLabel   String
-  generatedAt DateTime @default(now())
+  generatedAt DateTime      @default(now())
 
   // Relations
   groceryItems GroceryItem[]
@@ -1806,6 +1827,7 @@ model MealPlanGenerationJob {
   cycleStartDate DateTime
   status         MealPlanGenerationJobStatus @default(GENERATING)
   planGroupId    String?
+  cycle          MealPlanCycle?              @relation(fields: [planGroupId], references: [id], onDelete: SetNull)
   attempts       Int                         @default(1)
   lastErrorCode  String?                     @db.VarChar(64)
   progressPct    Int                         @default(0)
@@ -1817,7 +1839,45 @@ model MealPlanGenerationJob {
   updatedAt      DateTime                    @default(now()) @updatedAt
 
   @@unique([userId, planType, cycleStartDate])
+  @@unique([planGroupId])
   @@index([status, updatedAt])
+}
+
+/// Authoritative dated identity and mutable lifecycle for one meal-plan cycle.
+/// Profile inputs and nutrition targets remain in the separate immutable snapshot.
+model MealPlanCycle {
+  id                       String                        @id
+  userId                   String
+  user                     User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType                 PlanType
+  cycleRevision            Int                           @default(1)
+  startDate                DateTime
+  endDate                  DateTime
+  preparationOpensAt       DateTime
+  shoppingDeadlineAt       DateTime
+  expectedSlotCount        Int
+  status                   MealPlanCycleStatus           @default(PREPARING)
+  deadlineOutcome          MealPlanCycleDeadlineOutcome?
+  readyAt                  DateTime?
+  activatedAt              DateTime?
+  incompleteAcknowledgedAt DateTime?
+  shoppingStartedAt        DateTime?
+  supersededAt             DateTime?
+  supersededById           String?
+  supersededBy             MealPlanCycle?                @relation("MealPlanCycleSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes               MealPlanCycle[]               @relation("MealPlanCycleSupersession")
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+
+  mealPlans     MealPlan[]
+  groceryList   GroceryList?
+  generationJob MealPlanGenerationJob?
+  snapshot      MealPlanCycleSnapshot?
+
+  @@unique([userId, planType, startDate, cycleRevision])
+  @@index([userId, startDate, endDate, status])
+  @@index([shoppingDeadlineAt, status])
+  @@index([supersededById])
 }
 
 /// Immutable inputs and targets used to generate one plan cycle. Live profile
@@ -1826,6 +1886,7 @@ model MealPlanGenerationJob {
 model MealPlanCycleSnapshot {
   id                      String                    @id @default(cuid())
   planGroupId             String                    @unique
+  cycle                   MealPlanCycle             @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
   userId                  String
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   profileRevision         Int

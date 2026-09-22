@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
-import { getCurrentWeeklyCycleWindow } from '@/domain/meal-plan-cycle.policy';
+import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { evaluateWeeklyAdaptation } from '@/domain/weekly-adaptation.policy';
 import type { WeeklyCheckinInput } from '@/validation/checkin.schemas';
 import { deriveMissedCheckinCycles } from '@/domain/checkin-cycle.policy';
@@ -21,8 +21,6 @@ export class CheckinService {
       select: {
         lastCheckinAt: true,
         checkinStreak: true,
-        shoppingDayOfWeek: true,
-        shoppingDayGroup: true,
         user: {
           select: {
             createdAt: true,
@@ -35,14 +33,7 @@ export class CheckinService {
     if (!profile) return { isDue: false, streak: 0, lastCheckinAt: null, latestAdaptation: null };
 
     const now = new Date();
-    const schedule = {
-      shoppingDayOfWeek: profile.shoppingDayOfWeek,
-      shoppingDayGroup: profile.shoppingDayGroup,
-    };
-    const cycle =
-      profile.shoppingDayOfWeek !== null || profile.shoppingDayGroup
-        ? getCurrentWeeklyCycleWindow(schedule, now)
-        : null;
+    const cycle = await MealPlanCycleService.getCurrentCycle(userId, now);
     const submittedThisCycle = cycle
       ? await prisma.weeklyCheckin.findUnique({
           where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
@@ -59,7 +50,7 @@ export class CheckinService {
     const nextDueAt = new Date(checkinAnchor.getTime() + 7 * 86_400_000);
     const missedCycles = deriveMissedCheckinCycles(checkinAnchor, now, Boolean(submittedThisCycle));
     return {
-      isDue: !submittedThisCycle && now.getTime() >= nextDueAt.getTime(),
+      isDue: Boolean(cycle) && !submittedThisCycle && now.getTime() >= nextDueAt.getTime(),
       streak: profile.checkinStreak,
       lastCheckinAt: profile.lastCheckinAt,
       nextDueAt,
@@ -84,11 +75,8 @@ export class CheckinService {
     });
     const profile = user?.userProfile;
     if (!profile) throw new Error('User profile must be initialized first.');
-    if (profile.shoppingDayOfWeek === null && !profile.shoppingDayGroup) {
-      throw new Error('A shopping day is required before weekly check-ins can be recorded.');
-    }
-
-    const cycle = getCurrentWeeklyCycleWindow(profile, now);
+    const cycle = await MealPlanCycleService.getCurrentCycle(userId, now);
+    if (!cycle) throw new Error('A current meal-plan cycle is required before a weekly check-in can be recorded.');
     const existing = await prisma.weeklyCheckin.findUnique({
       where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
     });
