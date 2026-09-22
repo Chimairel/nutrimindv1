@@ -5,7 +5,7 @@ import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy'
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { additionalShoppingNeeds } from '@/domain/swap-shopping.policy';
-import { MealType, Prisma } from '@prisma/client';
+import { HealthConditionType, MealType, Prisma } from '@prisma/client';
 import { GroceryService } from './grocery.service';
 import {
   assertUserSwappableMealPlan,
@@ -23,8 +23,10 @@ import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
   queryEligibleLibraryMeals,
+  queryEligibleLibraryPage,
   type CertifiedLibraryMeal,
 } from './meal-library-candidate-query.service';
+import { replacePlanBaseServing } from './meal-plan-serving.service';
 
 type SwapMealReadClient = Pick<Prisma.TransactionClient, 'mealPlan'>;
 
@@ -50,6 +52,11 @@ export function toPublicSwapOption(meal: CertifiedLibraryMeal) {
     mealName: meal.mealName,
     description: meal.description,
     mealType: meal.mealType,
+    mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
+    riceRole: meal.riceRoleReviewStatus === 'REVIEWED' ? meal.riceRole : null,
+    riceRoleReviewStatus: meal.riceRoleReviewStatus,
+    includedRiceG: meal.riceRole === 'INCLUDES_RICE' ? meal.includedRiceG : null,
+    isFavorite: 'isFavorite' in meal ? Boolean(meal.isFavorite) : false,
     calories: meal.calories,
     proteinG: meal.proteinG,
     carbsG: meal.carbsG,
@@ -156,11 +163,13 @@ export class MealSwapService {
       throw new Error('Selected replacement meal is not certified for your current health profile.');
     }
 
-    if (libraryMeal.mealType !== mealPlan.mealType) throw new Error('Replacement must match the meal type.');
+    if (!libraryMeal.applicableMealTypes.some((entry) => entry.mealType === mealPlan.mealType)) {
+      throw new Error('Replacement must match the meal type.');
+    }
     if (
       !isMealWithinSlotCalorieRange({
         calories: libraryMeal.calories,
-        mealType: libraryMeal.mealType,
+        mealType: mealPlan.mealType,
         dailyCalorieTarget: userProfile.dailyCalorieTarget ?? 2000,
       })
     )
@@ -298,7 +307,7 @@ export class MealSwapService {
           throw new Error('Selected replacement meal is not available or approved.');
         }
 
-        if (libraryMeal.mealType !== mealPlan.mealType) {
+        if (!libraryMeal.applicableMealTypes.some((entry) => entry.mealType === mealPlan.mealType)) {
           throw new Error('Selected replacement meal type does not match slot meal type.');
         }
 
@@ -374,6 +383,37 @@ export class MealSwapService {
               unit: ing.unit,
             })),
           });
+        }
+        const serving = await replacePlanBaseServing(tx, mealPlanId, {
+          ...libraryMeal,
+          mealType: mealPlan.mealType,
+          recipeSignature: libraryMeal.recipeSignature,
+          ingredients: ingredientsData,
+          evidenceSource: 'CERTIFIED_LIBRARY_SWAP',
+        });
+        await tx.mealPlanClearanceUsage.deleteMany({ where: { mealPlanId } });
+        const requiredConditions = userConditions.filter(
+          (condition): condition is HealthConditionType => condition !== HealthConditionType.NONE
+        );
+        if (requiredConditions.length) {
+          const usages = requiredConditions.map((condition) => {
+            const clearance = libraryMeal.conditionClearances.find(
+              (candidate) =>
+                candidate.condition === condition &&
+                candidate.state === 'ACTIVE' &&
+                candidate.recipeSignature === libraryMeal.recipeSignature &&
+                candidate.evidenceRevision === libraryMeal.safetyEvidenceRevision &&
+                (!candidate.userScopeId || candidate.userScopeId === userId)
+            );
+            if (!clearance) throw new Error('Condition clearance changed during swap. Please retry.');
+            return {
+              mealPlanId,
+              clearanceId: clearance.id,
+              condition,
+              composedServingSignature: serving.composedServingSignature,
+            };
+          });
+          await tx.mealPlanClearanceUsage.createMany({ data: usages });
         }
 
         // 6. Increment usageCount on newly selected library entry
@@ -529,7 +569,18 @@ export class MealSwapService {
   /**
    * Returns all approved verified meals from MealLibrary that are clinically compatible with a user profile.
    */
-  static async getCompatibleLibraryMeals(userId: string, mealType?: MealType, search?: string, date?: string) {
+  static async getCompatibleLibraryMeals(
+    userId: string,
+    input: {
+      mealType?: MealType;
+      search?: string;
+      date?: string;
+      favoriteOnly?: boolean;
+      riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE';
+      cursor?: string;
+      limit?: number;
+    }
+  ) {
     // 1. Fetch user profile, health conditions, and allergies
     const { user, profile: userProfile } = await loadUserNutritionContext(prisma, userId, 'User profile not found.');
     const { healthConditions, allergies } = user;
@@ -537,16 +588,20 @@ export class MealSwapService {
     const userAllergens = allergies.map((a) => a.allergen);
 
     // 2. Query APPROVED library meals matching the optional mealType and search
-    const eligibleMeals = await queryEligibleLibraryMeals({
-      mealType,
+    const page = await queryEligibleLibraryPage({
+      userId,
+      mealType: input.mealType,
       userConditions,
       userAllergens,
       profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
-      search,
-      limit: 120,
+      search: input.search,
+      favoriteOnly: input.favoriteOnly,
+      riceRole: input.riceRole,
+      cursor: input.cursor,
+      limit: input.limit,
     });
 
-    const start = date ? new Date(date + 'T00:00:00+08:00') : getStartOfManilaBusinessDay();
+    const start = input.date ? new Date(input.date + 'T00:00:00+08:00') : getStartOfManilaBusinessDay();
     const slots = await prisma.mealPlan.findMany({
       where: {
         userId,
@@ -558,6 +613,10 @@ export class MealSwapService {
     });
     const targets: Record<string, number> = {};
     for (const slot of slots) targets[slot.mealType] ??= slot.calories;
-    return rankLibraryMeals(eligibleMeals, userProfile.dailyCalorieTarget ?? 2000, targets).map(toPublicSwapOption);
+    return {
+      items: rankLibraryMeals(page.items, userProfile.dailyCalorieTarget ?? 2000, targets).map(toPublicSwapOption),
+      nextCursor: page.nextCursor,
+      total: page.total,
+    };
   }
 }

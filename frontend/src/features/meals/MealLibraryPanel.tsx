@@ -2,7 +2,7 @@
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import LibraryMealCard from './LibraryMealCard';
-import { AlertTriangle, Search, Salad } from 'lucide-react';
+import { AlertTriangle, Heart, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 
 export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
@@ -18,6 +18,14 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     meals,
     handleSwapClick,
     setSelectedVerifier,
+    libraryFavoriteOnly,
+    setLibraryFavoriteOnly,
+    libraryRiceRole,
+    setLibraryRiceRole,
+    libraryNextCursor,
+    loadMoreLibrary,
+    toggleLibraryFavorite,
+    libraryTotalCount,
   } = workspace;
   return (
     <div className="space-y-6 text-left">
@@ -55,6 +63,32 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <button
+          type="button"
+          onClick={() => setLibraryFavoriteOnly(!libraryFavoriteOnly)}
+          className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-bold ${
+            libraryFavoriteOnly ? 'border-brand-green bg-brand-green text-black' : 'border-brand-border text-brand-muted'
+          }`}
+        >
+          <Heart className={`h-4 w-4 ${libraryFavoriteOnly ? 'fill-current' : ''}`} /> Favorites
+        </button>
+        <label className="flex items-center gap-2 font-semibold text-brand-muted">
+          Rice role
+          <select
+            value={libraryRiceRole}
+            onChange={(event) => setLibraryRiceRole(event.target.value)}
+            className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text"
+          >
+            <option value="All">All reviewed roles</option>
+            <option value="PAIR_WITH_RICE">Pair with rice</option>
+            <option value="STANDALONE">Standalone</option>
+            <option value="INCLUDES_RICE">Includes rice</option>
+          </select>
+        </label>
+        {libraryTotalCount !== null && <span className="ml-auto text-brand-muted">{libraryTotalCount} eligible meals</span>}
+      </div>
+
       {isLibraryLoading ? (
         <div className="flex flex-col items-center py-12 gap-2">
           <LoadingSpinner size="md" />
@@ -82,8 +116,14 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               meals={meals}
               onSwap={handleSwapClick}
               onVerifier={setSelectedVerifier}
+              onFavorite={toggleLibraryFavorite}
             />
           ))}
+        </div>
+      )}
+      {libraryNextCursor && !isLibraryLoading && (
+        <div className="flex justify-center">
+          <Button type="button" variant="secondary" onClick={loadMoreLibrary}>Load more recipes</Button>
         </div>
       )}
     </div>

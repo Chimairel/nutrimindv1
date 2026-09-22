@@ -84,6 +84,34 @@ enum MealType {
   SNACK
 }
 
+enum MealApplicabilitySource {
+  LEGACY_BACKFILL
+  DETERMINISTIC_CLASSIFIER
+  NUTRITIONIST_REVIEW
+}
+
+enum MealApplicabilityReviewStatus {
+  PROPOSED
+  REVIEWED
+}
+
+enum RecipeRiceRole {
+  PAIR_WITH_RICE
+  STANDALONE
+  INCLUDES_RICE
+}
+
+enum RiceRoleReviewStatus {
+  NOT_REVIEWED
+  PROPOSED
+  REVIEWED
+}
+
+enum MealPlanServingComponentType {
+  BASE_RECIPE
+  COOKED_RICE
+}
+
 enum MealPlanStatus {
   PENDING_REVIEW
   APPROVED
@@ -646,6 +674,7 @@ model User {
   referenceDataActivations         ReferenceDataReleaseActivation[] @relation("ReferenceDataActivationActor")
   foodAliasesVerified              FoodAlias[]                      @relation("FoodAliasAdminVerifier")
   scopedConditionClearances        MealConditionClearance[]         @relation("ConditionClearanceUserScope")
+  mealFavorites                    MealFavorite[]
 }
 
 model Account {
@@ -687,34 +716,34 @@ model NutritionReportVersion {
 }
 
 model UserProfile {
-  revision                Int                       @default(0)
-  safetyRevision          Int                       @default(0)
-  id                      String                    @id @default(cuid())
-  userId                  String                    @unique
-  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  age                     Int?
-  biologicalSex           String? // "MALE" or "FEMALE"
-  heightCm                Float?
-  weightKg                Float?
-  targetWeightKg          Float?
-  goal                    Goal?
-  activityLevel           ActivityLevel?
-  dietaryPreference       DietaryPreference?
-  ricePreference          RicePreference               @default(FLEXIBLE)
-  ricePreferenceProvenance RicePreferenceProvenance     @default(DEFAULTED)
-  foodCulture             String?
-  planningGeographyLevel  ConsumptionGeographyLevel @default(NATIONAL)
-  planningRegionName      String?                   @db.VarChar(120)
-  planningProvinceHucName String?                   @db.VarChar(160)
-  mealLocalityPreference  MealLocalityPreference    @default(NATIONAL)
-  dailyCalorieTarget      Int?
-  otherConditions         String? // Free-text custom health conditions (e.g., "Gout, Celiac")
-  otherAllergies          String? // Free-text custom food allergies (e.g., "Soy, Sesame")
-  shoppingDayGroup        ShoppingDayGroup? // Determines weekly plan cycle anchor day
-  shoppingDayOfWeek       Int? // 0=Sunday ... 6=Saturday; cycle starts the following day
-  lastCheckinAt           DateTime?
-  checkinStreak           Int                       @default(0)
-  updatedAt               DateTime                  @updatedAt
+  revision                 Int                       @default(0)
+  safetyRevision           Int                       @default(0)
+  id                       String                    @id @default(cuid())
+  userId                   String                    @unique
+  user                     User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age                      Int?
+  biologicalSex            String? // "MALE" or "FEMALE"
+  heightCm                 Float?
+  weightKg                 Float?
+  targetWeightKg           Float?
+  goal                     Goal?
+  activityLevel            ActivityLevel?
+  dietaryPreference        DietaryPreference?
+  ricePreference           RicePreference            @default(FLEXIBLE)
+  ricePreferenceProvenance RicePreferenceProvenance  @default(DEFAULTED)
+  foodCulture              String?
+  planningGeographyLevel   ConsumptionGeographyLevel @default(NATIONAL)
+  planningRegionName       String?                   @db.VarChar(120)
+  planningProvinceHucName  String?                   @db.VarChar(160)
+  mealLocalityPreference   MealLocalityPreference    @default(NATIONAL)
+  dailyCalorieTarget       Int?
+  otherConditions          String? // Free-text custom health conditions (e.g., "Gout, Celiac")
+  otherAllergies           String? // Free-text custom food allergies (e.g., "Soy, Sesame")
+  shoppingDayGroup         ShoppingDayGroup? // Determines weekly plan cycle anchor day
+  shoppingDayOfWeek        Int? // 0=Sunday ... 6=Saturday; cycle starts the following day
+  lastCheckinAt            DateTime?
+  checkinStreak            Int                       @default(0)
+  updatedAt                DateTime                  @updatedAt
 }
 
 model HealthCondition {
@@ -903,6 +932,7 @@ model FoodItem {
   conversionEvidenceFrom IngredientConversionEvidence[]    @relation("IngredientConversionFromFood")
   conversionEvidenceTo   IngredientConversionEvidence[]    @relation("IngredientConversionToFood")
   consumptionStats       FoodConsumptionStat[]
+  planServingComponents  MealPlanServingComponent[]
 }
 
 model FoodAlias {
@@ -1053,13 +1083,16 @@ model MealPlan {
   candidateProvenance           MealCandidateProvenance @default(AI_FROM_SCRATCH)
   sourceRawRecipeCandidateId    String?
   sourceRawRecipeCandidate      RawRecipeCandidate?     @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: Restrict)
+  baseRecipeSignature           String?                 @db.VarChar(64)
+  composedServingSignature      String?                 @db.VarChar(64)
 
   // Relations
-  ingredients     MealIngredient[]
-  mealLogs        MealLog[]
-  swapLogs        SwapLog[]
-  clearanceUsages MealPlanClearanceUsage[]
-  reviewDecisions MealPlanReviewDecision[]
+  ingredients       MealIngredient[]
+  mealLogs          MealLog[]
+  swapLogs          SwapLog[]
+  clearanceUsages   MealPlanClearanceUsage[]
+  reviewDecisions   MealPlanReviewDecision[]
+  servingComponents MealPlanServingComponent[]
 
   @@index([requiresSafetyRevalidation, status], map: "MealPlan_revalidation_status_idx")
   @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
@@ -1092,6 +1125,9 @@ model MealLibrary {
   mealName                         String
   description                      String?                            @db.Text
   mealType                         MealType
+  riceRole                         RecipeRiceRole?
+  riceRoleReviewStatus             RiceRoleReviewStatus               @default(NOT_REVIEWED)
+  includedRiceG                    Float?
   calories                         Float
   proteinG                         Float
   carbsG                           Float
@@ -1153,40 +1189,108 @@ model MealLibrary {
   safetyReviews       MealLibrarySafetyReview[]
   outsideMealItems    OutsideMealLogItem[]
   conditionClearances MealConditionClearance[]
+  applicableMealTypes MealLibraryApplicableType[]
+  favorites           MealFavorite[]
 
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
 }
 
 model RawRecipeCandidate {
-  id                 String                   @id @default(cuid())
-  sourceRecordId     String                   @unique @db.VarChar(191)
-  sourceName         String                   @default("PANLASANG_PINOY") @db.VarChar(80)
-  sourceUrl          String                   @db.VarChar(2048)
-  sourceImageUrl     String?                  @db.VarChar(2048)
-  sourceVideoUrl     String?                  @db.VarChar(2048)
-  recipeName         String                   @db.VarChar(240)
-  normalizedName     String                   @db.VarChar(240)
-  contentSignature   String                   @unique @db.VarChar(64)
-  category           String?                  @db.VarChar(120)
-  cuisines           Json
-  description        String?                  @db.Text
-  mealType           MealType
-  dietaryTags        Json
-  ingredients        Json
-  publishedNutrition Json?
-  calories           Float?
-  proteinG           Float?
-  carbsG             Float?
-  fatG               Float?
-  originalServings   Float?
-  status             RawRecipeCandidateStatus @default(AVAILABLE)
-  indexedAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  mealPlans          MealPlan[]
+  id                   String                    @id @default(cuid())
+  sourceRecordId       String                    @unique @db.VarChar(191)
+  sourceName           String                    @default("PANLASANG_PINOY") @db.VarChar(80)
+  sourceUrl            String                    @db.VarChar(2048)
+  sourceImageUrl       String?                   @db.VarChar(2048)
+  sourceVideoUrl       String?                   @db.VarChar(2048)
+  recipeName           String                    @db.VarChar(240)
+  normalizedName       String                    @db.VarChar(240)
+  contentSignature     String                    @unique @db.VarChar(64)
+  category             String?                   @db.VarChar(120)
+  cuisines             Json
+  description          String?                   @db.Text
+  mealType             MealType
+  riceRole             RecipeRiceRole?
+  riceRoleReviewStatus RiceRoleReviewStatus      @default(NOT_REVIEWED)
+  includedRiceG        Float?
+  dietaryTags          Json
+  ingredients          Json
+  publishedNutrition   Json?
+  calories             Float?
+  proteinG             Float?
+  carbsG               Float?
+  fatG                 Float?
+  originalServings     Float?
+  status               RawRecipeCandidateStatus  @default(AVAILABLE)
+  indexedAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  mealPlans            MealPlan[]
+  applicableMealTypes  RawRecipeApplicableType[]
 
   @@index([status, mealType, calories])
   @@index([normalizedName])
+}
+
+model MealLibraryApplicableType {
+  id            String                        @id @default(cuid())
+  mealLibraryId String
+  mealLibrary   MealLibrary                   @relation(fields: [mealLibraryId], references: [id], onDelete: Cascade)
+  mealType      MealType
+  source        MealApplicabilitySource       @default(DETERMINISTIC_CLASSIFIER)
+  reviewStatus  MealApplicabilityReviewStatus @default(PROPOSED)
+  createdAt     DateTime                      @default(now())
+  updatedAt     DateTime                      @updatedAt
+
+  @@unique([mealLibraryId, mealType])
+  @@index([mealType, reviewStatus, mealLibraryId])
+}
+
+model RawRecipeApplicableType {
+  id                   String                        @id @default(cuid())
+  rawRecipeCandidateId String
+  rawRecipeCandidate   RawRecipeCandidate            @relation(fields: [rawRecipeCandidateId], references: [id], onDelete: Cascade)
+  mealType             MealType
+  source               MealApplicabilitySource       @default(DETERMINISTIC_CLASSIFIER)
+  reviewStatus         MealApplicabilityReviewStatus @default(PROPOSED)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  @@unique([rawRecipeCandidateId, mealType])
+  @@index([mealType, reviewStatus, rawRecipeCandidateId])
+}
+
+model MealFavorite {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealLibraryId String
+  mealLibrary   MealLibrary @relation(fields: [mealLibraryId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, mealLibraryId])
+  @@index([userId, createdAt])
+  @@index([mealLibraryId])
+}
+
+model MealPlanServingComponent {
+  id             String                       @id @default(cuid())
+  mealPlanId     String
+  mealPlan       MealPlan                     @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  componentType  MealPlanServingComponentType
+  position       Int
+  foodItemId     String?
+  foodItem       FoodItem?                    @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  quantityG      Float?
+  calories       Float
+  proteinG       Float
+  carbsG         Float
+  fatG           Float
+  evidenceSource String                       @db.VarChar(80)
+  createdAt      DateTime                     @default(now())
+
+  @@unique([mealPlanId, position])
+  @@index([mealPlanId, componentType])
+  @@index([foodItemId])
 }
 
 model MealConditionClearance {
@@ -1197,6 +1301,7 @@ model MealConditionClearance {
   userScope                User?                            @relation("ConditionClearanceUserScope", fields: [userScopeId], references: [id], onDelete: Cascade)
   condition                HealthConditionType
   recipeSignature          String                           @db.VarChar(64)
+  composedServingSignature String?                          @db.VarChar(64)
   evidenceRevision         Int
   policyVersion            String?                          @db.VarChar(64)
   rulePolicyVersionId      String?
@@ -1242,13 +1347,14 @@ model MealConditionClearanceDecision {
 }
 
 model MealPlanClearanceUsage {
-  id          String                 @id @default(cuid())
-  mealPlanId  String
-  mealPlan    MealPlan               @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  clearanceId String
-  clearance   MealConditionClearance @relation(fields: [clearanceId], references: [id], onDelete: Restrict)
-  condition   HealthConditionType
-  recordedAt  DateTime               @default(now())
+  id                       String                 @id @default(cuid())
+  mealPlanId               String
+  mealPlan                 MealPlan               @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  clearanceId              String
+  clearance                MealConditionClearance @relation(fields: [clearanceId], references: [id], onDelete: Restrict)
+  condition                HealthConditionType
+  composedServingSignature String?                @db.VarChar(64)
+  recordedAt               DateTime               @default(now())
 
   @@unique([mealPlanId, condition])
   @@index([clearanceId, mealPlanId])
@@ -1859,33 +1965,33 @@ model MealPlanGenerationJob {
 /// Authoritative dated identity and mutable lifecycle for one meal-plan cycle.
 /// Profile inputs and nutrition targets remain in the separate immutable snapshot.
 model MealPlanCycle {
-  id                       String                        @id
-  userId                   String
-  user                     User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planType                 PlanType
-  cycleRevision            Int                           @default(1)
-  startDate                DateTime
-  endDate                  DateTime
-  preparationOpensAt       DateTime
-  shoppingDeadlineAt       DateTime
-  expectedSlotCount        Int
-  status                   MealPlanCycleStatus           @default(PREPARING)
-  profileAdaptationState   ProfileCycleAdaptationState   @default(CURRENT)
-  requestedProfileRevision Int?
-  requestedSafetyRevision  Int?
+  id                          String                        @id
+  userId                      String
+  user                        User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType                    PlanType
+  cycleRevision               Int                           @default(1)
+  startDate                   DateTime
+  endDate                     DateTime
+  preparationOpensAt          DateTime
+  shoppingDeadlineAt          DateTime
+  expectedSlotCount           Int
+  status                      MealPlanCycleStatus           @default(PREPARING)
+  profileAdaptationState      ProfileCycleAdaptationState   @default(CURRENT)
+  requestedProfileRevision    Int?
+  requestedSafetyRevision     Int?
   acknowledgedProfileRevision Int?
-  pendingProfileChangeKinds String[]                     @default([])
-  deadlineOutcome          MealPlanCycleDeadlineOutcome?
-  readyAt                  DateTime?
-  activatedAt              DateTime?
-  incompleteAcknowledgedAt DateTime?
-  shoppingStartedAt        DateTime?
-  supersededAt             DateTime?
-  supersededById           String?
-  supersededBy             MealPlanCycle?                @relation("MealPlanCycleSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
-  supersedes               MealPlanCycle[]               @relation("MealPlanCycleSupersession")
-  createdAt                DateTime                      @default(now())
-  updatedAt                DateTime                      @updatedAt
+  pendingProfileChangeKinds   String[]                      @default([])
+  deadlineOutcome             MealPlanCycleDeadlineOutcome?
+  readyAt                     DateTime?
+  activatedAt                 DateTime?
+  incompleteAcknowledgedAt    DateTime?
+  shoppingStartedAt           DateTime?
+  supersededAt                DateTime?
+  supersededById              String?
+  supersededBy                MealPlanCycle?                @relation("MealPlanCycleSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes                  MealPlanCycle[]               @relation("MealPlanCycleSupersession")
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
 
   mealPlans     MealPlan[]
   groceryList   GroceryList?
@@ -1903,29 +2009,29 @@ model MealPlanCycle {
 /// edits never rewrite this record, so active and historical adherence retain
 /// the target that was actually in force for that plan.
 model MealPlanCycleSnapshot {
-  id                      String                    @id @default(cuid())
-  planGroupId             String                    @unique
-  cycle                   MealPlanCycle             @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
-  userId                  String
-  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profileRevision         Int
-  safetyRevision          Int
-  weightKg                Float
-  activityLevel           ActivityLevel
-  goal                    Goal
-  dailyCalorieTarget      Int
-  dailyMacroTargets       Json
-  dietaryPreference       DietaryPreference?
-  ricePreference          RicePreference
+  id                       String                    @id @default(cuid())
+  planGroupId              String                    @unique
+  cycle                    MealPlanCycle             @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
+  userId                   String
+  user                     User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileRevision          Int
+  safetyRevision           Int
+  weightKg                 Float
+  activityLevel            ActivityLevel
+  goal                     Goal
+  dailyCalorieTarget       Int
+  dailyMacroTargets        Json
+  dietaryPreference        DietaryPreference?
+  ricePreference           RicePreference
   ricePreferenceProvenance RicePreferenceProvenance
-  foodCulture             String?
-  planningGeographyLevel  ConsumptionGeographyLevel
-  planningRegionName      String?
-  planningProvinceHucName String?
-  mealLocalityPreference  MealLocalityPreference
-  shoppingDayGroup        ShoppingDayGroup?
-  shoppingDayOfWeek       Int?
-  generatedAt             DateTime                  @default(now())
+  foodCulture              String?
+  planningGeographyLevel   ConsumptionGeographyLevel
+  planningRegionName       String?
+  planningProvinceHucName  String?
+  mealLocalityPreference   MealLocalityPreference
+  shoppingDayGroup         ShoppingDayGroup?
+  shoppingDayOfWeek        Int?
+  generatedAt              DateTime                  @default(now())
 
   @@index([userId, generatedAt])
 }

@@ -14,6 +14,11 @@ export interface SwapOption {
   mealName: string;
   description?: string;
   mealType: string;
+  mealTypes: string[];
+  riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | null;
+  riceRoleReviewStatus?: 'NOT_REVIEWED' | 'PROPOSED' | 'REVIEWED';
+  includedRiceG?: number | null;
+  isFavorite: boolean;
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -61,7 +66,8 @@ interface CurrentPlanSnapshot {
 const planResource = 'user-meals-current';
 const historyResource = (search: string, source: string, status: string) =>
   `user-meals-history:${search}:${source}:${status}`;
-const libraryResource = (search: string, mealType: string) => `user-meals-library:${search}:${mealType}`;
+const libraryResource = (search: string, mealType: string, favoriteOnly = false, riceRole = 'All') =>
+  `user-meals-library:${search}:${mealType}:${favoriteOnly}:${riceRole}`;
 
 export function useMealsWorkspace() {
   const { user } = useAuth();
@@ -133,6 +139,9 @@ export function useMealsWorkspace() {
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedVerifier, setSelectedVerifier] = useState<PublicVerifier | null>(null);
   const [libraryMealType, setLibraryMealType] = useState('All');
+  const [libraryFavoriteOnly, setLibraryFavoriteOnly] = useState(false);
+  const [libraryRiceRole, setLibraryRiceRole] = useState('All');
+  const [libraryNextCursor, setLibraryNextCursor] = useState<string | null>(null);
 
   const applyCurrentPlan = useCallback(
     (snapshot: CurrentPlanSnapshot) => {
@@ -191,32 +200,56 @@ export function useMealsWorkspace() {
   }, [user?.userId, historySearch, historySource, historyStatus]);
 
   const libraryDate = selectedPlanDateKey ?? getManilaDateKey(meals[0]?.scheduledDate ?? new Date());
-  const fetchLibrary = useCallback(async () => {
-    const resource = libraryResource(librarySearch, libraryMealType) + ':' + libraryDate;
+  const fetchLibrary = useCallback(async (cursor?: string) => {
+    const resource = libraryResource(librarySearch, libraryMealType, libraryFavoriteOnly, libraryRiceRole) + ':' + libraryDate;
     const cached = readSessionResource<SwapOption[]>(user?.userId, resource);
-    if (cached) setLibraryMeals(cached);
-    setIsLibraryLoading(!cached);
+    if (!cursor && cached) setLibraryMeals(cached);
+    setIsLibraryLoading(!cursor && !cached);
     setLibraryError(null);
     try {
       const params: Record<string, string> = {};
       params.date = libraryDate;
       if (libraryMealType !== 'All') params.mealType = libraryMealType;
       if (librarySearch) params.search = librarySearch;
+      if (libraryFavoriteOnly) params.favoriteOnly = 'true';
+      if (libraryRiceRole !== 'All') params.riceRole = libraryRiceRole;
+      if (cursor) params.cursor = cursor;
+      params.limit = '24';
 
       const res = await api.get('/user/meals/compatible-library', { params });
       if (res.data && res.data.success) {
-        setLibraryMeals(res.data.data);
-        writeSessionResource(user?.userId, resource, res.data.data);
-        if (!librarySearch && libraryMealType === 'All') {
-          setLibraryTotalCount(res.data.data.length);
-        }
+        const incoming: SwapOption[] = Array.isArray(res.data.data) ? res.data.data : [];
+        setLibraryMeals((current) => {
+          const next = cursor
+            ? [...current, ...incoming.filter((meal) => !current.some((existing) => existing.id === meal.id))]
+            : incoming;
+          writeSessionResource(user?.userId, resource, next);
+          return next;
+        });
+        setLibraryTotalCount(Number(res.data.meta?.total ?? incoming.length));
+        setLibraryNextCursor(res.data.meta?.nextCursor ?? null);
       }
     } catch (err: unknown) {
       setLibraryError(getApiErrorMessage(err, 'Failed to load library meals.'));
     } finally {
       setIsLibraryLoading(false);
     }
-  }, [user?.userId, libraryMealType, librarySearch, libraryDate]);
+  }, [user?.userId, libraryMealType, librarySearch, libraryFavoriteOnly, libraryRiceRole, libraryDate]);
+
+  const toggleLibraryFavorite = useCallback(
+    async (meal: SwapOption) => {
+      const nextFavorite = !meal.isFavorite;
+      if (nextFavorite) await api.post(`/user/meals/library/${meal.id}/favorite`);
+      else await api.delete(`/user/meals/library/${meal.id}/favorite`);
+      setLibraryMeals((current) =>
+        current
+          .map((entry) => (entry.id === meal.id ? { ...entry, isFavorite: nextFavorite } : entry))
+          .filter((entry) => !libraryFavoriteOnly || entry.isFavorite)
+      );
+      if (libraryFavoriteOnly && !nextFavorite) setLibraryTotalCount((current) => Math.max(0, (current ?? 1) - 1));
+    },
+    [libraryFavoriteOnly]
+  );
 
   useEffect(() => {
     if (user) {
@@ -659,6 +692,13 @@ export function useMealsWorkspace() {
     setSelectedVerifier,
     libraryMealType,
     setLibraryMealType,
+    libraryFavoriteOnly,
+    setLibraryFavoriteOnly,
+    libraryRiceRole,
+    setLibraryRiceRole,
+    libraryNextCursor,
+    loadMoreLibrary: () => (libraryNextCursor ? fetchLibrary(libraryNextCursor) : Promise.resolve()),
+    toggleLibraryFavorite,
     handleSwapClick,
     handleSelectSwapOption,
     handleConfirmSwapAnyway,

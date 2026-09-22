@@ -247,6 +247,9 @@ async function main() {
         status: 'APPROVED',
         verifiedByNutritionistId: reviewer.id,
         dietaryTags: ['OMNIVORE', 'MAINTAIN'],
+        applicableMealTypes: {
+          create: { mealType: 'BREAKFAST', source: 'NUTRITIONIST_REVIEW', reviewStatus: 'REVIEWED' },
+        },
         ingredients: {
           create: {
             position: 0,
@@ -309,8 +312,8 @@ async function main() {
       '%PDF-'
     );
     observations.groceryPdf = 'PASS: authenticated endpoint returns a PDF document (visual layout not tested)';
-    const compatible = await MealSwapService.getCompatibleLibraryMeals(user.id);
-    assert.ok(!compatible.some((meal) => meal.id === library.id));
+    const compatible = await MealSwapService.getCompatibleLibraryMeals(user.id, {});
+    assert.ok(!compatible.items.some((meal) => meal.id === library.id));
     observations.libraryCalorieFiltering = 'PASS: oversized certified serving excluded from compatible library';
     await assert.rejects(() => MealSwapService.getSwapPreview(user.id, plan.id, library.id), /serving/);
     await prisma.mealLibrary.update({ where: { id: library.id }, data: { calories: 600 } });

@@ -19,6 +19,7 @@ import {
   SafetyDeclarationProvenance,
   MealIngredientClassificationStatus,
   MealNutritionEvidenceSource,
+  MealType,
 } from '@prisma/client';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '@/domain/meal-library-safety-evidence.policy';
@@ -40,6 +41,7 @@ import {
   getNutritionistMealLibraryWithFilters,
   type NutritionistLibraryFilters,
 } from './nutritionist-library-query.service';
+import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
 
 const INDEPENDENT_CONDITION_REVIEW_KEYS = new Set(['KIDNEY_DISEASE', 'PREGNANT']);
 const REQUIRED_ALLERGEN_FACT_KEYS = ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS'] as const;
@@ -130,7 +132,10 @@ export class NutritionistLibraryService {
         })
       );
       const counts = Object.fromEntries(
-        COVERAGE_MEAL_TYPES.map((mealType) => [mealType, matching.filter((meal) => meal.mealType === mealType).length])
+        COVERAGE_MEAL_TYPES.map((mealType) => [
+          mealType,
+          matching.filter((meal) => meal.applicableMealTypes.some((entry) => entry.mealType === mealType)).length,
+        ])
       ) as Record<(typeof COVERAGE_MEAL_TYPES)[number], number>;
       const minimumPerSlot = Math.min(...Object.values(counts));
       const servingCoverage = [1400, 1600, 1800, 1900, 2000, 2200, 2400, 2800].map((dailyCalorieTarget) => {
@@ -138,7 +143,9 @@ export class NutritionistLibraryService {
           COVERAGE_MEAL_TYPES.map((mealType) => [
             mealType,
             matching.filter(
-              (meal) => meal.mealType === mealType && isMealWithinSlotCalorieRange({ ...meal, dailyCalorieTarget })
+              (meal) =>
+                meal.applicableMealTypes.some((entry) => entry.mealType === mealType) &&
+                isMealWithinSlotCalorieRange({ ...meal, mealType, dailyCalorieTarget })
             ).length,
           ])
         );
@@ -230,6 +237,7 @@ export class NutritionistLibraryService {
           },
         },
         ingredients: { orderBy: { position: 'asc' } },
+        applicableMealTypes: { orderBy: { mealType: 'asc' } },
         safetyDeclarations: true,
         safetyReviewedByNutritionist: {
           include: { user: { select: { name: true } } },
@@ -273,6 +281,7 @@ export class NutritionistLibraryService {
           where: { id: mealId },
           include: {
             ingredients: { orderBy: { position: 'asc' } },
+            applicableMealTypes: { orderBy: { mealType: 'asc' } },
             flags: { where: { status: FlagStatus.PENDING }, select: { id: true } },
           },
         });
@@ -500,7 +509,7 @@ export class NutritionistLibraryService {
   static async editLibraryMeal(userId: string, userRole: string, mealId: string, updatedFields: any) {
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
-      include: { verifiedByNutritionist: true },
+      include: { verifiedByNutritionist: true, ingredients: { orderBy: { position: 'asc' } } },
     });
 
     if (!meal) throw new Error('Meal not found.');
@@ -512,6 +521,25 @@ export class NutritionistLibraryService {
 
     const now = new Date();
     const wasComplete = meal.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE;
+    const applicableMealTypes = Array.isArray(updatedFields.applicableMealTypes)
+      ? updatedFields.applicableMealTypes
+      : null;
+    const primaryMealType = applicableMealTypes?.includes(meal.mealType)
+      ? meal.mealType
+      : (applicableMealTypes?.[0] ?? meal.mealType);
+    const calories = parseFloat(updatedFields.calories || 0);
+    const proteinG = parseFloat(updatedFields.proteinG || 0);
+    const carbsG = parseFloat(updatedFields.carbsG || 0);
+    const fatG = parseFloat(updatedFields.fatG || 0);
+    const recipeSignature = buildMealLibraryRecipeSignature({
+      mealName: updatedFields.mealName,
+      mealType: primaryMealType,
+      calories,
+      proteinG,
+      carbsG,
+      fatG,
+      ingredients: meal.ingredients,
+    });
     return prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
@@ -520,10 +548,12 @@ export class NutritionistLibraryService {
           data: {
             mealName: updatedFields.mealName,
             description: updatedFields.description,
-            calories: parseFloat(updatedFields.calories || 0),
-            proteinG: parseFloat(updatedFields.proteinG || 0),
-            carbsG: parseFloat(updatedFields.carbsG || 0),
-            fatG: parseFloat(updatedFields.fatG || 0),
+            mealType: primaryMealType,
+            calories,
+            proteinG,
+            carbsG,
+            fatG,
+            recipeSignature,
             sodiumMg: Object.prototype.hasOwnProperty.call(updatedFields, 'sodiumMg')
               ? updatedFields.sodiumMg
               : meal.sodiumMg,
@@ -546,6 +576,13 @@ export class NutritionistLibraryService {
               : meal.nutritionServingDescription,
             nutritionEvidenceSource: MealNutritionEvidenceSource.NUTRITIONIST_EDITED,
             dietaryTags: updatedFields.dietaryTags || meal.dietaryTags,
+            ...(updatedFields.riceRole
+              ? {
+                  riceRole: updatedFields.riceRole,
+                  riceRoleReviewStatus: 'REVIEWED' as const,
+                  includedRiceG: updatedFields.riceRole === 'INCLUDES_RICE' ? (updatedFields.includedRiceG ?? null) : null,
+                }
+              : {}),
             safetyEvidenceRevision: { increment: 1 },
             ...(wasComplete
               ? {
@@ -556,6 +593,18 @@ export class NutritionistLibraryService {
               : {}),
           },
         });
+
+        if (applicableMealTypes) {
+          await tx.mealLibraryApplicableType.deleteMany({ where: { mealLibraryId: mealId } });
+          await tx.mealLibraryApplicableType.createMany({
+            data: applicableMealTypes.map((mealType: MealType) => ({
+              mealLibraryId: mealId,
+              mealType,
+              source: 'NUTRITIONIST_REVIEW',
+              reviewStatus: 'REVIEWED',
+            })),
+          });
+        }
 
         if (wasComplete) {
           await suspendMealClearancesForEvidenceChange(tx, mealId, 'MEAL_CONTENT_CHANGED');

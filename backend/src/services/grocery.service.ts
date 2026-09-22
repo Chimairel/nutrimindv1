@@ -50,18 +50,33 @@ export class GroceryService {
       // Cycle quantities include consumed meals: purchases are cycle totals, not live pantry stock.
       const meals = await tx.mealPlan.findMany({
         where: { userId, planGroupId, ...getApprovedMealPlanStatusWhere() },
-        include: { ingredients: true },
+        include: {
+          ingredients: true,
+          servingComponents: { where: { componentType: 'COOKED_RICE' }, include: { foodItem: true } },
+        },
       });
       if (!meals.length) throw new Error('No approved meals are available in this plan cycle for shopping.');
       const items = aggregateGroceryIngredients(
-        meals.flatMap((meal) =>
-          meal.ingredients.map((item) => ({
+        meals.flatMap((meal) => [
+          ...meal.ingredients.map((item) => ({
             ingredientName: item.ingredientName,
             category: this.standardizeCategory(item.category || 'Other'),
             quantity: item.quantity,
             unit: item.unit,
-          }))
-        )
+          })),
+          ...meal.servingComponents.flatMap((component) =>
+            component.foodItem && component.quantityG
+              ? [
+                  {
+                    ingredientName: component.foodItem.name,
+                    category: this.standardizeCategory(component.foodItem.category || 'Rice and grains'),
+                    quantity: component.quantityG,
+                    unit: 'g',
+                  },
+                ]
+              : []
+          ),
+        ])
       );
       if (!list)
         list = await tx.groceryList.create({

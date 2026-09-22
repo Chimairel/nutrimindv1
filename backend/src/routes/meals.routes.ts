@@ -100,6 +100,17 @@ router.get(
   MealsController.getCompatibleLibrary
 );
 
+router.post(
+  '/library/:id/favorite',
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  MealsController.addLibraryFavorite
+);
+router.delete(
+  '/library/:id/favorite',
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  MealsController.removeLibraryFavorite
+);
+
 /**
  * Route: GET /api/user/meals/:id
  * Description: Retrieves details of a specific meal plan item.

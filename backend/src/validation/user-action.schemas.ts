@@ -108,6 +108,10 @@ export const compatibleLibraryQuerySchema = z
     date: z.iso.date().optional(),
     mealType: z.enum(MealType).optional(),
     search: z.string().trim().max(100).optional(),
+    favoriteOnly: z.enum(['true', 'false']).optional(),
+    riceRole: z.enum(['PAIR_WITH_RICE', 'STANDALONE', 'INCLUDES_RICE']).optional(),
+    cursor: z.string().trim().max(1000).optional(),
+    limit: z.coerce.number().int().min(1).max(60).optional(),
   })
   .strict();
 

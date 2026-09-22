@@ -38,7 +38,7 @@ describe('useMealsWorkspace', () => {
     expect(result.current.libraryTotalCount).toBe(5);
     expect(getMock).toHaveBeenCalledWith('/user/meals/history', { params: {} });
     expect(getMock).toHaveBeenCalledWith('/user/meals/compatible-library', {
-      params: { date: getManilaDateKey(new Date()) },
+      params: { date: getManilaDateKey(new Date()), limit: '24' },
     });
   });
 

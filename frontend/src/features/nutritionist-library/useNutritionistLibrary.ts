@@ -33,6 +33,10 @@ export interface LibraryMeal {
   id: string;
   mealName: string;
   mealType: string;
+  applicableMealTypes?: Array<{ mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK'; reviewStatus: 'PROPOSED' | 'REVIEWED' }>;
+  riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | null;
+  riceRoleReviewStatus?: 'NOT_REVIEWED' | 'PROPOSED' | 'REVIEWED';
+  includedRiceG?: number | null;
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -161,6 +165,9 @@ export function useNutritionistLibrary() {
     suitableConditions: [] as string[],
     allergenFree: [] as string[],
     dietaryTags: [] as string[],
+    applicableMealTypes: [] as string[],
+    riceRole: 'STANDALONE' as 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE',
+    includedRiceG: null as number | null,
   });
   const [flagReason, setFlagReason] = useState('');
   const [evidenceForm, setEvidenceForm] = useState({
@@ -245,6 +252,9 @@ export function useNutritionistLibrary() {
       suitableConditions: normalizeExclusiveNone(meal.suitableConditions),
       allergenFree: normalizeExclusiveNone(meal.allergenFree),
       dietaryTags: (meal.dietaryTags || []) as string[],
+      applicableMealTypes: meal.applicableMealTypes?.map((entry) => entry.mealType) ?? [meal.mealType],
+      riceRole: meal.riceRole ?? 'STANDALONE',
+      includedRiceG: meal.includedRiceG ?? null,
     });
     setActionError(null);
     setActiveModal('edit');
@@ -312,6 +322,9 @@ export function useNutritionistLibrary() {
         carbsG: editForm.carbsG,
         fatG: editForm.fatG,
         dietaryTags: editForm.dietaryTags,
+        applicableMealTypes: editForm.applicableMealTypes,
+        riceRole: editForm.riceRole,
+        includedRiceG: editForm.riceRole === 'INCLUDES_RICE' ? editForm.includedRiceG : null,
       });
       if (res.data?.success) {
         await Promise.all([fetchLibrary(), fetchCoverage()]);
@@ -383,6 +396,9 @@ export function useNutritionistLibrary() {
                 carbsG: editForm.carbsG,
                 fatG: editForm.fatG,
                 dietaryTags: editForm.dietaryTags,
+                applicableMealTypes: editForm.applicableMealTypes,
+                riceRole: editForm.riceRole,
+                includedRiceG: editForm.riceRole === 'INCLUDES_RICE' ? editForm.includedRiceG : null,
               }
             : undefined,
       };

@@ -13,6 +13,7 @@ import { NutritionistReplacementService } from './nutritionist-replacement.servi
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 import { evaluateApprovedConditionRules } from './condition-rule.service';
 import { getNutritionistApprovedMeals } from './nutritionist-approved-meals.service';
+import { buildBaseServingPersistence, replacePlanBaseServing } from './meal-plan-serving.service';
 
 export class NutritionistReviewService {
   static async getReviewQueue(nutritionistProfileId?: string) {
@@ -451,6 +452,17 @@ export class NutritionistReviewService {
               })),
             });
           }
+          const reviewedIngredients = await tx.mealIngredient.findMany({ where: { mealPlanId }, orderBy: { id: 'asc' } });
+          await replacePlanBaseServing(tx, mealPlanId, {
+            mealName,
+            mealType: plan.mealType,
+            calories,
+            proteinG,
+            carbsG,
+            fatG,
+            ingredients: reviewedIngredients,
+            evidenceSource: 'RND_REVIEWED_PLAN',
+          });
 
           await tx.mealPlanReviewDecision.create({
             data: {
@@ -556,6 +568,17 @@ export class NutritionistReviewService {
             })),
           });
         }
+        const reviewedIngredients = await tx.mealIngredient.findMany({ where: { mealPlanId }, orderBy: { id: 'asc' } });
+        await replacePlanBaseServing(tx, mealPlanId, {
+          mealName,
+          mealType: plan.mealType,
+          calories,
+          proteinG,
+          carbsG,
+          fatG,
+          ingredients: reviewedIngredients,
+          evidenceSource: 'RND_REVIEWED_PLAN',
+        });
 
         await tx.mealPlanReviewDecision.create({
           data: {
@@ -853,6 +876,17 @@ export class NutritionistReviewService {
       });
 
       // Create replacement meal with same planGroupId and scheduledDate
+      const replacementIngredients = (replacement.ingredients || []).map((ing: any) => ({
+        ingredientName: ing.name,
+        category: ing.category || 'PANTRY',
+        dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
+      }));
+      const serving = buildBaseServingPersistence({
+        ...replacement,
+        mealType: plan.mealType,
+        ingredients: replacementIngredients,
+        evidenceSource: 'AI_REJECTED_MEAL_REPLACEMENT_PENDING',
+      });
       await prisma.mealPlan.create({
         data: {
           planGroupId: plan.planGroupId,
@@ -868,12 +902,9 @@ export class NutritionistReviewService {
           aiConfidenceFlag: AIConfidenceFlag.CAUTION,
           scheduledDate: plan.scheduledDate,
           ingredients: {
-            create: (replacement.ingredients || []).map((ing: any) => ({
-              ingredientName: ing.name,
-              category: ing.category || 'PANTRY',
-              dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
-            })),
+            create: replacementIngredients,
           },
+          ...serving,
         },
       });
     } catch (err) {

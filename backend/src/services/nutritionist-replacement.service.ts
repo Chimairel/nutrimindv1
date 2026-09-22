@@ -14,6 +14,7 @@ import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from './grocery.service';
 import { recordCompletedMealPlanReviewCredit as recordReplacementReviewCredit } from './work-credit.service';
+import { buildBaseServingPersistence } from './meal-plan-serving.service';
 
 export class NutritionistReplacementService {
   static async generateReplacementCandidate(nutritionistProfileId: string, mealPlanId: string, reason: string) {
@@ -174,6 +175,17 @@ export class NutritionistReplacementService {
         }
 
         // 2. Create the replacement meal in the same slot
+        const replacementIngredients = candidate.ingredients.map((ing) => ({
+          ingredientName: ing.name,
+          category: ing.category || 'PANTRY',
+          dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
+        }));
+        const serving = buildBaseServingPersistence({
+          ...candidate,
+          mealType: plan.mealType,
+          ingredients: replacementIngredients,
+          evidenceSource: 'NUTRITIONIST_REPLACEMENT_PENDING',
+        });
         const createdReplacement = await tx.mealPlan.create({
           data: {
             planGroupId: plan.planGroupId,
@@ -199,13 +211,9 @@ export class NutritionistReplacementService {
             safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
             requiresSafetyRevalidation: false,
             ingredients: {
-              create: candidate.ingredients.map((ing) => ({
-                ingredientName: ing.name,
-                category: ing.category || 'PANTRY',
-                // This path has no FNRI identifier or resolved composition evidence.
-                dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
-              })),
+              create: replacementIngredients,
             },
+            ...serving,
           },
         });
         replacementPlanId = createdReplacement.id;

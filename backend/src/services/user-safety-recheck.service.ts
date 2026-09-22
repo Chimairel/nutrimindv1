@@ -192,7 +192,7 @@ export class UserSafetyRecheckService {
       });
 
       const eligibleMatches = eligibleLibraryMeals.filter((candidate) => {
-        if (candidate.mealType !== meal.mealType) return false;
+        if (!candidate.applicableMealTypes.some((entry) => entry.mealType === meal.mealType)) return false;
         return !assignedLibraryMeals.some(
           (assignment) =>
             assignment.mealPlanId !== meal.id &&

@@ -58,6 +58,7 @@ import {
   type GeneratedMeal,
   type GroundedFoodReference,
 } from './meal-generation-ingredient-preparation.service';
+import { buildBaseServingPersistence } from './meal-plan-serving.service';
 
 interface GeminiMealPlanResponse {
   meals: GeneratedMeal[];
@@ -405,7 +406,7 @@ export class MealGenerationService {
         // Filter in-memory verified library matches
         const matches = eligibleLibraryMeals.filter((meal) => {
           if (selectedLibraryMealIds.has(meal.id)) return false;
-          if (meal.mealType !== slotType) return false;
+          if (!meal.applicableMealTypes.some((entry) => entry.mealType === slotType)) return false;
 
           // Dietary preference is a positive classification fact. User goals
           // influence serving allocation and ranking, never reusable diet tags.
@@ -821,6 +822,13 @@ export class MealGenerationService {
               quantity: ing.quantity,
               unit: ing.unit,
             }));
+            const serving = buildBaseServingPersistence({
+              ...latest,
+              mealType: slot.mealType,
+              recipeSignature: latest.recipeSignature,
+              ingredients: ingredientsData,
+              evidenceSource: 'CERTIFIED_LIBRARY',
+            });
 
             // A currently certified library revision is already staff-reviewed,
             // so this clone is actionable without another queue round-trip.
@@ -854,6 +862,7 @@ export class MealGenerationService {
                 ingredients: {
                   create: ingredientsData,
                 },
+                ...serving,
               },
             });
             createdPlansList.push(createdPlan);
@@ -874,6 +883,7 @@ export class MealGenerationService {
                   mealPlanId: createdPlan.id,
                   clearanceId: clearance.id,
                   condition: condition as HealthConditionType,
+                  composedServingSignature: createdPlan.composedServingSignature,
                 };
               });
               await tx.mealPlanClearanceUsage.createMany({ data: clearanceUsages });
@@ -889,6 +899,14 @@ export class MealGenerationService {
 
         // 3. Create newly AI generated meals using pre-resolved lookups
         for (const meal of preparedAiMeals) {
+          const serving = buildBaseServingPersistence({
+            ...meal,
+            ingredients: meal.ingredientsData,
+            evidenceSource:
+              meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
+                ? 'RAW_RECIPE_CORPUS_PENDING_REVIEW'
+                : 'AI_GENERATED_PENDING_REVIEW',
+          });
           const createdPlan = await tx.mealPlan.create({
             data: {
               planGroupId: newPlanGroupId,
@@ -918,6 +936,7 @@ export class MealGenerationService {
               ingredients: {
                 create: meal.ingredientsData,
               },
+              ...serving,
             },
           });
           createdPlansList.push(createdPlan);

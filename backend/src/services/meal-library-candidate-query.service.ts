@@ -21,6 +21,7 @@ import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance 
 import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
 
 export const certifiedLibraryMealInclude = {
+  applicableMealTypes: { orderBy: { mealType: 'asc' as const } },
   ingredients: {
     orderBy: { position: 'asc' as const },
     include: { foodItem: { select: { name: true, category: true } } },
@@ -54,6 +55,13 @@ export const certifiedLibraryMealInclude = {
 } as const;
 
 export type CertifiedLibraryMeal = Prisma.MealLibraryGetPayload<{ include: typeof certifiedLibraryMealInclude }>;
+export type EligibleLibraryMeal = CertifiedLibraryMeal & { isFavorite: boolean };
+
+export interface EligibleLibraryPage {
+  items: EligibleLibraryMeal[];
+  nextCursor: string | null;
+  total: number;
+}
 
 export interface LibraryCandidateProfile {
   userId?: string;
@@ -196,7 +204,7 @@ export async function queryEligibleLibraryMeals(input: {
     ...getApprovedMealLibraryWhere(),
     verifiedByNutritionistId: { not: null },
     safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-    ...(input.mealType ? { mealType: input.mealType } : {}),
+    ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(calorieRange ? { calories: { gte: calorieRange.minimum, lte: calorieRange.maximum } } : {}),
     ...(input.excludeIds?.length ? { id: { notIn: [...input.excludeIds] } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
@@ -214,6 +222,136 @@ export async function queryEligibleLibraryMeals(input: {
   return candidates.filter((meal) =>
     isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile)
   );
+}
+
+function encodeLibraryCursor(meal: Pick<CertifiedLibraryMeal, 'mealName' | 'id'>): string {
+  return Buffer.from(JSON.stringify({ mealName: meal.mealName, id: meal.id }), 'utf8').toString('base64url');
+}
+
+function decodeLibraryCursor(cursor?: string): { mealName: string; id: string } | null {
+  if (!cursor) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as Record<string, unknown>;
+    if (typeof parsed.mealName !== 'string' || typeof parsed.id !== 'string') throw new Error();
+    return { mealName: parsed.mealName, id: parsed.id };
+  } catch {
+    throw new Error('Invalid library cursor.');
+  }
+}
+
+function afterLibraryCursor(meal: Pick<CertifiedLibraryMeal, 'mealName' | 'id'>, cursor: { mealName: string; id: string }) {
+  return meal.mealName > cursor.mealName || (meal.mealName === cursor.mealName && meal.id > cursor.id);
+}
+
+/**
+ * User-facing eligible catalog query. It scans database rows in bounded chunks
+ * so the total is authoritative after the final fail-closed policy evaluation,
+ * while memory remains bounded by the chunk plus the requested page.
+ */
+export async function queryEligibleLibraryPage(input: {
+  userId: string;
+  mealType?: MealType;
+  userConditions: readonly string[];
+  userAllergens: readonly string[];
+  profile: LibraryCandidateProfile;
+  search?: string;
+  favoriteOnly?: boolean;
+  riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE';
+  cursor?: string;
+  limit?: number;
+}): Promise<EligibleLibraryPage> {
+  await enforceClearanceCircuitBreakers();
+  const pageLimit = Math.max(1, Math.min(input.limit ?? 24, 60));
+  const requestedCursor = decodeLibraryCursor(input.cursor);
+  const conditions = positiveValues(input.userConditions);
+  const allergens = positiveValues(input.userAllergens);
+  const and: Prisma.MealLibraryWhereInput[] = [];
+  for (const condition of conditions) {
+    and.push({
+      conditionClearances: {
+        some: {
+          condition: condition as HealthConditionType,
+          state: 'ACTIVE',
+          OR: [{ userScopeId: null }, { userScopeId: input.userId }],
+        },
+      },
+    });
+  }
+  for (const allergen of allergens) {
+    and.push(
+      {
+        safetyDeclarations: {
+          some: { canonicalKey: allergen, declarationType: MealLibrarySafetyDeclarationType.ALLERGEN_REVIEWED_ABSENT },
+        },
+      },
+      {
+        safetyDeclarations: {
+          none: { canonicalKey: allergen, declarationType: MealLibrarySafetyDeclarationType.ALLERGEN_PRESENT },
+        },
+      }
+    );
+  }
+  const where: Prisma.MealLibraryWhereInput = {
+    ...getApprovedMealLibraryWhere(),
+    verifiedByNutritionistId: { not: null },
+    safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+    ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
+    ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
+    ...(input.riceRole ? { riceRole: input.riceRole, riceRoleReviewStatus: 'REVIEWED' } : {}),
+    ...(input.favoriteOnly ? { favorites: { some: { userId: input.userId } } } : {}),
+    ...(input.profile.dietaryPreference ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } } : {}),
+    ...(and.length ? { AND: and } : {}),
+  };
+
+  const items: EligibleLibraryMeal[] = [];
+  let total = 0;
+  let scanCursor: { mealName: string; id: string } | null = null;
+  const chunkSize = 100;
+  for (;;) {
+    const rows: Array<CertifiedLibraryMeal & { favorites: Array<{ id: string }> }> =
+      await prisma.mealLibrary.findMany({
+      where: {
+        ...where,
+        ...(scanCursor
+          ? {
+              AND: [
+                ...(and.length ? and : []),
+                {
+                  OR: [
+                    { mealName: { gt: scanCursor.mealName } },
+                    { mealName: scanCursor.mealName, id: { gt: scanCursor.id } },
+                  ],
+                },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        ...certifiedLibraryMealInclude,
+        favorites: { where: { userId: input.userId }, select: { id: true } },
+      },
+      orderBy: [{ mealName: 'asc' }, { id: 'asc' }],
+      take: chunkSize,
+      });
+    for (const row of rows) {
+      if (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile)) continue;
+      total += 1;
+      if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
+        items.push({ ...row, isFavorite: row.favorites.length > 0 });
+      }
+    }
+    if (rows.length < chunkSize) break;
+    const last: CertifiedLibraryMeal & { favorites: Array<{ id: string }> } = rows[rows.length - 1];
+    scanCursor = { mealName: last.mealName, id: last.id };
+  }
+
+  const hasMore = items.length > pageLimit;
+  const page = items.slice(0, pageLimit);
+  return {
+    items: page,
+    nextCursor: hasMore && page.length ? encodeLibraryCursor(page[page.length - 1]) : null,
+    total,
+  };
 }
 
 export function toCanonicalConditions(values: readonly HealthConditionType[]): string[] {

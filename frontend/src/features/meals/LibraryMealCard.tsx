@@ -2,21 +2,25 @@ import type { MealPlan, PublicVerifier } from '@/types';
 import type { SwapOption } from './useMealsWorkspace';
 import MealImage from '@/components/user/MealImage';
 import { formatManilaDate } from '@/lib/manila-date';
+import { Heart } from 'lucide-react';
 
 export default function LibraryMealCard({
   meal,
   meals,
   onSwap,
   onVerifier,
+  onFavorite,
 }: {
   meal: SwapOption;
   meals: MealPlan[];
   onSwap: (id: string, meal: SwapOption) => Promise<void>;
   onVerifier: (verifier: PublicVerifier) => void;
+  onFavorite: (meal: SwapOption) => Promise<void>;
 }) {
+  const applicableMealTypes = meal.mealTypes?.length ? meal.mealTypes : [meal.mealType];
   const slots = meals.filter(
     (slot) =>
-      slot.mealType === meal.mealType &&
+      applicableMealTypes.includes(slot.mealType) &&
       !slot.mealLogs?.some((log) => log.status === 'DONE' || log.status === 'SKIPPED')
   );
   return (
@@ -29,10 +33,30 @@ export default function LibraryMealCard({
         showAttributionLinks
       />
       <div className="flex justify-between text-xs font-bold text-brand-green">
-        <span>{meal.mealType}</span>
+        <span>{applicableMealTypes.join(' · ')}</span>
         <span>{meal.calories} kcal</span>
       </div>
-      <h3 className="text-sm font-bold text-brand-text">{meal.mealName}</h3>
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-sm font-bold text-brand-text">{meal.mealName}</h3>
+        <button
+          type="button"
+          aria-label={meal.isFavorite ? `Remove ${meal.mealName} from favorites` : `Favorite ${meal.mealName}`}
+          aria-pressed={meal.isFavorite}
+          onClick={() => onFavorite(meal)}
+          className="rounded-full border border-brand-border p-2 text-brand-green hover:bg-brand-bgAlt"
+        >
+          <Heart className={`h-4 w-4 ${meal.isFavorite ? 'fill-current' : ''}`} />
+        </button>
+      </div>
+      {meal.riceRole && (
+        <p className="text-[11px] font-semibold text-brand-muted">
+          {meal.riceRole === 'PAIR_WITH_RICE'
+            ? 'Usually paired with rice'
+            : meal.riceRole === 'INCLUDES_RICE'
+              ? `Rice included${meal.includedRiceG ? ` · ${meal.includedRiceG} g` : ''}`
+              : 'Standalone meal'}
+        </p>
+      )}
       {meal.description && <p className="text-xs text-brand-muted">{meal.description}</p>}
       <p className="text-xs text-brand-muted">
         Protein {meal.proteinG} g · Carbs {meal.carbsG} g · Fat {meal.fatG} g

@@ -10,6 +10,8 @@ import {
   classifyMealIngredients,
   MEAL_INGREDIENT_CLASSIFICATION_VERSION,
 } from '../src/domain/meal-ingredient-classification.policy';
+import { proposeMealTypeApplicability } from '../src/domain/meal-applicability.policy';
+import { proposeRiceRole } from '../src/domain/recipe-rice-role.policy';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
@@ -19,7 +21,9 @@ async function main() {
     where: { description: { contains: 'Source: https://panlasangpinoy.com/' } },
     select: {
       id: true,
-      ingredients: { select: { ingredientName: true, category: true } },
+      mealName: true,
+      mealType: true,
+      ingredients: { select: { ingredientName: true, category: true, quantity: true, unit: true } },
     },
     orderBy: { id: 'asc' },
   });
@@ -28,6 +32,18 @@ async function main() {
     result: classifyMealIngredients(
       meal.ingredients.map((ingredient) => ({ name: ingredient.ingredientName, category: ingredient.category }))
     ),
+    applicableMealTypes: proposeMealTypeApplicability({
+      name: meal.mealName,
+      primaryMealType: meal.mealType,
+    }),
+    riceRole: proposeRiceRole({
+      name: meal.mealName,
+      ingredients: meal.ingredients.map((ingredient) => ({
+        name: ingredient.ingredientName,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+      })),
+    }),
   }));
   const summary = {
     mode: APPLY ? 'apply' : 'dry-run',
@@ -44,7 +60,7 @@ async function main() {
   const classifiedAt = new Date();
   for (let offset = 0; offset < classified.length; offset += 40) {
     await Promise.all(
-      classified.slice(offset, offset + 40).map(({ meal, result }) =>
+      classified.slice(offset, offset + 40).map(({ meal, result, riceRole }) =>
         prisma.mealLibrary.update({
           where: { id: meal.id },
           data: {
@@ -56,10 +72,25 @@ async function main() {
             ingredientClassifiedAt: classifiedAt,
             ingredientClassificationFindings: result as unknown as Prisma.InputJsonValue,
             dietaryTags: result.compatibleDietaryPreferences,
+            riceRole: riceRole.riceRole,
+            riceRoleReviewStatus: 'PROPOSED',
+            includedRiceG: riceRole.includedRiceG,
           },
         })
       )
     );
+  }
+  const applicability: Prisma.MealLibraryApplicableTypeCreateManyInput[] = classified.flatMap(
+    ({ meal, applicableMealTypes }) =>
+      applicableMealTypes.map((mealType) => ({
+        mealLibraryId: meal.id,
+        mealType,
+        source: 'DETERMINISTIC_CLASSIFIER',
+        reviewStatus: 'PROPOSED',
+      }))
+  );
+  for (let offset = 0; offset < applicability.length; offset += 500) {
+    await prisma.mealLibraryApplicableType.createMany({ data: applicability.slice(offset, offset + 500), skipDuplicates: true });
   }
   await prisma.mealLibrarySafetyDeclaration.deleteMany({
     where: {

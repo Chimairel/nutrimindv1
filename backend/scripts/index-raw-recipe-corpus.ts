@@ -1,9 +1,11 @@
 import 'dotenv/config';
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DietaryPreference, MealType, Prisma, PrismaClient } from '@prisma/client';
 import { classifyMealIngredients } from '../src/domain/meal-ingredient-classification.policy';
+import { proposeMealTypeApplicability } from '../src/domain/meal-applicability.policy';
+import { proposeRiceRole } from '../src/domain/recipe-rice-role.policy';
+import { buildRawRecipeContentSignature } from '../src/domain/raw-recipe-content-signature.policy';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
@@ -51,28 +53,6 @@ function inferMealType(recipe: RawRecipe): MealType {
   return /\b(dinner|supper)\b/u.test(text) ? MealType.DINNER : MealType.LUNCH;
 }
 
-function signature(recipe: RawRecipe): string {
-  const nutrition = recipe.nutritionPerServing ?? {};
-  const ingredients = (recipe.ingredients1Person ?? [])
-    .map((ingredient) => normalize(ingredient.name ?? ingredient.text))
-    .filter(Boolean)
-    .sort();
-  return createHash('sha256')
-    .update(
-      JSON.stringify({
-        version: 'RAW_RECIPE_SIGNATURE_V1',
-        name: normalize(recipe.name),
-        category: normalize(recipe.category),
-        calories: finite(nutrition.calories),
-        proteinG: finite(nutrition.proteinG),
-        carbsG: finite(nutrition.carbsG),
-        fatG: finite(nutrition.fatG),
-        ingredients,
-      })
-    )
-    .digest('hex');
-}
-
 async function main() {
   const sourcePath = process.env.PANLASANG_RAW_CORPUS_PATH || DEFAULT_SOURCE;
   const parsed = JSON.parse(await readFile(sourcePath, 'utf8')) as RawRecipe[];
@@ -85,7 +65,12 @@ async function main() {
       malformed += 1;
       continue;
     }
-    const contentSignature = signature(recipe);
+    const contentSignature = buildRawRecipeContentSignature({
+      name: recipe.name,
+      category: recipe.category,
+      nutrition: recipe.nutritionPerServing,
+      ingredients: recipe.ingredients1Person,
+    });
     if (!unique.has(contentSignature)) unique.set(contentSignature, recipe);
   }
 
@@ -109,6 +94,8 @@ async function main() {
       ? classification.compatibleDietaryPreferences
       : [DietaryPreference.OMNIVORE];
     const sourceRecordId = String(recipe.id);
+    const primaryMealType = inferMealType(recipe);
+    const riceRole = proposeRiceRole({ name: String(recipe.name), category: recipe.category ? String(recipe.category) : null, ingredients });
 
     rows.push({
       sourceRecordId,
@@ -121,7 +108,10 @@ async function main() {
       category: recipe.category ? String(recipe.category) : null,
       cuisines: Array.isArray(recipe.cuisine) ? recipe.cuisine.map(String) : [],
       description: recipe.description ? String(recipe.description) : null,
-      mealType: inferMealType(recipe),
+      mealType: primaryMealType,
+      riceRole: riceRole.riceRole,
+      riceRoleReviewStatus: 'PROPOSED',
+      includedRiceG: riceRole.includedRiceG,
       dietaryTags: tags,
       ingredients: ingredients as unknown as Prisma.InputJsonValue,
       publishedNutrition: nutrition ? (nutrition as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -133,8 +123,20 @@ async function main() {
       status: 'AVAILABLE',
     });
   }
-  for (let offset = 0; offset < rows.length; offset += 200) {
-    await prisma.rawRecipeCandidate.createMany({ data: rows.slice(offset, offset + 200), skipDuplicates: true });
+  // Upsert by the stable source record rather than only inserting by content
+  // signature. Signature versions can become stricter as the indexer learns to
+  // represent more source fields; an existing provider record must receive the
+  // new signature instead of being silently left stale by skipDuplicates.
+  for (let offset = 0; offset < rows.length; offset += 50) {
+    await Promise.all(
+      rows.slice(offset, offset + 50).map((row) =>
+        prisma.rawRecipeCandidate.upsert({
+          where: { sourceRecordId: row.sourceRecordId },
+          create: row,
+          update: row,
+        })
+      )
+    );
   }
   await prisma.rawRecipeCandidate.updateMany({
     where: { contentSignature: { in: keepSignatures } },
@@ -144,6 +146,32 @@ async function main() {
     where: { contentSignature: { notIn: keepSignatures } },
     data: { status: 'RETIRED' },
   });
+  const indexed = await prisma.rawRecipeCandidate.findMany({
+    where: { contentSignature: { in: keepSignatures } },
+    select: { id: true, recipeName: true, category: true, mealType: true },
+  });
+  const applicabilityRows: Prisma.RawRecipeApplicableTypeCreateManyInput[] = [];
+  for (const candidate of indexed) {
+    const applicable = proposeMealTypeApplicability({
+      name: candidate.recipeName,
+      category: candidate.category,
+      primaryMealType: candidate.mealType,
+    });
+    applicabilityRows.push(
+      ...applicable.map((mealType) => ({
+        rawRecipeCandidateId: candidate.id,
+        mealType,
+        source: 'DETERMINISTIC_CLASSIFIER' as const,
+        reviewStatus: 'PROPOSED' as const,
+      }))
+    );
+  }
+  for (let offset = 0; offset < applicabilityRows.length; offset += 500) {
+    await prisma.rawRecipeApplicableType.createMany({
+      data: applicabilityRows.slice(offset, offset + 500),
+      skipDuplicates: true,
+    });
+  }
   console.log(`Indexed ${unique.size} content-distinct recipes; retired corpus rows absent from this snapshot.`);
 }
 

@@ -417,6 +417,72 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               />
             </div>
 
+            <div className="grid gap-4 rounded-xl border border-brand-border/60 bg-brand-bg/60 p-4 md:grid-cols-2">
+              <fieldset>
+                <legend className="mb-2 text-xs font-bold uppercase text-brand-muted">Applicable meal slots</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'] as const).map((type) => (
+                    <label key={type} className="flex items-center gap-2 text-xs text-brand-text">
+                      <input
+                        type="checkbox"
+                        checked={editForm.applicableMealTypes.includes(type)}
+                        onChange={() =>
+                          setEditForm((current) => {
+                            const selected = current.applicableMealTypes.includes(type)
+                              ? current.applicableMealTypes.filter((value) => value !== type)
+                              : [...current.applicableMealTypes, type];
+                            return selected.length ? { ...current, applicableMealTypes: selected } : current;
+                          })
+                        }
+                      />
+                      {type.charAt(0) + type.slice(1).toLowerCase()}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] text-brand-muted">Your saved selection replaces classifier proposals.</p>
+              </fieldset>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase text-brand-muted" htmlFor="edit-rice-role">
+                  Rice role
+                </label>
+                <select
+                  id="edit-rice-role"
+                  value={editForm.riceRole}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      riceRole: event.target.value as typeof current.riceRole,
+                      includedRiceG: event.target.value === 'INCLUDES_RICE' ? current.includedRiceG : null,
+                    }))
+                  }
+                  className="h-10 w-full rounded-xl border border-brand-border bg-brand-surface px-3 text-sm text-brand-text"
+                >
+                  <option value="PAIR_WITH_RICE">Pair with separate rice</option>
+                  <option value="STANDALONE">Standalone</option>
+                  <option value="INCLUDES_RICE">Rice included in recipe</option>
+                </select>
+                {editForm.riceRole === 'INCLUDES_RICE' && (
+                  <Input
+                    label="Included cooked rice (g, if evidenced)"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={editForm.includedRiceG ?? ''}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        includedRiceG: event.target.value ? Number(event.target.value) : null,
+                      }))
+                    }
+                  />
+                )}
+                <p className="text-[10px] text-brand-muted">
+                  Leave included grams blank when the source does not provide a defensible amount; the serving remains unevaluable.
+                </p>
+              </div>
+            </div>
+
             {/* Checkboxes lists */}
             <div className="space-y-3 pt-2">
               <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3 text-[11px] leading-relaxed text-brand-muted">

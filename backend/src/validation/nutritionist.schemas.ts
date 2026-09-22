@@ -92,6 +92,14 @@ export const libraryMealEditSchema = z
     carbsG: nutritionNumber.max(800),
     fatG: nutritionNumber.max(500),
     dietaryTags: z.array(z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN'])).max(4),
+    applicableMealTypes: z.array(z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'])).min(1).max(4).optional(),
+    riceRole: z.enum(['PAIR_WITH_RICE', 'STANDALONE', 'INCLUDES_RICE']).optional(),
+    includedRiceG: z.number().positive().max(1000).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.includedRiceG && value.riceRole !== 'INCLUDES_RICE') {
+      context.addIssue({ code: 'custom', path: ['includedRiceG'], message: 'Rice grams only apply to recipes that include rice.' });
+    }
   })
   .strict();
 

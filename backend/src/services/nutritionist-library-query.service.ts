@@ -30,7 +30,9 @@ export async function getNutritionistMealLibraryWithFilters(
   const where: Prisma.MealLibraryWhereInput = {};
 
   if (search) where.mealName = { contains: search, mode: 'insensitive' };
-  if (filters.mealType && filters.mealType !== 'All') where.mealType = filters.mealType as MealType;
+  if (filters.mealType && filters.mealType !== 'All') {
+    where.applicableMealTypes = { some: { mealType: filters.mealType as MealType } };
+  }
   if (filters.conditionTag && filters.conditionTag !== 'All') {
     where.suitableConditions = { array_contains: filters.conditionTag };
   }
@@ -53,6 +55,7 @@ export async function getNutritionistMealLibraryWithFilters(
         ingredients: { orderBy: { position: 'asc' } },
         safetyDeclarations: true,
         safetyReviewedByNutritionist: { include: { user: { select: { name: true } } } },
+        applicableMealTypes: { orderBy: { mealType: 'asc' } },
       },
     }),
   ]);

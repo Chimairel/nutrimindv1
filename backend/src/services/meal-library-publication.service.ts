@@ -14,6 +14,8 @@ import {
   MEAL_INGREDIENT_CLASSIFICATION_VERSION,
 } from '@/domain/meal-ingredient-classification.policy';
 import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
+import { proposeMealTypeApplicability } from '@/domain/meal-applicability.policy';
+import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
 
 export async function persistDeterministicLibraryClassification(tx: Prisma.TransactionClient, mealLibraryId: string) {
   const meal = await tx.mealLibrary.findUniqueOrThrow({
@@ -26,6 +28,18 @@ export async function persistDeterministicLibraryClassification(tx: Prisma.Trans
       category: ingredient.category,
     }))
   );
+  const applicableMealTypes = proposeMealTypeApplicability({
+    name: meal.mealName,
+    primaryMealType: meal.mealType,
+  });
+  const riceRole = proposeRiceRole({
+    name: meal.mealName,
+    ingredients: meal.ingredients.map((ingredient) => ({
+      name: ingredient.ingredientName,
+      quantity: ingredient.quantity,
+      unit: ingredient.unit,
+    })),
+  });
 
   await tx.mealLibrarySafetyDeclaration.deleteMany({
     where: { mealLibraryId, provenance: SafetyDeclarationProvenance.DETERMINISTIC_CLASSIFIER },
@@ -45,6 +59,18 @@ export async function persistDeterministicLibraryClassification(tx: Prisma.Trans
       })),
     });
   }
+  await tx.mealLibraryApplicableType.deleteMany({
+    where: { mealLibraryId, source: 'DETERMINISTIC_CLASSIFIER', reviewStatus: 'PROPOSED' },
+  });
+  await tx.mealLibraryApplicableType.createMany({
+    data: applicableMealTypes.map((mealType) => ({
+      mealLibraryId,
+      mealType,
+      source: 'DETERMINISTIC_CLASSIFIER',
+      reviewStatus: 'PROPOSED',
+    })),
+    skipDuplicates: true,
+  });
   await tx.mealLibrary.update({
     where: { id: mealLibraryId },
     data: {
@@ -56,6 +82,9 @@ export async function persistDeterministicLibraryClassification(tx: Prisma.Trans
       ingredientClassificationVersion: MEAL_INGREDIENT_CLASSIFICATION_VERSION,
       ingredientClassifiedAt: new Date(),
       ingredientClassificationFindings: classification as unknown as Prisma.InputJsonValue,
+      riceRole: riceRole.riceRole,
+      riceRoleReviewStatus: 'PROPOSED',
+      includedRiceG: riceRole.includedRiceG,
     },
   });
   return classification;

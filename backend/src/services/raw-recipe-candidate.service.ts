@@ -1,10 +1,11 @@
-import { AiUsageOperation, DietaryPreference, MealType, Prisma } from '@prisma/client';
+import { AiUsageOperation, DietaryPreference, MealType } from '@prisma/client';
 import { z } from 'zod';
-import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
+import { panlasangRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
+import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -25,8 +26,6 @@ export interface SourcedRawRecipeMeal {
   ingredients: Array<{ foodItemId: null; name: string; quantity?: number; unit?: string }>;
 }
 
-type CandidateRow = Prisma.RawRecipeCandidateGetPayload<Record<string, never>>;
-
 const MAX_CANDIDATES_PER_TYPE = 24;
 const MAX_CANDIDATE_SCAN_PER_TYPE = 120;
 
@@ -34,34 +33,13 @@ export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
-function stringArray(value: Prisma.JsonValue): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+function candidateFitsPreference(candidate: RecipeCandidateProjection, preference: DietaryPreference): boolean {
+  return candidate.dietaryTags.includes(preference);
 }
 
-function ingredientArray(value: Prisma.JsonValue): SourcedRawRecipeMeal['ingredients'] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
-    const record = item as Record<string, unknown>;
-    const name = typeof record.name === 'string' ? record.name.trim() : '';
-    if (!name) return [];
-    // Raw recipes commonly use qualitative amounts such as "to taste". The
-    // importer represents those as zero, but persisted ingredient quantities
-    // deliberately use null for unknown amounts and require positive numbers
-    // whenever an amount is present.
-    const quantity = normalizeRawRecipeQuantity(record.quantity);
-    const unit = typeof record.unit === 'string' && record.unit.trim() ? record.unit.trim() : undefined;
-    return [{ foodItemId: null, name, quantity, unit }];
-  });
-}
-
-function candidateFitsPreference(candidate: CandidateRow, preference: DietaryPreference): boolean {
-  return stringArray(candidate.dietaryTags).includes(preference);
-}
-
-function candidateLocalityScore(candidate: CandidateRow, scores: ReadonlyMap<EnnsFoodGroupCode, number>): number {
+function candidateLocalityScore(candidate: RecipeCandidateProjection, scores: ReadonlyMap<EnnsFoodGroupCode, number>): number {
   const groups = new Set<EnnsFoodGroupCode>();
-  for (const ingredient of ingredientArray(candidate.ingredients)) {
+  for (const ingredient of candidate.ingredients) {
     const group = classifyIngredientIntoEnnsFoodGroup({ name: ingredient.name });
     if (group) groups.add(group);
   }
@@ -87,23 +65,21 @@ export async function sourceRawRecipeCandidates(input: {
     mealTypes.map(async (mealType) => {
       if (!isPrimaryMealType(mealType)) return [];
       const range = getMealSlotCalorieRange(input.dailyCalorieTarget, mealType);
-      const rows = await prisma.rawRecipeCandidate.findMany({
-        where: {
-          status: 'AVAILABLE',
-          mealType,
-          calories: { gte: range.minimum, lte: range.maximum },
-          ...(input.excludeCandidateIds?.length ? { id: { notIn: [...input.excludeCandidateIds] } } : {}),
-        },
-        orderBy: [{ calories: 'asc' }, { recipeName: 'asc' }],
-        take: MAX_CANDIDATE_SCAN_PER_TYPE,
+      const page = await panlasangRecipeCandidateProvider.list({
+        mealType,
+        dietaryPreference: input.dietaryPreference,
+        calorieMinimum: range.minimum,
+        calorieMaximum: range.maximum,
+        excludeIds: input.excludeCandidateIds,
+        limit: MAX_CANDIDATE_SCAN_PER_TYPE,
       });
       const localityScores = input.localityFoodGroupScores ?? new Map<EnnsFoodGroupCode, number>();
-      return rows
+      return page.items
         .filter((row) => candidateFitsPreference(row, input.dietaryPreference))
         .sort(
           (left, right) =>
             candidateLocalityScore(right, localityScores) - candidateLocalityScore(left, localityScores) ||
-            left.recipeName.localeCompare(right.recipeName)
+            left.displayName.localeCompare(right.displayName)
         )
         .slice(0, MAX_CANDIDATES_PER_TYPE);
     })
@@ -160,12 +136,12 @@ export async function sourceRawRecipeCandidates(input: {
     `Candidates: ${JSON.stringify(
       candidates.map((candidate) => ({
         id: candidate.id,
-        mealType: candidate.mealType,
-        name: candidate.recipeName,
+        mealTypes: candidate.applicableMealTypes,
+        name: candidate.displayName,
         category: candidate.category,
-        calories: candidate.calories,
-        dietaryTags: stringArray(candidate.dietaryTags),
-        ingredients: ingredientArray(candidate.ingredients)
+        calories: candidate.nutrition?.calories,
+        dietaryTags: candidate.dietaryTags,
+        ingredients: candidate.ingredients
           .slice(0, 12)
           .map((ingredient) => ingredient.name),
       }))
@@ -193,17 +169,14 @@ export async function sourceRawRecipeCandidates(input: {
     const key = `${selection.dayNumber}:${selection.mealType}`;
     const slot = slotByKey.get(key);
     const candidate = candidateById.get(selection.rawCandidateId);
-    if (!slot || !candidate || candidate.mealType !== slot.mealType) continue;
+    if (!slot || !candidate || !candidate.applicableMealTypes.includes(slot.mealType)) continue;
     if (selectedKeys.has(key) || selectedCandidateIds.has(candidate.id)) continue;
     if (!candidateFitsPreference(candidate, input.dietaryPreference)) continue;
     if (
-      candidate.calories === null ||
-      candidate.proteinG === null ||
-      candidate.carbsG === null ||
-      candidate.fatG === null
+      candidate.nutrition === null
     )
       continue;
-    const ingredients = ingredientArray(candidate.ingredients);
+    const ingredients = candidate.ingredients.map((ingredient) => ({ foodItemId: null, ...ingredient }));
     if (!ingredients.length) continue;
     selectedKeys.add(key);
     selectedCandidateIds.add(candidate.id);
@@ -211,12 +184,12 @@ export async function sourceRawRecipeCandidates(input: {
       dayNumber: slot.dayNumber,
       mealType: slot.mealType,
       rawCandidateId: candidate.id,
-      mealName: candidate.recipeName,
-      description: candidate.description ?? `Existing recipe sourced from ${candidate.sourceName}.`,
-      calories: candidate.calories,
-      proteinG: candidate.proteinG,
-      carbsG: candidate.carbsG,
-      fatG: candidate.fatG,
+      mealName: candidate.displayName,
+      description: candidate.description ?? 'Existing recipe sourced from Panlasang Pinoy.',
+      calories: candidate.nutrition.calories,
+      proteinG: candidate.nutrition.proteinG,
+      carbsG: candidate.nutrition.carbsG,
+      fatG: candidate.nutrition.fatG,
       ingredients,
     });
   }

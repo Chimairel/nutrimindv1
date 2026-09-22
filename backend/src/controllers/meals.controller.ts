@@ -5,6 +5,7 @@ import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { MealSwapService } from '@/services/meal-swap.service';
+import { MealFavoriteService } from '@/services/meal-favorite.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
@@ -669,18 +670,20 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const mealType = req.query.mealType as MealType | undefined;
-      const search = req.query.search as string | undefined;
-      const meals = await MealSwapService.getCompatibleLibraryMeals(
-        userId,
-        mealType,
-        search,
-        req.query.date as string | undefined
-      );
+      const page = await MealSwapService.getCompatibleLibraryMeals(userId, {
+        mealType: req.query.mealType as MealType | undefined,
+        search: req.query.search as string | undefined,
+        date: req.query.date as string | undefined,
+        favoriteOnly: req.query.favoriteOnly === 'true',
+        riceRole: req.query.riceRole as 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | undefined,
+        cursor: req.query.cursor as string | undefined,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+      });
 
       return res.status(200).json({
         success: true,
-        data: meals,
+        data: page.items,
+        meta: { total: page.total, nextCursor: page.nextCursor },
       });
     } catch (error: any) {
       console.error('[MealsController] getCompatibleLibrary error:', error);
@@ -688,6 +691,28 @@ export class MealsController {
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to retrieve compatible meals.'),
       });
+    }
+  }
+
+  static async addLibraryFavorite(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      const favorite = await MealFavoriteService.add(userId, req.params.id);
+      return res.status(200).json({ success: true, data: { mealLibraryId: favorite.mealLibraryId, isFavorite: true } });
+    } catch (error: any) {
+      const message = sanitizeErrorMessage(error, 'Failed to favorite meal.');
+      return res.status(message === 'Library meal not found.' ? 404 : 400).json({ success: false, error: message });
+    }
+  }
+
+  static async removeLibraryFavorite(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      return res.status(200).json({ success: true, data: await MealFavoriteService.remove(userId, req.params.id) });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to remove favorite.') });
     }
   }
 
