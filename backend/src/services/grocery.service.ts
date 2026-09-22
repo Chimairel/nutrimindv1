@@ -121,11 +121,16 @@ export class GroceryService {
           });
         else await tx.groceryItem.delete({ where: { id: previous.id } });
       }
-      return tx.groceryList.update({
+      const updated = await tx.groceryList.update({
         where: { id: list.id },
         data: { planGroupId, isStale: false, generatedAt: new Date() },
         include: { groceryItems: true },
       });
+      // Publication readiness includes a successfully committed grocery
+      // projection. Re-run lifecycle derivation in this same transaction so a
+      // failed aggregation cannot leave the cycle marked READY_TO_SHOP.
+      await MealPlanCycleService.synchronizeLifecycle(userId, now, tx);
+      return updated;
     };
     return transaction ? rebuild(transaction) : prisma.$transaction(rebuild, { timeout: 30_000 });
   }

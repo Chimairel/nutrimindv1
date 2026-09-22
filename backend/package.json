@@ -27,6 +27,7 @@
     "test:acceptance:plan-cycles": "tsx scripts/plan-cycle-acceptance.ts",
     "test:acceptance:profile-cycles": "tsx scripts/profile-cycle-adaptation-acceptance.ts",
     "test:acceptance:batch3-catalog": "tsx scripts/batch3-catalog-acceptance.ts",
+    "test:acceptance:batch4-preparation": "tsx scripts/batch4-upcoming-preparation-acceptance.ts",
     "test:acceptance:structured-safety": "tsx scripts/structured-safety-intake-acceptance.ts",
     "test:acceptance:structured-replacement": "tsx scripts/structured-safety-replacement-acceptance.ts",
     "measure:structured-coverage": "tsx scripts/measure-structured-library-coverage.ts",

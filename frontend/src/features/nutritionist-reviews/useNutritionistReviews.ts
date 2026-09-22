@@ -24,6 +24,18 @@ export interface QueueItem {
   highRiskReviewRequired: boolean;
   reviewApprovalCount: number;
   requiresIndependentSecondReview: boolean;
+  intendedCycle: { id: string; startDate: string; endDate: string; status: string };
+  shoppingDeadlineAt: string;
+  cookDeadlineAt: string;
+  assuranceTier: 'BASE' | 'STANDARD' | 'ENHANCED';
+  reviewStage: 'PRIMARY' | 'SECONDARY';
+  remainingReviewers: number;
+  deterministicFindings: { confidence: string; estimatedIngredientCount: number };
+  sourceProvenance: 'CERTIFIED_LIBRARY' | 'RAW_RECIPE_CORPUS' | 'AI_FROM_SCRATCH';
+  fallbackAvailable: boolean;
+  rankingReasonCodes: string[];
+  deadlinePriorityReason: string;
+  coalescedDependentCount: number;
 }
 
 export interface DetailData {

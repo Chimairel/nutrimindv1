@@ -9,6 +9,8 @@ export interface MealSelectionEvidence {
   planningLocationLabel: string;
   consumptionEvidenceScope: string | null;
   consumptionEvidenceRelease: string | null;
+  rankingScore?: number | null;
+  rankingReasonCodes?: string[];
   capturedAt: string;
 }
 
@@ -93,6 +95,9 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
         ? `Meal selection used active aggregate food-consumption evidence at ${evidence.consumptionEvidenceScope} scope (${evidence.consumptionEvidenceRelease || 'version recorded by the data workspace'}).`
         : `No active aggregate food-consumption release matched this plan; selection used the governed food catalogue with ${evidence.planningLocationLabel.toLowerCase()}.`
     );
+  }
+  if (evidence?.rankingReasonCodes?.length) {
+    bullets.push(`Planner ranking factors: ${evidence.rankingReasonCodes.join(', ').toLowerCase().replace(/_/g, ' ')}.`);
   }
 
   if (nutritionEvidence === 'ALL_FNRI')

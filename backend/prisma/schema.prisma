@@ -1085,6 +1085,14 @@ model MealPlan {
   sourceRawRecipeCandidate      RawRecipeCandidate?     @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: Restrict)
   baseRecipeSignature           String?                 @db.VarChar(64)
   composedServingSignature      String?                 @db.VarChar(64)
+  reviewWorkKey                 String?                 @db.VarChar(64)
+  candidateRank                 Int?
+  rankingScore                  Float?
+  rankingReasonCodes            String[]                @default([])
+  fallbackAvailable             Boolean                 @default(false)
+  supersededByMealPlanId        String?
+  supersededByMealPlan          MealPlan?               @relation("MealPlanCandidateSupersession", fields: [supersededByMealPlanId], references: [id], onDelete: SetNull)
+  supersedesMealPlans           MealPlan[]              @relation("MealPlanCandidateSupersession")
 
   // Relations
   ingredients       MealIngredient[]
@@ -1098,6 +1106,9 @@ model MealPlan {
   @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
   @@index([sourceRawRecipeCandidateId])
   @@index([planGroupId])
+  @@index([reviewWorkKey, status])
+  @@index([planGroupId, scheduledDate, mealType, status], map: "MealPlan_cycle_slot_status_idx")
+  @@index([supersededByMealPlanId])
 }
 
 model MealPlanReviewDecision {
@@ -1974,6 +1985,9 @@ model MealPlanCycle {
   endDate                     DateTime
   preparationOpensAt          DateTime
   shoppingDeadlineAt          DateTime
+  preparationPolicyVersion    String                        @default("UPCOMING_PREPARATION_V1") @db.VarChar(64)
+  assuranceTier               AssuranceTier                 @default(BASE)
+  preparationTriggeredAt      DateTime?
   expectedSlotCount           Int
   status                      MealPlanCycleStatus           @default(PREPARING)
   profileAdaptationState      ProfileCycleAdaptationState   @default(CURRENT)

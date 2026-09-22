@@ -4,6 +4,7 @@ import { UserSafetyRecheckService } from './user-safety-recheck.service';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 import { enforceClearanceCircuitBreakers } from './condition-clearance.service';
 import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
+import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
 
 export class CronService {
   static async retrySafetyRevalidation() {
@@ -38,6 +39,7 @@ export class CronService {
     const yesterdayEnd = new Date(yesterdayStart.getTime() + 86_400_000 - 1);
     await enforceClearanceCircuitBreakers();
     await this.retrySafetyRevalidation();
+    const upcomingPreparation = await UpcomingPlanPreparationService.runScheduled();
 
     console.log(`[CronService] Targeted time bounds: ${yesterdayStart.toISOString()} -> ${yesterdayEnd.toISOString()}`);
 
@@ -147,6 +149,7 @@ export class CronService {
       success: true,
       processedCount: processedLogs.length,
       logs: processedLogs,
+      upcomingPreparation,
     };
   }
 }

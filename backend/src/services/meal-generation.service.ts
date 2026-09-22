@@ -17,6 +17,10 @@ import {
   MealPlanCycleStatus,
   AiUsageOperation,
   MealCandidateProvenance,
+  AssuranceTier,
+  RecipeRiceRole,
+  RicePreference,
+  RiceRoleReviewStatus,
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -27,6 +31,7 @@ import {
   getCurrentWeeklyCycleWindow,
   getMealPlanCycleTiming,
   getManilaDateKey,
+  getNextWeeklyCycleWindow,
   getOnDemandMealPlanWindow,
   getScheduledMealDate,
   type MealPlanGenerationWindow,
@@ -58,7 +63,16 @@ import {
   type GeneratedMeal,
   type GroundedFoodReference,
 } from './meal-generation-ingredient-preparation.service';
-import { buildBaseServingPersistence } from './meal-plan-serving.service';
+import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
+import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
+import { GroceryService } from './grocery.service';
+import {
+  buildReviewWorkKey,
+  chooseCookedRicePortionG,
+  getPreparationLeadDays,
+  scorePreparationCandidate,
+  UPCOMING_PREPARATION_POLICY_VERSION,
+} from '@/domain/upcoming-preparation.policy';
 
 interface GeminiMealPlanResponse {
   meals: GeneratedMeal[];
@@ -130,7 +144,74 @@ export class MealGenerationService {
     return existingCycle?.id ?? null;
   }
 
-  private static async generateWindowOnce(
+  /**
+   * Idempotently prepares the next full cycle once its versioned Manila-time
+   * window opens. The generation-job uniqueness constraint coalesces scheduler,
+   * page recovery, and report-acknowledgment triggers.
+   */
+  static async ensureUpcomingPlanForUser(
+    userId: string,
+    now: Date = new Date()
+  ): Promise<{ state: 'NOT_OPEN' | 'EXISTING' | 'PREPARED'; planGroupId: string | null }> {
+    const context = await loadUserNutritionContext(
+      prisma,
+      userId,
+      'User profile must be initialized before preparing an upcoming meal plan.'
+    );
+    const profile = context.profile;
+    if (profile.shoppingDayOfWeek === null && !profile.shoppingDayGroup) {
+      return { state: 'NOT_OPEN', planGroupId: null };
+    }
+    const window = getNextWeeklyCycleWindow(profile, now);
+    const assuranceTier = getMaximumAssuranceTier(context.conditions);
+    const timing = getMealPlanCycleTiming(
+      PlanType.WEEKLY,
+      window.startDate,
+      7,
+      getPreparationLeadDays(assuranceTier)
+    );
+    const existingCycle = await prisma.mealPlanCycle.findFirst({
+      where: {
+        userId,
+        planType: PlanType.WEEKLY,
+        status: { not: MealPlanCycleStatus.SUPERSEDED },
+        startDate: window.startDate,
+        endDate: window.endDate,
+      },
+      orderBy: { cycleRevision: 'desc' },
+      select: {
+        id: true,
+        profileAdaptationState: true,
+        acknowledgedProfileRevision: true,
+        shoppingStartedAt: true,
+      },
+    });
+    if (existingCycle) {
+      const rebuildable =
+        !existingCycle.shoppingStartedAt &&
+        existingCycle.acknowledgedProfileRevision === profile.revision &&
+        (existingCycle.profileAdaptationState === 'REBUILD_REQUIRED' ||
+          existingCycle.profileAdaptationState === 'SAFETY_REVALIDATION_REQUIRED');
+      if (!rebuildable) return { state: 'EXISTING', planGroupId: existingCycle.id };
+      const planGroupId = await MealGenerationService.generateWindowOnce(
+        userId,
+        { planType: PlanType.WEEKLY, numDays: 7, startDate: window.startDate },
+        true
+      );
+      return { state: 'PREPARED', planGroupId };
+    }
+    if (now.getTime() < timing.preparationOpensAt.getTime()) {
+      return { state: 'NOT_OPEN', planGroupId: null };
+    }
+    const planGroupId = await MealGenerationService.generateWindowOnce(userId, {
+      planType: PlanType.WEEKLY,
+      numDays: 7,
+      startDate: window.startDate,
+    });
+    return { state: 'PREPARED', planGroupId };
+  }
+
+  static async generateWindowOnce(
     userId: string,
     window: MealPlanGenerationWindow,
     replaceExisting = false
@@ -335,6 +416,7 @@ export class MealGenerationService {
       'User profile must be initialized before generating a meal plan.'
     );
     const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
+    const assuranceTier = getMaximumAssuranceTier(userConditions);
 
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
     if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
@@ -371,6 +453,23 @@ export class MealGenerationService {
       )
     ).flat();
     const eligibleLibraryMeals = libraryMeals;
+    const userHasConditions = userConditions.some((condition) => condition !== HealthConditionType.NONE);
+    const cookedRiceFood =
+      profile.ricePreference === RicePreference.WITH_RICE && !userHasConditions
+        ? await prisma.foodItem.findFirst({
+            where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
+          })
+        : null;
+    const recentlyUsedLibraryIds = new Set(
+      (
+        await prisma.mealPlan.findMany({
+          where: { userId, libraryMealId: { not: null }, status: MealPlanStatus.APPROVED },
+          orderBy: { scheduledDate: 'desc' },
+          take: 42,
+          select: { libraryMealId: true },
+        })
+      ).flatMap((meal) => (meal.libraryMealId ? [meal.libraryMealId] : []))
+    );
     const localizedCertifiedMealReference = rankMealsByLocalizedFoodEvidence(
       [...eligibleLibraryMeals].sort((left, right) => right.usageCount - left.usageCount),
       localizedFoodIds,
@@ -388,6 +487,11 @@ export class MealGenerationService {
       mealType: MealType;
       scheduledDate: Date;
       libraryMeal: (typeof libraryMeals)[0];
+      candidateRank: number;
+      rankingScore: number;
+      rankingReasonCodes: string[];
+      pairedRiceG: number | null;
+      fallbackAvailable: boolean;
     }[] = [];
 
     const unmatchedSlots: {
@@ -422,20 +526,64 @@ export class MealGenerationService {
         // also fits this user's allocated meal target. Prefer the closest fit;
         // smaller recipes fall through to personalized generation.
         const calorieEligibleMatches = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType);
-        const selected = rankMealsByLocalizedFoodEvidence(
+        const localityRanked = rankMealsByLocalizedFoodEvidence(
           calorieEligibleMatches,
           localizedFoodIds,
           localizedFoodGroupScores
-        )[0];
+        );
+        const range = getMealSlotCalorieRange(dailyCalorieTarget, slotType);
+        const ranked = localityRanked
+          .map((meal, localityIndex) => ({
+            meal,
+            ranking: scorePreparationCandidate({
+              activeClearanceCoverage: true,
+              allergenDeclarationsComplete: true,
+              ingredientsResolved: meal.ingredients.every((ingredient) => Boolean(ingredient.foodItemId)),
+              nutrientsComplete: [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].every(Number.isFinite),
+              dietCompatible: true,
+              remainingReviews: 0,
+              calorieDeviationRatio: Math.abs(meal.calories - range.target) / range.target,
+              mealTypeMatch: meal.applicableMealTypes.some((entry) => entry.mealType === slotType),
+              ricePreference: profile.ricePreference,
+              riceRole: meal.riceRole,
+              riceRoleReviewStatus: meal.riceRoleReviewStatus,
+              localityScore: localityIndex === 0 && localityRanked.length > 1 ? 1 : 0,
+              usedInRecentCycle: recentlyUsedLibraryIds.has(meal.id),
+            }),
+          }))
+          .sort(
+            (left, right) =>
+              right.ranking.score - left.ranking.score ||
+              left.meal.usageCount - right.meal.usageCount ||
+              left.meal.id.localeCompare(right.meal.id)
+          );
+        const selected = ranked[0];
 
         if (selected) {
-          selectedLibraryMealIds.add(selected.id);
+          selectedLibraryMealIds.add(selected.meal.id);
+          const pairedRiceG =
+            cookedRiceFood &&
+            selected.meal.riceRole === RecipeRiceRole.PAIR_WITH_RICE &&
+            selected.meal.riceRoleReviewStatus === RiceRoleReviewStatus.REVIEWED
+              ? chooseCookedRicePortionG({
+                  baseCalories: selected.meal.calories,
+                  riceCaloriesPer100G: cookedRiceFood.calories,
+                  slotTargetCalories: range.target,
+                  slotMinimumCalories: range.minimum,
+                  slotMaximumCalories: range.maximum,
+                })
+              : null;
 
           matchedSlots.push({
             dayNumber: day + 1,
             mealType: slotType,
             scheduledDate,
-            libraryMeal: selected,
+            libraryMeal: selected.meal,
+            candidateRank: 1,
+            rankingScore: selected.ranking.score,
+            rankingReasonCodes: selected.ranking.reasonCodes,
+            pairedRiceG,
+            fallbackAvailable: ranked.length > 1,
           });
         } else {
           unmatchedSlots.push({
@@ -600,7 +748,8 @@ export class MealGenerationService {
     const evidenceCapturedAt = new Date().toISOString();
     const selectionEvidenceFor = (
       source: MealSelectionEvidence['source'],
-      mealType: MealType
+      mealType: MealType,
+      ranking?: { score?: number | null; reasonCodes?: readonly string[] }
     ): MealSelectionEvidence => {
       const range = isPrimaryMealType(mealType) ? getMealSlotCalorieRange(dailyCalorieTarget, mealType) : null;
       return {
@@ -614,12 +763,18 @@ export class MealGenerationService {
         planningLocationLabel: formatMealLocalityPreference(profile),
         consumptionEvidenceScope: localizedConsumption.matchedScope?.label ?? null,
         consumptionEvidenceRelease: localizedConsumption.releaseLabel,
+        rankingScore: ranking?.score ?? null,
+        rankingReasonCodes: [...(ranking?.reasonCodes ?? [])],
         capturedAt: evidenceCapturedAt,
       };
     };
-    const cycleTiming = getMealPlanCycleTiming(planType, startDate, numDays);
+    const cycleTiming = getMealPlanCycleTiming(
+      planType,
+      startDate,
+      numDays,
+      getPreparationLeadDays(assuranceTier)
+    );
     const targetPlanEndDate = cycleTiming.endDate;
-    const userHasConditions = userConditions.length > 0 && !userConditions.includes(HealthConditionType.NONE);
     const planConditions = userConditions.filter((condition) => condition !== HealthConditionType.NONE);
     const createdPlansList: any[] = [];
 
@@ -639,13 +794,38 @@ export class MealGenerationService {
     );
 
     // Recheck authoritative totals after all FNRI lookups, before replacing any saved plans.
-    for (const meal of preparedAiMeals) assertMealSlotCalories(meal.calories, dailyCalorieTarget, meal.mealType);
+    for (const meal of preparedAiMeals) {
+      assertMealSlotCalories(meal.calories, dailyCalorieTarget, meal.mealType);
+      if (meal.rankingScore === undefined || !meal.rankingReasonCodes?.length) {
+        if (!isPrimaryMealType(meal.mealType)) {
+          throw new Error(`Unsupported generated meal slot: ${meal.mealType}`);
+        }
+        const range = getMealSlotCalorieRange(dailyCalorieTarget, meal.mealType);
+        const ranking = scorePreparationCandidate({
+          activeClearanceCoverage: false,
+          allergenDeclarationsComplete: false,
+          ingredientsResolved: meal.ingredientsData.every((ingredient) => Boolean(ingredient.foodItemId)),
+          nutrientsComplete: [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].every(Number.isFinite),
+          dietCompatible: true,
+          remainingReviews: assuranceTier === AssuranceTier.ENHANCED ? 2 : 1,
+          calorieDeviationRatio: Math.abs(meal.calories - range.target) / range.target,
+          mealTypeMatch: true,
+          ricePreference: profile.ricePreference,
+          usedInRecentCycle: false,
+        });
+        meal.candidateRank = meal.candidateRank ?? 1;
+        meal.rankingScore = ranking.score;
+        meal.rankingReasonCodes = ranking.reasonCodes;
+      }
+    }
     const finalCalorieIssues = validateGeneratedDayCalories(
       [
         ...matchedSlots.map((slot) => ({
           dayNumber: slot.dayNumber,
           mealType: slot.mealType,
-          calories: slot.libraryMeal.calories,
+          calories:
+            slot.libraryMeal.calories +
+            (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.calories * slot.pairedRiceG) / 100 : 0),
         })),
         ...preparedAiMeals.map((meal) => ({
           dayNumber: unmatchedSlots.find(
@@ -662,10 +842,18 @@ export class MealGenerationService {
     const cycleMeals = [
       ...matchedSlots.map((slot) => ({
         scheduledDate: slot.scheduledDate,
-        calories: slot.libraryMeal.calories,
-        proteinG: slot.libraryMeal.proteinG,
-        carbsG: slot.libraryMeal.carbsG,
-        fatG: slot.libraryMeal.fatG,
+        calories:
+          slot.libraryMeal.calories +
+          (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.calories * slot.pairedRiceG) / 100 : 0),
+        proteinG:
+          slot.libraryMeal.proteinG +
+          (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.proteinG * slot.pairedRiceG) / 100 : 0),
+        carbsG:
+          slot.libraryMeal.carbsG +
+          (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.carbsG * slot.pairedRiceG) / 100 : 0),
+        fatG:
+          slot.libraryMeal.fatG +
+          (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.fatG * slot.pairedRiceG) / 100 : 0),
       })),
       ...preparedAiMeals.map((meal) => ({
         scheduledDate: meal.scheduledDate,
@@ -698,9 +886,7 @@ export class MealGenerationService {
         ? MealPlanCycleStatus.COMPLETED
         : cycleTiming.startDate <= businessDay
           ? MealPlanCycleStatus.ACTIVE
-          : completeSlotSet
-            ? MealPlanCycleStatus.READY_TO_SHOP
-            : deadlinePassed
+          : deadlinePassed
               ? MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE
               : MealPlanCycleStatus.UNDER_REVIEW;
     const deadlineOutcome = deadlinePassed ? MealPlanCycleDeadlineOutcome.INCOMPLETE : null;
@@ -758,10 +944,13 @@ export class MealGenerationService {
             endDate: cycleTiming.endDate,
             preparationOpensAt: cycleTiming.preparationOpensAt,
             shoppingDeadlineAt: cycleTiming.shoppingDeadlineAt,
+            preparationPolicyVersion: UPCOMING_PREPARATION_POLICY_VERSION,
+            assuranceTier,
+            preparationTriggeredAt: now,
             expectedSlotCount: cycleTiming.expectedSlotCount,
             status: cycleStatus,
             deadlineOutcome,
-            readyAt: completeSlotSet ? now : null,
+            readyAt: null,
             activatedAt: cycleStatus === MealPlanCycleStatus.ACTIVE ? now : null,
           },
         });
@@ -855,9 +1044,14 @@ export class MealGenerationService {
                 safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
                 highRiskReviewRequired,
                 reviewApprovalCount: highRiskReviewRequired ? 2 : 1,
+                candidateRank: slot.candidateRank,
+                rankingScore: slot.rankingScore,
+                rankingReasonCodes: slot.rankingReasonCodes,
+                fallbackAvailable: slot.fallbackAvailable,
                 selectionEvidence: selectionEvidenceFor(
                   'VERIFIED_LIBRARY',
-                  slot.mealType
+                  slot.mealType,
+                  { score: slot.rankingScore, reasonCodes: slot.rankingReasonCodes }
                 ) as unknown as Prisma.InputJsonValue,
                 ingredients: {
                   create: ingredientsData,
@@ -887,6 +1081,14 @@ export class MealGenerationService {
                 };
               });
               await tx.mealPlanClearanceUsage.createMany({ data: clearanceUsages });
+            }
+
+            if (slot.pairedRiceG && cookedRiceFood) {
+              await composePlanWithPairedRice(tx, {
+                mealPlanId: createdPlan.id,
+                cookedRiceG: slot.pairedRiceG,
+                fnriRiceFoodItemId: cookedRiceFood.id,
+              });
             }
 
             // Increment library entry usage count
@@ -927,11 +1129,24 @@ export class MealGenerationService {
               requiresSafetyRevalidation: true,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
+              reviewWorkKey: buildReviewWorkKey({
+                recipeSignature: serving.baseRecipeSignature,
+                evidenceRevision: 1,
+                conditions: planConditions,
+                allergens: userAllergens,
+                policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
+              }),
+              candidateRank: meal.candidateRank ?? 1,
+              rankingScore: meal.rankingScore ?? null,
+              rankingReasonCodes: meal.rankingReasonCodes ?? [],
+              fallbackAvailable: false,
               selectionEvidence: selectionEvidenceFor(
                 meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
                   ? 'RAW_RECIPE_CORPUS'
                   : 'AI_GENERATED',
-                meal.mealType
+                meal.mealType,
+                { score: meal.rankingScore, reasonCodes: meal.rankingReasonCodes }
               ) as unknown as Prisma.InputJsonValue,
               ingredients: {
                 create: meal.ingredientsData,
@@ -951,6 +1166,14 @@ export class MealGenerationService {
       'SAVING',
       'Saving the plan and preparing its professional review queue.'
     );
+
+    if (completeSlotSet && cycleTiming.startDate > businessDay) {
+      try {
+        await GroceryService.generateGroceryList(userId, undefined, newPlanGroupId);
+      } catch (error) {
+        console.error('[Meal Generation] Upcoming grocery projection failed; cycle remains under review:', error);
+      }
+    }
 
     const needsReview = createdPlansList.some((p) => p.aiConfidenceFlag === AIConfidenceFlag.NEEDS_REVIEW);
     if (needsReview) {

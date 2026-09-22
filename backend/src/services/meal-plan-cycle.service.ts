@@ -5,8 +5,11 @@ import {
   getManilaMidnight,
 } from '@/domain/meal-plan-cycle.policy';
 import {
+  ConditionClearanceState,
   MealPlanStatus,
   MealPlanCycleStatus,
+  MealLibrarySafetyEvidenceStatus,
+  MealLibraryStatus,
   Prisma,
   ProfileCycleAdaptationState,
 } from '@prisma/client';
@@ -73,6 +76,8 @@ export class MealPlanCycleService {
         readyAt: true,
         activatedAt: true,
         shoppingStartedAt: true,
+        groceryList: { select: { isStale: true } },
+        user: { select: { healthConditions: { select: { condition: true } } } },
         mealPlans: {
           where: { status: { not: MealPlanStatus.CANCELLED } },
           select: {
@@ -82,6 +87,39 @@ export class MealPlanCycleService {
             requiresSafetyRevalidation: true,
             createdAt: true,
             reviewedAt: true,
+            libraryMealId: true,
+            baseRecipeSignature: true,
+            composedServingSignature: true,
+            safetyPolicyVersion: true,
+            highRiskReviewRequired: true,
+            reviewApprovalCount: true,
+            libraryMeal: {
+              select: {
+                status: true,
+                safetyEvidenceStatus: true,
+                safetyEvidenceRevision: true,
+                recipeSignature: true,
+              },
+            },
+            clearanceUsages: {
+              select: {
+                condition: true,
+                composedServingSignature: true,
+                clearance: {
+                  select: {
+                    state: true,
+                    recipeSignature: true,
+                    evidenceRevision: true,
+                    composedServingSignature: true,
+                    expiresAt: true,
+                  },
+                },
+              },
+            },
+            reviewDecisions: {
+              where: { decision: 'APPROVE' },
+              select: { nutritionistProfileId: true, stage: true },
+            },
           },
         },
       },
@@ -101,15 +139,59 @@ export class MealPlanCycleService {
         }
         continue;
       }
-      const clearedMeals = cycle.mealPlans.filter(
-        (meal) =>
-          meal.status === MealPlanStatus.APPROVED &&
-          meal.requiresSafetyRevalidation === false
+      const requiredConditions = new Set(
+        cycle.user.healthConditions
+          .map((item) => item.condition)
+          .filter((condition) => condition !== 'NONE')
       );
+      const clearedMeals = cycle.mealPlans.filter((meal) => {
+        if (
+          meal.status !== MealPlanStatus.APPROVED ||
+          meal.requiresSafetyRevalidation ||
+          !meal.baseRecipeSignature ||
+          !meal.composedServingSignature ||
+          !meal.safetyPolicyVersion
+        ) {
+          return false;
+        }
+
+        if (meal.libraryMealId) {
+          const library = meal.libraryMeal;
+          if (
+            !library ||
+            library.status !== MealLibraryStatus.APPROVED ||
+            library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE ||
+            library.recipeSignature !== meal.baseRecipeSignature
+          ) {
+            return false;
+          }
+          const validConditions = new Set(
+            meal.clearanceUsages
+              .filter(
+                (usage) =>
+                  usage.clearance.state === ConditionClearanceState.ACTIVE &&
+                  usage.clearance.recipeSignature === library.recipeSignature &&
+                  usage.clearance.evidenceRevision === library.safetyEvidenceRevision &&
+                  usage.composedServingSignature === meal.composedServingSignature &&
+                  (!usage.clearance.composedServingSignature ||
+                    usage.clearance.composedServingSignature === meal.composedServingSignature) &&
+                  (!usage.clearance.expiresAt || usage.clearance.expiresAt > now)
+              )
+              .map((usage) => usage.condition)
+          );
+          return [...requiredConditions].every((condition) => validConditions.has(condition));
+        }
+
+        const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
+        const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;
+        return meal.reviewApprovalCount >= requiredApprovals && distinctApprovers.size >= requiredApprovals;
+      });
       const clearedSlots = new Set(
         clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
       );
-      const hasCompleteSlotSet = clearedSlots.size >= cycle.expectedSlotCount;
+      const allSlotsCleared = clearedSlots.size >= cycle.expectedSlotCount;
+      const groceryProjectionReady = Boolean(cycle.groceryList && !cycle.groceryList.isStale);
+      const hasCompleteSlotSet = allSlotsCleared && groceryProjectionReady;
       const observedReadyAt = hasCompleteSlotSet
         ? cycle.readyAt ??
           new Date(

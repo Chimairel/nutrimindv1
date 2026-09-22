@@ -2,6 +2,7 @@ import { AIConfidenceFlag, MealCandidateProvenance, MealIngredientDataSource, Me
 import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
 import { lookupIngredient } from '@/lib/fnri';
 import prisma from '@/lib/prisma';
+import type { PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 
 export interface GroundedFoodReference {
   id: string;
@@ -25,6 +26,9 @@ export interface GeneratedMeal {
   fatG: number;
   rawCandidateId?: string;
   candidateProvenance?: MealCandidateProvenance;
+  candidateRank?: number;
+  rankingScore?: number;
+  rankingReasonCodes?: PreparationRankingReasonCode[];
 }
 
 export interface PreparedGeneratedMeal {
@@ -39,6 +43,9 @@ export interface PreparedGeneratedMeal {
   aiConfidenceFlag: AIConfidenceFlag;
   rawCandidateId?: string;
   candidateProvenance: MealCandidateProvenance;
+  candidateRank?: number;
+  rankingScore?: number;
+  rankingReasonCodes?: PreparationRankingReasonCode[];
   ingredientsData: Array<{
     ingredientName: string;
     category: string;
@@ -146,6 +153,9 @@ export async function prepareGeneratedMealIngredients(input: {
       aiConfidenceFlag: confidence,
       rawCandidateId: rawMeal.rawCandidateId,
       candidateProvenance: rawMeal.candidateProvenance ?? MealCandidateProvenance.AI_FROM_SCRATCH,
+      candidateRank: rawMeal.candidateRank,
+      rankingScore: rawMeal.rankingScore,
+      rankingReasonCodes: rawMeal.rankingReasonCodes,
       ingredientsData,
     });
   }

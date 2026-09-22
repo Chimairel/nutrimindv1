@@ -149,6 +149,22 @@ export default function ReviewsPage() {
                       {meal.requiresIndependentSecondReview ? 'Independent second review required' : 'Escalated review'}
                     </p>
                   )}
+                  <div className="mb-2 flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wide">
+                    <span className="rounded-md border border-brand-border px-2 py-1 text-brand-muted">
+                      {meal.sourceProvenance.replace(/_/g, ' ')}
+                    </span>
+                    <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-amber-500">
+                      Shop by {new Date(meal.shoppingDeadlineAt).toLocaleDateString()}
+                    </span>
+                    {meal.coalescedDependentCount > 1 && (
+                      <span className="rounded-md border border-brand-green/25 bg-brand-green/10 px-2 py-1 text-brand-green">
+                        {meal.coalescedDependentCount} matching slots
+                      </span>
+                    )}
+                  </div>
+                  <p className="mb-2 text-[10px] leading-relaxed text-brand-muted">
+                    Cook date {new Date(meal.cookDeadlineAt).toLocaleDateString()} · {meal.assuranceTier.toLowerCase()} assurance · {meal.remainingReviewers} review{meal.remainingReviewers === 1 ? '' : 's'} remaining
+                  </p>
                   <div className="flex items-center justify-between gap-2 text-[11px] text-brand-muted">
                     <span className="flex items-center gap-1.5 min-w-0 truncate">
                       <Avatar name={meal.user.name} size="sm" />

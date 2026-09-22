@@ -7,6 +7,7 @@ import { formatMealLocalityPreference } from '@/domain/planning-location.policy'
 import { z } from 'zod';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
+import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
 
 const NUTRITION_REPORT_SYSTEM_CONTEXT = `
 You are generating a nutrition report for a system with this
@@ -46,7 +47,7 @@ export class NutritionReportService {
    * Acknowledges the user's current report by setting acknowledgedAt to now.
    */
   static async acknowledgeReport(userId: string, expectedVersion?: number) {
-    return prisma.$transaction(async (tx) => {
+    const acknowledged = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
       const report = await tx.nutritionReport.findUniqueOrThrow({ where: { userId } });
       const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
@@ -62,6 +63,8 @@ export class NutritionReportService {
       await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
       return acknowledged;
     });
+    UpcomingPlanPreparationService.triggerNonBlocking(userId);
+    return acknowledged;
   }
 
   static async getHistory(userId: string) {

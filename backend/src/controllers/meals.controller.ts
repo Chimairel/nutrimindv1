@@ -6,6 +6,7 @@ import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import { MealFavoriteService } from '@/services/meal-favorite.service';
+import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
@@ -234,6 +235,7 @@ export class MealsController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      UpcomingPlanPreparationService.triggerNonBlocking(userId);
       const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
       return res.status(200).json({ success: true, data: cycles });
     } catch (error) {

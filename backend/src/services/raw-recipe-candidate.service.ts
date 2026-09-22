@@ -1,4 +1,4 @@
-import { AiUsageOperation, DietaryPreference, MealType } from '@prisma/client';
+import { AiUsageOperation, AssuranceTier, DietaryPreference, MealType } from '@prisma/client';
 import { z } from 'zod';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
@@ -6,6 +6,11 @@ import { isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
 import { panlasangRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
+import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
+import {
+  scorePreparationCandidate,
+  type PreparationRankingReasonCode,
+} from '@/domain/upcoming-preparation.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -24,6 +29,9 @@ export interface SourcedRawRecipeMeal {
   carbsG: number;
   fatG: number;
   ingredients: Array<{ foodItemId: null; name: string; quantity?: number; unit?: string }>;
+  candidateRank: number;
+  rankingScore: number;
+  rankingReasonCodes: PreparationRankingReasonCode[];
 }
 
 const MAX_CANDIDATES_PER_TYPE = 24;
@@ -61,6 +69,7 @@ export async function sourceRawRecipeCandidates(input: {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
 
   const mealTypes = [...new Set(input.slots.map((slot) => slot.mealType))];
+  const assuranceTier = getMaximumAssuranceTier(input.conditions);
   const candidateGroups = await Promise.all(
     mealTypes.map(async (mealType) => {
       if (!isPrimaryMealType(mealType)) return [];
@@ -76,10 +85,27 @@ export async function sourceRawRecipeCandidates(input: {
       const localityScores = input.localityFoodGroupScores ?? new Map<EnnsFoodGroupCode, number>();
       return page.items
         .filter((row) => candidateFitsPreference(row, input.dietaryPreference))
+        .map((candidate) => {
+          const target = range.target;
+          const localityScore = candidateLocalityScore(candidate, localityScores);
+          const ranking = scorePreparationCandidate({
+            activeClearanceCoverage: false,
+            allergenDeclarationsComplete: false,
+            ingredientsResolved: candidate.ingredientsComplete,
+            nutrientsComplete: candidate.nutrition !== null,
+            dietCompatible: true,
+            remainingReviews: assuranceTier === AssuranceTier.ENHANCED ? 2 : 1,
+            calorieDeviationRatio: candidate.nutrition ? Math.abs(candidate.nutrition.calories - target) / target : 1,
+            mealTypeMatch: candidate.applicableMealTypes.includes(mealType),
+            riceRole: candidate.riceRole,
+            localityScore,
+            usedInRecentCycle: false,
+          });
+          return { ...candidate, _ranking: ranking };
+        })
         .sort(
           (left, right) =>
-            candidateLocalityScore(right, localityScores) - candidateLocalityScore(left, localityScores) ||
-            left.displayName.localeCompare(right.displayName)
+            right._ranking.score - left._ranking.score || left.displayName.localeCompare(right.displayName)
         )
         .slice(0, MAX_CANDIDATES_PER_TYPE);
     })
@@ -161,6 +187,7 @@ export async function sourceRawRecipeCandidates(input: {
   }
 
   const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  const candidateRankById = new Map(candidates.map((candidate, index) => [candidate.id, index + 1]));
   const slotByKey = new Map(input.slots.map((slot) => [`${slot.dayNumber}:${slot.mealType}`, slot]));
   const selectedKeys = new Set<string>();
   const selectedCandidateIds = new Set<string>();
@@ -191,6 +218,9 @@ export async function sourceRawRecipeCandidates(input: {
       carbsG: candidate.nutrition.carbsG,
       fatG: candidate.nutrition.fatG,
       ingredients,
+      candidateRank: candidateRankById.get(candidate.id) ?? 1,
+      rankingScore: candidate._ranking.score,
+      rankingReasonCodes: candidate._ranking.reasonCodes,
     });
   }
 

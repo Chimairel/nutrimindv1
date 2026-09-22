@@ -2,6 +2,7 @@ import { Response } from 'express';
 import React from 'react';
 import { AuthenticatedRequest } from '@/types';
 import { GroceryService } from '@/services/grocery.service';
+import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
 
 export class GroceryController {
   /**
@@ -39,6 +40,7 @@ export class GroceryController {
         return res.status(401).json({ success: false, error: 'Unauthorized user.' });
       }
 
+      UpcomingPlanPreparationService.triggerNonBlocking(userId);
       const groceryList = await GroceryService.getGroceryList(userId);
       return res.status(200).json({
         success: true,
