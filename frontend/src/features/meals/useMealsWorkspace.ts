@@ -43,13 +43,23 @@ export interface MealHistoryLog {
   fatG: number;
   calorieDelta?: number | null;
   notes?: string | null;
+  nutritionCompleteness?: 'COMPLETE' | 'PARTIAL' | 'UNRESOLVED';
+  provisionalCalories?: number;
+  hasImage?: boolean;
+  voidedAt?: string | null;
   mealType?: string | null;
   outsideItems?: Array<{
-    id?: string;
+    id: string;
     name: string;
     portionGrams?: number | null;
     calories?: number | null;
     proteinG?: number | null;
+    carbsG?: number | null;
+    fatG?: number | null;
+    nutritionStatus?: string;
+    source?: string;
+    includedInTotals?: boolean;
+    currentRevision?: number;
   }>;
 }
 
@@ -593,6 +603,22 @@ export function useMealsWorkspace() {
     }
   };
 
+  const handleEditOutsideItem = async (logId: string, itemId: string, input: {
+    name: string;
+    portionGrams: number | null;
+    reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
+    unresolved?: boolean;
+    reason: string;
+  }) => {
+    await api.patch(`/user/meals/logs/${logId}/items/${itemId}`, input);
+    await Promise.all([fetchHistory(), fetchMeals()]);
+  };
+
+  const handleVoidOutsideLog = async (logId: string, reason: string) => {
+    await api.post(`/user/meals/logs/${logId}/void`, { reason });
+    await Promise.all([fetchHistory(), fetchMeals()]);
+  };
+
   const groupHistoryByDate = () => {
     const grouped: Record<string, MealHistoryLog[]> = {};
     historyLogs.forEach((log) => {
@@ -705,6 +731,8 @@ export function useMealsWorkspace() {
     selectedHistoryDateKey,
     setSelectedHistoryDateKey,
     handleUpdateLogNotes,
+    handleEditOutsideItem,
+    handleVoidOutsideLog,
     libraryMeals,
     isLibraryLoading,
     libraryTotalCount,

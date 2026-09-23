@@ -3,7 +3,7 @@ export const OUTSIDE_MEAL_AI_DAILY_CAP = 5;
 export const OUTSIDE_MEAL_AI_ROLLING_30_DAY_CAP = 30;
 
 export type OutsideMealItemSource =
-  'VERIFIED_LIBRARY' | 'FNRI' | 'USER_REPORTED' | 'GEMINI_ESTIMATED' | 'NUTRITIONIST_REVIEWED' | 'UNRESOLVED';
+  'VERIFIED_LIBRARY' | 'FNRI' | 'USER_REPORTED' | 'USER_ADJUSTED_LIBRARY' | 'GEMINI_ESTIMATED' | 'NUTRITIONIST_REVIEWED' | 'UNRESOLVED';
 
 export type OutsideMealNutritionStatus =
   | 'REFERENCE_RESOLVED'
@@ -12,7 +12,9 @@ export type OutsideMealNutritionStatus =
   | 'VERIFIED'
   | 'CORRECTED'
   | 'NEEDS_MORE_INFO'
-  | 'UNRESOLVED';
+  | 'UNRESOLVED'
+  | 'UNVERIFIABLE'
+  | 'VOIDED';
 
 export interface OutsideMealMacros {
   calories: number;
@@ -105,7 +107,7 @@ export function scalePer100GramMacros(macros: OutsideMealMacros, portionGrams: n
 export function summarizeOutsideMealNutrition(items: readonly OutsideMealResolvedItem[]) {
   const included = items.filter((item) => item.includedInTotals);
   const provisional = included.filter(
-    (item) => item.nutritionStatus === 'PENDING_REVIEW' || item.nutritionStatus === 'NEEDS_MORE_INFO'
+    (item) => item.nutritionStatus !== 'VERIFIED' && item.nutritionStatus !== 'CORRECTED'
   );
   const unresolved = items.filter((item) => !item.includedInTotals || item.source === 'UNRESOLVED');
   const sum = (field: keyof OutsideMealMacros, rows = included) => rows.reduce((total, item) => total + item[field], 0);

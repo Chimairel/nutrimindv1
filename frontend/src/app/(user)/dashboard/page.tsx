@@ -120,6 +120,8 @@ export default function DashboardPage() {
 
   // Warning Pre-check State
   const [warningData, setWarningData] = useState<OutsideMealWarning | null>(null);
+  const [savedSafety, setSavedSafety] = useState<{ status: string; messages: string[] } | null>(null);
+  const outsideImageFile = useRef<File | null>(null);
 
   // Check-in status
   const [isCheckinDue, setIsCheckinDue] = useState(Boolean(cachedCheckin?.isDue));
@@ -328,20 +330,23 @@ export default function DashboardPage() {
   // Submits the outside meal log (handles precheck warning cascades)
   const handleLogOutsideMeal = async (
     forceAcknowledge = false,
-    options?: { useAiEstimate: boolean; items: OutsideMealInputItem[] }
+    options?: { useAiEstimate: boolean; items: OutsideMealInputItem[]; consumedAt: string; estimationContext: string; imageFile: File | null }
   ) => {
     setLogError(null);
     setIsLogging(true);
     try {
+      if (!forceAcknowledge) outsideImageFile.current = options?.imageFile ?? null;
       const res = await api.post('/user/meals/log-outside', {
         mealName: logMealName.trim(),
         items: forceAcknowledge ? undefined : options?.items,
         mealType: logMealType,
         useAiEstimate: forceAcknowledge ? undefined : options?.useAiEstimate,
-        requestKey: forceAcknowledge ? undefined : (outsideMealRequestKey.current ??= crypto.randomUUID()),
+        requestKey: outsideMealRequestKey.current ??= crypto.randomUUID(),
         warningAcknowledged: forceAcknowledge,
         confirmationId: forceAcknowledge ? warningData?.confirmationId : undefined,
         notes: logNotes.trim(),
+        estimationContext: forceAcknowledge ? undefined : options?.estimationContext,
+        consumedAt: forceAcknowledge ? undefined : options?.consumedAt,
       });
 
       if (res.data && res.data.success) {
@@ -358,12 +363,26 @@ export default function DashboardPage() {
             usedAi: payload.usedAi,
           });
         } else {
-          // Logged successfully! Close modal and refresh data
-          setIsLogModalOpen(false);
+          // The retrospective fact is committed before the safety follow-up.
+          let imageUploadFailed = false;
+          if (outsideImageFile.current && payload.log?.id) {
+            const form = new FormData();
+            form.append('image', outsideImageFile.current);
+            try { await api.post(`/user/meals/logs/${payload.log.id}/image`, form); }
+            catch (imageError) {
+              imageUploadFailed = true;
+              setLogError(getApiErrorMessage(imageError, 'Meal was saved, but the optional photo could not be attached.'));
+            }
+          }
+          const followUp = payload.safetyFollowUp as { status: string; messages: string[] } | undefined;
+          if (followUp && followUp.status !== 'NO_KNOWN_CONFLICT') setSavedSafety(followUp);
+          else if (imageUploadFailed) setSavedSafety({ status: 'NO_KNOWN_CONFLICT', messages: [] });
+          else setIsLogModalOpen(false);
           setLogMealName('');
           setLogNotes('');
           setWarningData(null);
           outsideMealRequestKey.current = null;
+          outsideImageFile.current = null;
           await Promise.all([fetchCurrentPlan(), fetchOutsideMealLogs()]);
         }
       }
@@ -408,6 +427,8 @@ export default function DashboardPage() {
   const closeOutsideMealModal = () => {
     setIsLogModalOpen(false);
     setWarningData(null);
+    setSavedSafety(null);
+    outsideImageFile.current = null;
     outsideMealRequestKey.current = null;
     setLogError(null);
     setLogMealName('');
@@ -581,6 +602,7 @@ export default function DashboardPage() {
           outsideMealRequestKey.current = null;
         }}
         warning={warningData}
+        savedSafety={savedSafety}
       />
 
       <CheckinModal isOpen={isCheckinDue} onClose={() => setIsCheckinDue(false)} />

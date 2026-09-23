@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
+import { OutsideMealCaptureService } from '@/services/outside-meal-capture.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import { MealFavoriteService } from '@/services/meal-favorite.service';
 import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
@@ -427,7 +428,7 @@ export class MealsController {
       if (status && typeof status === 'string' && status !== 'All') {
         where.status = status as MealLogStatus;
       } else {
-        where.status = { in: ['DONE', 'SKIPPED'] };
+        where.status = { in: ['DONE', 'SKIPPED', 'VOIDED'] };
       }
 
       if (startDate || endDate) {
@@ -443,16 +444,13 @@ export class MealsController {
       // Fetch ALL meal logs for this user (both plan-checked and outside) with search and filters
       const allLogs = await prisma.mealLog.findMany({
         where,
-        include: {
+        select: {
+          id: true, mealName: true, source: true, calories: true, proteinG: true, carbsG: true, fatG: true,
+          dataSource: true, status: true, warningType: true, nutritionCompleteness: true,
+          provisionalCalories: true, mealType: true, notes: true, estimationContext: true,
+          outsideImageMime: true, voidedAt: true, loggedAt: true,
           outsideItems: true,
-          mealPlan: {
-            include: {
-              swapLogs: {
-                orderBy: { swappedAt: 'desc' },
-                take: 1,
-              },
-            },
-          },
+          mealPlan: { select: { mealType: true, swapLogs: { orderBy: { swappedAt: 'desc' }, take: 1 } } },
         },
         orderBy: { loggedAt: 'desc' },
       });
@@ -475,6 +473,9 @@ export class MealsController {
           provisionalCalories: l.provisionalCalories,
           mealType: l.mealType ?? l.mealPlan?.mealType ?? null,
           notes: l.notes ?? null,
+          estimationContext: l.estimationContext ?? null,
+          hasImage: Boolean(l.outsideImageMime),
+          voidedAt: l.voidedAt?.toISOString() ?? null,
           outsideItems: l.outsideItems,
           loggedAt: l.loggedAt.toISOString(),
           calorieDelta: latestSwap ? latestSwap.calorieDelta : null,
@@ -505,7 +506,8 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { mealName, items, mealType, useAiEstimate, requestKey, warningAcknowledged, confirmationId, notes } =
+      const { mealName, items, mealType, useAiEstimate, requestKey, warningAcknowledged, confirmationId, notes,
+        estimationContext, consumedAt } =
         req.body;
 
       const result = await MealLogService.logOutsideMeal({
@@ -518,6 +520,8 @@ export class MealsController {
         warningAcknowledged,
         confirmationId,
         notes,
+        estimationContext,
+        consumedAt,
       });
 
       return res.status(200).json({
@@ -531,6 +535,53 @@ export class MealsController {
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to check or log outside meal.'),
       });
+    }
+  }
+
+  static async getOutsideSuggestions(req: AuthenticatedRequest, res: Response) {
+    try {
+      return res.json({ success: true, data: await OutsideMealCaptureService.suggestions(req.user!.userId, String(req.query.search)) });
+    } catch (error) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to load food suggestions.') });
+    }
+  }
+
+  static async editOutsideItem(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await OutsideMealCaptureService.editItem(req.user!.userId, req.params.id, req.params.itemId, req.body);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to revise outside meal.') });
+    }
+  }
+
+  static async voidOutsideLog(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await OutsideMealCaptureService.voidLog(req.user!.userId, req.params.id, req.body.reason);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to void outside meal.') });
+    }
+  }
+
+  static async attachOutsideImage(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, error: 'Choose a JPG, PNG, or WebP image under 2 MB.' });
+      const data = await OutsideMealCaptureService.attachImage(req.user!.userId, req.params.id, req.file);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to attach image.') });
+    }
+  }
+
+  static async getOutsideImage(req: AuthenticatedRequest, res: Response) {
+    try {
+      const image = await OutsideMealCaptureService.image(req.user!.userId, req.params.id);
+      res.setHeader('Content-Type', image.mime);
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.send(image.buffer);
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 404).json({ success: false, error: sanitizeErrorMessage(error, 'Image unavailable.') });
     }
   }
 

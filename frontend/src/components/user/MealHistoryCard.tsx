@@ -4,19 +4,31 @@ import React, { useState } from 'react';
 import { Apple, Check, ChevronDown, Egg, FileText, Flame, Loader2, Save, UtensilsCrossed, X } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
+import api from '@/lib/axios';
 
 interface MealHistoryCardProps {
   log: MealHistoryLog;
   onUpdateNotes?: (logId: string, notes: string | null) => Promise<void>;
+  onEditOutsideItem?: (logId: string, itemId: string, input: {
+    name: string; portionGrams: number | null;
+    reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
+    unresolved?: boolean; reason: string;
+  }) => Promise<void>;
+  onVoidOutsideLog?: (logId: string, reason: string) => Promise<void>;
   className?: string;
 }
 
-export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: MealHistoryCardProps) {
+export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem, onVoidOutsideLog, className = '' }: MealHistoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [noteInput, setNoteInput] = useState(log.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ name: '', portionGrams: '', calories: '', proteinG: '', carbsG: '', fatG: '', reason: '' });
+  const [markUnresolved, setMarkUnresolved] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [isChanging, setIsChanging] = useState(false);
 
   // Normalize mealType from log.mealType or guess from mealName
   const normalizedType = (log.mealType || '').toUpperCase();
@@ -95,6 +107,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
 
   const isDone = log.status === 'DONE';
   const isSkipped = log.status === 'SKIPPED';
+  const isVoided = log.status === 'VOIDED';
   const deltaVal = log.calorieDelta;
   const hasDelta = deltaVal !== null && deltaVal !== undefined;
 
@@ -154,7 +167,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
           {/* Meal Title */}
           <h4
             className={`mt-1 font-display text-sm sm:text-base font-bold leading-snug text-brand-text dark:text-white truncate ${
-              isDone ? '' : isSkipped ? 'line-through text-brand-muted dark:text-white/40' : ''
+              isDone ? '' : isSkipped || isVoided ? 'line-through text-brand-muted dark:text-white/40' : ''
             }`}
           >
             {log.mealName}
@@ -210,7 +223,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
             }`}
           >
             {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : <X className="h-2.5 w-2.5 stroke-[3]" />}
-            {log.status}
+            {isVoided ? 'VOIDED' : log.status}
           </span>
 
           <ChevronDown
@@ -258,19 +271,73 @@ export default function MealHistoryCard({ log, onUpdateNotes, className = '' }: 
               <p className="font-bold text-brand-muted uppercase tracking-wider text-[10px] mb-1.5">
                 Logged Food Items
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              {log.nutritionCompleteness && log.nutritionCompleteness !== 'COMPLETE' &&
+                <p className="mb-2 text-brand-muted">Partial total: unresolved items are excluded, not counted as zero.</p>}
+              {log.provisionalCalories ? <p className="mb-2 text-amber-600">{Math.round(log.provisionalCalories)} kcal remains estimated.</p> : null}
+              <div className="space-y-2">
                 {log.outsideItems.map((item, idx) => (
-                  <span
+                  <div
                     key={`${item.name}-${idx}`}
-                    className="rounded-lg border border-brand-border/80 bg-brand-bgAlt px-2.5 py-1 text-xs text-brand-text dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    className="rounded-lg border border-brand-border/80 bg-brand-bgAlt px-2.5 py-2 text-xs text-brand-text dark:border-white/10 dark:bg-white/5 dark:text-white"
                   >
-                    {item.name}
-                    {item.portionGrams ? ` (${item.portionGrams}g)` : ''}
-                  </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{item.name}{item.portionGrams ? ` (${item.portionGrams}g)` : ''} · {item.includedInTotals ? `${Math.round(item.calories ?? 0)} kcal` : 'Unresolved'} · {item.source?.replaceAll('_', ' ').toLowerCase()} · revision {item.currentRevision ?? 0}</span>
+                      {log.source === 'USER_LOGGED' && !isVoided && onEditOutsideItem && <button type="button" className="text-brand-green underline" onClick={() => {
+                        setEditingItemId(item.id);
+                        setEditDraft({ name: item.name, portionGrams: String(item.portionGrams ?? ''),
+                          calories: String(item.calories ?? ''), proteinG: String(item.proteinG ?? ''),
+                          carbsG: String(item.carbsG ?? ''), fatG: String(item.fatG ?? ''), reason: '' });
+                        setMarkUnresolved(!item.includedInTotals);
+                      }}>Correct</button>}
+                    </div>
+                    {editingItemId === item.id && <form className="mt-3 grid grid-cols-2 gap-2" onSubmit={async (event) => {
+                      event.preventDefault();
+                      if (!onEditOutsideItem) return;
+                      setIsChanging(true); setSaveError(null);
+                      try {
+                        await onEditOutsideItem(log.id, item.id, {
+                          name: editDraft.name, portionGrams: editDraft.portionGrams ? Number(editDraft.portionGrams) : null,
+                          ...(markUnresolved ? { unresolved: true } : { reportedNutrition: {
+                            calories: Number(editDraft.calories), proteinG: Number(editDraft.proteinG),
+                            carbsG: Number(editDraft.carbsG), fatG: Number(editDraft.fatG),
+                          } }), reason: editDraft.reason || 'User corrected this record',
+                        });
+                        setEditingItemId(null);
+                      } catch { setSaveError('Could not revise this item. Reload and try again.'); }
+                      finally { setIsChanging(false); }
+                    }}>
+                      <input className="col-span-2 rounded border p-2" aria-label="Corrected food name" value={editDraft.name} onChange={(event) => setEditDraft((draft) => ({ ...draft, name: event.target.value }))} required />
+                      <input className="rounded border p-2" type="number" min="1" max="5000" step="0.1" aria-label="Corrected portion grams" placeholder="Portion g" value={editDraft.portionGrams} onChange={(event) => setEditDraft((draft) => ({ ...draft, portionGrams: event.target.value }))} />
+                      <label className="flex items-center gap-1"><input type="checkbox" checked={markUnresolved} onChange={(event) => setMarkUnresolved(event.target.checked)} /> Unknown nutrition</label>
+                      {!markUnresolved && (['calories', 'proteinG', 'carbsG', 'fatG'] as const).map((field) => <input key={field} className="rounded border p-2" type="number" min="0" step="0.1" required aria-label={`Corrected ${field}`} placeholder={field} value={editDraft[field]} onChange={(event) => setEditDraft((draft) => ({ ...draft, [field]: event.target.value }))} />)}
+                      <input className="col-span-2 rounded border p-2" aria-label="Reason for correction" placeholder="What changed?" value={editDraft.reason} onChange={(event) => setEditDraft((draft) => ({ ...draft, reason: event.target.value }))} />
+                      <button disabled={isChanging} className="rounded bg-brand-green p-2 font-bold text-white" type="submit">Save revision</button>
+                      <button type="button" onClick={() => setEditingItemId(null)}>Cancel</button>
+                    </form>}
+                  </div>
                 ))}
               </div>
             </div>
           )}
+          {log.source === 'USER_LOGGED' && log.hasImage && <button type="button" className="mb-3 text-xs text-brand-green underline" onClick={async () => {
+            try {
+              const response = await api.get(`/user/meals/logs/${log.id}/image`, { responseType: 'blob' });
+              const url = URL.createObjectURL(response.data);
+              window.open(url, '_blank', 'noopener,noreferrer');
+              setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            } catch { setSaveError('Could not open the image.'); }
+          }}>View attached photo</button>}
+          {log.source === 'USER_LOGGED' && !isVoided && onVoidOutsideLog && <div className="mb-4 rounded-xl border border-red-500/30 p-3 text-xs">
+            <p className="font-bold text-red-600">Remove this entry from active totals</p>
+            <p className="mb-2 text-brand-muted">The original record and corrections remain in your history.</p>
+            <input className="w-full rounded border p-2" aria-label="Reason for voiding" placeholder="Reason for voiding this entry" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
+            <button type="button" disabled={isChanging || voidReason.trim().length < 3} className="mt-2 rounded border border-red-500 px-3 py-1 text-red-600 disabled:opacity-50" onClick={async () => {
+              setIsChanging(true); setSaveError(null);
+              try { await onVoidOutsideLog(log.id, voidReason.trim()); }
+              catch { setSaveError('Could not void this entry.'); }
+              finally { setIsChanging(false); }
+            }}>Void outside meal</button>
+          </div>}
 
           {/* Note Editor Area */}
           <div className="rounded-2xl border border-brand-border/80 bg-brand-surface p-4 shadow-sm dark:border-white/10 dark:bg-[#121e19]">

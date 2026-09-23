@@ -19,6 +19,7 @@ function aggregateDataSource(items: Array<{ includedInTotals: boolean; source: O
   if (source === OutsideMealItemSource.FNRI) return MealLogDataSource.FNRI;
   if (source === OutsideMealItemSource.GEMINI_ESTIMATED) return MealLogDataSource.GEMINI_ESTIMATED;
   if (source === OutsideMealItemSource.VERIFIED_LIBRARY) return MealLogDataSource.VERIFIED_LIBRARY;
+  if (source === OutsideMealItemSource.USER_ADJUSTED_LIBRARY) return MealLogDataSource.USER_ADJUSTED_LIBRARY;
   if (source === OutsideMealItemSource.USER_REPORTED) return MealLogDataSource.USER_REPORTED;
   if (source === OutsideMealItemSource.NUTRITIONIST_REVIEWED) return MealLogDataSource.NUTRITIONIST_REVIEWED;
   return MealLogDataSource.MIXED;
@@ -37,7 +38,10 @@ export class OutsideMealReviewService {
   static async queue(nutritionistProfileId: string) {
     const cutoff = new Date(Date.now() - CLAIM_MINUTES * 60 * 1000);
     const rows = await prisma.outsideMealReview.findMany({
-      where: { status: { in: [OutsideMealReviewStatus.PENDING, OutsideMealReviewStatus.CLAIMED] } },
+      where: {
+        status: { in: [OutsideMealReviewStatus.PENDING, OutsideMealReviewStatus.CLAIMED] },
+        outsideMealLogItem: { mealLog: { status: 'DONE' } },
+      },
       include: {
         outsideMealLogItem: {
           include: {
@@ -71,6 +75,7 @@ export class OutsideMealReviewService {
       where: {
         id: reviewId,
         status: { in: [OutsideMealReviewStatus.PENDING, OutsideMealReviewStatus.CLAIMED] },
+        outsideMealLogItem: { mealLog: { status: 'DONE' } },
         OR: [
           { claimedByNutritionistId: null },
           { claimedAt: null },
@@ -99,6 +104,7 @@ export class OutsideMealReviewService {
             status: OutsideMealReviewStatus.CLAIMED,
             claimedByNutritionistId: nutritionistProfileId,
             claimedAt: { gte: cutoff },
+            outsideMealLogItem: { mealLog: { status: 'DONE' } },
           },
           include: { outsideMealLogItem: { include: { mealLog: true } } },
         });
@@ -134,6 +140,15 @@ export class OutsideMealReviewService {
             calorieHigh: needsInfo ? item.calorieHigh : values.calories,
             reason: action.reason,
             reviewedByNutritionistId: nutritionistProfileId,
+            snapshot: {
+              name: item.name,
+              portionGrams: item.portionGrams,
+              ingredients: item.ingredients ?? null,
+              source: needsInfo ? item.source : OutsideMealItemSource.NUTRITIONIST_REVIEWED,
+              nutritionStatus,
+              includedInTotals: needsInfo ? item.includedInTotals : true,
+              ...values,
+            } as Prisma.InputJsonObject,
           },
         });
         await tx.outsideMealLogItem.update({

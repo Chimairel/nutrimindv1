@@ -16,13 +16,15 @@ export interface OutsideMealLog {
 export type OutsideMealInputItem = {
   name: string;
   portionGrams?: number;
+  mealLibraryId?: string;
   reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
 };
 
 export type OutsideMealPreviewItem = {
   name: string;
   portionGrams: number | null;
-  source: 'VERIFIED_LIBRARY' | 'FNRI' | 'USER_REPORTED' | 'GEMINI_ESTIMATED' | 'NUTRITIONIST_REVIEWED' | 'UNRESOLVED';
+  servingDescription?: string | null;
+  source: 'VERIFIED_LIBRARY' | 'FNRI' | 'USER_REPORTED' | 'USER_ADJUSTED_LIBRARY' | 'GEMINI_ESTIMATED' | 'NUTRITIONIST_REVIEWED' | 'UNRESOLVED';
   nutritionStatus: string;
   includedInTotals: boolean;
   calories: number;

@@ -67,6 +67,8 @@ export default function WeeklyPlanPage() {
     selectedHistoryDateKey,
     setSelectedHistoryDateKey,
     handleUpdateLogNotes,
+    handleEditOutsideItem,
+    handleVoidOutsideLog,
     libraryTotalCount,
     handleSwapClick,
     handleMealStatusToggle,
@@ -754,7 +756,8 @@ export default function WeeklyPlanPage() {
                       {/* Logged Meal Cards List with note editor */}
                       <div className="space-y-3">
                         {activeDay.logsList.map((log) => (
-                          <MealHistoryCard key={log.id} log={log} onUpdateNotes={handleUpdateLogNotes} />
+                          <MealHistoryCard key={log.id} log={log} onUpdateNotes={handleUpdateLogNotes}
+                            onEditOutsideItem={handleEditOutsideItem} onVoidOutsideLog={handleVoidOutsideLog} />
                         ))}
                       </div>
                     </section>

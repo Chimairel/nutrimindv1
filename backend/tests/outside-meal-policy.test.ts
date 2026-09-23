@@ -7,6 +7,8 @@ import {
   scalePer100GramMacros,
   summarizeOutsideMealNutrition,
 } from '../src/domain/outside-meal.policy';
+import { evaluateOutsideMealCompatibility } from '../src/domain/outside-meal-safety.policy';
+import { adaptUserSafetyRestrictions } from '../src/domain/structured-restriction.adapter';
 
 test('[TEST-174] comma-delimited outside foods preserve spaces and the word and', () => {
   assert.deepEqual(parseOutsideMealItems('chicken adobo, brown rice - 150g, fish and chips (220 grams)'), [
@@ -28,7 +30,21 @@ test('[TEST-175] FNRI per-100g values require and scale a measured portion', () 
   assert.throws(() => scalePer100GramMacros({ calories: 200, proteinG: 10, carbsG: 20, fatG: 5 }, 0));
 });
 
-test('[TEST-176] provisional AI values count now while unresolved values never become zero-food', () => {
+test('[BATCH-7] ingredient evidence flags a known allergen without granting clearance', () => {
+  const restrictions = adaptUserSafetyRestrictions({ allergies: ['SHELLFISH'], healthConditions: [] });
+  const result = evaluateOutsideMealCompatibility({
+    name: 'Noodle bowl', ingredients: ['Prawns', 'rice noodles'],
+    baselineStatus: 'INSUFFICIENT_EVIDENCE', restrictions,
+  });
+  assert.equal(result.status, 'CONFLICT_DETECTED');
+  assert.match(result.warnings.join(' '), /shellfish.*prawn/i);
+  const uncertain = evaluateOutsideMealCompatibility({
+    name: 'Unidentified stew', ingredients: [], baselineStatus: 'INSUFFICIENT_EVIDENCE', restrictions,
+  });
+  assert.equal(uncertain.status, 'INSUFFICIENT_EVIDENCE');
+});
+
+test('[TEST-176] all unconfirmed values count as estimated while unresolved values never become zero-food', () => {
   const summary = summarizeOutsideMealNutrition([
     {
       source: 'FNRI',
@@ -68,7 +84,7 @@ test('[TEST-176] provisional AI values count now while unresolved values never b
     },
   ]);
   assert.equal(summary.totals.calories, 600);
-  assert.equal(summary.provisionalCalories, 400);
+  assert.equal(summary.provisionalCalories, 600);
   assert.equal(summary.unresolvedItemCount, 1);
   assert.equal(summary.completeness, 'PARTIAL');
 });

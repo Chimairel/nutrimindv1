@@ -40,4 +40,9 @@ export const HISTORY_STATUS_OPTIONS: SelectOption[] = [
     label: 'Skipped',
     icon: <Clock3 className="h-3.5 w-3.5 text-amber-500" />,
   },
+  {
+    value: 'VOIDED',
+    label: 'Voided',
+    icon: <Clock3 className="h-3.5 w-3.5 text-brand-muted" />,
+  },
 ];

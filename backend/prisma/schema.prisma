@@ -139,6 +139,7 @@ enum MealLogDataSource {
   SYSTEM
   VERIFIED_LIBRARY
   USER_REPORTED
+  USER_ADJUSTED_LIBRARY
   NUTRITIONIST_REVIEWED
   MIXED
 }
@@ -279,6 +280,7 @@ enum MealLogStatus {
   DONE
   PENDING
   SKIPPED
+  VOIDED
 }
 
 enum NotificationType {
@@ -297,6 +299,7 @@ enum OutsideMealItemSource {
   VERIFIED_LIBRARY
   FNRI
   USER_REPORTED
+  USER_ADJUSTED_LIBRARY
   GEMINI_ESTIMATED
   NUTRITIONIST_REVIEWED
   UNRESOLVED
@@ -310,6 +313,8 @@ enum OutsideMealNutritionStatus {
   CORRECTED
   NEEDS_MORE_INFO
   UNRESOLVED
+  UNVERIFIABLE
+  VOIDED
 }
 
 enum OutsideMealCompatibilityStatus {
@@ -332,6 +337,7 @@ enum OutsideMealReviewStatus {
   VERIFIED
   CORRECTED
   NEEDS_MORE_INFO
+  UNVERIFIABLE
 }
 
 enum AssignmentStatus {
@@ -1543,6 +1549,12 @@ model MealLog {
   warningAcknowledged   Boolean                 @default(false)
   loggedAt              DateTime                @default(now())
   notes                 String?                 @db.Text
+  estimationContext     String?                 @db.Text
+  outsidePreviewId      String?                 @unique
+  outsideSafetyFollowUp Json?
+  outsideImage          Bytes?
+  outsideImageMime      String?                 @db.VarChar(40)
+  voidedAt              DateTime?
   mealType              MealType?
   nutritionCompleteness OutsideMealCompleteness @default(COMPLETE)
   provisionalCalories   Float                   @default(0)
@@ -1597,6 +1609,8 @@ model OutsideMealItemRevision {
   calorieLow               Float?
   calorieHigh              Float?
   reason                   String?                    @db.VarChar(500)
+  snapshot                 Json?
+  editedByUserId           String?
   reviewedByNutritionistId String?
   reviewedByNutritionist   NutritionistProfile?       @relation("OutsideMealRevisionReviewer", fields: [reviewedByNutritionistId], references: [id], onDelete: Restrict)
   createdAt                DateTime                   @default(now())
@@ -2151,6 +2165,9 @@ model OutsideMealPreview {
   warnings   Json
   reasons    Json
   notes      String?   @db.Text
+  estimationContext String? @db.Text
+  loggedForAt DateTime?
+  requestPayloadHash String? @db.Char(64)
   items      Json?
   requestKey String?   @unique @db.VarChar(128)
   usedAi     Boolean   @default(false)

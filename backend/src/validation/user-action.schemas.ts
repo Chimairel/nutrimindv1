@@ -34,6 +34,7 @@ const outsideMealItemSchema = z
   .object({
     name: z.string().trim().min(1).max(180),
     portionGrams: z.number().positive().max(5_000).optional(),
+    mealLibraryId: boundedId.optional(),
     reportedNutrition: outsideMealNutritionSchema.optional(),
   })
   .strict();
@@ -48,10 +49,12 @@ export const outsideMealBodySchema = z
     warningAcknowledged: z.boolean().optional(),
     confirmationId: z.string().trim().min(1).max(128).optional(),
     notes: z.string().trim().max(1_000).optional(),
+    estimationContext: z.string().trim().max(1_000).optional(),
+    consumedAt: z.iso.datetime({ offset: true }).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (!value.mealName && !value.items) {
+    if (!value.warningAcknowledged && !value.mealName && !value.items) {
       ctx.addIssue({ code: 'custom', message: 'Provide mealName or items.', path: ['mealName'] });
     }
     if (value.items && value.items.map((item) => item.name).join(', ').length > 1_000) {
@@ -69,6 +72,19 @@ export const outsideMealBodySchema = z
       });
     }
   });
+
+export const outsideMealSuggestionsQuerySchema = z.object({ search: z.string().trim().min(2).max(100) }).strict();
+export const outsideMealItemParamsSchema = z.object({ id: boundedId, itemId: boundedId }).strict();
+export const outsideMealItemEditSchema = z.object({
+  name: z.string().trim().min(1).max(180),
+  portionGrams: z.number().positive().max(5_000).nullable().optional(),
+  reportedNutrition: outsideMealNutritionSchema.optional(),
+  unresolved: z.boolean().optional(),
+  reason: z.string().trim().max(500).optional(),
+}).strict().refine((value) => Boolean(value.reportedNutrition) !== Boolean(value.unresolved), {
+  message: 'Provide macro values or mark the item unresolved.',
+});
+export const outsideMealVoidSchema = z.object({ reason: z.string().trim().min(3).max(500) }).strict();
 
 export const outsideMealReviewParamsSchema = z.object({ id: boundedId }).strict();
 
