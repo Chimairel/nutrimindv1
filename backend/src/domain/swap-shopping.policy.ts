@@ -37,3 +37,17 @@ export function additionalShoppingNeeds(
       : [];
   });
 }
+
+export function buildSwapShoppingDelta(
+  before: GroceryIngredientInput[],
+  after: GroceryIngredientInput[],
+  purchases: Array<{ ingredientName: string; unit: string | null; purchasedQuantity: number }>
+) {
+  const additions = additionalShoppingNeeds(before, after, purchases);
+  const removals = additionalShoppingNeeds(after, before, purchases).map((item) => ({
+    ingredientName: item.ingredientName,
+    unit: item.unit,
+    removableQuantity: item.additionalQuantity,
+  }));
+  return { additions, removals };
+}

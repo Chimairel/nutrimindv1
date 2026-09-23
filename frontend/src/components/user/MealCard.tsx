@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
+import { getManilaDateKey } from '@/lib/manila-date';
 import NutritionistCredentialModal, { maskPrcLicenseNumber } from './NutritionistCredentialModal';
 import {
   Check,
@@ -53,6 +54,7 @@ interface MealCardProps {
   onStatusToggle?: (mealId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void>;
   onSwapClick?: (mealId: string) => void;
   scheduledDate?: string;
+  cycleScope?: 'CURRENT' | 'UPCOMING';
   onCardClick?: () => void;
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
@@ -76,6 +78,7 @@ export default function MealCard({
   onStatusToggle,
   onSwapClick,
   scheduledDate,
+  cycleScope,
   onCardClick,
   verifier,
   explanation,
@@ -111,24 +114,18 @@ export default function MealCard({
     };
   }, [isOpen]);
 
-  // Evaluate past date condition
-  const isPastDate = React.useMemo(() => {
-    if (!scheduledDate) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(scheduledDate);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() < today.getTime();
-  }, [scheduledDate]);
+  const scheduledDateKey = scheduledDate ? getManilaDateKey(scheduledDate) : getManilaDateKey();
+  const todayKey = getManilaDateKey();
+  const isPastDate = scheduledDateKey < todayKey;
+  const isFutureDate = scheduledDateKey > todayKey || cycleScope === 'UPCOMING';
 
   // Check if past grace period (> 7 days)
   const isPastGracePeriod = React.useMemo(() => {
     if (!scheduledDate) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(scheduledDate);
-    d.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(
+      (new Date(`${getManilaDateKey()}T00:00:00+08:00`).getTime() -
+        new Date(`${getManilaDateKey(scheduledDate)}T00:00:00+08:00`).getTime()) / 86_400_000
+    );
     return diffDays > 7;
   }, [scheduledDate]);
 
@@ -619,13 +616,18 @@ export default function MealCard({
                           <span>The 7-day logging grace period for this scheduled meal has passed.</span>
                         </div>
                       )}
+                      {isFutureDate && (
+                        <p className="mb-3 text-xs text-brand-muted">
+                          This meal can be viewed or swapped now. Record it on its scheduled date.
+                        </p>
+                      )}
                       {!isLogged ? (
                         <div className="flex flex-col gap-3">
                           {/* Primary: Mark as Eaten */}
                           <Button
                             variant="primary"
                             onClick={() => handleCheckedChange(true)}
-                            disabled={isUpdating || isPastGracePeriod}
+                            disabled={isUpdating || isPastGracePeriod || isFutureDate}
                             className="w-full font-bold py-2.5 text-xs"
                           >
                             Mark as Eaten
@@ -650,7 +652,7 @@ export default function MealCard({
                             <Button
                               variant="ghost"
                               onClick={handleSkipMeal}
-                              disabled={isUpdating || isPastGracePeriod}
+                              disabled={isUpdating || isPastGracePeriod || isFutureDate}
                               className="flex-1 font-bold text-xs py-2 h-9 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white"
                             >
                               Skip Meal
@@ -662,7 +664,7 @@ export default function MealCard({
                         <Button
                           variant="secondary"
                           onClick={() => handleCheckedChange(false)}
-                          disabled={isUpdating || isPastGracePeriod}
+                          disabled={isUpdating || isPastGracePeriod || isFutureDate}
                           className="w-full font-bold py-2.5 text-xs border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50"
                         >
                           Reset Meal Status

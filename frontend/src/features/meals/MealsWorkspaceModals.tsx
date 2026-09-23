@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import Button from '@/components/ui/Button';
+import MealImage from '@/components/user/MealImage';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { AlertTriangle, ShieldCheck, Soup } from 'lucide-react';
+import { AlertTriangle, Heart, ShieldCheck, Soup } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
 export function MealsWorkspaceModals({ workspace }: Props) {
+  const [groceryDeltaAcknowledged, setGroceryDeltaAcknowledged] = useState(false);
   const {
     activeSwapMeal,
     setActiveSwapMeal,
@@ -27,6 +30,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     setSelectedVerifier,
     handleSelectSwapOption,
     handleConfirmSwapAnyway,
+    toggleSwapFavorite,
   } = workspace;
 
   return (
@@ -162,6 +166,12 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     <div className="rounded-xl border border-brand-border bg-brand-surface p-4 text-sm">
                       <p className="text-brand-muted">Replace {swapPreview.originalMealName}</p>
                       <p className="mt-1 font-semibold text-brand-text">With {swapPreview.newMealName}</p>
+                      <p className="mt-2 text-xs text-brand-muted">
+                        {swapPreview.newCalories} kcal · {swapPreview.calorieDelta >= 0 ? '+' : ''}{swapPreview.calorieDelta} kcal from this slot
+                      </p>
+                      {swapPreview.alreadyPlannedInCycle && (
+                        <p className="mt-2 text-xs text-amber-600">This recipe is already planned elsewhere this cycle.</p>
+                      )}
                     </div>
                     {swapPreview.warningRequired && (
                       <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
@@ -207,10 +217,30 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       ) : (
                         <p className="mt-2">No additional shopping needed.</p>
                       )}
+                      {swapPreview.shoppingRemovals.length > 0 && (
+                        <ul className="mt-2 space-y-1 text-brand-muted">
+                          {swapPreview.shoppingRemovals.map((item) => (
+                            <li key={item.ingredientName + item.unit}>
+                              Remove {item.removableQuantity !== null ? `${item.removableQuantity} ${item.unit ?? ''} ` : ''}
+                              {item.ingredientName} from what remains to buy.
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       <p className="mt-2 text-xs text-brand-muted">
                         Recorded purchases are kept. Review the remaining quantities before cooking.
                       </p>
                     </div>
+                    {swapPreview.groceryDeltaAcknowledgmentRequired && (
+                      <label className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={groceryDeltaAcknowledged}
+                          onChange={(event) => setGroceryDeltaAcknowledged(event.target.checked)}
+                        />
+                        Shopping has started. I reviewed the additions and removals to my grocery list.
+                      </label>
+                    )}
                     <div className="flex justify-end gap-3 pt-2">
                       <Button
                         variant="secondary"
@@ -223,7 +253,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       >
                         Cancel
                       </Button>
-                      <Button onClick={handleConfirmSwapAnyway} disabled={isSwapping} className="text-xs font-bold">
+                      <Button
+                        onClick={() => handleConfirmSwapAnyway(groceryDeltaAcknowledged)}
+                        disabled={isSwapping || (swapPreview.groceryDeltaAcknowledgmentRequired && !groceryDeltaAcknowledged)}
+                        className="text-xs font-bold"
+                      >
                         {isSwapping ? 'Swapping...' : 'Confirm swap'}
                       </Button>
                     </div>
@@ -238,8 +272,19 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     key={option.id}
                     className="p-4 bg-brand-surface/50 border border-brand-border rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-border-hover transition-colors"
                   >
-                    <div className="space-y-1">
+                    <div className="w-full max-w-28 shrink-0">
+                      <MealImage image={option.image} mealName={option.mealName} mealType={option.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER'} className="h-24 w-full" variant="compact" />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
                       <h4 className="text-sm font-bold text-brand-text leading-snug">{option.mealName}</h4>
+                      <p className="text-[11px] text-brand-muted">
+                        {(option.mealTypes?.length ? option.mealTypes : [option.mealType]).join(' · ')} · {option.servingDescription || 'One recipe serving'}
+                      </p>
+                      <p className="text-[11px] text-brand-muted">
+                        {option.riceRole === 'PAIR_WITH_RICE' ? 'Pair with rice' : option.riceRole === 'INCLUDES_RICE' ? 'Rice included' : 'Standalone'}
+                        {option.alreadyPlannedInCycle ? ' · Already planned this cycle' : ''}
+                        {option.isFavorite ? ' · Favorite' : ''}
+                      </p>
                       {option.description && (
                         <p className="text-xs text-brand-muted line-clamp-1">{option.description}</p>
                       )}
@@ -257,6 +302,9 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                           {option.fatG}g F
                         </span>
                       </div>
+                      <p className="text-[11px] text-brand-muted">
+                        {option.calories - activeSwapMeal.calories >= 0 ? '+' : ''}{Math.round(option.calories - activeSwapMeal.calories)} kcal from current slot
+                      </p>
 
                       {/* Verifier Badge */}
                       <div className="text-[10px] text-brand-muted pt-1">
@@ -265,13 +313,18 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       </div>
                     </div>
 
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleSelectSwapOption(option)}
-                      className="text-xs font-semibold py-1.5 h-8 border-brand-border hover:border-brand-green/45 self-start md:self-center"
-                    >
-                      Select
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label={option.isFavorite ? `Remove ${option.mealName} from favorites` : `Favorite ${option.mealName}`}
+                        aria-pressed={option.isFavorite}
+                        onClick={() => toggleSwapFavorite(option)}
+                        className="rounded-full border border-brand-border p-2 text-brand-green"
+                      ><Heart className={`h-4 w-4 ${option.isFavorite ? 'fill-current' : ''}`} /></button>
+                      <Button variant="secondary" onClick={() => { setGroceryDeltaAcknowledged(false); handleSelectSwapOption(option); }} className="text-xs font-semibold py-1.5 h-8 border-brand-border hover:border-brand-green/45">
+                        Select
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

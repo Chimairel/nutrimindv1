@@ -48,7 +48,7 @@ describe('useMealsWorkspace', () => {
 
     let resolveRefresh: ((value: ReturnType<typeof successfulResponseFor>) => void) | undefined;
     getMock.mockImplementation((url: string) => {
-      if (url !== '/user/meals/current') return Promise.resolve(successfulResponseFor(url));
+      if (url !== '/user/meals/workspace') return Promise.resolve(successfulResponseFor(url));
       return new Promise((resolve) => {
         resolveRefresh = resolve;
       });
@@ -59,13 +59,13 @@ describe('useMealsWorkspace', () => {
     expect(result.current.isLoading).toBe(false);
 
     await act(async () => {
-      resolveRefresh?.(successfulResponseFor('/user/meals/current'));
+      resolveRefresh?.(successfulResponseFor('/user/meals/workspace'));
     });
   });
 
   it('restores the previous plan immediately after route remount and revalidates silently', async () => {
     getMock.mockImplementation(async (url: string) => {
-      if (url === '/user/meals/current') {
+      if (url === '/user/meals/workspace') {
         return { data: { success: true, data: [{ id: 'cached-meal' }], meta: {} } };
       }
       return successfulResponseFor(url);
@@ -76,7 +76,7 @@ describe('useMealsWorkspace', () => {
 
     let resolveRefresh: ((value: ReturnType<typeof successfulResponseFor>) => void) | undefined;
     getMock.mockImplementation((url: string) => {
-      if (url !== '/user/meals/current') return Promise.resolve(successfulResponseFor(url));
+      if (url !== '/user/meals/workspace') return Promise.resolve(successfulResponseFor(url));
       return new Promise((resolve) => {
         resolveRefresh = resolve;
       });
@@ -88,7 +88,7 @@ describe('useMealsWorkspace', () => {
     await waitFor(() => expect(resolveRefresh).toBeTypeOf('function'));
 
     await act(async () => {
-      resolveRefresh?.(successfulResponseFor('/user/meals/current'));
+      resolveRefresh?.(successfulResponseFor('/user/meals/workspace'));
     });
   });
 });

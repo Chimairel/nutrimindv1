@@ -1,28 +1,20 @@
-import type { MealPlan, PublicVerifier } from '@/types';
+import { useState } from 'react';
+import type { PublicVerifier } from '@/types';
 import type { SwapOption } from './useMealsWorkspace';
 import MealImage from '@/components/user/MealImage';
-import { formatManilaDate } from '@/lib/manila-date';
 import { Heart } from 'lucide-react';
 
 export default function LibraryMealCard({
   meal,
-  meals,
-  onSwap,
   onVerifier,
   onFavorite,
 }: {
   meal: SwapOption;
-  meals: MealPlan[];
-  onSwap: (id: string, meal: SwapOption) => Promise<void>;
   onVerifier: (verifier: PublicVerifier) => void;
   onFavorite: (meal: SwapOption) => Promise<void>;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
   const applicableMealTypes = meal.mealTypes?.length ? meal.mealTypes : [meal.mealType];
-  const slots = meals.filter(
-    (slot) =>
-      applicableMealTypes.includes(slot.mealType) &&
-      !slot.mealLogs?.some((log) => log.status === 'DONE' || log.status === 'SKIPPED')
-  );
   return (
     <article className="flex flex-col gap-4 rounded-[22px] border border-brand-border bg-brand-surface p-5 shadow-sm">
       <MealImage
@@ -61,22 +53,21 @@ export default function LibraryMealCard({
       <p className="text-xs text-brand-muted">
         Protein {meal.proteinG} g · Carbs {meal.carbsG} g · Fat {meal.fatG} g
       </p>
-      <label className="block text-xs font-semibold">
-        Swap into your meal plan
-        <select
-          aria-label={'Choose slot for ' + meal.mealName}
-          value=""
-          onChange={(event) => onSwap(event.target.value, meal)}
-          className="mt-1 w-full rounded-lg border border-brand-border bg-brand-surface p-2"
-        >
-          <option value="">Choose an uneaten meal to replace</option>
-          {slots.map((slot) => (
-            <option key={slot.id} value={slot.id}>
-              {formatManilaDate(slot.scheduledDate, { month: 'short', day: 'numeric' })} · {slot.mealName}
-            </option>
-          ))}
-        </select>
-      </label>
+      <button
+        type="button"
+        aria-expanded={showDetails}
+        onClick={() => setShowDetails((current) => !current)}
+        className="text-left text-xs font-semibold text-brand-green underline"
+      >
+        {showDetails ? 'Hide details' : 'View details'}
+      </button>
+      {showDetails && (
+        <div className="rounded-xl border border-brand-border bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">
+          <p>Serving: {meal.servingDescription || 'One recipe serving'}</p>
+          <p>Suitable slots: {applicableMealTypes.join(', ').toLowerCase()}</p>
+          <p>Per serving: {meal.calories} kcal · {meal.proteinG} g protein · {meal.carbsG} g carbs · {meal.fatG} g fat.</p>
+        </div>
+      )}
       <button
         type="button"
         disabled={!meal.verifier}

@@ -302,6 +302,15 @@ export class NutritionistLibraryService {
         ) {
           throw new Error('Every library ingredient must be resolved and linked to FNRI before certification.');
         }
+        const recipeSignature = buildMealLibraryRecipeSignature({
+          mealName: meal.mealName,
+          mealType: meal.mealType,
+          calories: meal.calories,
+          proteinG: meal.proteinG,
+          carbsG: meal.carbsG,
+          fatG: meal.fatG,
+          ingredients: meal.ingredients,
+        });
 
         const classification = classifyMealIngredients(
           meal.ingredients.map((ingredient) => ({
@@ -405,6 +414,7 @@ export class NutritionistLibraryService {
           },
           data: {
             safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+            recipeSignature,
             safetyEvidenceOrigin: MealLibrarySafetyEvidenceOrigin.NUTRITIONIST_REVIEW,
             conditionDeclarationState: input.conditionDeclarationState as MealLibraryDeclarationState,
             allergenDeclarationState: input.allergenDeclarationState as MealLibraryDeclarationState,
@@ -439,6 +449,7 @@ export class NutritionistLibraryService {
 
         const evidenceSnapshot = {
           meal: {
+            recipeSignature,
             mealName: meal.mealName,
             description: meal.description,
             mealType: meal.mealType,

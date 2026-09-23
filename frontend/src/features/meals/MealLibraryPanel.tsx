@@ -15,8 +15,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     isLibraryLoading,
     libraryError,
     libraryMeals,
-    meals,
-    handleSwapClick,
     setSelectedVerifier,
     libraryFavoriteOnly,
     setLibraryFavoriteOnly,
@@ -113,8 +111,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             <LibraryMealCard
               key={meal.id}
               meal={meal}
-              meals={meals}
-              onSwap={handleSwapClick}
               onVerifier={setSelectedVerifier}
               onFavorite={toggleLibraryFavorite}
             />

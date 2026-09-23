@@ -35,6 +35,7 @@ import {
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { NutritionistService } from '../src/services/nutritionist.service';
 import { evaluateMealLibrarySafetyEvidence } from '../src/domain/meal-library-safety-evidence.policy';
+import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-signature.policy';
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
 import { isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
 
@@ -131,6 +132,20 @@ function projectCertifiedMeal(meal: CommonMealDefinition, foods: ReadonlyMap<str
   return {
     mealName: meal.mealName,
     mealType: meal.mealType,
+    recipeSignature: buildMealLibraryRecipeSignature({
+      mealName: meal.mealName,
+      mealType: meal.mealType,
+      calories: nutrition.calories,
+      proteinG: nutrition.proteinG,
+      carbsG: nutrition.carbsG,
+      fatG: nutrition.fatG,
+      ingredients: meal.ingredients.map((item) => ({
+        ingredientName: item.foodName,
+        foodItemId: foods.get(item.foodName)!.id,
+        quantity: item.grams,
+        unit: 'g',
+      })),
+    }),
     dietaryTags: getCatalogueDietaryTags(meal),
     status: 'APPROVED',
     safetyEvidenceStatus: 'COMPLETE',

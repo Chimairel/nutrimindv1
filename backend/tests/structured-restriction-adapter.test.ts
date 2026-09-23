@@ -40,7 +40,7 @@ const entry = (
 });
 
 const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree: string[]) => ({
-  recipeSignature: 'fixture-recipe-signature',
+  recipeSignature: 'a'.repeat(64),
   status: 'APPROVED',
   dietaryTags: [...dietaryTags, 'MAINTAIN'],
   safetyEvidenceStatus: 'COMPLETE',
@@ -68,7 +68,7 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
     id: `fixture-clearance-${index}`,
     condition,
     state: 'ACTIVE',
-    recipeSignature: 'fixture-recipe-signature',
+    recipeSignature: 'a'.repeat(64),
     evidenceRevision: 1,
     policyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
     assuranceTier: 'STANDARD',

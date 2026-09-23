@@ -40,6 +40,17 @@ export class CertifiedSlotFallbackService {
     if (input.expectedStatus && target.status !== input.expectedStatus) {
       return { replaced: false, replacementPlanId: null };
     }
+    const pinnedSelection = await prisma.mealPlan.findFirst({
+      where: {
+        planGroupId: target.planGroupId,
+        scheduledDate: target.scheduledDate,
+        mealType: target.mealType,
+        status: MealPlanStatus.APPROVED,
+        userSelectionPinnedAt: { not: null },
+      },
+      select: { id: true },
+    });
+    if (pinnedSelection) return { replaced: false, replacementPlanId: null };
 
     const context = await loadUserNutritionContext(prisma, target.userId, 'User profile is unavailable for fallback.');
     const usedIds = new Set(
@@ -120,6 +131,17 @@ export class CertifiedSlotFallbackService {
       if (input.expectedStatus && latestTarget.status !== input.expectedStatus) {
         return { replaced: false, replacementPlanId: null };
       }
+      const currentPinnedSelection = await tx.mealPlan.findFirst({
+        where: {
+          planGroupId: target.planGroupId,
+          scheduledDate: target.scheduledDate,
+          mealType: target.mealType,
+          status: MealPlanStatus.APPROVED,
+          userSelectionPinnedAt: { not: null },
+        },
+        select: { id: true },
+      });
+      if (currentPinnedSelection) return { replaced: false, replacementPlanId: null };
       const latest = await tx.mealLibrary.findUniqueOrThrow({
         where: { id: candidate.id },
         include: certifiedLibraryMealInclude,

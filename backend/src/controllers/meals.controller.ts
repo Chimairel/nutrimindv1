@@ -16,7 +16,6 @@ import {
   filterUserActionableMealPlans,
   getOwnedMealPlanWhere,
   isMealPlanNotActionableError,
-  isUserActionableMealPlanStatus,
 } from '@/domain/meal-actionability.policy';
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
@@ -205,8 +204,9 @@ export class MealsController {
         },
         orderBy: { scheduledDate: 'asc' },
       });
+      const clearedIds = new Set(await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id));
       const meals = groupMeals
-        .filter((meal) => isUserActionableMealPlanStatus(meal.status) && meal.requiresSafetyRevalidation === false)
+        .filter((meal) => clearedIds.has(meal.id))
         .map(serializeActionableMeal);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
         where: { planGroupId: cycle.id },
@@ -227,6 +227,49 @@ export class MealsController {
         success: false,
         error: 'Failed to retrieve your current meal plan.',
       });
+    }
+  }
+
+  /** GET /api/user/meals/workspace — cleared current and upcoming slots. */
+  static async getPlanWorkspace(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      UpcomingPlanPreparationService.triggerNonBlocking(userId);
+      const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
+      const cycleIds = [cycles.current?.id, cycles.upcoming?.id].filter((id): id is string => Boolean(id));
+      if (!cycleIds.length) {
+        return res.status(200).json({ success: true, data: [], meta: { cycles, pendingReview: null } });
+      }
+      const rows = await prisma.mealPlan.findMany({
+        where: { userId, planGroupId: { in: cycleIds } },
+        include: {
+          ingredients: true,
+          libraryMeal: true,
+          sourceRawRecipeCandidate: { select: { recipeName: true, sourceVideoUrl: true } },
+          mealLogs: { where: { userId } },
+          nutritionist: { include: { user: { select: { name: true, image: true } } } },
+        },
+        orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
+      });
+      const clearedByCycle = await Promise.all(
+        cycleIds.map((cycleId) => MealPlanCycleService.getClearedMealPlanIds(userId, cycleId))
+      );
+      const clearedIds = new Set(clearedByCycle.flat());
+      const meals = rows
+        .filter((meal) => clearedIds.has(meal.id))
+        .map((meal) => ({
+          ...serializeActionableMeal(meal),
+          cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
+        }));
+      return res.status(200).json({
+        success: true,
+        data: meals,
+        meta: { cycles, pendingReview: buildPendingMealPlanPreview(rows) },
+      });
+    } catch (error) {
+      console.error('[MealsController] getPlanWorkspace error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve your meal workspace.' });
     }
   }
 
@@ -521,6 +564,10 @@ export class MealsController {
         }
 
         assertUserLoggableMealPlan(mealPlan);
+        const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(userId, mealPlan.planGroupId, new Date(), tx);
+        if (!clearedIds.includes(mealPlan.id)) {
+          throw new Error('This meal needs safety revalidation before it can be logged.');
+        }
 
         return tx.mealLog.upsert({
           where: { mealPlanId },
@@ -612,7 +659,7 @@ export class MealsController {
       }
 
       const mealPlanId = req.params.id;
-      const { newLibraryMealId, warningShown, warningAcknowledged, previewToken, requestKey } = req.body;
+      const { newLibraryMealId, warningShown, warningAcknowledged, previewToken, requestKey, groceryDeltaAcknowledged } = req.body;
 
       if (!newLibraryMealId) {
         return res.status(400).json({ success: false, error: 'Missing newLibraryMealId parameter.' });
@@ -625,7 +672,8 @@ export class MealsController {
         warningShown,
         warningAcknowledged,
         previewToken,
-        requestKey
+        requestKey,
+        groceryDeltaAcknowledged
       );
 
       return res.status(200).json({

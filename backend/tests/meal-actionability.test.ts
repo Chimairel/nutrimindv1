@@ -212,12 +212,16 @@ test('[TEST-015] active weekly grace period allows logging past meals up to 7 da
     MealPlanNotActionableError
   );
 
-  // Today and future meals are both loggable and swappable
+  // Today can be logged and swapped; future meals can only be swapped.
   assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, currentSchedule), now), true);
   assert.equal(isUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, currentSchedule), now), true);
   assert.doesNotThrow(() => assertUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, currentSchedule), now));
 
-  assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now), true);
+  assert.equal(isUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now), false);
+  assert.throws(
+    () => assertUserLoggableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now),
+    MealPlanNotActionableError
+  );
   assert.equal(isUserSwappableMealPlan(plan(MealPlanStatus.APPROVED, futureSchedule), now), true);
 
   // Ancient schedules (>7 days ago) reject both logging and swapping

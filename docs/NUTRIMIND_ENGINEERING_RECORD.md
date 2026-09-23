@@ -4091,3 +4091,13 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Automatic approvals stop changing quantities after shopping begins or an incomplete subset is accepted. Explicit swap and safety-replacement paths retain cycle-scoped rebuilding and same-cycle purchased quantities; Batch 6 will add the pre-commit grocery delta presentation for swaps.
 - No schema migration was required because the existing unique `GroceryList.planGroupId` relation already prevents cross-cycle purchase transfer and duplicate current/upcoming lists.
 - Verification passed backend build/lint, **475 pass / 0 fail / 1 existing TODO** across 476 backend tests, the disposable development-database Batch 5 acceptance, frontend build/lint, and **201/201** frontend tests across 53 files. Full evidence is in [Batch 5 progressive grocery evidence](BATCH_5_PROGRESSIVE_GROCERY_IMPLEMENTATION.md).
+
+## 106. Eligible library and contextual meal swapping (2026-09-23)
+
+**Change ID:** CHG-20260923-03
+
+- The user library remains an eligible, paginated discovery surface with reviewed meal-type labels and favorites; contextual swap actions now start only from cleared current/upcoming plan slots. Future meals cannot be marked eaten or skipped.
+- Swaps apply the current diet, allergen, condition-clearance, reviewer, recipe-revision, meal-type, rice, and serving gates before ranking favorites and fit. The modal previews actual serving/macros, projected day total, and grocery additions/removals. A signed ten-minute preview is bound to the request key and rechecked at confirmation.
+- Shopping-started swaps require an explicit grocery-delta acknowledgment. The replacement, exact clearance usages, cycle groceries, daily nutrition totals, user-selection pin, and idempotent audit log commit atomically. Competing pending/approved candidates for a user-selected slot are cancelled; routine deadline fallback also checks for the pin.
+- The authorized development database received migration `20260923120000_harden_contextual_swaps`. A separate dry-run backfill found 50 already certified fixture recipes without a signature and no collisions; 50 signatures were persisted with audit events. This repaired the plan-readiness boundary without adding clinical clearances.
+- Backend build/lint/script check and **475 pass / 0 fail / 1 existing TODO** across 476 tests, frontend build/lint and **201/201** tests, and the disposable development-database Batch 6 swap acceptance passed. The swap selector's current bounded candidate window is documented in [Batch 6 contextual swap evidence](BATCH_6_CONTEXTUAL_SWAP_IMPLEMENTATION.md).

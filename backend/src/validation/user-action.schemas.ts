@@ -94,10 +94,11 @@ export const outsideMealReviewBodySchema = z
 export const swapMealBodySchema = z
   .object({
     newLibraryMealId: boundedId,
-    previewToken: z.string().regex(/^[a-f0-9]{64}$/),
+    previewToken: z.string().min(100).max(2000),
     requestKey: z.string().uuid(),
     warningShown: z.boolean().optional(),
     warningAcknowledged: z.boolean().optional(),
+    groceryDeltaAcknowledged: z.boolean().optional(),
   })
   .strict();
 

@@ -162,6 +162,7 @@ export interface FoodItem {
 export interface MealPlan {
   id: string;
   planGroupId: string;
+  cycleScope?: 'CURRENT' | 'UPCOMING';
   userId: string;
   nutritionistId?: string;
   libraryMealId?: string;

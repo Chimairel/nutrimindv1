@@ -79,6 +79,7 @@ export function isCertifiedLibraryMealCompatible(
   userAllergens: readonly string[],
   profile: LibraryCandidateProfile
 ): boolean {
+  if (!meal.recipeSignature || !/^[a-f0-9]{64}$/u.test(meal.recipeSignature)) return false;
   const safety = evaluateMealLibrarySafetyEvidence({
     ...meal,
     reviewerEligible: meal.safetyReviewedByNutritionist
@@ -160,6 +161,7 @@ export async function queryEligibleLibraryMeals(input: {
   excludeIds?: readonly string[];
   search?: string;
   limit?: number;
+  skipCalorieFilter?: boolean;
 }): Promise<CertifiedLibraryMeal[]> {
   await enforceClearanceCircuitBreakers();
   const limit = Math.max(1, Math.min(input.limit ?? 80, 120));
@@ -197,13 +199,14 @@ export async function queryEligibleLibraryMeals(input: {
   }
 
   const calorieRange =
-    input.mealType && input.dailyCalorieTarget && isPrimaryMealType(input.mealType)
+    !input.skipCalorieFilter && input.mealType && input.dailyCalorieTarget && isPrimaryMealType(input.mealType)
       ? getMealSlotCalorieRange(input.dailyCalorieTarget, input.mealType)
       : null;
   const where: Prisma.MealLibraryWhereInput = {
     ...getApprovedMealLibraryWhere(),
     verifiedByNutritionistId: { not: null },
     safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+    recipeSignature: { not: null },
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(calorieRange ? { calories: { gte: calorieRange.minimum, lte: calorieRange.maximum } } : {}),
     ...(input.excludeIds?.length ? { id: { notIn: [...input.excludeIds] } } : {}),
@@ -295,6 +298,7 @@ export async function queryEligibleLibraryPage(input: {
     ...getApprovedMealLibraryWhere(),
     verifiedByNutritionistId: { not: null },
     safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+    recipeSignature: { not: null },
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
     ...(input.riceRole ? { riceRole: input.riceRole, riceRoleReviewStatus: 'REVIEWED' } : {}),

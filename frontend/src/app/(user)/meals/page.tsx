@@ -507,6 +507,7 @@ export default function WeeklyPlanPage() {
                           onStatusToggle={handleMealStatusToggle}
                           onSwapClick={handleSwapClick}
                           scheduledDate={meal.scheduledDate}
+                          cycleScope={meal.cycleScope}
                           verifier={meal.verifier}
                           explanation={meal.explanation}
                           image={meal.image}

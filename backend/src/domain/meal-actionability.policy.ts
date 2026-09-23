@@ -93,8 +93,9 @@ export function isMealPlanScheduleLoggable(
   if (!scheduledDateKey || !currentDateKey) return false;
 
   const minDateKey = addCalendarDaysToDateKey(currentDateKey, -graceDays);
-  const maxDateKey = addCalendarDaysToDateKey(currentDateKey, 14);
-  return scheduledDateKey >= minDateKey && scheduledDateKey <= maxDateKey;
+  // Consumption is retrospective or same-day. Future slots may be viewed or
+  // swapped, but cannot be recorded as eaten/skipped before their date.
+  return scheduledDateKey >= minDateKey && scheduledDateKey <= currentDateKey;
 }
 
 export function isMealPlanScheduleCurrent(

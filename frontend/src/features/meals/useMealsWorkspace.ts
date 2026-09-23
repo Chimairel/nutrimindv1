@@ -18,7 +18,9 @@ export interface SwapOption {
   riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | null;
   riceRoleReviewStatus?: 'NOT_REVIEWED' | 'PROPOSED' | 'REVIEWED';
   includedRiceG?: number | null;
+  servingDescription?: string;
   isFavorite: boolean;
+  alreadyPlannedInCycle?: boolean;
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -111,6 +113,15 @@ export function useMealsWorkspace() {
     warningRequired: boolean;
     previewToken: string;
     requestKey: string;
+    expiresAt: string;
+    shoppingStarted: boolean;
+    groceryDeltaAcknowledgmentRequired: boolean;
+    alreadyPlannedInCycle: boolean;
+    shoppingRemovals: Array<{
+      ingredientName: string;
+      unit: string | null;
+      removableQuantity: number | null;
+    }>;
     shoppingNeeds: Array<{
       ingredientName: string;
       unit: string | null;
@@ -157,7 +168,7 @@ export function useMealsWorkspace() {
     currentPlanRequestInFlight.current = true;
     setError(null);
     try {
-      const res = await api.get('/user/meals/current');
+      const res = await api.get('/user/meals/workspace');
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -251,6 +262,17 @@ export function useMealsWorkspace() {
     [libraryFavoriteOnly]
   );
 
+  const toggleSwapFavorite = async (meal: SwapOption) => {
+    if (meal.isFavorite) await api.delete(`/user/meals/library/${meal.id}/favorite`);
+    else await api.post(`/user/meals/library/${meal.id}/favorite`);
+    setSwapOptions((current) => current.map((entry) =>
+      entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry
+    ));
+    setLibraryMeals((current) => current.map((entry) =>
+      entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry
+    ));
+  };
+
   useEffect(() => {
     if (user) {
       fetchMeals();
@@ -343,7 +365,7 @@ export function useMealsWorkspace() {
             params: { libraryMealId: preferred.id },
           });
           setConfirmSwapMeal(preferred);
-          setSwapPreview({ ...preview.data.data, requestKey: crypto.randomUUID() });
+          setSwapPreview(preview.data.data);
         }
       }
     } catch (err: unknown) {
@@ -368,7 +390,7 @@ export function useMealsWorkspace() {
       });
       if (res.data?.success) {
         const preview = res.data.data;
-        setSwapPreview({ ...preview, requestKey: crypto.randomUUID() });
+        setSwapPreview(preview);
       }
     } catch (err: unknown) {
       setPreviewError(getApiErrorMessage(err, 'Failed to check swap preview.'));
@@ -379,7 +401,7 @@ export function useMealsWorkspace() {
   };
 
   // Submits the swap with warning acknowledged
-  const handleConfirmSwapAnyway = async () => {
+  const handleConfirmSwapAnyway = async (groceryDeltaAcknowledged = false) => {
     if (!activeSwapMeal || !confirmSwapMeal || !swapPreview) return;
 
     setIsSwapping(true);
@@ -392,6 +414,7 @@ export function useMealsWorkspace() {
         requestKey: swapPreview.requestKey,
         warningShown: swapPreview.warningRequired,
         warningAcknowledged: true,
+        groceryDeltaAcknowledged,
       });
 
       if (res.data?.success) {
@@ -414,7 +437,7 @@ export function useMealsWorkspace() {
     try {
       await api.patch(`/user/meals/${mealPlanId}/status`, { status: newStatus });
       // Reload current meals to update checkboxes and macro sums
-      const res = await api.get('/user/meals/current');
+      const res = await api.get('/user/meals/workspace');
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
@@ -699,6 +722,7 @@ export function useMealsWorkspace() {
     libraryNextCursor,
     loadMoreLibrary: () => (libraryNextCursor ? fetchLibrary(libraryNextCursor) : Promise.resolve()),
     toggleLibraryFavorite,
+    toggleSwapFavorite,
     handleSwapClick,
     handleSelectSwapOption,
     handleConfirmSwapAnyway,

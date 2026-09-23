@@ -41,6 +41,7 @@ router.post('/rollover', MealsController.ensureCurrentPlanRollover);
  * Description: Returns current active meal plan items.
  */
 router.get('/current', validateZodRequest({ query: z.object({}).strict() }), MealsController.getCurrentPlan);
+router.get('/workspace', validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanWorkspace);
 
 /**
  * Route: GET /api/user/meals/cycles

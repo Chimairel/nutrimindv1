@@ -1093,6 +1093,10 @@ model MealPlan {
   supersededByMealPlanId        String?
   supersededByMealPlan          MealPlan?               @relation("MealPlanCandidateSupersession", fields: [supersededByMealPlanId], references: [id], onDelete: SetNull)
   supersedesMealPlans           MealPlan[]              @relation("MealPlanCandidateSupersession")
+  /// Set when the user deliberately replaces an upcoming slot. Ordinary
+  /// preparation ranking must preserve this choice; safety invalidation may
+  /// still supersede it.
+  userSelectionPinnedAt         DateTime?
 
   // Relations
   ingredients       MealIngredient[]
@@ -2180,6 +2184,7 @@ model SwapLog {
   calorieDelta        Float
   warningShown        Boolean  @default(false)
   warningAcknowledged Boolean  @default(false)
+  groceryDeltaAcknowledged Boolean @default(false)
   swappedAt           DateTime @default(now())
 }
 
