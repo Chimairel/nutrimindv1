@@ -12,10 +12,11 @@ import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
-  const { login, logout, user } = useAuth();
+  const { login, logout, user, isLoading: isAuthLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,11 @@ export default function LoginPage() {
   }, []);
 
   if (user) {
-    return <AuthenticatedEntryRedirect user={user} logout={logout} />;
+    return isAuthLoading ? (
+      <PortalLoadingState fullScreen />
+    ) : (
+      <AuthenticatedEntryRedirect user={user} logout={logout} />
+    );
   }
 
   const clearFieldError = (field: LoginField) => {

@@ -1,8 +1,4 @@
-import {
-  MealPlanCycleDeadlineOutcome,
-  MealPlanCycleStatus,
-  ProfileCycleAdaptationState,
-} from '@prisma/client';
+import { MealPlanCycleDeadlineOutcome, MealPlanCycleStatus, ProfileCycleAdaptationState } from '@prisma/client';
 
 export type GroceryActionability = {
   canCheckItems: boolean;
@@ -51,8 +47,7 @@ export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryAct
   const incompleteNeedsAcknowledgment =
     isIncomplete &&
     !acknowledgedIncomplete &&
-    (facts.status === MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE ||
-      facts.status === MealPlanCycleStatus.ACTIVE);
+    (facts.status === MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE || facts.status === MealPlanCycleStatus.ACTIVE);
   if (incompleteNeedsAcknowledgment) {
     return {
       canCheckItems: false,
@@ -94,4 +89,3 @@ export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryAct
     message: 'Preview only. Quantities may increase as more meal slots complete review.',
   };
 }
-

@@ -107,7 +107,9 @@ export class CertifiedSlotFallbackService {
       activeClearanceCoverage: true,
       allergenDeclarationsComplete: true,
       ingredientsResolved: candidate.ingredients.every((ingredient) => Boolean(ingredient.foodItemId)),
-      nutrientsComplete: [candidate.calories, candidate.proteinG, candidate.carbsG, candidate.fatG].every(Number.isFinite),
+      nutrientsComplete: [candidate.calories, candidate.proteinG, candidate.carbsG, candidate.fatG].every(
+        Number.isFinite
+      ),
       dietCompatible: true,
       remainingReviews: 0,
       calorieDeviationRatio:

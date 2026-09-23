@@ -10,11 +10,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import {
-  fetchGroceryWorkspace,
-  type GroceryItem,
-  type GroceryWorkspace,
-} from '@/features/grocery/current-grocery';
+import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
 import { AlertTriangle, Check, ChevronDown, CircleCheckBig, Download, Search, ShoppingBasket } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
@@ -41,7 +37,7 @@ export default function GroceryListPage() {
       ? new Set([getInitialExpandedCategory(cachedPage.current.groceryList.groceryItems)])
       : new Set()
   );
-  const projection = scope === 'CURRENT' ? workspace?.current ?? null : workspace?.upcoming ?? null;
+  const projection = scope === 'CURRENT' ? (workspace?.current ?? null) : (workspace?.upcoming ?? null);
   const groceryList = projection?.groceryList ?? null;
   const pendingMealCount = projection?.coverage.unresolvedSlotCount ?? 0;
   const canCheckItems = Boolean(projection?.actionability.canCheckItems);
@@ -296,8 +292,8 @@ export default function GroceryListPage() {
             projection.cycle.status === 'REVALIDATION_REQUIRED'
               ? projection.actionability.message
               : pendingMealCount > 0
-              ? `${pendingMealCount} meal slot${pendingMealCount === 1 ? '' : 's'} remain unresolved. Ingredients appear only after each slot clears review.`
-              : 'Your checklist will appear automatically when cleared meal ingredients are available.'
+                ? `${pendingMealCount} meal slot${pendingMealCount === 1 ? '' : 's'} remain unresolved. Ingredients appear only after each slot clears review.`
+                : 'Your checklist will appear automatically when cleared meal ingredients are available.'
           }
           action={{
             label: 'View Meal Plan',
@@ -316,7 +312,8 @@ export default function GroceryListPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-muted">
-                  {scope === 'CURRENT' ? 'Current cycle' : 'Next cycle'} · {projection.cycle.status.replaceAll('_', ' ')}
+                  {scope === 'CURRENT' ? 'Current cycle' : 'Next cycle'} ·{' '}
+                  {projection.cycle.status.replaceAll('_', ' ')}
                 </p>
                 <p className="mt-1 font-display text-base font-bold text-brand-text">
                   {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meals ready

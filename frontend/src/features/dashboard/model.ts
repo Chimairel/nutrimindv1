@@ -24,7 +24,14 @@ export type OutsideMealPreviewItem = {
   name: string;
   portionGrams: number | null;
   servingDescription?: string | null;
-  source: 'VERIFIED_LIBRARY' | 'FNRI' | 'USER_REPORTED' | 'USER_ADJUSTED_LIBRARY' | 'GEMINI_ESTIMATED' | 'NUTRITIONIST_REVIEWED' | 'UNRESOLVED';
+  source:
+    | 'VERIFIED_LIBRARY'
+    | 'FNRI'
+    | 'USER_REPORTED'
+    | 'USER_ADJUSTED_LIBRARY'
+    | 'GEMINI_ESTIMATED'
+    | 'NUTRITIONIST_REVIEWED'
+    | 'UNRESOLVED';
   nutritionStatus: string;
   includedInTotals: boolean;
   calories: number;

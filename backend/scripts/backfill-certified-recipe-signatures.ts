@@ -39,35 +39,46 @@ async function main() {
       }),
     };
   });
-  assert.equal(new Set(proposed.map((row) => row.signature)).size, proposed.length, 'Duplicate recipe signatures need review.');
+  assert.equal(
+    new Set(proposed.map((row) => row.signature)).size,
+    proposed.length,
+    'Duplicate recipe signatures need review.'
+  );
   const occupied = proposed.length
     ? await prisma.mealLibrary.count({ where: { recipeSignature: { in: proposed.map((row) => row.signature) } } })
     : 0;
   assert.equal(occupied, 0, 'A proposed recipe signature is already occupied.');
-  console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', eligibleCertifiedRows: proposed.length, collisions: occupied }));
+  console.log(
+    JSON.stringify({ mode: apply ? 'apply' : 'dry-run', eligibleCertifiedRows: proposed.length, collisions: occupied })
+  );
   if (!apply) return;
-  await prisma.$transaction(async (tx) => {
-    for (const row of proposed) {
-      const changed = await tx.mealLibrary.updateMany({
-        where: { id: row.id, recipeSignature: null, safetyEvidenceRevision: row.revision },
-        data: { recipeSignature: row.signature },
-      });
-      assert.equal(changed.count, 1, `Evidence changed before signing ${row.id}.`);
-      await tx.auditEvent.create({
-        data: {
-          actorUserId: null,
-          action: 'CERTIFIED_RECIPE_SIGNATURE_BACKFILLED',
-          entityType: 'MealLibrary',
-          entityId: row.id,
-          metadata: { recipeSignature: row.signature, evidenceRevision: row.revision },
-        },
-      });
-    }
-  }, { timeout: 30_000 });
+  await prisma.$transaction(
+    async (tx) => {
+      for (const row of proposed) {
+        const changed = await tx.mealLibrary.updateMany({
+          where: { id: row.id, recipeSignature: null, safetyEvidenceRevision: row.revision },
+          data: { recipeSignature: row.signature },
+        });
+        assert.equal(changed.count, 1, `Evidence changed before signing ${row.id}.`);
+        await tx.auditEvent.create({
+          data: {
+            actorUserId: null,
+            action: 'CERTIFIED_RECIPE_SIGNATURE_BACKFILLED',
+            entityType: 'MealLibrary',
+            entityId: row.id,
+            metadata: { recipeSignature: row.signature, evidenceRevision: row.revision },
+          },
+        });
+      }
+    },
+    { timeout: 30_000 }
+  );
   console.log(JSON.stringify({ signed: proposed.length }));
 }
 
-main().catch((error) => {
-  console.error('[Certified signature backfill] FAILED', error);
-  process.exitCode = 1;
-}).finally(async () => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error('[Certified signature backfill] FAILED', error);
+    process.exitCode = 1;
+  })
+  .finally(async () => prisma.$disconnect());

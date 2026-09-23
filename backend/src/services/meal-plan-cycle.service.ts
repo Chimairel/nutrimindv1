@@ -1,9 +1,5 @@
 import prisma from '@/lib/prisma';
-import {
-  deriveMealPlanCycleLifecycle,
-  getManilaDateKey,
-  getManilaMidnight,
-} from '@/domain/meal-plan-cycle.policy';
+import { deriveMealPlanCycleLifecycle, getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import {
   ConditionClearanceState,
   MealPlanStatus,
@@ -248,19 +244,13 @@ export class MealPlanCycleService {
       }
       const clearedMealPlanIds = new Set(await this.getClearedMealPlanIds(userId, cycle.id, now, client));
       const clearedMeals = cycle.mealPlans.filter((meal) => clearedMealPlanIds.has(meal.id));
-      const clearedSlots = new Set(
-        clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
-      );
+      const clearedSlots = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`));
       const allSlotsCleared = clearedSlots.size >= cycle.expectedSlotCount;
       const groceryProjectionReady = Boolean(cycle.groceryList && !cycle.groceryList.isStale);
       const hasCompleteSlotSet = allSlotsCleared && groceryProjectionReady;
       const observedReadyAt = hasCompleteSlotSet
-        ? cycle.readyAt ??
-          new Date(
-            Math.max(
-              ...clearedMeals.map((meal) => (meal.reviewedAt ?? meal.createdAt).getTime())
-            )
-          )
+        ? (cycle.readyAt ??
+          new Date(Math.max(...clearedMeals.map((meal) => (meal.reviewedAt ?? meal.createdAt).getTime()))))
         : cycle.readyAt;
       const next = deriveMealPlanCycleLifecycle({
         ...cycle,
@@ -270,7 +260,7 @@ export class MealPlanCycleService {
         hasCompleteSlotSet,
       });
       const readyAt = observedReadyAt;
-      const activatedAt = next.status === MealPlanCycleStatus.ACTIVE ? cycle.activatedAt ?? now : cycle.activatedAt;
+      const activatedAt = next.status === MealPlanCycleStatus.ACTIVE ? (cycle.activatedAt ?? now) : cycle.activatedAt;
       if (
         next.status === cycle.status &&
         next.deadlineOutcome === cycle.deadlineOutcome &&
@@ -368,10 +358,7 @@ export class MealPlanCycleService {
     ) {
       throw new Error('This cycle is not ready for shopping.');
     }
-    if (
-      cycle.status === MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE &&
-      cycle.incompleteAcknowledgedAt === null
-    ) {
+    if (cycle.status === MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE && cycle.incompleteAcknowledgedAt === null) {
       throw new Error('Acknowledge the missing plan slots before shopping from this partial list.');
     }
     if (cycle.shoppingStartedAt) return;
@@ -380,18 +367,12 @@ export class MealPlanCycleService {
       where: { id: cycle.id, userId, shoppingStartedAt: null },
       data: {
         shoppingStartedAt: now,
-        ...(cycle.status === MealPlanCycleStatus.ACTIVE
-          ? {}
-          : { status: MealPlanCycleStatus.SHOPPING_STARTED }),
+        ...(cycle.status === MealPlanCycleStatus.ACTIVE ? {} : { status: MealPlanCycleStatus.SHOPPING_STARTED }),
       },
     });
   }
 
-  static async acknowledgeIncompleteCycle(
-    userId: string,
-    cycleId: string,
-    now: Date = new Date()
-  ) {
+  static async acknowledgeIncompleteCycle(userId: string, cycleId: string, now: Date = new Date()) {
     return prisma.$transaction(async (tx) => {
       await this.synchronizeLifecycle(userId, now, tx);
       const cycle = await tx.mealPlanCycle.findFirst({ where: { id: cycleId, userId } });

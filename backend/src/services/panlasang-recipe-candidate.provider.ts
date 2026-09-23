@@ -114,9 +114,10 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
           : {}),
       },
       include: { applicableMealTypes: { orderBy: { mealType: 'asc' } } },
-      orderBy: input.recentFirst && !input.cursor
-        ? [{ indexedAt: 'desc' }, { id: 'asc' }]
-        : [{ normalizedName: 'asc' }, { id: 'asc' }],
+      orderBy:
+        input.recentFirst && !input.cursor
+          ? [{ indexedAt: 'desc' }, { id: 'asc' }]
+          : [{ normalizedName: 'asc' }, { id: 'asc' }],
       take: limit + 1,
     });
     const hasMore = rows.length > limit;

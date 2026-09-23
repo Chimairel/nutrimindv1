@@ -1,13 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import {
-  AssuranceTier,
-  MealPlanCycleStatus,
-  MealPlanStatus,
-  MealType,
-  PlanType,
-} from '@prisma/client';
+import { AssuranceTier, MealPlanCycleStatus, MealPlanStatus, MealType, PlanType } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';

@@ -74,11 +74,6 @@ export async function advanceSafetyRevision(tx: Prisma.TransactionClient, userId
     },
   });
   await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
-  await ProfileCycleAdaptationService.recordSafetyChange(
-    tx,
-    userId,
-    updated.revision,
-    safetyUpdated.safetyRevision
-  );
+  await ProfileCycleAdaptationService.recordSafetyChange(tx, userId, updated.revision, safetyUpdated.safetyRevision);
   return { ...updated, safetyRevision: safetyUpdated.safetyRevision };
 }

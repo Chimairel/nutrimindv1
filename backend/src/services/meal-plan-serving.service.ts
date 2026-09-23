@@ -106,9 +106,7 @@ export async function composePlanWithPairedRice(
     cookedRiceG: input.cookedRiceG,
   });
   if (
-    plan.clearanceUsages.some(
-      (usage) => usage.clearance.composedServingSignature !== composed.composedServingSignature
-    )
+    plan.clearanceUsages.some((usage) => usage.clearance.composedServingSignature !== composed.composedServingSignature)
   ) {
     throw new Error('This rice composition requires explicit condition clearance for the composed serving.');
   }

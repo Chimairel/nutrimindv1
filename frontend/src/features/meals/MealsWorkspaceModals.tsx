@@ -167,10 +167,13 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       <p className="text-brand-muted">Replace {swapPreview.originalMealName}</p>
                       <p className="mt-1 font-semibold text-brand-text">With {swapPreview.newMealName}</p>
                       <p className="mt-2 text-xs text-brand-muted">
-                        {swapPreview.newCalories} kcal · {swapPreview.calorieDelta >= 0 ? '+' : ''}{swapPreview.calorieDelta} kcal from this slot
+                        {swapPreview.newCalories} kcal · {swapPreview.calorieDelta >= 0 ? '+' : ''}
+                        {swapPreview.calorieDelta} kcal from this slot
                       </p>
                       {swapPreview.alreadyPlannedInCycle && (
-                        <p className="mt-2 text-xs text-amber-600">This recipe is already planned elsewhere this cycle.</p>
+                        <p className="mt-2 text-xs text-amber-600">
+                          This recipe is already planned elsewhere this cycle.
+                        </p>
                       )}
                     </div>
                     {swapPreview.warningRequired && (
@@ -221,7 +224,8 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         <ul className="mt-2 space-y-1 text-brand-muted">
                           {swapPreview.shoppingRemovals.map((item) => (
                             <li key={item.ingredientName + item.unit}>
-                              Remove {item.removableQuantity !== null ? `${item.removableQuantity} ${item.unit ?? ''} ` : ''}
+                              Remove{' '}
+                              {item.removableQuantity !== null ? `${item.removableQuantity} ${item.unit ?? ''} ` : ''}
                               {item.ingredientName} from what remains to buy.
                             </li>
                           ))}
@@ -255,7 +259,9 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       </Button>
                       <Button
                         onClick={() => handleConfirmSwapAnyway(groceryDeltaAcknowledged)}
-                        disabled={isSwapping || (swapPreview.groceryDeltaAcknowledgmentRequired && !groceryDeltaAcknowledged)}
+                        disabled={
+                          isSwapping || (swapPreview.groceryDeltaAcknowledgmentRequired && !groceryDeltaAcknowledged)
+                        }
                         className="text-xs font-bold"
                       >
                         {isSwapping ? 'Swapping...' : 'Confirm swap'}
@@ -273,15 +279,26 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     className="p-4 bg-brand-surface/50 border border-brand-border rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-border-hover transition-colors"
                   >
                     <div className="w-full max-w-28 shrink-0">
-                      <MealImage image={option.image} mealName={option.mealName} mealType={option.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER'} className="h-24 w-full" variant="compact" />
+                      <MealImage
+                        image={option.image}
+                        mealName={option.mealName}
+                        mealType={option.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER'}
+                        className="h-24 w-full"
+                        variant="compact"
+                      />
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
                       <h4 className="text-sm font-bold text-brand-text leading-snug">{option.mealName}</h4>
                       <p className="text-[11px] text-brand-muted">
-                        {(option.mealTypes?.length ? option.mealTypes : [option.mealType]).join(' · ')} · {option.servingDescription || 'One recipe serving'}
+                        {(option.mealTypes?.length ? option.mealTypes : [option.mealType]).join(' · ')} ·{' '}
+                        {option.servingDescription || 'One recipe serving'}
                       </p>
                       <p className="text-[11px] text-brand-muted">
-                        {option.riceRole === 'PAIR_WITH_RICE' ? 'Pair with rice' : option.riceRole === 'INCLUDES_RICE' ? 'Rice included' : 'Standalone'}
+                        {option.riceRole === 'PAIR_WITH_RICE'
+                          ? 'Pair with rice'
+                          : option.riceRole === 'INCLUDES_RICE'
+                            ? 'Rice included'
+                            : 'Standalone'}
                         {option.alreadyPlannedInCycle ? ' · Already planned this cycle' : ''}
                         {option.isFavorite ? ' · Favorite' : ''}
                       </p>
@@ -303,7 +320,8 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         </span>
                       </div>
                       <p className="text-[11px] text-brand-muted">
-                        {option.calories - activeSwapMeal.calories >= 0 ? '+' : ''}{Math.round(option.calories - activeSwapMeal.calories)} kcal from current slot
+                        {option.calories - activeSwapMeal.calories >= 0 ? '+' : ''}
+                        {Math.round(option.calories - activeSwapMeal.calories)} kcal from current slot
                       </p>
 
                       {/* Verifier Badge */}
@@ -316,12 +334,23 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        aria-label={option.isFavorite ? `Remove ${option.mealName} from favorites` : `Favorite ${option.mealName}`}
+                        aria-label={
+                          option.isFavorite ? `Remove ${option.mealName} from favorites` : `Favorite ${option.mealName}`
+                        }
                         aria-pressed={option.isFavorite}
                         onClick={() => toggleSwapFavorite(option)}
                         className="rounded-full border border-brand-border p-2 text-brand-green"
-                      ><Heart className={`h-4 w-4 ${option.isFavorite ? 'fill-current' : ''}`} /></button>
-                      <Button variant="secondary" onClick={() => { setGroceryDeltaAcknowledged(false); handleSelectSwapOption(option); }} className="text-xs font-semibold py-1.5 h-8 border-brand-border hover:border-brand-green/45">
+                      >
+                        <Heart className={`h-4 w-4 ${option.isFavorite ? 'fill-current' : ''}`} />
+                      </button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setGroceryDeltaAcknowledged(false);
+                          handleSelectSwapOption(option);
+                        }}
+                        className="text-xs font-semibold py-1.5 h-8 border-brand-border hover:border-brand-green/45"
+                      >
                         Select
                       </Button>
                     </div>

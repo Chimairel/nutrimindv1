@@ -33,6 +33,8 @@
     "test:acceptance:batch7-outside": "tsx scripts/batch7-outside-capture-acceptance.ts",
     "test:acceptance:batch8-outside-review": "tsx scripts/batch8-outside-review-acceptance.ts",
     "test:acceptance:batch9-observed-corpus": "tsx scripts/batch9-observed-corpus-acceptance.ts",
+    "test:acceptance:batch10-integrated-roles": "tsx scripts/batch10-integrated-roles-acceptance.ts",
+    "test:acceptance:batch10-email-auth": "tsx scripts/batch10-email-auth-acceptance.ts",
     "test:acceptance:structured-safety": "tsx scripts/structured-safety-intake-acceptance.ts",
     "test:acceptance:structured-replacement": "tsx scripts/structured-safety-replacement-acceptance.ts",
     "measure:structured-coverage": "tsx scripts/measure-structured-library-coverage.ts",

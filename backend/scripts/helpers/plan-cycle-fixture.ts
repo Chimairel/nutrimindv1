@@ -1,9 +1,4 @@
-import {
-  MealPlanCycleStatus,
-  MealPlanCycleDeadlineOutcome,
-  PlanType,
-  PrismaClient,
-} from '@prisma/client';
+import { MealPlanCycleStatus, MealPlanCycleDeadlineOutcome, PlanType, PrismaClient } from '@prisma/client';
 import { getManilaMidnight, getManilaDateKey, getScheduledMealDate } from '../../src/domain/meal-plan-cycle.policy';
 
 type PlanCycleClient = Pick<PrismaClient, 'mealPlanCycle'>;
@@ -24,14 +19,9 @@ interface FixturePlanCycleInput {
  * exercising authoritative current-cycle behavior; unrelated fixtures should
  * remain SUPERSEDED so they cannot influence current/upcoming lookup.
  */
-export async function createFixturePlanCycle(
-  client: PlanCycleClient,
-  input: FixturePlanCycleInput
-) {
+export async function createFixturePlanCycle(client: PlanCycleClient, input: FixturePlanCycleInput) {
   const startDate = getManilaMidnight(getManilaDateKey(input.startDate ?? new Date()));
-  const endDate = input.endDate
-    ? getManilaMidnight(getManilaDateKey(input.endDate))
-    : startDate;
+  const endDate = input.endDate ? getManilaMidnight(getManilaDateKey(input.endDate)) : startDate;
   const status = input.status ?? MealPlanCycleStatus.SUPERSEDED;
   const activeLike = status === MealPlanCycleStatus.ACTIVE;
 
@@ -46,10 +36,7 @@ export async function createFixturePlanCycle(
       shoppingDeadlineAt: startDate,
       expectedSlotCount: input.expectedSlotCount ?? 3,
       status,
-      deadlineOutcome:
-        status === MealPlanCycleStatus.COMPLETED
-          ? MealPlanCycleDeadlineOutcome.COMPLETE
-          : undefined,
+      deadlineOutcome: status === MealPlanCycleStatus.COMPLETED ? MealPlanCycleDeadlineOutcome.COMPLETE : undefined,
       activatedAt: activeLike ? startDate : undefined,
       supersededAt: status === MealPlanCycleStatus.SUPERSEDED ? new Date() : undefined,
     },

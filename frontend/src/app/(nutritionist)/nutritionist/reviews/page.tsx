@@ -163,7 +163,8 @@ export default function ReviewsPage() {
                     )}
                   </div>
                   <p className="mb-2 text-[10px] leading-relaxed text-brand-muted">
-                    Cook date {new Date(meal.cookDeadlineAt).toLocaleDateString()} · {meal.assuranceTier.toLowerCase()} assurance · {meal.remainingReviewers} review{meal.remainingReviewers === 1 ? '' : 's'} remaining
+                    Cook date {new Date(meal.cookDeadlineAt).toLocaleDateString()} · {meal.assuranceTier.toLowerCase()}{' '}
+                    assurance · {meal.remainingReviewers} review{meal.remainingReviewers === 1 ? '' : 's'} remaining
                   </p>
                   <div className="flex items-center justify-between gap-2 text-[11px] text-brand-muted">
                     <span className="flex items-center gap-1.5 min-w-0 truncate">

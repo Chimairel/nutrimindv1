@@ -2,7 +2,11 @@ import prisma from '@/lib/prisma';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { lockUserProfile } from './profile-revision.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
-import { getMealSlotCalorieRange, isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
+import {
+  getMealSlotCalorieRange,
+  isMealWithinSlotCalorieRange,
+  isPrimaryMealType,
+} from '@/domain/meal-calorie-allocation.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { buildSwapShoppingDelta } from '@/domain/swap-shopping.policy';
 import {
@@ -20,7 +24,6 @@ import {
   assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
   getApprovedMealPlanStatusWhere,
-  getNutritionEligibleMealLogWhere,
   getOwnedMealPlanWhere,
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
@@ -41,6 +44,7 @@ import { chooseCookedRicePortionG } from '@/domain/upcoming-preparation.policy';
 import { getLocalizedFoodConsumptionContext } from './food-consumption-context.service';
 import { rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
+import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 
 type SwapMealReadClient = Pick<Prisma.TransactionClient, 'mealPlan' | 'mealPlanCycle'>;
 
@@ -69,7 +73,12 @@ function resolveReplacementServing(input: {
   if (ricePreference === RicePreference.WITH_RICE && meal.riceRole === RecipeRiceRole.PAIR_WITH_RICE) {
     // The current condition clearances are scoped to the base serving. A rice
     // composition requires a separately reviewed composed serving signature.
-    if (hasConditions || meal.riceRoleReviewStatus !== RiceRoleReviewStatus.REVIEWED || !riceFood || !meal.recipeSignature)
+    if (
+      hasConditions ||
+      meal.riceRoleReviewStatus !== RiceRoleReviewStatus.REVIEWED ||
+      !riceFood ||
+      !meal.recipeSignature
+    )
       return null;
     const range = getMealSlotCalorieRange(dailyTarget, mealType);
     pairedRiceG = chooseCookedRicePortionG({
@@ -172,8 +181,7 @@ export function toPublicSwapOption(
     includedRiceG: meal.riceRole === 'INCLUDES_RICE' ? meal.includedRiceG : null,
     servingDescription: meal.nutritionServingDescription || 'One recipe serving',
     isFavorite: 'isFavorite' in meal ? Boolean(meal.isFavorite) : false,
-    alreadyPlannedInCycle:
-      'alreadyPlannedInCycle' in meal ? Boolean(meal.alreadyPlannedInCycle) : false,
+    alreadyPlannedInCycle: 'alreadyPlannedInCycle' in meal ? Boolean(meal.alreadyPlannedInCycle) : false,
     calories: meal.calories,
     proteinG: meal.proteinG,
     carbsG: meal.carbsG,
@@ -226,7 +234,8 @@ export class MealSwapService {
 
     const [cycleSnapshot, riceFood] = await Promise.all([
       prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: mealPlan.planGroupId } }),
-      userProfile.ricePreference === RicePreference.WITH_RICE && !userConditions.some((condition) => condition !== HealthConditionType.NONE)
+      userProfile.ricePreference === RicePreference.WITH_RICE &&
+      !userConditions.some((condition) => condition !== HealthConditionType.NONE)
         ? prisma.foodItem.findFirst({
             where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
           })
@@ -314,29 +323,29 @@ export class MealSwapService {
           riceFood,
         });
         if (!serving) return [];
-        return [{
-          ...meal,
-          ...serving,
-          mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
-          isFavorite: favorites.has(meal.id),
-          alreadyPlannedInCycle: usedLibraryMealIds.has(meal.id),
-          localityRank: localityRank.get(meal.id),
-          ricePreferenceScore: ricePreferenceScore(meal.riceRole),
-          pairedRiceG: serving.pairedRiceG,
-          nutritionServingDescription: serving.pairedRiceG
-            ? `${meal.nutritionServingDescription || 'One recipe serving'} with ${serving.pairedRiceG} g cooked rice`
-            : meal.nutritionServingDescription,
-        }];
+        return [
+          {
+            ...meal,
+            ...serving,
+            mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
+            isFavorite: favorites.has(meal.id),
+            alreadyPlannedInCycle: usedLibraryMealIds.has(meal.id),
+            localityRank: localityRank.get(meal.id),
+            ricePreferenceScore: ricePreferenceScore(meal.riceRole),
+            pairedRiceG: serving.pairedRiceG,
+            nutritionServingDescription: serving.pairedRiceG
+              ? `${meal.nutritionServingDescription || 'One recipe serving'} with ${serving.pairedRiceG} g cooked rice`
+              : meal.nutritionServingDescription,
+          },
+        ];
       });
 
     return {
-      swapOptions: rankLibraryMeals(
-        eligibleMeals,
-        dailyTarget,
-        mealPlan.calories,
-        mealPlan.mealType,
-        { proteinG: mealPlan.proteinG, carbsG: mealPlan.carbsG, fatG: mealPlan.fatG }
-      ).map(toPublicSwapOption),
+      swapOptions: rankLibraryMeals(eligibleMeals, dailyTarget, mealPlan.calories, mealPlan.mealType, {
+        proteinG: mealPlan.proteinG,
+        carbsG: mealPlan.carbsG,
+        fatG: mealPlan.fatG,
+      }).map(toPublicSwapOption),
     };
   }
 
@@ -463,9 +472,7 @@ export class MealSwapService {
     ];
     const shoppingDelta = buildSwapShoppingDelta(
       cycleMeals.flatMap(ingredientProjection),
-      cycleMeals.flatMap((meal) =>
-        meal.id === mealPlanId ? replacementIngredients : ingredientProjection(meal)
-      ),
+      cycleMeals.flatMap((meal) => (meal.id === mealPlanId ? replacementIngredients : ingredientProjection(meal))),
       purchases
     );
     const alreadyPlannedInCycle = cycleMeals.some(
@@ -771,84 +778,7 @@ export class MealSwapService {
   /**
    * Recalculates DailyNutritionLog values if an upcoming meal on that day is swapped
    */
-  static async recalculateDailyNutritionLog(
-    userId: string,
-    date: Date,
-    client: Prisma.TransactionClient | typeof prisma = prisma
-  ) {
-    const startOfDay = getStartOfManilaBusinessDay(date);
-    const endOfDay = new Date(startOfDay.getTime() + 86_400_000 - 1);
-
-    // Find if a DailyNutritionLog exists for this day
-    const existingLog = await client.dailyNutritionLog.findFirst({
-      where: {
-        userId,
-        logDate: startOfDay,
-      },
-    });
-
-    if (!existingLog) return; // If no log exists for this day yet, nothing to recalculate
-
-    // Fetch all DONE meal logs for this day
-    const mealLogs = await client.mealLog.findMany({
-      where: {
-        userId,
-        status: 'DONE',
-        ...getNutritionEligibleMealLogWhere(),
-        loggedAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-    });
-
-    const scheduledPlan = await client.mealPlan.findFirst({
-      where: { userId, scheduledDate: { gte: startOfDay, lte: endOfDay } },
-      orderBy: { createdAt: 'desc' },
-      select: { planGroupId: true },
-    });
-    const [profile, cycleSnapshot] = await Promise.all([
-      client.userProfile.findUnique({ where: { userId } }),
-      scheduledPlan
-        ? client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: scheduledPlan.planGroupId } })
-        : Promise.resolve(null),
-    ]);
-    const targetCalories = resolvePlanTargetCalories(
-      cycleSnapshot?.dailyCalorieTarget,
-      profile?.dailyCalorieTarget,
-      2000
-    );
-
-    let totalCalories = 0;
-    let totalProteinG = 0;
-    let totalCarbsG = 0;
-    let totalFatG = 0;
-
-    for (const log of mealLogs) {
-      totalCalories += log.calories;
-      totalProteinG += log.proteinG;
-      totalCarbsG += log.carbsG;
-      totalFatG += log.fatG;
-    }
-
-    let adherencePct = 0;
-    if (totalCalories > 0) {
-      const deviationPct = Math.abs((totalCalories - targetCalories) / targetCalories) * 100;
-      adherencePct = Math.max(0, 100 - deviationPct);
-    }
-
-    await client.dailyNutritionLog.update({
-      where: { id: existingLog.id },
-      data: {
-        totalCalories,
-        totalProteinG,
-        totalCarbsG,
-        totalFatG,
-        targetCalories,
-        adherencePct,
-      },
-    });
-  }
+  static recalculateDailyNutritionLog = recalculateDailyNutritionLog;
 
   /**
    * Returns all approved verified meals from MealLibrary that are clinically compatible with a user profile.

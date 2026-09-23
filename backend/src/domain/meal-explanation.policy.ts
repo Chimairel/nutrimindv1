@@ -97,7 +97,9 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
     );
   }
   if (evidence?.rankingReasonCodes?.length) {
-    bullets.push(`Planner ranking factors: ${evidence.rankingReasonCodes.join(', ').toLowerCase().replace(/_/g, ' ')}.`);
+    bullets.push(
+      `Planner ranking factors: ${evidence.rankingReasonCodes.join(', ').toLowerCase().replace(/_/g, ' ')}.`
+    );
   }
 
   if (nutritionEvidence === 'ALL_FNRI')

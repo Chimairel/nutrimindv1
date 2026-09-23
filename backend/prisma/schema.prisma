@@ -694,6 +694,36 @@ model User {
   foodAliasesVerified              FoodAlias[]                      @relation("FoodAliasAdminVerifier")
   scopedConditionClearances        MealConditionClearance[]         @relation("ConditionClearanceUserScope")
   mealFavorites                    MealFavorite[]
+  clinicalProfileReviews           ClinicalProfileReview[]
+}
+
+// Historical profile-review evidence remains in the database. Current flows
+// use the report and meal-review gates, but this model preserves schema parity
+// and the account-deletion cascade for existing review records.
+enum ClinicalProfileReviewStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model ClinicalProfileReview {
+  id              String                      @id
+  userId          String
+  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileRevision Int
+  policyVersion   String                      @db.VarChar(80)
+  status          ClinicalProfileReviewStatus @default(PENDING)
+  reasonCodes     Json
+  profileSnapshot Json
+  reviewerId      String?
+  reviewer        NutritionistProfile?       @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewNotes     String?                     @db.VarChar(2000)
+  createdAt       DateTime                    @default(now())
+  reviewedAt      DateTime?
+
+  @@unique([userId, profileRevision, policyVersion])
+  @@index([status, createdAt])
+  @@index([reviewerId])
 }
 
 model Account {
@@ -861,6 +891,7 @@ model NutritionistProfile {
   mealPlanReviewDecisions MealPlanReviewDecision[]
   conditionRuleApprovals  ConditionRulePolicyApproval[]
   resolvedClearances      MealConditionClearance[]         @relation("ConditionClearanceResolver")
+  clinicalProfileReviews  ClinicalProfileReview[]
 }
 
 model NutritionistApplication {
@@ -1146,7 +1177,7 @@ model MealPlanReviewDecision {
   evidenceSnapshot      Json
   submittedAt           DateTime                    @default(now())
 
-  @@unique([mealPlanId, nutritionistProfileId, stage])
+  @@unique([mealPlanId, nutritionistProfileId, stage], map: "MealPlanReviewDecision_mealPlanId_nutritionistProfileId_stage_k")
   @@index([mealPlanId, submittedAt])
 }
 
@@ -1277,7 +1308,7 @@ model MealLibraryApplicableType {
   updatedAt     DateTime                      @updatedAt
 
   @@unique([mealLibraryId, mealType])
-  @@index([mealType, reviewStatus, mealLibraryId])
+  @@index([mealType, reviewStatus, mealLibraryId], map: "MealLibraryApplicableType_mealType_reviewStatus_mealLibraryId_i")
 }
 
 model RawRecipeApplicableType {
@@ -1291,7 +1322,7 @@ model RawRecipeApplicableType {
   updatedAt            DateTime                      @updatedAt
 
   @@unique([rawRecipeCandidateId, mealType])
-  @@index([mealType, reviewStatus, rawRecipeCandidateId])
+  @@index([mealType, reviewStatus, rawRecipeCandidateId], map: "RawRecipeApplicableType_mealType_reviewStatus_rawRecipeCandidat")
 }
 
 model MealFavorite {
@@ -1376,9 +1407,9 @@ model MealConditionClearanceDecision {
   evidenceSnapshot      Json
   submittedAt           DateTime               @default(now())
 
-  @@unique([clearanceId, nutritionistProfileId, stage])
+  @@unique([clearanceId, nutritionistProfileId, stage], map: "MealConditionClearanceDecision_clearanceId_nutritionistProfileI")
   @@index([clearanceId, submittedAt])
-  @@index([nutritionistProfileId, submittedAt])
+  @@index([nutritionistProfileId, submittedAt], map: "MealConditionClearanceDecision_nutritionistProfileId_submittedA")
 }
 
 model MealPlanClearanceUsage {
@@ -1425,7 +1456,7 @@ model ConditionRulePolicyApproval {
   rationale             String?                    @db.VarChar(1000)
   createdAt             DateTime                   @default(now())
 
-  @@unique([policyVersionId, nutritionistProfileId])
+  @@unique([policyVersionId, nutritionistProfileId], map: "ConditionRulePolicyApproval_policyVersionId_nutritionistProfile")
   @@index([policyVersionId, createdAt])
 }
 
@@ -1489,7 +1520,7 @@ model ConditionNutrientRule {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 
-  @@unique([condition, nutrient, operator, threshold, basis, policyVersion])
+  @@unique([condition, nutrient, operator, threshold, basis, policyVersion], map: "ConditionNutrientRule_unique_policy_rule")
   @@index([condition, reviewStatus, active])
 }
 
@@ -1510,7 +1541,7 @@ model ConditionIngredientRule {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 
-  @@unique([condition, ingredientCategory, policyVersion])
+  @@unique([condition, ingredientCategory, policyVersion], map: "ConditionIngredientRule_unique_policy_rule")
   @@index([condition, reviewStatus, active])
 }
 
@@ -2097,7 +2128,7 @@ model MealPlanCycle {
   supersededBy                MealPlanCycle?                @relation("MealPlanCycleSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
   supersedes                  MealPlanCycle[]               @relation("MealPlanCycleSupersession")
   createdAt                   DateTime                      @default(now())
-  updatedAt                   DateTime                      @updatedAt
+  updatedAt                   DateTime                      @default(now()) @updatedAt
 
   mealPlans     MealPlan[]
   groceryList   GroceryList?
@@ -2128,8 +2159,8 @@ model MealPlanCycleSnapshot {
   dailyCalorieTarget       Int
   dailyMacroTargets        Json
   dietaryPreference        DietaryPreference?
-  ricePreference           RicePreference
-  ricePreferenceProvenance RicePreferenceProvenance
+  ricePreference           RicePreference            @default(FLEXIBLE)
+  ricePreferenceProvenance RicePreferenceProvenance  @default(DEFAULTED)
   foodCulture              String?
   planningGeographyLevel   ConsumptionGeographyLevel
   planningRegionName       String?

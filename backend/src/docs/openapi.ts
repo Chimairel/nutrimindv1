@@ -171,7 +171,12 @@ const routes: RouteDocumentation[] = [
     summary: 'List compatible verified meals with cursor pagination and filters',
   },
   { method: 'post', path: '/api/user/meals/library/{id}/favorite', tag: 'Meals', summary: 'Favorite a library meal' },
-  { method: 'delete', path: '/api/user/meals/library/{id}/favorite', tag: 'Meals', summary: 'Remove a library favorite' },
+  {
+    method: 'delete',
+    path: '/api/user/meals/library/{id}/favorite',
+    tag: 'Meals',
+    summary: 'Remove a library favorite',
+  },
   { method: 'get', path: '/api/user/meals/{id}', tag: 'Meals', summary: 'Read meal details' },
   { method: 'get', path: '/api/user/meals/{id}/swap-options', tag: 'Meals', summary: 'List meal swap options' },
   { method: 'get', path: '/api/user/meals/{id}/swap-preview', tag: 'Meals', summary: 'Preview a meal swap' },

@@ -38,9 +38,7 @@ export interface PreparationCandidateScoreInput {
 }
 
 export function getPreparationLeadDays(tier: AssuranceTier): number {
-  return tier === AssuranceTier.ENHANCED
-    ? ENHANCED_PREPARATION_LEAD_DAYS
-    : STANDARD_PREPARATION_LEAD_DAYS;
+  return tier === AssuranceTier.ENHANCED ? ENHANCED_PREPARATION_LEAD_DAYS : STANDARD_PREPARATION_LEAD_DAYS;
 }
 
 export function scorePreparationCandidate(input: PreparationCandidateScoreInput): {
@@ -72,9 +70,7 @@ export function scorePreparationCandidate(input: PreparationCandidateScoreInput)
     reasons.push('TWO_REVIEWS_REMAINING');
   }
 
-  const deviation = Number.isFinite(input.calorieDeviationRatio)
-    ? Math.max(0, input.calorieDeviationRatio)
-    : 1;
+  const deviation = Number.isFinite(input.calorieDeviationRatio) ? Math.max(0, input.calorieDeviationRatio) : 1;
   add(deviation <= 0.15, Math.max(0, 12 - deviation * 40), 'CALORIE_FIT');
 
   const reviewedRiceRole = input.riceRoleReviewStatus === RiceRoleReviewStatus.REVIEWED;

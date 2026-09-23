@@ -28,9 +28,7 @@ export function buildRawRecipeContentSignature(input: {
       unit: normalize(ingredient.unit),
     }))
     .filter((ingredient) => Boolean(ingredient.name))
-    .sort((left, right) =>
-      JSON.stringify(left).localeCompare(JSON.stringify(right), 'en', { sensitivity: 'base' })
-    );
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right), 'en', { sensitivity: 'base' }));
   return createHash('sha256')
     .update(
       JSON.stringify({

@@ -478,7 +478,8 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                   />
                 )}
                 <p className="text-[10px] text-brand-muted">
-                  Leave included grams blank when the source does not provide a defensible amount; the serving remains unevaluable.
+                  Leave included grams blank when the source does not provide a defensible amount; the serving remains
+                  unevaluable.
                 </p>
               </div>
             </div>

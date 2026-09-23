@@ -2,11 +2,29 @@ import { HealthConditionType, OutsideMealCompatibilityStatus } from '@prisma/cli
 import type { adaptUserSafetyRestrictions } from './structured-restriction.adapter';
 
 function normalize(value: string): string {
-  return value.normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+  return value
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 const allergenTerms: Record<string, string[]> = {
-  SHELLFISH: ['shrimp', 'prawn', 'crab', 'lobster', 'shellfish', 'mussel', 'clam', 'oyster', 'squid', 'hipon', 'alamang', 'bagoong'],
+  SHELLFISH: [
+    'shrimp',
+    'prawn',
+    'crab',
+    'lobster',
+    'shellfish',
+    'mussel',
+    'clam',
+    'oyster',
+    'squid',
+    'hipon',
+    'alamang',
+    'bagoong',
+  ],
   NUTS: ['peanut', 'cashew', 'almond', 'walnut', 'pistachio', 'pili', 'mani', 'kare kare'],
   DAIRY: ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'whey', 'casein', 'gatas'],
   GLUTEN: ['wheat', 'flour', 'bread', 'pasta', 'noodle', 'pancit', 'pandesal', 'soy sauce', 'toyo'],
@@ -31,7 +49,9 @@ export function evaluateOutsideMealCompatibility(input: {
   }
   const hasCondition = input.restrictions.conditions.some((condition) => condition !== HealthConditionType.NONE);
   if (input.restrictions.requiresReview || hasCondition) {
-    warnings.push('Your profile contains a health condition that needs governed rule or nutritionist review; compatibility is not established.');
+    warnings.push(
+      'Your profile contains a health condition that needs governed rule or nutritionist review; compatibility is not established.'
+    );
     if (status !== OutsideMealCompatibilityStatus.CONFLICT_DETECTED)
       status = OutsideMealCompatibilityStatus.REVIEW_REQUIRED;
   }

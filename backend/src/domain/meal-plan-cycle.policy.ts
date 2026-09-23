@@ -1,9 +1,4 @@
-import {
-  MealPlanCycleDeadlineOutcome,
-  MealPlanCycleStatus,
-  PlanType,
-  ShoppingDayGroup,
-} from '@prisma/client';
+import { MealPlanCycleDeadlineOutcome, MealPlanCycleStatus, PlanType, ShoppingDayGroup } from '@prisma/client';
 
 export const MEAL_PLAN_BUSINESS_TIME_ZONE = 'Asia/Manila';
 
@@ -55,13 +50,8 @@ export interface MealPlanCycleLifecycleResult {
  * is write-once: a plan completed after the cutoff remains recorded as having
  * missed that cutoff even if it later becomes ready to shop.
  */
-export function deriveMealPlanCycleLifecycle(
-  facts: MealPlanCycleLifecycleFacts
-): MealPlanCycleLifecycleResult {
-  if (
-    facts.status === MealPlanCycleStatus.SUPERSEDED ||
-    facts.status === MealPlanCycleStatus.COMPLETED
-  ) {
+export function deriveMealPlanCycleLifecycle(facts: MealPlanCycleLifecycleFacts): MealPlanCycleLifecycleResult {
+  if (facts.status === MealPlanCycleStatus.SUPERSEDED || facts.status === MealPlanCycleStatus.COMPLETED) {
     return { status: facts.status, deadlineOutcome: facts.deadlineOutcome };
   }
 
@@ -83,10 +73,7 @@ export function deriveMealPlanCycleLifecycle(
   if (facts.status === MealPlanCycleStatus.REVALIDATION_REQUIRED) {
     return { status: facts.status, deadlineOutcome };
   }
-  if (
-    facts.startDate.getTime() <= businessDay.getTime() &&
-    facts.endDate.getTime() >= businessDay.getTime()
-  ) {
+  if (facts.startDate.getTime() <= businessDay.getTime() && facts.endDate.getTime() >= businessDay.getTime()) {
     return { status: MealPlanCycleStatus.ACTIVE, deadlineOutcome };
   }
   if (facts.shoppingStartedAt) {
@@ -171,12 +158,9 @@ export function getMealPlanCycleTiming(
 
   const normalizedStart = getManilaMidnight(getManilaDateKey(startDate));
   const endDate = getScheduledMealDate(normalizedStart, numDays - 1);
-  const shoppingDeadlineAt =
-    planType === PlanType.WEEKLY ? getScheduledMealDate(normalizedStart, -1) : normalizedStart;
+  const shoppingDeadlineAt = planType === PlanType.WEEKLY ? getScheduledMealDate(normalizedStart, -1) : normalizedStart;
   const preparationOpensAt =
-    planType === PlanType.WEEKLY
-      ? getScheduledMealDate(shoppingDeadlineAt, -preparationLeadDays)
-      : normalizedStart;
+    planType === PlanType.WEEKLY ? getScheduledMealDate(shoppingDeadlineAt, -preparationLeadDays) : normalizedStart;
 
   return {
     startDate: normalizedStart,

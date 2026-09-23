@@ -23,6 +23,7 @@ import {
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
 import { toPublicMealImage, toPublicYouTubeThumbnail, type MealImageRecord } from '@/domain/meal-image.policy';
+import { getPlanHistory } from './meals-history.controller';
 
 function toPublicVerifier(
   nutritionist: {
@@ -208,9 +209,7 @@ export class MealsController {
         orderBy: { scheduledDate: 'asc' },
       });
       const clearedIds = new Set(await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id));
-      const meals = groupMeals
-        .filter((meal) => clearedIds.has(meal.id))
-        .map(serializeActionableMeal);
+      const meals = groupMeals.filter((meal) => clearedIds.has(meal.id)).map(serializeActionableMeal);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
         where: { planGroupId: cycle.id },
       });
@@ -405,108 +404,7 @@ export class MealsController {
    *  - "Outside Meals" = MealLog records with source=USER_LOGGED
    * Both normalized to the same shape and sorted by loggedAt descending.
    */
-  static async getPlanHistory(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      }
-
-      const { search, source, status, startDate, endDate } = req.query;
-
-      const where: any = { userId };
-
-      if (search && typeof search === 'string') {
-        where.mealName = {
-          contains: search,
-          mode: 'insensitive',
-        };
-      }
-
-      if (source && typeof source === 'string') {
-        where.source = source as MealLogSource;
-      }
-
-      if (status && typeof status === 'string' && status !== 'All') {
-        where.status = status as MealLogStatus;
-      } else {
-        where.status = { in: ['DONE', 'SKIPPED', 'VOIDED'] };
-      }
-
-      if (startDate || endDate) {
-        where.loggedAt = {};
-        if (startDate && typeof startDate === 'string') {
-          where.loggedAt.gte = new Date(startDate);
-        }
-        if (endDate && typeof endDate === 'string') {
-          where.loggedAt.lte = new Date(endDate);
-        }
-      }
-
-      // Fetch ALL meal logs for this user (both plan-checked and outside) with search and filters
-      const allLogs = await prisma.mealLog.findMany({
-        where,
-        select: {
-          id: true, mealName: true, source: true, calories: true, proteinG: true, carbsG: true, fatG: true,
-          dataSource: true, status: true, warningType: true, nutritionCompleteness: true,
-          provisionalCalories: true, mealType: true, notes: true, estimationContext: true,
-          outsideImageMime: true, voidedAt: true, loggedAt: true,
-          outsideItems: { include: {
-            observedSubmissions: { select: { id: true, sourceRevision: true, status: true,
-              imageReuseConsentedAt: true }, orderBy: { createdAt: 'desc' }, take: 3 },
-            revisions: { orderBy: { revision: 'desc' }, take: 1,
-              select: { revision: true, reason: true } },
-            review: { select: {
-            id: true, status: true, queueReason: true, requestedByUserAt: true,
-            reviewedRevision: true, reviewedAt: true,
-            messages: { select: { id: true, sender: true, itemRevision: true, content: true, createdAt: true },
-              orderBy: { createdAt: 'asc' }, take: 12 },
-          } },
-          } },
-          mealPlan: { select: { mealType: true, swapLogs: { orderBy: { swappedAt: 'desc' }, take: 1 } } },
-        },
-        orderBy: { loggedAt: 'desc' },
-      });
-
-      // Normalize to unified shape
-      const normalized = allLogs.map((l) => {
-        const latestSwap = l.mealPlan?.swapLogs?.[0];
-        return {
-          id: l.id,
-          mealName: l.mealName,
-          source: l.source as string, // 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED'
-          calories: l.calories,
-          proteinG: l.proteinG,
-          carbsG: l.carbsG,
-          fatG: l.fatG,
-          dataSource: l.dataSource as string,
-          status: l.status as string,
-          warningType: l.warningType ?? null,
-          nutritionCompleteness: l.nutritionCompleteness,
-          provisionalCalories: l.provisionalCalories,
-          mealType: l.mealType ?? l.mealPlan?.mealType ?? null,
-          notes: l.notes ?? null,
-          estimationContext: l.estimationContext ?? null,
-          hasImage: Boolean(l.outsideImageMime),
-          voidedAt: l.voidedAt?.toISOString() ?? null,
-          outsideItems: l.outsideItems,
-          loggedAt: l.loggedAt.toISOString(),
-          calorieDelta: latestSwap ? latestSwap.calorieDelta : null,
-        };
-      });
-
-      return res.status(200).json({
-        success: true,
-        data: normalized,
-      });
-    } catch (error: any) {
-      console.error('[MealsController] getPlanHistory error:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to retrieve meal history.',
-      });
-    }
-  }
+  static getPlanHistory = getPlanHistory;
 
   /**
    * POST /api/user/meals/log-outside
@@ -519,9 +417,18 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { mealName, items, mealType, useAiEstimate, requestKey, warningAcknowledged, confirmationId, notes,
-        estimationContext, consumedAt } =
-        req.body;
+      const {
+        mealName,
+        items,
+        mealType,
+        useAiEstimate,
+        requestKey,
+        warningAcknowledged,
+        confirmationId,
+        notes,
+        estimationContext,
+        consumedAt,
+      } = req.body;
 
       const result = await MealLogService.logOutsideMeal({
         userId,
@@ -553,18 +460,30 @@ export class MealsController {
 
   static async getOutsideSuggestions(req: AuthenticatedRequest, res: Response) {
     try {
-      return res.json({ success: true, data: await OutsideMealCaptureService.suggestions(req.user!.userId, String(req.query.search)) });
+      return res.json({
+        success: true,
+        data: await OutsideMealCaptureService.suggestions(req.user!.userId, String(req.query.search)),
+      });
     } catch (error) {
-      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to load food suggestions.') });
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to load food suggestions.') });
     }
   }
 
   static async editOutsideItem(req: AuthenticatedRequest, res: Response) {
     try {
-      const data = await OutsideMealCaptureService.editItem(req.user!.userId, req.params.id, req.params.itemId, req.body);
+      const data = await OutsideMealCaptureService.editItem(
+        req.user!.userId,
+        req.params.id,
+        req.params.itemId,
+        req.body
+      );
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to revise outside meal.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to revise outside meal.') });
     }
   }
 
@@ -573,7 +492,9 @@ export class MealsController {
       const data = await OutsideMealCaptureService.voidLog(req.user!.userId, req.params.id, req.body.reason);
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to void outside meal.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to void outside meal.') });
     }
   }
 
@@ -582,31 +503,36 @@ export class MealsController {
       const data = await OutsideMealReviewService.requestByUser(req.user!.userId, req.params.id, req.params.itemId);
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false,
-        error: sanitizeErrorMessage(error, 'Could not request outside-meal review.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not request outside-meal review.') });
     }
   }
 
   static async replyToOutsideItemReview(req: AuthenticatedRequest, res: Response) {
     try {
       const data = await OutsideMealReviewService.replyByUser(
-        req.user!.userId, req.params.id, req.params.itemId, req.body.message
+        req.user!.userId,
+        req.params.id,
+        req.params.itemId,
+        req.body.message
       );
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false,
-        error: sanitizeErrorMessage(error, 'Could not send clarification.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not send clarification.') });
     }
   }
 
   static async consentToObservedMealReuse(req: AuthenticatedRequest, res: Response) {
     try {
-      const data = await ObservedMealService.consent(req.user!.userId, req.params.id, req.params.itemId,
-        req.body);
+      const data = await ObservedMealService.consent(req.user!.userId, req.params.id, req.params.itemId, req.body);
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false,
-        error: sanitizeErrorMessage(error, 'Could not submit this food for reuse.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not submit this food for reuse.') });
     }
   }
 
@@ -615,18 +541,22 @@ export class MealsController {
       const data = await ObservedMealService.withdraw(req.user!.userId, req.params.id);
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false,
-        error: sanitizeErrorMessage(error, 'Could not withdraw reuse permission.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not withdraw reuse permission.') });
     }
   }
 
   static async attachOutsideImage(req: AuthenticatedRequest, res: Response) {
     try {
-      if (!req.file) return res.status(400).json({ success: false, error: 'Choose a JPG, PNG, or WebP image under 2 MB.' });
+      if (!req.file)
+        return res.status(400).json({ success: false, error: 'Choose a JPG, PNG, or WebP image under 2 MB.' });
       const data = await OutsideMealCaptureService.attachImage(req.user!.userId, req.params.id, req.file);
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to attach image.') });
+      return res
+        .status(error?.statusCode ?? 400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to attach image.') });
     }
   }
 
@@ -637,7 +567,9 @@ export class MealsController {
       res.setHeader('Cache-Control', 'private, no-store');
       return res.send(image.buffer);
     } catch (error: any) {
-      return res.status(error?.statusCode ?? 404).json({ success: false, error: sanitizeErrorMessage(error, 'Image unavailable.') });
+      return res
+        .status(error?.statusCode ?? 404)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Image unavailable.') });
     }
   }
 
@@ -671,7 +603,12 @@ export class MealsController {
         }
 
         assertUserLoggableMealPlan(mealPlan);
-        const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(userId, mealPlan.planGroupId, new Date(), tx);
+        const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(
+          userId,
+          mealPlan.planGroupId,
+          new Date(),
+          tx
+        );
         if (!clearedIds.includes(mealPlan.id)) {
           throw new Error('This meal needs safety revalidation before it can be logged.');
         }
@@ -766,7 +703,14 @@ export class MealsController {
       }
 
       const mealPlanId = req.params.id;
-      const { newLibraryMealId, warningShown, warningAcknowledged, previewToken, requestKey, groceryDeltaAcknowledged } = req.body;
+      const {
+        newLibraryMealId,
+        warningShown,
+        warningAcknowledged,
+        previewToken,
+        requestKey,
+        groceryDeltaAcknowledged,
+      } = req.body;
 
       if (!newLibraryMealId) {
         return res.status(400).json({ success: false, error: 'Missing newLibraryMealId parameter.' });

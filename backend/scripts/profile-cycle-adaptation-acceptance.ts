@@ -160,7 +160,9 @@ async function main() {
       afterOrdinary.find((cycle) => cycle.id === cycles[2].id)?.profileAdaptationState,
       ProfileCycleAdaptationState.CURRENT
     );
-    const activeSnapshot = await prisma.mealPlanCycleSnapshot.findUniqueOrThrow({ where: { planGroupId: cycles[0].id } });
+    const activeSnapshot = await prisma.mealPlanCycleSnapshot.findUniqueOrThrow({
+      where: { planGroupId: cycles[0].id },
+    });
     assert.equal(activeSnapshot.weightKg, 70);
     assert.equal(activeSnapshot.profileRevision, 0);
 
@@ -201,10 +203,7 @@ async function main() {
     const safetyProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
     const activeAfterSafety = await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: cycles[0].id } });
     assert.equal(activeAfterSafety.status, MealPlanCycleStatus.REVALIDATION_REQUIRED);
-    assert.equal(
-      activeAfterSafety.profileAdaptationState,
-      ProfileCycleAdaptationState.SAFETY_REVALIDATION_REQUIRED
-    );
+    assert.equal(activeAfterSafety.profileAdaptationState, ProfileCycleAdaptationState.SAFETY_REVALIDATION_REQUIRED);
     assert.equal(
       (await prisma.mealPlan.findFirstOrThrow({ where: { planGroupId: cycles[0].id } })).requiresSafetyRevalidation,
       true
@@ -268,4 +267,3 @@ main().catch(async (error) => {
   await prisma.$disconnect();
   process.exitCode = 1;
 });
-

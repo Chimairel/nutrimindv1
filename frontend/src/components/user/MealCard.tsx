@@ -124,7 +124,8 @@ export default function MealCard({
     if (!scheduledDate) return false;
     const diffDays = Math.floor(
       (new Date(`${getManilaDateKey()}T00:00:00+08:00`).getTime() -
-        new Date(`${getManilaDateKey(scheduledDate)}T00:00:00+08:00`).getTime()) / 86_400_000
+        new Date(`${getManilaDateKey(scheduledDate)}T00:00:00+08:00`).getTime()) /
+        86_400_000
     );
     return diffDays > 7;
   }, [scheduledDate]);

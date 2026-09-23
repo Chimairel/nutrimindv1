@@ -3,7 +3,12 @@ import { createHash } from 'node:crypto';
 export type ObservedIngredient = { name: string; quantity: number; unit: string };
 
 export function normalizeObservedName(value: string): string {
-  return value.normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/gu, ' ').replace(/\s+/gu, ' ').trim();
+  return value
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
 }
 
 export function assertShareableText(value: string): boolean {
@@ -20,13 +25,24 @@ export function observedContentSignature(input: {
   ingredients?: ObservedIngredient[];
   preparation?: string;
 }): string {
-  const ingredients = (input.ingredients ?? []).map((row) => ({
-    name: normalizeObservedName(row.name), quantity: round(row.quantity), unit: normalizeObservedName(row.unit),
-  })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
-  return createHash('sha256').update(JSON.stringify({
-    version: 'OBSERVED_CONTENT_V1', kind: input.kind, name: normalizeObservedName(input.name),
-    servingGrams: round(input.servingGrams),
-    macros: Object.fromEntries(Object.entries(input.macros).map(([key, value]) => [key, round(value)])),
-    ingredients, preparation: normalizeObservedName(input.preparation ?? ''),
-  })).digest('hex');
+  const ingredients = (input.ingredients ?? [])
+    .map((row) => ({
+      name: normalizeObservedName(row.name),
+      quantity: round(row.quantity),
+      unit: normalizeObservedName(row.unit),
+    }))
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: 'OBSERVED_CONTENT_V1',
+        kind: input.kind,
+        name: normalizeObservedName(input.name),
+        servingGrams: round(input.servingGrams),
+        macros: Object.fromEntries(Object.entries(input.macros).map(([key, value]) => [key, round(value)])),
+        ingredients,
+        preparation: normalizeObservedName(input.preparation ?? ''),
+      })
+    )
+    .digest('hex');
 }

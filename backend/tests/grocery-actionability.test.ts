@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  MealPlanCycleDeadlineOutcome,
-  MealPlanCycleStatus,
-  ProfileCycleAdaptationState,
-} from '@prisma/client';
+import { MealPlanCycleDeadlineOutcome, MealPlanCycleStatus, ProfileCycleAdaptationState } from '@prisma/client';
 import { deriveGroceryActionability } from '../src/domain/grocery-actionability.policy';
 
 const base = {

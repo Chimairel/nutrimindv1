@@ -66,7 +66,9 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           type="button"
           onClick={() => setLibraryFavoriteOnly(!libraryFavoriteOnly)}
           className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-bold ${
-            libraryFavoriteOnly ? 'border-brand-green bg-brand-green text-black' : 'border-brand-border text-brand-muted'
+            libraryFavoriteOnly
+              ? 'border-brand-green bg-brand-green text-black'
+              : 'border-brand-border text-brand-muted'
           }`}
         >
           <Heart className={`h-4 w-4 ${libraryFavoriteOnly ? 'fill-current' : ''}`} /> Favorites
@@ -84,7 +86,9 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             <option value="INCLUDES_RICE">Includes rice</option>
           </select>
         </label>
-        {libraryTotalCount !== null && <span className="ml-auto text-brand-muted">{libraryTotalCount} eligible meals</span>}
+        {libraryTotalCount !== null && (
+          <span className="ml-auto text-brand-muted">{libraryTotalCount} eligible meals</span>
+        )}
       </div>
 
       {isLibraryLoading ? (
@@ -119,7 +123,9 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
       )}
       {libraryNextCursor && !isLibraryLoading && (
         <div className="flex justify-center">
-          <Button type="button" variant="secondary" onClick={loadMoreLibrary}>Load more recipes</Button>
+          <Button type="button" variant="secondary" onClick={loadMoreLibrary}>
+            Load more recipes
+          </Button>
         </div>
       )}
     </div>

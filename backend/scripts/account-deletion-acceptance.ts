@@ -146,18 +146,27 @@ async function main() {
   const sharedMealCountBefore = await prisma.mealLibrary.count({ where: { id: libraryMeal.id } });
   await UserPrivacyService.deleteAccount(user.id, { password });
 
-  const [deletedUser, sessionCount, cycleCount, planCount, clearanceCount, reviewCount, decisionCount, waterCount, groceryCount] =
-    await Promise.all([
-      prisma.user.findUnique({ where: { id: user.id } }),
-      prisma.session.count({ where: { userId: user.id } }),
-      prisma.mealPlanCycle.count({ where: { userId: user.id } }),
-      prisma.mealPlan.count({ where: { userId: user.id } }),
-      prisma.mealConditionClearance.count({ where: { userScopeId: user.id } }),
-      prisma.mealPlanReviewDecision.count({ where: { mealPlanId: plan.id } }),
-      prisma.mealConditionClearanceDecision.count({ where: { clearanceId: clearance.id } }),
-      prisma.waterLog.count({ where: { userId: user.id } }),
-      prisma.groceryList.count({ where: { userId: user.id } }),
-    ]);
+  const [
+    deletedUser,
+    sessionCount,
+    cycleCount,
+    planCount,
+    clearanceCount,
+    reviewCount,
+    decisionCount,
+    waterCount,
+    groceryCount,
+  ] = await Promise.all([
+    prisma.user.findUnique({ where: { id: user.id } }),
+    prisma.session.count({ where: { userId: user.id } }),
+    prisma.mealPlanCycle.count({ where: { userId: user.id } }),
+    prisma.mealPlan.count({ where: { userId: user.id } }),
+    prisma.mealConditionClearance.count({ where: { userScopeId: user.id } }),
+    prisma.mealPlanReviewDecision.count({ where: { mealPlanId: plan.id } }),
+    prisma.mealConditionClearanceDecision.count({ where: { clearanceId: clearance.id } }),
+    prisma.waterLog.count({ where: { userId: user.id } }),
+    prisma.groceryList.count({ where: { userId: user.id } }),
+  ]);
   const deletionAudit = await prisma.auditEvent.findFirst({
     where: { action: 'USER_SELF_DELETION', entityId: user.id },
     orderBy: { createdAt: 'desc' },

@@ -7,10 +7,7 @@ import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/d
 import { databaseRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
-import {
-  scorePreparationCandidate,
-  type PreparationRankingReasonCode,
-} from '@/domain/upcoming-preparation.policy';
+import { scorePreparationCandidate, type PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -44,7 +41,10 @@ function candidateFitsPreference(candidate: RecipeCandidateProjection, preferenc
   return candidate.dietaryTags.includes(preference);
 }
 
-function candidateLocalityScore(candidate: RecipeCandidateProjection, scores: ReadonlyMap<EnnsFoodGroupCode, number>): number {
+function candidateLocalityScore(
+  candidate: RecipeCandidateProjection,
+  scores: ReadonlyMap<EnnsFoodGroupCode, number>
+): number {
   const groups = new Set<EnnsFoodGroupCode>();
   for (const ingredient of candidate.ingredients) {
     const group = classifyIngredientIntoEnnsFoodGroup({ name: ingredient.name });
@@ -73,16 +73,28 @@ export async function sourceRawRecipeCandidates(input: {
     mealTypes.map(async (mealType) => {
       if (!isPrimaryMealType(mealType)) return [];
       const range = getMealSlotCalorieRange(input.dailyCalorieTarget, mealType);
-      const pages = await Promise.all(([
-        ['PANLASANG_PINOY', 90], ['USER_OBSERVED', 30],
-      ] as const).map(([sourceKind, limit]) => databaseRecipeCandidateProvider.list({
-        sourceKind, recentFirst: sourceKind === 'USER_OBSERVED',
-        mealType, dietaryPreference: input.dietaryPreference,
-        calorieMinimum: range.minimum, calorieMaximum: range.maximum,
-        excludeIds: input.excludeCandidateIds, limit,
-      })));
+      const pages = await Promise.all(
+        (
+          [
+            ['PANLASANG_PINOY', 90],
+            ['USER_OBSERVED', 30],
+          ] as const
+        ).map(([sourceKind, limit]) =>
+          databaseRecipeCandidateProvider.list({
+            sourceKind,
+            recentFirst: sourceKind === 'USER_OBSERVED',
+            mealType,
+            dietaryPreference: input.dietaryPreference,
+            calorieMinimum: range.minimum,
+            calorieMaximum: range.maximum,
+            excludeIds: input.excludeCandidateIds,
+            limit,
+          })
+        )
+      );
       const localityScores = input.localityFoodGroupScores ?? new Map<EnnsFoodGroupCode, number>();
-      return pages.flatMap((page) => page.items)
+      return pages
+        .flatMap((page) => page.items)
         .filter((row) => candidateFitsPreference(row, input.dietaryPreference))
         .map((candidate) => {
           const target = range.target;
@@ -166,9 +178,7 @@ export async function sourceRawRecipeCandidates(input: {
         category: candidate.category,
         calories: candidate.nutrition?.calories,
         dietaryTags: candidate.dietaryTags,
-        ingredients: candidate.ingredients
-          .slice(0, 12)
-          .map((ingredient) => ingredient.name),
+        ingredients: candidate.ingredients.slice(0, 12).map((ingredient) => ingredient.name),
       }))
     )}`,
   ].join('\n');
@@ -198,10 +208,7 @@ export async function sourceRawRecipeCandidates(input: {
     if (!slot || !candidate || !candidate.applicableMealTypes.includes(slot.mealType)) continue;
     if (selectedKeys.has(key) || selectedCandidateIds.has(candidate.id)) continue;
     if (!candidateFitsPreference(candidate, input.dietaryPreference)) continue;
-    if (
-      candidate.nutrition === null
-    )
-      continue;
+    if (candidate.nutrition === null) continue;
     const ingredients = candidate.ingredients.map((ingredient) => ({ foodItemId: null, ...ingredient }));
     if (!ingredients.length) continue;
     selectedKeys.add(key);

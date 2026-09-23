@@ -20,8 +20,11 @@ import { NutritionistCompensationService } from '@/services/compensation-admin.s
 import { isNutritionistReviewConflict } from '@/domain/nutritionist-review-http.policy';
 import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
 import { ObservedMealService } from '@/services/observed-meal.service';
-import { outsideMealReviewBodySchema, outsideMealReviewParamsSchema,
-  observedMealAdmissionSchema } from '@/validation/user-action.schemas';
+import {
+  outsideMealReviewBodySchema,
+  outsideMealReviewParamsSchema,
+  observedMealAdmissionSchema,
+} from '@/validation/user-action.schemas';
 import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
@@ -41,16 +44,21 @@ router.get(
   })
 );
 
-router.get('/observed-meal-submissions', asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-  res.status(200).json({ success: true, data: await ObservedMealService.pending() });
-}));
+router.get(
+  '/observed-meal-submissions',
+  asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.status(200).json({ success: true, data: await ObservedMealService.pending() });
+  })
+);
 
-router.post('/observed-meal-submissions/:id/admit',
+router.post(
+  '/observed-meal-submissions/:id/admit',
   validateZodRequest({ params: outsideMealReviewParamsSchema, body: observedMealAdmissionSchema }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const data = await ObservedMealService.admit(req.nutritionistProfileId!, req.params.id, req.body);
     res.status(200).json({ success: true, data });
-  }));
+  })
+);
 
 router.post(
   '/outside-meal-reviews/:id/claim',

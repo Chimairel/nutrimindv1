@@ -109,13 +109,14 @@ test('[TEST-138] compensation routes are role-scoped and payout amount is server
 
 test('[TEST-139] completed review decisions create keyed credit in the same transaction and claims do not', () => {
   const service = readFileSync(join(process.cwd(), 'src', 'services', 'nutritionist-review.service.ts'), 'utf8');
-  assert.equal((service.match(/recordCompletedMealPlanReviewCredit\(tx/g) ?? []).length, 3);
+  const rejection = readFileSync(join(process.cwd(), 'src', 'services', 'nutritionist-rejection.service.ts'), 'utf8');
+  assert.equal((`${service}\n${rejection}`.match(/recordCompletedMealPlanReviewCredit\(tx/g) ?? []).length, 3);
   assert.match(service, /stage: 'HIGH_RISK_ESCALATION',[\s\S]*?outcome: 'ESCALATED'/);
   assert.match(
     service,
     /stage: plan\.highRiskReviewRequired \? 'HIGH_RISK_SECOND' : 'ORDINARY_FINAL',[\s\S]*?outcome: 'APPROVED'/
   );
-  assert.match(service, /outcome: 'REJECTED'/);
+  assert.match(rejection, /outcome: 'REJECTED'/);
   const claimMethod = service.slice(
     service.indexOf('static async getReviewCardDetails'),
     service.indexOf('static async approveMealPlan')

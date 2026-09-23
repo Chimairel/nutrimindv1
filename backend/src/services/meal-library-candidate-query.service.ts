@@ -242,7 +242,10 @@ function decodeLibraryCursor(cursor?: string): { mealName: string; id: string } 
   }
 }
 
-function afterLibraryCursor(meal: Pick<CertifiedLibraryMeal, 'mealName' | 'id'>, cursor: { mealName: string; id: string }) {
+function afterLibraryCursor(
+  meal: Pick<CertifiedLibraryMeal, 'mealName' | 'id'>,
+  cursor: { mealName: string; id: string }
+) {
   return meal.mealName > cursor.mealName || (meal.mealName === cursor.mealName && meal.id > cursor.id);
 }
 
@@ -312,8 +315,7 @@ export async function queryEligibleLibraryPage(input: {
   let scanCursor: { mealName: string; id: string } | null = null;
   const chunkSize = 100;
   for (;;) {
-    const rows: Array<CertifiedLibraryMeal & { favorites: Array<{ id: string }> }> =
-      await prisma.mealLibrary.findMany({
+    const rows: Array<CertifiedLibraryMeal & { favorites: Array<{ id: string }> }> = await prisma.mealLibrary.findMany({
       where: {
         ...where,
         ...(scanCursor
@@ -336,7 +338,7 @@ export async function queryEligibleLibraryPage(input: {
       },
       orderBy: [{ mealName: 'asc' }, { id: 'asc' }],
       take: chunkSize,
-      });
+    });
     for (const row of rows) {
       if (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile)) continue;
       total += 1;

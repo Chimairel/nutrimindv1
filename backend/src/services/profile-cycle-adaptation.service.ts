@@ -1,9 +1,4 @@
-import {
-  MealPlanCycleStatus,
-  MealPlanStatus,
-  Prisma,
-  ProfileCycleAdaptationState,
-} from '@prisma/client';
+import { MealPlanCycleStatus, MealPlanStatus, Prisma, ProfileCycleAdaptationState } from '@prisma/client';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 
 export const PROFILE_CHANGE_KIND = {
@@ -172,9 +167,7 @@ export class ProfileCycleAdaptationService {
       }
       const actionableSlots = new Set(
         cycle.mealPlans
-          .filter(
-            (meal) => meal.status === MealPlanStatus.APPROVED && meal.requiresSafetyRevalidation === false
-          )
+          .filter((meal) => meal.status === MealPlanStatus.APPROVED && meal.requiresSafetyRevalidation === false)
           .map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
       );
       if (actionableSlots.size < cycle.expectedSlotCount) continue;
@@ -190,4 +183,3 @@ export class ProfileCycleAdaptationService {
     }
   }
 }
-

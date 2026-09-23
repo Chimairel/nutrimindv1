@@ -138,7 +138,10 @@ async function main() {
     assert.equal(preview.coverage.unresolvedSlotCount, 1);
     assert.equal(preview.actionability.canCheckItems, false);
     assert.equal(preview.actionability.canExportPdf, false);
-    assert.deepEqual(preview.groceryList?.groceryItems.map((item) => item.ingredientName), ['Chicken']);
+    assert.deepEqual(
+      preview.groceryList?.groceryItems.map((item) => item.ingredientName),
+      ['Chicken']
+    );
 
     await prisma.mealPlan.update({
       where: { id: pending.id },
@@ -149,10 +152,10 @@ async function main() {
     assert.equal(ready.coverage.clearedSlotCount, 2);
     assert.equal(ready.actionability.canCheckItems, true);
     assert.equal(ready.actionability.canExportPdf, true);
-    assert.deepEqual(
-      ready.groceryList?.groceryItems.map((item) => item.ingredientName).sort(),
-      ['Brown rice', 'Chicken']
-    );
+    assert.deepEqual(ready.groceryList?.groceryItems.map((item) => item.ingredientName).sort(), [
+      'Brown rice',
+      'Chicken',
+    ]);
 
     await MealPlanCycleService.startShopping(user.id, progressiveId, now);
     await prisma.mealPlan.update({
@@ -163,7 +166,10 @@ async function main() {
     const frozen = await GroceryService.getCycleProjection(user.id, progressiveId, new Date(now.getTime() + 2_000));
     assert.equal(frozen.actionability.canCheckItems, true);
     assert.equal(frozen.groceryList?.isStale, false);
-    assert.equal(frozen.groceryList?.groceryItems.some((item) => item.ingredientName === 'Late salt'), false);
+    assert.equal(
+      frozen.groceryList?.groceryItems.some((item) => item.ingredientName === 'Late salt'),
+      false
+    );
 
     const incompleteId = `batch5-incomplete-${run}`;
     const incompleteStart = new Date(now.getTime() + 3 * day);
@@ -225,4 +231,3 @@ main().catch((error) => {
   console.error('[Batch 5 acceptance] FAIL', error);
   process.exitCode = 1;
 });
-

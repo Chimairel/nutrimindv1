@@ -760,12 +760,17 @@ export default function WeeklyPlanPage() {
                       {/* Logged Meal Cards List with note editor */}
                       <div className="space-y-3">
                         {activeDay.logsList.map((log) => (
-                          <MealHistoryCard key={log.id} log={log} onUpdateNotes={handleUpdateLogNotes}
-                            onEditOutsideItem={handleEditOutsideItem} onVoidOutsideLog={handleVoidOutsideLog}
+                          <MealHistoryCard
+                            key={log.id}
+                            log={log}
+                            onUpdateNotes={handleUpdateLogNotes}
+                            onEditOutsideItem={handleEditOutsideItem}
+                            onVoidOutsideLog={handleVoidOutsideLog}
                             onRequestOutsideReview={handleRequestOutsideReview}
                             onReplyToOutsideReview={handleReplyToOutsideReview}
                             onObservedConsent={handleObservedConsent}
-                            onObservedWithdraw={handleObservedWithdraw} />
+                            onObservedWithdraw={handleObservedWithdraw}
+                          />
                         ))}
                       </div>
                     </section>

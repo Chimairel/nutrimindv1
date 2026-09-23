@@ -61,16 +61,25 @@ export interface MealHistoryLog {
     includedInTotals?: boolean;
     currentRevision?: number;
     revisions?: Array<{ revision: number; reason?: string | null }>;
-    observedSubmissions?: Array<{ id: string; sourceRevision: number; status: string;
-      imageReuseConsentedAt?: string | null }>;
+    observedSubmissions?: Array<{
+      id: string;
+      sourceRevision: number;
+      status: string;
+      imageReuseConsentedAt?: string | null;
+    }>;
     review?: {
       id: string;
       status: string;
       queueReason?: string | null;
       reviewedRevision?: number | null;
       reviewedAt?: string | null;
-      messages: Array<{ id: string; sender: 'USER' | 'NUTRITIONIST'; itemRevision: number;
-        content: string; createdAt: string }>;
+      messages: Array<{
+        id: string;
+        sender: 'USER' | 'NUTRITIONIST';
+        itemRevision: number;
+        content: string;
+        createdAt: string;
+      }>;
     } | null;
   }>;
 }
@@ -233,41 +242,45 @@ export function useMealsWorkspace() {
   }, [user?.userId, historySearch, historySource, historyStatus]);
 
   const libraryDate = selectedPlanDateKey ?? getManilaDateKey(meals[0]?.scheduledDate ?? new Date());
-  const fetchLibrary = useCallback(async (cursor?: string) => {
-    const resource = libraryResource(librarySearch, libraryMealType, libraryFavoriteOnly, libraryRiceRole) + ':' + libraryDate;
-    const cached = readSessionResource<SwapOption[]>(user?.userId, resource);
-    if (!cursor && cached) setLibraryMeals(cached);
-    setIsLibraryLoading(!cursor && !cached);
-    setLibraryError(null);
-    try {
-      const params: Record<string, string> = {};
-      params.date = libraryDate;
-      if (libraryMealType !== 'All') params.mealType = libraryMealType;
-      if (librarySearch) params.search = librarySearch;
-      if (libraryFavoriteOnly) params.favoriteOnly = 'true';
-      if (libraryRiceRole !== 'All') params.riceRole = libraryRiceRole;
-      if (cursor) params.cursor = cursor;
-      params.limit = '24';
+  const fetchLibrary = useCallback(
+    async (cursor?: string) => {
+      const resource =
+        libraryResource(librarySearch, libraryMealType, libraryFavoriteOnly, libraryRiceRole) + ':' + libraryDate;
+      const cached = readSessionResource<SwapOption[]>(user?.userId, resource);
+      if (!cursor && cached) setLibraryMeals(cached);
+      setIsLibraryLoading(!cursor && !cached);
+      setLibraryError(null);
+      try {
+        const params: Record<string, string> = {};
+        params.date = libraryDate;
+        if (libraryMealType !== 'All') params.mealType = libraryMealType;
+        if (librarySearch) params.search = librarySearch;
+        if (libraryFavoriteOnly) params.favoriteOnly = 'true';
+        if (libraryRiceRole !== 'All') params.riceRole = libraryRiceRole;
+        if (cursor) params.cursor = cursor;
+        params.limit = '24';
 
-      const res = await api.get('/user/meals/compatible-library', { params });
-      if (res.data && res.data.success) {
-        const incoming: SwapOption[] = Array.isArray(res.data.data) ? res.data.data : [];
-        setLibraryMeals((current) => {
-          const next = cursor
-            ? [...current, ...incoming.filter((meal) => !current.some((existing) => existing.id === meal.id))]
-            : incoming;
-          writeSessionResource(user?.userId, resource, next);
-          return next;
-        });
-        setLibraryTotalCount(Number(res.data.meta?.total ?? incoming.length));
-        setLibraryNextCursor(res.data.meta?.nextCursor ?? null);
+        const res = await api.get('/user/meals/compatible-library', { params });
+        if (res.data && res.data.success) {
+          const incoming: SwapOption[] = Array.isArray(res.data.data) ? res.data.data : [];
+          setLibraryMeals((current) => {
+            const next = cursor
+              ? [...current, ...incoming.filter((meal) => !current.some((existing) => existing.id === meal.id))]
+              : incoming;
+            writeSessionResource(user?.userId, resource, next);
+            return next;
+          });
+          setLibraryTotalCount(Number(res.data.meta?.total ?? incoming.length));
+          setLibraryNextCursor(res.data.meta?.nextCursor ?? null);
+        }
+      } catch (err: unknown) {
+        setLibraryError(getApiErrorMessage(err, 'Failed to load library meals.'));
+      } finally {
+        setIsLibraryLoading(false);
       }
-    } catch (err: unknown) {
-      setLibraryError(getApiErrorMessage(err, 'Failed to load library meals.'));
-    } finally {
-      setIsLibraryLoading(false);
-    }
-  }, [user?.userId, libraryMealType, librarySearch, libraryFavoriteOnly, libraryRiceRole, libraryDate]);
+    },
+    [user?.userId, libraryMealType, librarySearch, libraryFavoriteOnly, libraryRiceRole, libraryDate]
+  );
 
   const toggleLibraryFavorite = useCallback(
     async (meal: SwapOption) => {
@@ -287,12 +300,12 @@ export function useMealsWorkspace() {
   const toggleSwapFavorite = async (meal: SwapOption) => {
     if (meal.isFavorite) await api.delete(`/user/meals/library/${meal.id}/favorite`);
     else await api.post(`/user/meals/library/${meal.id}/favorite`);
-    setSwapOptions((current) => current.map((entry) =>
-      entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry
-    ));
-    setLibraryMeals((current) => current.map((entry) =>
-      entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry
-    ));
+    setSwapOptions((current) =>
+      current.map((entry) => (entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry))
+    );
+    setLibraryMeals((current) =>
+      current.map((entry) => (entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry))
+    );
   };
 
   useEffect(() => {
@@ -615,13 +628,17 @@ export function useMealsWorkspace() {
     }
   };
 
-  const handleEditOutsideItem = async (logId: string, itemId: string, input: {
-    name: string;
-    portionGrams: number | null;
-    reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
-    unresolved?: boolean;
-    reason: string;
-  }) => {
+  const handleEditOutsideItem = async (
+    logId: string,
+    itemId: string,
+    input: {
+      name: string;
+      portionGrams: number | null;
+      reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
+      unresolved?: boolean;
+      reason: string;
+    }
+  ) => {
     await api.patch(`/user/meals/logs/${logId}/items/${itemId}`, input);
     await Promise.all([fetchHistory(), fetchMeals()]);
   };
@@ -643,7 +660,9 @@ export function useMealsWorkspace() {
 
   const handleObservedConsent = async (logId: string, itemId: string, imageReuseConsent: boolean) => {
     await api.post(`/user/meals/logs/${logId}/items/${itemId}/observed-consent`, {
-      detailsConsent: true, imageReuseConsent, imageRightsConfirmed: imageReuseConsent,
+      detailsConsent: true,
+      imageReuseConsent,
+      imageRightsConfirmed: imageReuseConsent,
     });
     await fetchHistory();
   };

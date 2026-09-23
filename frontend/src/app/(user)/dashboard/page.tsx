@@ -330,7 +330,13 @@ export default function DashboardPage() {
   // Submits the outside meal log (handles precheck warning cascades)
   const handleLogOutsideMeal = async (
     forceAcknowledge = false,
-    options?: { useAiEstimate: boolean; items: OutsideMealInputItem[]; consumedAt: string; estimationContext: string; imageFile: File | null }
+    options?: {
+      useAiEstimate: boolean;
+      items: OutsideMealInputItem[];
+      consumedAt: string;
+      estimationContext: string;
+      imageFile: File | null;
+    }
   ) => {
     setLogError(null);
     setIsLogging(true);
@@ -341,7 +347,7 @@ export default function DashboardPage() {
         items: forceAcknowledge ? undefined : options?.items,
         mealType: logMealType,
         useAiEstimate: forceAcknowledge ? undefined : options?.useAiEstimate,
-        requestKey: outsideMealRequestKey.current ??= crypto.randomUUID(),
+        requestKey: (outsideMealRequestKey.current ??= crypto.randomUUID()),
         warningAcknowledged: forceAcknowledge,
         confirmationId: forceAcknowledge ? warningData?.confirmationId : undefined,
         notes: logNotes.trim(),
@@ -368,10 +374,13 @@ export default function DashboardPage() {
           if (outsideImageFile.current && payload.log?.id) {
             const form = new FormData();
             form.append('image', outsideImageFile.current);
-            try { await api.post(`/user/meals/logs/${payload.log.id}/image`, form); }
-            catch (imageError) {
+            try {
+              await api.post(`/user/meals/logs/${payload.log.id}/image`, form);
+            } catch (imageError) {
               imageUploadFailed = true;
-              setLogError(getApiErrorMessage(imageError, 'Meal was saved, but the optional photo could not be attached.'));
+              setLogError(
+                getApiErrorMessage(imageError, 'Meal was saved, but the optional photo could not be attached.')
+              );
             }
           }
           const followUp = payload.safetyFollowUp as { status: string; messages: string[] } | undefined;

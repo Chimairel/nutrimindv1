@@ -78,9 +78,24 @@ export default function OnboardingPreferencesPage() {
   ];
 
   const riceOptions: { value: RicePreference; label: string; desc: string; icon: React.ReactNode }[] = [
-    { value: 'NO_RICE', label: 'No rice', desc: 'Prefer meals normally eaten without rice', icon: <Ban className="w-5 h-5" /> },
-    { value: 'FLEXIBLE', label: 'Either', desc: 'Include meals with rice and meals without it', icon: <Shuffle className="w-5 h-5" /> },
-    { value: 'WITH_RICE', label: 'With rice', desc: 'Prefer meals commonly served with rice', icon: <Utensils className="w-5 h-5" /> },
+    {
+      value: 'NO_RICE',
+      label: 'No rice',
+      desc: 'Prefer meals normally eaten without rice',
+      icon: <Ban className="w-5 h-5" />,
+    },
+    {
+      value: 'FLEXIBLE',
+      label: 'Either',
+      desc: 'Include meals with rice and meals without it',
+      icon: <Shuffle className="w-5 h-5" />,
+    },
+    {
+      value: 'WITH_RICE',
+      label: 'With rice',
+      desc: 'Prefer meals commonly served with rice',
+      icon: <Utensils className="w-5 h-5" />,
+    },
   ];
 
   return (
@@ -193,7 +208,9 @@ export default function OnboardingPreferencesPage() {
                       >
                         {item.label}
                       </span>
-                      <span className={`text-[10px] leading-tight ${isSelected ? 'text-white/80 dark:text-black/70' : 'text-brand-muted'}`}>
+                      <span
+                        className={`text-[10px] leading-tight ${isSelected ? 'text-white/80 dark:text-black/70' : 'text-brand-muted'}`}
+                      >
                         {item.desc}
                       </span>
                     </button>
@@ -204,7 +221,10 @@ export default function OnboardingPreferencesPage() {
 
             <div className="flex gap-2 rounded-xl border border-brand-border bg-brand-bgAlt/50 p-3 text-[11px] text-brand-muted">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
-              <span>You can change these choices later. New ordinary preferences apply to a future plan after you review the updated nutrition report.</span>
+              <span>
+                You can change these choices later. New ordinary preferences apply to a future plan after you review the
+                updated nutrition report.
+              </span>
             </div>
 
             <PlanningLocationFields

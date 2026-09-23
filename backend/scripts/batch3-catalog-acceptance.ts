@@ -134,7 +134,11 @@ async function main() {
           libraryCount,
           libraryApplicability,
           providerPagination: 'PASS',
-          eligibleLibraryPagination: { total: eligibleFirst.total, firstPage: eligibleFirst.items.length, status: 'PASS' },
+          eligibleLibraryPagination: {
+            total: eligibleFirst.total,
+            firstPage: eligibleFirst.items.length,
+            status: 'PASS',
+          },
           favoriteUniqueScopedCascade: 'PASS',
           favoriteRetainedButIneligibleWhenFlagged: 'PASS',
         },

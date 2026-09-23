@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  AssuranceTier,
-  RecipeRiceRole,
-  RicePreference,
-  RiceRoleReviewStatus,
-} from '@prisma/client';
+import { AssuranceTier, RecipeRiceRole, RicePreference, RiceRoleReviewStatus } from '@prisma/client';
 import {
   buildReviewWorkKey,
   chooseCookedRicePortionG,

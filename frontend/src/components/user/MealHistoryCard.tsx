@@ -9,11 +9,17 @@ import api from '@/lib/axios';
 interface MealHistoryCardProps {
   log: MealHistoryLog;
   onUpdateNotes?: (logId: string, notes: string | null) => Promise<void>;
-  onEditOutsideItem?: (logId: string, itemId: string, input: {
-    name: string; portionGrams: number | null;
-    reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
-    unresolved?: boolean; reason: string;
-  }) => Promise<void>;
+  onEditOutsideItem?: (
+    logId: string,
+    itemId: string,
+    input: {
+      name: string;
+      portionGrams: number | null;
+      reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
+      unresolved?: boolean;
+      reason: string;
+    }
+  ) => Promise<void>;
   onVoidOutsideLog?: (logId: string, reason: string) => Promise<void>;
   onRequestOutsideReview?: (logId: string, itemId: string) => Promise<void>;
   onReplyToOutsideReview?: (logId: string, itemId: string, message: string) => Promise<void>;
@@ -22,16 +28,32 @@ interface MealHistoryCardProps {
   className?: string;
 }
 
-export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem, onVoidOutsideLog,
-  onRequestOutsideReview, onReplyToOutsideReview, onObservedConsent, onObservedWithdraw,
-  className = '' }: MealHistoryCardProps) {
+export default function MealHistoryCard({
+  log,
+  onUpdateNotes,
+  onEditOutsideItem,
+  onVoidOutsideLog,
+  onRequestOutsideReview,
+  onReplyToOutsideReview,
+  onObservedConsent,
+  onObservedWithdraw,
+  className = '',
+}: MealHistoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [noteInput, setNoteInput] = useState(log.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState({ name: '', portionGrams: '', calories: '', proteinG: '', carbsG: '', fatG: '', reason: '' });
+  const [editDraft, setEditDraft] = useState({
+    name: '',
+    portionGrams: '',
+    calories: '',
+    proteinG: '',
+    carbsG: '',
+    fatG: '',
+    reason: '',
+  });
   const [markUnresolved, setMarkUnresolved] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [isChanging, setIsChanging] = useState(false);
@@ -280,9 +302,14 @@ export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem,
               <p className="font-bold text-brand-muted uppercase tracking-wider text-[10px] mb-1.5">
                 Logged Food Items
               </p>
-              {log.nutritionCompleteness && log.nutritionCompleteness !== 'COMPLETE' &&
-                <p className="mb-2 text-brand-muted">Partial total: unresolved items are excluded, not counted as zero.</p>}
-              {log.provisionalCalories ? <p className="mb-2 text-amber-600">{Math.round(log.provisionalCalories)} kcal remains estimated.</p> : null}
+              {log.nutritionCompleteness && log.nutritionCompleteness !== 'COMPLETE' && (
+                <p className="mb-2 text-brand-muted">
+                  Partial total: unresolved items are excluded, not counted as zero.
+                </p>
+              )}
+              {log.provisionalCalories ? (
+                <p className="mb-2 text-amber-600">{Math.round(log.provisionalCalories)} kcal remains estimated.</p>
+              ) : null}
               <div className="space-y-2">
                 {log.outsideItems.map((item, idx) => (
                   <div
@@ -290,137 +317,366 @@ export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem,
                     className="rounded-lg border border-brand-border/80 bg-brand-bgAlt px-2.5 py-2 text-xs text-brand-text dark:border-white/10 dark:bg-white/5 dark:text-white"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span>{item.name}{item.portionGrams ? ` (${item.portionGrams}g)` : ''} · {item.includedInTotals ? `${Math.round(item.calories ?? 0)} kcal` : 'Unresolved'} · {item.source?.replaceAll('_', ' ').toLowerCase()} · revision {item.currentRevision ?? 0}</span>
-                      {log.source === 'USER_LOGGED' && !isVoided && onEditOutsideItem && <button type="button" className="text-brand-green underline" onClick={() => {
-                        setEditingItemId(item.id);
-                        setEditDraft({ name: item.name, portionGrams: String(item.portionGrams ?? ''),
-                          calories: String(item.calories ?? ''), proteinG: String(item.proteinG ?? ''),
-                          carbsG: String(item.carbsG ?? ''), fatG: String(item.fatG ?? ''), reason: '' });
-                        setMarkUnresolved(!item.includedInTotals);
-                      }}>Correct</button>}
+                      <span>
+                        {item.name}
+                        {item.portionGrams ? ` (${item.portionGrams}g)` : ''} ·{' '}
+                        {item.includedInTotals ? `${Math.round(item.calories ?? 0)} kcal` : 'Unresolved'} ·{' '}
+                        {item.source?.replaceAll('_', ' ').toLowerCase()} · revision {item.currentRevision ?? 0}
+                      </span>
+                      {log.source === 'USER_LOGGED' && !isVoided && onEditOutsideItem && (
+                        <button
+                          type="button"
+                          className="text-brand-green underline"
+                          onClick={() => {
+                            setEditingItemId(item.id);
+                            setEditDraft({
+                              name: item.name,
+                              portionGrams: String(item.portionGrams ?? ''),
+                              calories: String(item.calories ?? ''),
+                              proteinG: String(item.proteinG ?? ''),
+                              carbsG: String(item.carbsG ?? ''),
+                              fatG: String(item.fatG ?? ''),
+                              reason: '',
+                            });
+                            setMarkUnresolved(!item.includedInTotals);
+                          }}
+                        >
+                          Correct
+                        </button>
+                      )}
                     </div>
-                    {editingItemId === item.id && <form className="mt-3 grid grid-cols-2 gap-2" onSubmit={async (event) => {
-                      event.preventDefault();
-                      if (!onEditOutsideItem) return;
-                      setIsChanging(true); setSaveError(null);
-                      try {
-                        await onEditOutsideItem(log.id, item.id, {
-                          name: editDraft.name, portionGrams: editDraft.portionGrams ? Number(editDraft.portionGrams) : null,
-                          ...(markUnresolved ? { unresolved: true } : { reportedNutrition: {
-                            calories: Number(editDraft.calories), proteinG: Number(editDraft.proteinG),
-                            carbsG: Number(editDraft.carbsG), fatG: Number(editDraft.fatG),
-                          } }), reason: editDraft.reason || 'User corrected this record',
-                        });
-                        setEditingItemId(null);
-                      } catch { setSaveError('Could not revise this item. Reload and try again.'); }
-                      finally { setIsChanging(false); }
-                    }}>
-                      <input className="col-span-2 rounded border p-2" aria-label="Corrected food name" value={editDraft.name} onChange={(event) => setEditDraft((draft) => ({ ...draft, name: event.target.value }))} required />
-                      <input className="rounded border p-2" type="number" min="1" max="5000" step="0.1" aria-label="Corrected portion grams" placeholder="Portion g" value={editDraft.portionGrams} onChange={(event) => setEditDraft((draft) => ({ ...draft, portionGrams: event.target.value }))} />
-                      <label className="flex items-center gap-1"><input type="checkbox" checked={markUnresolved} onChange={(event) => setMarkUnresolved(event.target.checked)} /> Unknown nutrition</label>
-                      {!markUnresolved && (['calories', 'proteinG', 'carbsG', 'fatG'] as const).map((field) => <input key={field} className="rounded border p-2" type="number" min="0" step="0.1" required aria-label={`Corrected ${field}`} placeholder={field} value={editDraft[field]} onChange={(event) => setEditDraft((draft) => ({ ...draft, [field]: event.target.value }))} />)}
-                      <input className="col-span-2 rounded border p-2" aria-label="Reason for correction" placeholder="What changed?" value={editDraft.reason} onChange={(event) => setEditDraft((draft) => ({ ...draft, reason: event.target.value }))} />
-                      <button disabled={isChanging} className="rounded bg-brand-green p-2 font-bold text-white" type="submit">Save revision</button>
-                      <button type="button" onClick={() => setEditingItemId(null)}>Cancel</button>
-                    </form>}
-                    {log.source === 'USER_LOGGED' && <div className="mt-2 space-y-2 border-t border-brand-border/60 pt-2">
-                      <p className="font-semibold text-brand-muted">
-                        {item.review?.status === 'PENDING' ? 'Queued for nutrition estimate review' :
-                          item.review?.status === 'CLAIMED' ? 'Nutrition estimate under review' :
-                          item.review?.status === 'VERIFIED' ? 'Nutrition estimate confirmed' :
-                          item.review?.status === 'CORRECTED' ? 'Corrected and confirmed nutrition estimate' :
-                          item.review?.status === 'NEEDS_MORE_INFO' ? 'Nutritionist needs more information' :
-                          item.review?.status === 'UNVERIFIABLE' ? 'Estimate could not be confirmed; it remains estimated' :
-                          'No nutritionist review requested'}
-                      </p>
-                      {item.review && ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
-                        item.revisions?.[0]?.revision === (item.review.reviewedRevision ?? -1) + 1 && item.revisions[0].reason &&
-                        <p className="rounded-lg bg-brand-surface p-2 text-brand-muted">
-                          Nutritionist rationale: {item.revisions[0].reason}
-                        </p>}
-                      {item.review?.messages?.map((message) => <p key={message.id} className="rounded-lg bg-brand-surface p-2 text-brand-muted">
-                        <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'You'}:</strong> {message.content}
-                        <span className="ml-2 text-[10px]">Revision {message.itemRevision}</span>
-                      </p>)}
-                      {!isVoided && item.review?.status === 'NEEDS_MORE_INFO' && onReplyToOutsideReview &&
-                        <form className="space-y-2" onSubmit={async (event) => {
-                          event.preventDefault(); setIsChanging(true); setSaveError(null);
-                          try { await onReplyToOutsideReview(log.id, item.id, clarification.trim()); setClarification(''); }
-                          catch { setSaveError('Could not send your clarification.'); }
-                          finally { setIsChanging(false); }
-                        }}>
-                          <textarea className="w-full rounded border p-2" maxLength={1000} value={clarification}
-                            onChange={(event) => setClarification(event.target.value)}
-                            placeholder="Answer the specific nutritionist question" aria-label="Clarification reply" />
-                          <button type="submit" disabled={isChanging || clarification.trim().length < 3}
-                            className="rounded bg-brand-green px-3 py-1 font-bold text-white disabled:opacity-50">Send clarification</button>
-                        </form>}
-                      {!isVoided && onRequestOutsideReview &&
-                        (!item.review || ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status)) &&
-                        <button type="button" disabled={isChanging} className="text-brand-green underline" onClick={async () => {
-                          setIsChanging(true); setSaveError(null);
-                          try { await onRequestOutsideReview(log.id, item.id); }
-                          catch { setSaveError('Could not request estimate review.'); }
-                          finally { setIsChanging(false); }
-                        }}>{item.review ? 'Request another estimate review' : 'Request nutrition estimate review'}</button>}
-                      {!isVoided && ['VERIFIED', 'CORRECTED'].includes(item.review?.status ?? '') &&
-                        item.portionGrams && item.portionGrams > 0 && (() => {
-                          const submission = item.observedSubmissions?.find((row) =>
-                            row.sourceRevision === item.currentRevision && row.status !== 'WITHDRAWN');
-                          return submission ? <div className="text-xs text-brand-muted">
-                            <p>Deidentified food-detail reuse: {submission.status.replaceAll('_', ' ').toLowerCase()}.
-                              This does not certify a recipe or reuse your private notes.</p>
-                            {onObservedWithdraw && <button type="button" className="text-brand-green underline"
-                              disabled={isChanging} onClick={async () => {
-                                setIsChanging(true); setSaveError(null);
-                                try { await onObservedWithdraw(submission.id); }
-                                catch { setSaveError('Could not withdraw reuse permission.'); }
-                                finally { setIsChanging(false); }
-                              }}>Withdraw future reuse</button>}
-                          </div> : consentItemId === item.id ? <div className="space-y-2 rounded-lg border border-brand-border p-3 text-xs">
-                            <p>Allow a nutritionist to turn this confirmed estimate into a deidentified food reference or recipe candidate. Your identity and private notes will not be shared. This is optional.</p>
-                            {log.hasImage && <label className="flex items-start gap-2"><input type="checkbox"
-                              checked={shareImage} onChange={(event) => setShareImage(event.target.checked)} />
-                              I own this photo and separately allow its reuse. Photos are not currently copied into the shared corpus.</label>}
-                            <div className="flex gap-3"><button type="button" disabled={isChanging}
-                              className="text-brand-green underline" onClick={async () => {
-                                if (!onObservedConsent) return;
-                                setIsChanging(true); setSaveError(null);
-                                try { await onObservedConsent(log.id, item.id, shareImage); setConsentItemId(null); }
-                                catch { setSaveError('Could not submit reuse permission.'); }
-                                finally { setIsChanging(false); }
-                              }}>Allow deidentified details</button>
-                              <button type="button" onClick={() => setConsentItemId(null)}>Cancel</button></div>
-                          </div> : onObservedConsent && <button type="button"
-                            className="text-brand-green underline" onClick={() => { setShareImage(false); setConsentItemId(item.id); }}>
-                            Optionally share deidentified food details
-                          </button>;
-                        })()}
-                    </div>}
+                    {editingItemId === item.id && (
+                      <form
+                        className="mt-3 grid grid-cols-2 gap-2"
+                        onSubmit={async (event) => {
+                          event.preventDefault();
+                          if (!onEditOutsideItem) return;
+                          setIsChanging(true);
+                          setSaveError(null);
+                          try {
+                            await onEditOutsideItem(log.id, item.id, {
+                              name: editDraft.name,
+                              portionGrams: editDraft.portionGrams ? Number(editDraft.portionGrams) : null,
+                              ...(markUnresolved
+                                ? { unresolved: true }
+                                : {
+                                    reportedNutrition: {
+                                      calories: Number(editDraft.calories),
+                                      proteinG: Number(editDraft.proteinG),
+                                      carbsG: Number(editDraft.carbsG),
+                                      fatG: Number(editDraft.fatG),
+                                    },
+                                  }),
+                              reason: editDraft.reason || 'User corrected this record',
+                            });
+                            setEditingItemId(null);
+                          } catch {
+                            setSaveError('Could not revise this item. Reload and try again.');
+                          } finally {
+                            setIsChanging(false);
+                          }
+                        }}
+                      >
+                        <input
+                          className="col-span-2 rounded border p-2"
+                          aria-label="Corrected food name"
+                          value={editDraft.name}
+                          onChange={(event) => setEditDraft((draft) => ({ ...draft, name: event.target.value }))}
+                          required
+                        />
+                        <input
+                          className="rounded border p-2"
+                          type="number"
+                          min="1"
+                          max="5000"
+                          step="0.1"
+                          aria-label="Corrected portion grams"
+                          placeholder="Portion g"
+                          value={editDraft.portionGrams}
+                          onChange={(event) =>
+                            setEditDraft((draft) => ({ ...draft, portionGrams: event.target.value }))
+                          }
+                        />
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="checkbox"
+                            checked={markUnresolved}
+                            onChange={(event) => setMarkUnresolved(event.target.checked)}
+                          />{' '}
+                          Unknown nutrition
+                        </label>
+                        {!markUnresolved &&
+                          (['calories', 'proteinG', 'carbsG', 'fatG'] as const).map((field) => (
+                            <input
+                              key={field}
+                              className="rounded border p-2"
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              required
+                              aria-label={`Corrected ${field}`}
+                              placeholder={field}
+                              value={editDraft[field]}
+                              onChange={(event) => setEditDraft((draft) => ({ ...draft, [field]: event.target.value }))}
+                            />
+                          ))}
+                        <input
+                          className="col-span-2 rounded border p-2"
+                          aria-label="Reason for correction"
+                          placeholder="What changed?"
+                          value={editDraft.reason}
+                          onChange={(event) => setEditDraft((draft) => ({ ...draft, reason: event.target.value }))}
+                        />
+                        <button
+                          disabled={isChanging}
+                          className="rounded bg-brand-green p-2 font-bold text-white"
+                          type="submit"
+                        >
+                          Save revision
+                        </button>
+                        <button type="button" onClick={() => setEditingItemId(null)}>
+                          Cancel
+                        </button>
+                      </form>
+                    )}
+                    {log.source === 'USER_LOGGED' && (
+                      <div className="mt-2 space-y-2 border-t border-brand-border/60 pt-2">
+                        <p className="font-semibold text-brand-muted">
+                          {item.review?.status === 'PENDING'
+                            ? 'Queued for nutrition estimate review'
+                            : item.review?.status === 'CLAIMED'
+                              ? 'Nutrition estimate under review'
+                              : item.review?.status === 'VERIFIED'
+                                ? 'Nutrition estimate confirmed'
+                                : item.review?.status === 'CORRECTED'
+                                  ? 'Corrected and confirmed nutrition estimate'
+                                  : item.review?.status === 'NEEDS_MORE_INFO'
+                                    ? 'Nutritionist needs more information'
+                                    : item.review?.status === 'UNVERIFIABLE'
+                                      ? 'Estimate could not be confirmed; it remains estimated'
+                                      : 'No nutritionist review requested'}
+                        </p>
+                        {item.review &&
+                          ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
+                          item.revisions?.[0]?.revision === (item.review.reviewedRevision ?? -1) + 1 &&
+                          item.revisions[0].reason && (
+                            <p className="rounded-lg bg-brand-surface p-2 text-brand-muted">
+                              Nutritionist rationale: {item.revisions[0].reason}
+                            </p>
+                          )}
+                        {item.review?.messages?.map((message) => (
+                          <p key={message.id} className="rounded-lg bg-brand-surface p-2 text-brand-muted">
+                            <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'You'}:</strong>{' '}
+                            {message.content}
+                            <span className="ml-2 text-[10px]">Revision {message.itemRevision}</span>
+                          </p>
+                        ))}
+                        {!isVoided && item.review?.status === 'NEEDS_MORE_INFO' && onReplyToOutsideReview && (
+                          <form
+                            className="space-y-2"
+                            onSubmit={async (event) => {
+                              event.preventDefault();
+                              setIsChanging(true);
+                              setSaveError(null);
+                              try {
+                                await onReplyToOutsideReview(log.id, item.id, clarification.trim());
+                                setClarification('');
+                              } catch {
+                                setSaveError('Could not send your clarification.');
+                              } finally {
+                                setIsChanging(false);
+                              }
+                            }}
+                          >
+                            <textarea
+                              className="w-full rounded border p-2"
+                              maxLength={1000}
+                              value={clarification}
+                              onChange={(event) => setClarification(event.target.value)}
+                              placeholder="Answer the specific nutritionist question"
+                              aria-label="Clarification reply"
+                            />
+                            <button
+                              type="submit"
+                              disabled={isChanging || clarification.trim().length < 3}
+                              className="rounded bg-brand-green px-3 py-1 font-bold text-white disabled:opacity-50"
+                            >
+                              Send clarification
+                            </button>
+                          </form>
+                        )}
+                        {!isVoided &&
+                          onRequestOutsideReview &&
+                          (!item.review || ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status)) && (
+                            <button
+                              type="button"
+                              disabled={isChanging}
+                              className="text-brand-green underline"
+                              onClick={async () => {
+                                setIsChanging(true);
+                                setSaveError(null);
+                                try {
+                                  await onRequestOutsideReview(log.id, item.id);
+                                } catch {
+                                  setSaveError('Could not request estimate review.');
+                                } finally {
+                                  setIsChanging(false);
+                                }
+                              }}
+                            >
+                              {item.review ? 'Request another estimate review' : 'Request nutrition estimate review'}
+                            </button>
+                          )}
+                        {!isVoided &&
+                          ['VERIFIED', 'CORRECTED'].includes(item.review?.status ?? '') &&
+                          item.portionGrams &&
+                          item.portionGrams > 0 &&
+                          (() => {
+                            const submission = item.observedSubmissions?.find(
+                              (row) => row.sourceRevision === item.currentRevision && row.status !== 'WITHDRAWN'
+                            );
+                            return submission ? (
+                              <div className="text-xs text-brand-muted">
+                                <p>
+                                  Deidentified food-detail reuse: {submission.status.replaceAll('_', ' ').toLowerCase()}
+                                  . This does not certify a recipe or reuse your private notes.
+                                </p>
+                                {onObservedWithdraw && (
+                                  <button
+                                    type="button"
+                                    className="text-brand-green underline"
+                                    disabled={isChanging}
+                                    onClick={async () => {
+                                      setIsChanging(true);
+                                      setSaveError(null);
+                                      try {
+                                        await onObservedWithdraw(submission.id);
+                                      } catch {
+                                        setSaveError('Could not withdraw reuse permission.');
+                                      } finally {
+                                        setIsChanging(false);
+                                      }
+                                    }}
+                                  >
+                                    Withdraw future reuse
+                                  </button>
+                                )}
+                              </div>
+                            ) : consentItemId === item.id ? (
+                              <div className="space-y-2 rounded-lg border border-brand-border p-3 text-xs">
+                                <p>
+                                  Allow a nutritionist to turn this confirmed estimate into a deidentified food
+                                  reference or recipe candidate. Your identity and private notes will not be shared.
+                                  This is optional.
+                                </p>
+                                {log.hasImage && (
+                                  <label className="flex items-start gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={shareImage}
+                                      onChange={(event) => setShareImage(event.target.checked)}
+                                    />
+                                    I own this photo and separately allow its reuse. Photos are not currently copied
+                                    into the shared corpus.
+                                  </label>
+                                )}
+                                <div className="flex gap-3">
+                                  <button
+                                    type="button"
+                                    disabled={isChanging}
+                                    className="text-brand-green underline"
+                                    onClick={async () => {
+                                      if (!onObservedConsent) return;
+                                      setIsChanging(true);
+                                      setSaveError(null);
+                                      try {
+                                        await onObservedConsent(log.id, item.id, shareImage);
+                                        setConsentItemId(null);
+                                      } catch {
+                                        setSaveError('Could not submit reuse permission.');
+                                      } finally {
+                                        setIsChanging(false);
+                                      }
+                                    }}
+                                  >
+                                    Allow deidentified details
+                                  </button>
+                                  <button type="button" onClick={() => setConsentItemId(null)}>
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              onObservedConsent && (
+                                <button
+                                  type="button"
+                                  className="text-brand-green underline"
+                                  onClick={() => {
+                                    setShareImage(false);
+                                    setConsentItemId(item.id);
+                                  }}
+                                >
+                                  Optionally share deidentified food details
+                                </button>
+                              )
+                            );
+                          })()}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
-          {log.source === 'USER_LOGGED' && log.hasImage && <button type="button" className="mb-3 text-xs text-brand-green underline" onClick={async () => {
-            try {
-              const response = await api.get(`/user/meals/logs/${log.id}/image`, { responseType: 'blob' });
-              const url = URL.createObjectURL(response.data);
-              window.open(url, '_blank', 'noopener,noreferrer');
-              setTimeout(() => URL.revokeObjectURL(url), 60_000);
-            } catch { setSaveError('Could not open the image.'); }
-          }}>View attached photo</button>}
-          {log.source === 'USER_LOGGED' && !isVoided && onVoidOutsideLog && <div className="mb-4 rounded-xl border border-red-500/30 p-3 text-xs">
-            <p className="font-bold text-red-600">Remove this entry from active totals</p>
-            <p className="mb-2 text-brand-muted">The original record and corrections remain in your history.</p>
-            <input className="w-full rounded border p-2" aria-label="Reason for voiding" placeholder="Reason for voiding this entry" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
-            <button type="button" disabled={isChanging || voidReason.trim().length < 3} className="mt-2 rounded border border-red-500 px-3 py-1 text-red-600 disabled:opacity-50" onClick={async () => {
-              setIsChanging(true); setSaveError(null);
-              try { await onVoidOutsideLog(log.id, voidReason.trim()); }
-              catch { setSaveError('Could not void this entry.'); }
-              finally { setIsChanging(false); }
-            }}>Void outside meal</button>
-          </div>}
+          {log.source === 'USER_LOGGED' && log.hasImage && (
+            <button
+              type="button"
+              className="mb-3 text-xs text-brand-green underline"
+              onClick={async () => {
+                try {
+                  const response = await api.get(`/user/meals/logs/${log.id}/image`, { responseType: 'blob' });
+                  const url = URL.createObjectURL(response.data);
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                } catch {
+                  setSaveError('Could not open the image.');
+                }
+              }}
+            >
+              View attached photo
+            </button>
+          )}
+          {log.source === 'USER_LOGGED' && !isVoided && onVoidOutsideLog && (
+            <div className="mb-4 rounded-xl border border-red-500/30 p-3 text-xs">
+              <p className="font-bold text-red-600">Remove this entry from active totals</p>
+              <p className="mb-2 text-brand-muted">The original record and corrections remain in your history.</p>
+              <input
+                className="w-full rounded border p-2"
+                aria-label="Reason for voiding"
+                placeholder="Reason for voiding this entry"
+                value={voidReason}
+                onChange={(event) => setVoidReason(event.target.value)}
+              />
+              <button
+                type="button"
+                disabled={isChanging || voidReason.trim().length < 3}
+                className="mt-2 rounded border border-red-500 px-3 py-1 text-red-600 disabled:opacity-50"
+                onClick={async () => {
+                  setIsChanging(true);
+                  setSaveError(null);
+                  try {
+                    await onVoidOutsideLog(log.id, voidReason.trim());
+                  } catch {
+                    setSaveError('Could not void this entry.');
+                  } finally {
+                    setIsChanging(false);
+                  }
+                }}
+              >
+                Void outside meal
+              </button>
+            </div>
+          )}
 
           {/* Note Editor Area */}
           <div className="rounded-2xl border border-brand-border/80 bg-brand-surface p-4 shadow-sm dark:border-white/10 dark:bg-[#121e19]">

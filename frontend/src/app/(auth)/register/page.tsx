@@ -12,6 +12,7 @@ import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
+import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import {
   getRegistrationFieldErrors,
   type RegistrationField,
@@ -19,7 +20,7 @@ import {
 } from '@/validation/auth.schemas';
 
 export default function RegisterPage() {
-  const { login, logout, user } = useAuth();
+  const { login, logout, user, isLoading: isAuthLoading } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,7 +33,11 @@ export default function RegisterPage() {
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
   if (user) {
-    return <AuthenticatedEntryRedirect user={user} logout={logout} />;
+    return isAuthLoading ? (
+      <PortalLoadingState fullScreen />
+    ) : (
+      <AuthenticatedEntryRedirect user={user} logout={logout} />
+    );
   }
 
   const clearFieldError = (field: RegistrationField) => {

@@ -65,7 +65,9 @@ export default function LibraryMealCard({
         <div className="rounded-xl border border-brand-border bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">
           <p>Serving: {meal.servingDescription || 'One recipe serving'}</p>
           <p>Suitable slots: {applicableMealTypes.join(', ').toLowerCase()}</p>
-          <p>Per serving: {meal.calories} kcal · {meal.proteinG} g protein · {meal.carbsG} g carbs · {meal.fatG} g fat.</p>
+          <p>
+            Per serving: {meal.calories} kcal · {meal.proteinG} g protein · {meal.carbsG} g carbs · {meal.fatG} g fat.
+          </p>
         </div>
       )}
       <button

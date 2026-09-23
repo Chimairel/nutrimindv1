@@ -177,10 +177,7 @@ export class UserProfileService {
               : {}),
           },
         });
-        const hardSafetyChange = introducesHardDietRestriction(
-          existing?.dietaryPreference,
-          profile.dietaryPreference
-        );
+        const hardSafetyChange = introducesHardDietRestriction(existing?.dietaryPreference, profile.dietaryPreference);
         const revised = hardSafetyChange
           ? await advanceSafetyRevision(tx, userId)
           : await advanceProfileRevision(tx, userId, classifyProfileChanges(changedFields));

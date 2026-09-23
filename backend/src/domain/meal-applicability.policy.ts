@@ -26,7 +26,9 @@ export function proposeMealTypeApplicability(input: {
   const text = `${input.name} ${input.category ?? ''}`.normalize('NFKC').toLowerCase();
   const types = new Set<MealType>([input.primaryMealType]);
 
-  if (/\b(breakfast|silog|tapa|tocino|longganisa|omelet|omelette|pancake|french toast|champorado|lugaw)\b/u.test(text)) {
+  if (
+    /\b(breakfast|silog|tapa|tocino|longganisa|omelet|omelette|pancake|french toast|champorado|lugaw)\b/u.test(text)
+  ) {
     types.add(MealType.BREAKFAST);
   }
   if (/\b(snack|merienda|dessert|cookie|cake|bread|muffin|candy|shake|smoothie)\b/u.test(text)) {
@@ -37,5 +39,7 @@ export function proposeMealTypeApplicability(input: {
     types.add(MealType.DINNER);
   }
 
-  return [...types].sort((left, right) => Object.values(MealType).indexOf(left) - Object.values(MealType).indexOf(right));
+  return [...types].sort(
+    (left, right) => Object.values(MealType).indexOf(left) - Object.values(MealType).indexOf(right)
+  );
 }

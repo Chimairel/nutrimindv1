@@ -5,11 +5,7 @@ import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { purchaseState } from '@/domain/grocery-purchase.policy';
 import { aggregateGroceryIngredients, groceryItemKey } from '@/domain/grocery-quantity.policy';
 import { deriveGroceryActionability } from '@/domain/grocery-actionability.policy';
-import {
-  MealPlanCycleDeadlineOutcome,
-  MealPlanCycleStatus,
-  ProfileCycleAdaptationState,
-} from '@prisma/client';
+import { MealPlanCycleDeadlineOutcome, MealPlanCycleStatus, ProfileCycleAdaptationState } from '@prisma/client';
 
 export class GroceryService {
   /**
@@ -249,9 +245,8 @@ export class GroceryService {
       where: { userId, planGroupId: cycle.id, id: { in: clearedMealPlanIds } },
       select: { scheduledDate: true, mealType: true },
     });
-    const clearedSlotCount = new Set(
-      clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
-    ).size;
+    const clearedSlotCount = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`))
+      .size;
     let list = await prisma.groceryList.findFirst({
       where: { userId, planGroupId: cycle.id },
       include: { groceryItems: { orderBy: { ingredientName: 'asc' } } },

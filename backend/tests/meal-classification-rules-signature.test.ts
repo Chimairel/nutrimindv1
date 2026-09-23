@@ -105,13 +105,16 @@ test('[TEST-207] user approval and reusable library publication remain separate 
 test('[TEST-208] meal generation uses bounded database candidate queries', () => {
   const root = path.resolve(__dirname, '..');
   const generation = fs.readFileSync(path.join(root, 'src/services/meal-generation.service.ts'), 'utf8');
+  const composition = fs.readFileSync(path.join(root, 'src/services/meal-plan-composition.service.ts'), 'utf8');
   const candidateQuery = fs.readFileSync(
     path.join(root, 'src/services/meal-library-candidate-query.service.ts'),
     'utf8'
   );
 
   assert.doesNotMatch(generation, /prisma\.mealLibrary\.findMany/u);
-  assert.match(generation, /queryEligibleLibraryMeals/gu);
+  assert.doesNotMatch(composition, /prisma\.mealLibrary\.findMany/u);
+  assert.match(generation, /generate7DayPlan/u);
+  assert.match(composition, /queryEligibleLibraryMeals/gu);
   assert.match(candidateQuery, /take:\s*limit/u);
   assert.match(candidateQuery, /Math\.max\(1,\s*Math\.min\(input\.limit/gu);
 });

@@ -113,14 +113,18 @@ function dataSourceFor(items: ResolvedItem[]): MealLogDataSource {
 }
 
 function requestedPayloadHash(input: LogOutsideMealInput, items: InputItem[]): string {
-  return createHash('sha256').update(JSON.stringify({
-    items,
-    mealType: input.mealType,
-    useAiEstimate: Boolean(input.useAiEstimate),
-    consumedAt: input.consumedAt ?? null,
-    estimationContext: input.estimationContext?.trim() ?? '',
-    notes: input.notes?.trim() ?? '',
-  })).digest('hex');
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        items,
+        mealType: input.mealType,
+        useAiEstimate: Boolean(input.useAiEstimate),
+        consumedAt: input.consumedAt ?? null,
+        estimationContext: input.estimationContext?.trim() ?? '',
+        notes: input.notes?.trim() ?? '',
+      })
+    )
+    .digest('hex');
 }
 
 function emptyResolved(item: InputItem): ResolvedItem {
@@ -150,9 +154,16 @@ function applySafetyWarnings(
   restrictions: ReturnType<typeof adaptUserSafetyRestrictions>
 ): ResolvedItem {
   const result = evaluateOutsideMealCompatibility({
-    name: item.name, ingredients: item.ingredients, baselineStatus: item.compatibilityStatus, restrictions,
+    name: item.name,
+    ingredients: item.ingredients,
+    baselineStatus: item.compatibilityStatus,
+    restrictions,
   });
-  return { ...item, compatibilityStatus: result.status, warnings: [...new Set([...item.warnings, ...result.warnings])] };
+  return {
+    ...item,
+    compatibilityStatus: result.status,
+    warnings: [...new Set([...item.warnings, ...result.warnings])],
+  };
 }
 
 export class MealLogService {
@@ -170,8 +181,12 @@ export class MealLogService {
       const prior = await prisma.outsideMealPreview.findUnique({ where: { requestKey: input.requestKey } });
       if (prior) {
         const requestedName = requested.map((item) => item.name).join(', ');
-        if (prior.userId !== input.userId || prior.mealName !== requestedName || prior.mealType !== input.mealType ||
-            (prior.requestPayloadHash !== null && prior.requestPayloadHash !== payloadHash)) {
+        if (
+          prior.userId !== input.userId ||
+          prior.mealName !== requestedName ||
+          prior.mealType !== input.mealType ||
+          (prior.requestPayloadHash !== null && prior.requestPayloadHash !== payloadHash)
+        ) {
           throw new AppError(
             'This request key was already used for different meal details.',
             409,
@@ -206,8 +221,10 @@ export class MealLogService {
     );
 
     if (input.useAiEstimate && unresolvedIndexes.length > 0) {
-      if (unresolvedIndexes.some((index) => !requested[index].portionGrams) ||
-          (input.estimationContext?.trim().length ?? 0) < 12) {
+      if (
+        unresolvedIndexes.some((index) => !requested[index].portionGrams) ||
+        (input.estimationContext?.trim().length ?? 0) < 12
+      ) {
         throw new AppError(
           'For an AI estimate, add an approximate portion for each unresolved item and describe its preparation, ingredients, or sauces.',
           422,
@@ -253,7 +270,10 @@ export class MealLogService {
       );
       let aiRows: z.infer<typeof aiItemSchema>[];
       try {
-        aiRows = await this.estimateWithAi(unresolvedIndexes.map((index) => requested[index]), input.estimationContext!.trim());
+        aiRows = await this.estimateWithAi(
+          unresolvedIndexes.map((index) => requested[index]),
+          input.estimationContext!.trim()
+        );
       } catch (error) {
         await prisma.outsideMealAiUsage.deleteMany({ where: { id: usageReservation.id, userId: input.userId } });
         throw error;
@@ -289,7 +309,12 @@ export class MealLogService {
     const dayStart = getManilaMidnight(getManilaDateKey(consumedAt));
     const tomorrow = getScheduledMealDate(dayStart, 1);
     const existingLogs = await prisma.mealLog.findMany({
-      where: { userId: input.userId, status: MealLogStatus.DONE, ...getNutritionEligibleMealLogWhere(), loggedAt: { gte: dayStart, lt: tomorrow } },
+      where: {
+        userId: input.userId,
+        status: MealLogStatus.DONE,
+        ...getNutritionEligibleMealLogWhere(),
+        loggedAt: { gte: dayStart, lt: tomorrow },
+      },
       select: { calories: true },
     });
     const projectedCalories = existingLogs.reduce((total, row) => total + row.calories, 0) + summary.totals.calories;
@@ -321,22 +346,25 @@ export class MealLogService {
   }
 
   private static async resolveFreeItem(item: InputItem, user: any, restrictions: any): Promise<ResolvedItem> {
-    const library = item.portionGrams && !item.mealLibraryId
-      ? null
-      : await prisma.mealLibrary.findFirst({
-          where: {
-            ...(item.mealLibraryId
-              ? { id: item.mealLibraryId, mealName: { equals: item.name, mode: 'insensitive' } }
-              : {
-                  mealName: { equals: item.name, mode: 'insensitive' },
-                  status: 'APPROVED',
-                  verifiedByNutritionistId: { not: null },
-                  safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-                }),
-          },
-          include: certifiedLibraryMealInclude,
-        });
-    const eligibleLibrary = library && isCertifiedLibraryMealCompatible(
+    const library =
+      item.portionGrams && !item.mealLibraryId
+        ? null
+        : await prisma.mealLibrary.findFirst({
+            where: {
+              ...(item.mealLibraryId
+                ? { id: item.mealLibraryId, mealName: { equals: item.name, mode: 'insensitive' } }
+                : {
+                    mealName: { equals: item.name, mode: 'insensitive' },
+                    status: 'APPROVED',
+                    verifiedByNutritionistId: { not: null },
+                    safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+                  }),
+            },
+            include: certifiedLibraryMealInclude,
+          });
+    const eligibleLibrary =
+      library &&
+      isCertifiedLibraryMealCompatible(
         library,
         user.healthConditions.map((row: any) => row.condition),
         user.allergies.map((row: any) => row.allergen),
@@ -351,24 +379,33 @@ export class MealLogService {
       );
     if (item.reportedNutrition) {
       assertValidOutsideMealMacros(item.reportedNutrition);
-      return applySafetyWarnings({
-        ...emptyResolved(item),
-        ...item.reportedNutrition,
-        source: eligibleLibrary && item.mealLibraryId
-          ? OutsideMealItemSource.USER_ADJUSTED_LIBRARY
-          : OutsideMealItemSource.USER_REPORTED,
-        nutritionStatus: OutsideMealNutritionStatus.USER_REPORTED,
-        compatibilityStatus: OutsideMealCompatibilityStatus.INSUFFICIENT_EVIDENCE,
-        includedInTotals: true,
-        mealLibraryId: item.mealLibraryId && library ? library.id : null,
-        servingDescription: item.mealLibraryId && library
-          ? library.nutritionServingDescription || 'One recipe serving'
-          : item.portionGrams ? `${item.portionGrams} g consumed` : null,
-        ingredients: item.mealLibraryId && library ? library.ingredients.map((row) => row.ingredientName) : [],
-        warnings: [eligibleLibrary && item.mealLibraryId
-          ? 'You adjusted the library serving or macros; these values are user-reported.'
-          : 'User-reported nutrition-label or menu values; KAINARA has not independently verified them.'],
-      }, restrictions);
+      return applySafetyWarnings(
+        {
+          ...emptyResolved(item),
+          ...item.reportedNutrition,
+          source:
+            eligibleLibrary && item.mealLibraryId
+              ? OutsideMealItemSource.USER_ADJUSTED_LIBRARY
+              : OutsideMealItemSource.USER_REPORTED,
+          nutritionStatus: OutsideMealNutritionStatus.USER_REPORTED,
+          compatibilityStatus: OutsideMealCompatibilityStatus.INSUFFICIENT_EVIDENCE,
+          includedInTotals: true,
+          mealLibraryId: item.mealLibraryId && library ? library.id : null,
+          servingDescription:
+            item.mealLibraryId && library
+              ? library.nutritionServingDescription || 'One recipe serving'
+              : item.portionGrams
+                ? `${item.portionGrams} g consumed`
+                : null,
+          ingredients: item.mealLibraryId && library ? library.ingredients.map((row) => row.ingredientName) : [],
+          warnings: [
+            eligibleLibrary && item.mealLibraryId
+              ? 'You adjusted the library serving or macros; these values are user-reported.'
+              : 'User-reported nutrition-label or menu values; KAINARA has not independently verified them.',
+          ],
+        },
+        restrictions
+      );
     }
     if (eligibleLibrary) {
       return {
@@ -388,11 +425,15 @@ export class MealLogService {
       };
     }
 
-    if (!item.portionGrams) return applySafetyWarnings({
-      ...emptyResolved(item),
-      mealLibraryId: item.mealLibraryId && library ? library.id : null,
-      ingredients: item.mealLibraryId && library ? library.ingredients.map((row) => row.ingredientName) : [],
-    }, restrictions);
+    if (!item.portionGrams)
+      return applySafetyWarnings(
+        {
+          ...emptyResolved(item),
+          mealLibraryId: item.mealLibraryId && library ? library.id : null,
+          ingredients: item.mealLibraryId && library ? library.ingredients.map((row) => row.ingredientName) : [],
+        },
+        restrictions
+      );
     const exact = await prisma.foodItem.findFirst({ where: { name: { equals: item.name, mode: 'insensitive' } } });
     const alias = exact
       ? null
@@ -416,11 +457,15 @@ export class MealLogService {
       });
       food = selectStrongFNRIMatch(item.name, candidates);
     }
-    if (!food) return applySafetyWarnings({
-      ...emptyResolved(item),
-      mealLibraryId: item.mealLibraryId && library ? library.id : null,
-      ingredients: item.mealLibraryId && library ? library.ingredients.map((row) => row.ingredientName) : [],
-    }, restrictions);
+    if (!food)
+      return applySafetyWarnings(
+        {
+          ...emptyResolved(item),
+          mealLibraryId: item.mealLibraryId && library ? library.id : null,
+          ingredients: item.mealLibraryId && library ? library.ingredients.map((row) => row.ingredientName) : [],
+        },
+        restrictions
+      );
     const macros = scalePer100GramMacros(food, item.portionGrams);
     return applySafetyWarnings(
       {
@@ -487,21 +532,24 @@ Preparation and serving context: ${JSON.stringify(estimationContext)}`,
           where: { userId: input.userId, outsidePreviewId: input.confirmationId, source: MealLogSource.USER_LOGGED },
           include: { outsideItems: true },
         });
-        if (previous) return {
-          warningRequired: false,
-          log: previous,
-          summary: summarizeOutsideMealNutrition(previous.outsideItems.map((item) => ({
-            source: item.source,
-            nutritionStatus: item.nutritionStatus,
-            includedInTotals: item.includedInTotals,
-            calories: item.calories ?? 0,
-            proteinG: item.proteinG ?? 0,
-            carbsG: item.carbsG ?? 0,
-            fatG: item.fatG ?? 0,
-          }))),
-          safetyFollowUp: previous.outsideSafetyFollowUp,
-          replayed: true,
-        };
+        if (previous)
+          return {
+            warningRequired: false,
+            log: previous,
+            summary: summarizeOutsideMealNutrition(
+              previous.outsideItems.map((item) => ({
+                source: item.source,
+                nutritionStatus: item.nutritionStatus,
+                includedInTotals: item.includedInTotals,
+                calories: item.calories ?? 0,
+                proteinG: item.proteinG ?? 0,
+                carbsG: item.carbsG ?? 0,
+                fatG: item.fatG ?? 0,
+              }))
+            ),
+            safetyFollowUp: previous.outsideSafetyFollowUp,
+            replayed: true,
+          };
         const preview = await tx.outsideMealPreview.findFirst({
           where: { id: input.confirmationId, userId: input.userId, consumedAt: null, expiresAt: { gt: new Date() } },
         });
@@ -514,7 +562,8 @@ Preparation and serving context: ${JSON.stringify(estimationContext)}`,
           where: { id: input.userId },
           include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
         });
-        if (!user?.userProfile) throw new AppError('Complete your profile before logging meals.', 422, 'PROFILE_REQUIRED');
+        if (!user?.userProfile)
+          throw new AppError('Complete your profile before logging meals.', 422, 'PROFILE_REQUIRED');
         const restrictions = adaptUserSafetyRestrictions({
           safetyEntries: user.safetyProfileEntries,
           healthConditions: user.healthConditions.map((row) => row.condition),
@@ -524,8 +573,12 @@ Preparation and serving context: ${JSON.stringify(estimationContext)}`,
         });
         const committedItems = items.map((item) => applySafetyWarnings(item, restrictions));
         const summary = summarizeOutsideMealNutrition(committedItems);
-        const conflicts = committedItems.filter((item) => item.compatibilityStatus === OutsideMealCompatibilityStatus.CONFLICT_DETECTED);
-        const uncertain = committedItems.some((item) => item.compatibilityStatus !== OutsideMealCompatibilityStatus.NO_KNOWN_CONFLICT);
+        const conflicts = committedItems.filter(
+          (item) => item.compatibilityStatus === OutsideMealCompatibilityStatus.CONFLICT_DETECTED
+        );
+        const uncertain = committedItems.some(
+          (item) => item.compatibilityStatus !== OutsideMealCompatibilityStatus.NO_KNOWN_CONFLICT
+        );
         const safetyFollowUp = {
           status: conflicts.length ? 'CONFLICT_DETECTED' : uncertain ? 'INSUFFICIENT_EVIDENCE' : 'NO_KNOWN_CONFLICT',
           messages: [...new Set(committedItems.flatMap((item) => item.warnings))],

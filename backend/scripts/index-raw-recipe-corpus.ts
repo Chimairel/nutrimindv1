@@ -95,7 +95,11 @@ async function main() {
       : [DietaryPreference.OMNIVORE];
     const sourceRecordId = String(recipe.id);
     const primaryMealType = inferMealType(recipe);
-    const riceRole = proposeRiceRole({ name: String(recipe.name), category: recipe.category ? String(recipe.category) : null, ingredients });
+    const riceRole = proposeRiceRole({
+      name: String(recipe.name),
+      category: recipe.category ? String(recipe.category) : null,
+      ingredients,
+    });
 
     rows.push({
       sourceRecordId,

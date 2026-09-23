@@ -141,7 +141,11 @@ async function main() {
     });
 
     const blindPlanGroupId = `${marker}-blind`;
-    await createFixturePlanCycle(prisma, { id: blindPlanGroupId, userId: user.id });
+    await createFixturePlanCycle(prisma, {
+      id: blindPlanGroupId,
+      userId: user.id,
+      startDate: new Date(Date.now() + 86_400_000),
+    });
     const blindPlan = await prisma.mealPlan.create({
       data: {
         planGroupId: blindPlanGroupId,
@@ -263,6 +267,7 @@ async function main() {
     await prisma.mealPlanReviewDecision.deleteMany({ where: { mealPlanId: { in: planIds } } });
     await prisma.mealIngredient.deleteMany({ where: { mealPlanId: { in: planIds } } });
     await prisma.mealPlan.deleteMany({ where: { id: { in: planIds } } });
+    await prisma.mealPlanCycle.deleteMany({ where: { id: { in: [marker, `${marker}-blind`] } } });
     if (clearanceId) {
       await prisma.mealConditionClearanceDecision.deleteMany({ where: { clearanceId } });
       await prisma.mealConditionClearance.deleteMany({ where: { id: clearanceId } });

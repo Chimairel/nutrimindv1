@@ -1289,7 +1289,7 @@ Update this checklist only with linked engineering evidence.
 - [x] Batch 7 — outside capture and immutable tracking
 - [x] Batch 8 — outside RND clarification/confirmation ([CHG-20260923-05 evidence](BATCH_8_OUTSIDE_MEAL_REVIEW_IMPLEMENTATION.md))
 - [x] Batch 9 — observed reference and candidate reuse ([CHG-20260923-06 evidence](BATCH_9_OBSERVED_CORPUS_IMPLEMENTATION.md))
-- [ ] Batch 10 — connected three-role verification
+- [ ] Batch 10 — connected three-role verification ([partial CHG-20260923-07 evidence](BATCH_10_INTEGRATED_JOURNEYS.md); exit gate open)
 
 For each checked batch, link:
 

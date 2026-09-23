@@ -25,7 +25,11 @@ export function proposeRiceRole(input: {
   }
 
   const text = `${input.name} ${input.category ?? ''}`.normalize('NFKC').toLowerCase();
-  if (/\b(snack|merienda|dessert|cake|cookie|bread|drink|beverage|smoothie|shake|salad|sandwich|pasta|noodle)\b/u.test(text)) {
+  if (
+    /\b(snack|merienda|dessert|cake|cookie|bread|drink|beverage|smoothie|shake|salad|sandwich|pasta|noodle)\b/u.test(
+      text
+    )
+  ) {
     return { riceRole: RecipeRiceRole.STANDALONE, includedRiceG: null, reasonCode: 'STANDALONE_CATEGORY' };
   }
   return { riceRole: RecipeRiceRole.PAIR_WITH_RICE, includedRiceG: null, reasonCode: 'ULAM_PAIRING_PROPOSAL' };

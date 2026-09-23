@@ -42,11 +42,12 @@ export function rankLibraryMeals<
         if (favorite) return favorite;
         const calorieFit = Math.abs(a.calories - target) - Math.abs(b.calories - target);
         if (calorieFit) return calorieFit;
-        const macroDistance = (meal: T) => slotMacros
-          ? Math.abs((meal.proteinG ?? 0) - slotMacros.proteinG) * 4 +
-            Math.abs((meal.carbsG ?? 0) - slotMacros.carbsG) * 4 +
-            Math.abs((meal.fatG ?? 0) - slotMacros.fatG) * 9
-          : Math.abs((meal.proteinG ?? 0) * 4 + (meal.carbsG ?? 0) * 4 + (meal.fatG ?? 0) * 9 - meal.calories);
+        const macroDistance = (meal: T) =>
+          slotMacros
+            ? Math.abs((meal.proteinG ?? 0) - slotMacros.proteinG) * 4 +
+              Math.abs((meal.carbsG ?? 0) - slotMacros.carbsG) * 4 +
+              Math.abs((meal.fatG ?? 0) - slotMacros.fatG) * 9
+            : Math.abs((meal.proteinG ?? 0) * 4 + (meal.carbsG ?? 0) * 4 + (meal.fatG ?? 0) * 9 - meal.calories);
         const macroFit = macroDistance(a) - macroDistance(b);
         if (macroFit) return macroFit;
         const variety = Number(Boolean(a.alreadyPlannedInCycle)) - Number(Boolean(b.alreadyPlannedInCycle));

@@ -27,7 +27,8 @@ const router = Router();
 const outsideImageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { files: 1, fileSize: 2 * 1024 * 1024 },
-  fileFilter: (_req, file, callback) => callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)),
+  fileFilter: (_req, file, callback) =>
+    callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)),
 });
 
 // Apply auth + USER role restrict on all /api/user/meals routes
@@ -82,14 +83,47 @@ router.get('/history', MealsController.getPlanHistory);
  * Description: Performs AI validation checks and logs outside meals.
  */
 router.post('/log-outside', validateZodRequest({ body: outsideMealBodySchema }), MealsController.logOutsideMeal);
-router.get('/outside-suggestions', validateZodRequest({ query: outsideMealSuggestionsQuerySchema }), MealsController.getOutsideSuggestions);
-router.patch('/logs/:id/items/:itemId', validateZodRequest({ params: outsideMealItemParamsSchema, body: outsideMealItemEditSchema }), MealsController.editOutsideItem);
-router.post('/logs/:id/void', validateZodRequest({ params: resourceIdParamsSchema, body: outsideMealVoidSchema }), MealsController.voidOutsideLog);
-router.post('/logs/:id/items/:itemId/request-review', validateZodRequest({ params: outsideMealItemParamsSchema }), MealsController.requestOutsideItemReview);
-router.post('/logs/:id/items/:itemId/reply', validateZodRequest({ params: outsideMealItemParamsSchema, body: outsideMealReplySchema }), MealsController.replyToOutsideItemReview);
-router.post('/logs/:id/items/:itemId/observed-consent', validateZodRequest({ params: outsideMealItemParamsSchema, body: observedMealConsentSchema }), MealsController.consentToObservedMealReuse);
-router.post('/observed-submissions/:id/withdraw', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.withdrawObservedMealReuse);
-router.post('/logs/:id/image', validateZodRequest({ params: resourceIdParamsSchema }), outsideImageUpload.single('image'), MealsController.attachOutsideImage);
+router.get(
+  '/outside-suggestions',
+  validateZodRequest({ query: outsideMealSuggestionsQuerySchema }),
+  MealsController.getOutsideSuggestions
+);
+router.patch(
+  '/logs/:id/items/:itemId',
+  validateZodRequest({ params: outsideMealItemParamsSchema, body: outsideMealItemEditSchema }),
+  MealsController.editOutsideItem
+);
+router.post(
+  '/logs/:id/void',
+  validateZodRequest({ params: resourceIdParamsSchema, body: outsideMealVoidSchema }),
+  MealsController.voidOutsideLog
+);
+router.post(
+  '/logs/:id/items/:itemId/request-review',
+  validateZodRequest({ params: outsideMealItemParamsSchema }),
+  MealsController.requestOutsideItemReview
+);
+router.post(
+  '/logs/:id/items/:itemId/reply',
+  validateZodRequest({ params: outsideMealItemParamsSchema, body: outsideMealReplySchema }),
+  MealsController.replyToOutsideItemReview
+);
+router.post(
+  '/logs/:id/items/:itemId/observed-consent',
+  validateZodRequest({ params: outsideMealItemParamsSchema, body: observedMealConsentSchema }),
+  MealsController.consentToObservedMealReuse
+);
+router.post(
+  '/observed-submissions/:id/withdraw',
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  MealsController.withdrawObservedMealReuse
+);
+router.post(
+  '/logs/:id/image',
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  outsideImageUpload.single('image'),
+  MealsController.attachOutsideImage
+);
 router.get('/logs/:id/image', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getOutsideImage);
 
 /**

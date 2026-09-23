@@ -14,6 +14,9 @@
     "scripts/repair-browser-server.ts",
     "scripts/measure-structured-library-coverage.ts",
     "scripts/outside-meal-local-acceptance.ts",
-    "scripts/structured-safety-replacement-acceptance.ts"
+    "scripts/structured-safety-replacement-acceptance.ts",
+    "scripts/batch10-integrated-roles-acceptance.ts",
+    "scripts/batch10-browser-fixture.ts",
+    "scripts/batch10-email-auth-acceptance.ts"
   ]
 }

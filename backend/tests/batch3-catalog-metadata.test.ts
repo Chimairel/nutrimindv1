@@ -26,18 +26,34 @@ test('[BATCH-3] rice proposals preserve included-rice uncertainty and reviewed e
   assert.equal(unknown.riceRole, 'INCLUDES_RICE');
   assert.equal(unknown.includedRiceG, null);
   assert.equal(
-    includedRiceEvidenceIsEvaluable({ riceRole: unknown.riceRole, riceRoleReviewStatus: 'REVIEWED', includedRiceG: null }),
+    includedRiceEvidenceIsEvaluable({
+      riceRole: unknown.riceRole,
+      riceRoleReviewStatus: 'REVIEWED',
+      includedRiceG: null,
+    }),
     false
   );
   assert.equal(
-    includedRiceEvidenceIsEvaluable({ riceRole: 'PAIR_WITH_RICE', riceRoleReviewStatus: 'PROPOSED', includedRiceG: null }),
+    includedRiceEvidenceIsEvaluable({
+      riceRole: 'PAIR_WITH_RICE',
+      riceRoleReviewStatus: 'PROPOSED',
+      includedRiceG: null,
+    }),
     false
   );
 });
 
 test('[BATCH-3] paired rice scales FNRI per-100g evidence and changes composed signature by grams', () => {
   const base = 'a'.repeat(64);
-  const rice = { id: 'fnri-rice', name: 'Rice, boiled', source: 'FNRI 2019', calories: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 };
+  const rice = {
+    id: 'fnri-rice',
+    name: 'Rice, boiled',
+    source: 'FNRI 2019',
+    calories: 130,
+    proteinG: 2.7,
+    carbsG: 28,
+    fatG: 0.3,
+  };
   const serving150 = buildComposedServing({
     baseRecipeSignature: base,
     baseNutrition: { calories: 400, proteinG: 30, carbsG: 10, fatG: 20 },
@@ -68,7 +84,11 @@ test('[BATCH-3] raw signatures collapse exact normalized content but retain genu
   );
   assert.notEqual(
     buildRawRecipeContentSignature(base),
-    buildRawRecipeContentSignature({ ...base, name: 'Beef Kaldereta sa Gata', ingredients: [...base.ingredients, { name: 'coconut milk' }] })
+    buildRawRecipeContentSignature({
+      ...base,
+      name: 'Beef Kaldereta sa Gata',
+      ingredients: [...base.ingredients, { name: 'coconut milk' }],
+    })
   );
   assert.notEqual(
     buildRawRecipeContentSignature({ ...base, ingredients: [{ name: 'beef', quantity: 100, unit: 'g' }] }),

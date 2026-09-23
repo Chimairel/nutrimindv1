@@ -112,9 +112,7 @@ async function main() {
       'A live shopping-day edit must not relocate the authoritative current cycle.'
     );
 
-    await prisma.$transaction((tx) =>
-      MealPlanCycleService.recordShoppingStarted(tx, user.id, currentId, now)
-    );
+    await prisma.$transaction((tx) => MealPlanCycleService.recordShoppingStarted(tx, user.id, currentId, now));
     assert.ok((await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: currentId } })).shoppingStartedAt);
     assert.equal(grocery.groceryItems.length, 1);
     await prisma.mealPlan.create({

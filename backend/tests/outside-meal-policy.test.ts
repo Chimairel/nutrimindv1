@@ -33,13 +33,18 @@ test('[TEST-175] FNRI per-100g values require and scale a measured portion', () 
 test('[BATCH-7] ingredient evidence flags a known allergen without granting clearance', () => {
   const restrictions = adaptUserSafetyRestrictions({ allergies: ['SHELLFISH'], healthConditions: [] });
   const result = evaluateOutsideMealCompatibility({
-    name: 'Noodle bowl', ingredients: ['Prawns', 'rice noodles'],
-    baselineStatus: 'INSUFFICIENT_EVIDENCE', restrictions,
+    name: 'Noodle bowl',
+    ingredients: ['Prawns', 'rice noodles'],
+    baselineStatus: 'INSUFFICIENT_EVIDENCE',
+    restrictions,
   });
   assert.equal(result.status, 'CONFLICT_DETECTED');
   assert.match(result.warnings.join(' '), /shellfish.*prawn/i);
   const uncertain = evaluateOutsideMealCompatibility({
-    name: 'Unidentified stew', ingredients: [], baselineStatus: 'INSUFFICIENT_EVIDENCE', restrictions,
+    name: 'Unidentified stew',
+    ingredients: [],
+    baselineStatus: 'INSUFFICIENT_EVIDENCE',
+    restrictions,
   });
   assert.equal(uncertain.status, 'INSUFFICIENT_EVIDENCE');
 });

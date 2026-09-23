@@ -18,7 +18,12 @@ async function main() {
   const today = getStartOfManilaBusinessDay();
   try {
     const template = await prisma.mealLibrary.findFirstOrThrow({
-      where: { status: 'APPROVED', safetyEvidenceStatus: 'COMPLETE', recipeSignature: { not: null }, mealType: MealType.BREAKFAST },
+      where: {
+        status: 'APPROVED',
+        safetyEvidenceStatus: 'COMPLETE',
+        recipeSignature: { not: null },
+        mealType: MealType.BREAKFAST,
+      },
       include: { ingredients: true, safetyDeclarations: true },
     });
     assert.ok(template.verifiedByNutritionistId && template.safetyReviewedByNutritionistId);
@@ -49,14 +54,16 @@ async function main() {
 
     const makeMeal = async (label: string, calories: number, ingredientName: string) => {
       const name = `Batch 6 ${label} ${run}`;
-      const ingredients = [{
-        ingredientName,
-        foodItemId: template.ingredients[0].foodItemId,
-        category: 'Other',
-        dataSource: 'FNRI' as const,
-        quantity: 100,
-        unit: 'g',
-      }];
+      const ingredients = [
+        {
+          ingredientName,
+          foodItemId: template.ingredients[0].foodItemId,
+          category: 'Other',
+          dataSource: 'FNRI' as const,
+          quantity: 100,
+          unit: 'g',
+        },
+      ];
       const signature = buildMealLibraryRecipeSignature({
         mealName: name,
         mealType: MealType.BREAKFAST,
@@ -90,7 +97,9 @@ async function main() {
           riceRole: 'STANDALONE',
           riceRoleReviewStatus: 'REVIEWED',
           ingredients: { create: ingredients.map((ingredient, position) => ({ ...ingredient, position })) },
-          applicableMealTypes: { create: { mealType: MealType.BREAKFAST, source: 'NUTRITIONIST_REVIEW', reviewStatus: 'REVIEWED' } },
+          applicableMealTypes: {
+            create: { mealType: MealType.BREAKFAST, source: 'NUTRITIONIST_REVIEW', reviewStatus: 'REVIEWED' },
+          },
           safetyDeclarations: {
             create: template.safetyDeclarations.map((declaration) => ({
               declarationType: declaration.declarationType,
@@ -173,7 +182,10 @@ async function main() {
     assert.ok(currentOptions.swapOptions.every((option) => option.id !== original.id));
     await prisma.mealLibrary.update({ where: { id: other.id }, data: { safetyEvidenceStatus: 'INCOMPLETE' } });
     const pendingOptions = await MealSwapService.getEligibleSwapOptions(user.id, current.id);
-    assert.ok(pendingOptions.swapOptions.every((option) => option.id !== other.id), 'Pending meals cannot be swap options.');
+    assert.ok(
+      pendingOptions.swapOptions.every((option) => option.id !== other.id),
+      'Pending meals cannot be swap options.'
+    );
     await prisma.mealLibrary.update({ where: { id: other.id }, data: { safetyEvidenceStatus: 'COMPLETE' } });
 
     const upcomingOptions = await MealSwapService.getEligibleSwapOptions(user.id, upcoming.id);
@@ -187,14 +199,43 @@ async function main() {
     assert.ok(upcomingPreview.shoppingNeeds.length > 0);
     assert.ok(upcomingPreview.shoppingRemovals.length > 0);
     await assert.rejects(
-      MealSwapService.swapMeal(user.id, upcoming.id, favorite.id, false, true, upcomingPreview.previewToken, upcomingPreview.requestKey),
+      MealSwapService.swapMeal(
+        user.id,
+        upcoming.id,
+        favorite.id,
+        false,
+        true,
+        upcomingPreview.previewToken,
+        upcomingPreview.requestKey
+      ),
       /Acknowledge the grocery additions and removals/
     );
-    await MealSwapService.swapMeal(user.id, upcoming.id, favorite.id, false, true, upcomingPreview.previewToken, upcomingPreview.requestKey, true);
-    await MealSwapService.swapMeal(user.id, upcoming.id, favorite.id, false, true, upcomingPreview.previewToken, upcomingPreview.requestKey, true);
+    await MealSwapService.swapMeal(
+      user.id,
+      upcoming.id,
+      favorite.id,
+      false,
+      true,
+      upcomingPreview.previewToken,
+      upcomingPreview.requestKey,
+      true
+    );
+    await MealSwapService.swapMeal(
+      user.id,
+      upcoming.id,
+      favorite.id,
+      false,
+      true,
+      upcomingPreview.previewToken,
+      upcomingPreview.requestKey,
+      true
+    );
     assert.equal(await prisma.swapLog.count({ where: { mealPlanId: upcoming.id } }), 1);
     assert.ok((await prisma.mealPlan.findUniqueOrThrow({ where: { id: upcoming.id } })).userSelectionPinnedAt);
-    assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: competingPending.id } })).status, MealPlanStatus.CANCELLED);
+    assert.equal(
+      (await prisma.mealPlan.findUniqueOrThrow({ where: { id: competingPending.id } })).status,
+      MealPlanStatus.CANCELLED
+    );
     assert.deepEqual(
       await CertifiedSlotFallbackService.replaceWithBestCertified({
         mealPlanId: competingPending.id,
@@ -203,15 +244,29 @@ async function main() {
       }),
       { replaced: false, replacementPlanId: null }
     );
-    const upcomingList = await prisma.groceryList.findFirstOrThrow({ where: { planGroupId: upcoming.planGroupId }, include: { groceryItems: true } });
+    const upcomingList = await prisma.groceryList.findFirstOrThrow({
+      where: { planGroupId: upcoming.planGroupId },
+      include: { groceryItems: true },
+    });
     assert.ok(upcomingList.groceryItems.some((item) => item.ingredientName === 'Fixture banana'));
 
     const suspendedPreview = await MealSwapService.getSwapPreview(user.id, current.id, favorite.id);
     await prisma.mealLibrary.update({ where: { id: favorite.id }, data: { status: 'FLAGGED' } });
     const flaggedOptions = await MealSwapService.getEligibleSwapOptions(user.id, current.id);
-    assert.ok(flaggedOptions.swapOptions.every((option) => option.id !== favorite.id), 'A flagged favorite cannot cross the hard filter.');
+    assert.ok(
+      flaggedOptions.swapOptions.every((option) => option.id !== favorite.id),
+      'A flagged favorite cannot cross the hard filter.'
+    );
     await assert.rejects(
-      MealSwapService.swapMeal(user.id, current.id, favorite.id, false, true, suspendedPreview.previewToken, suspendedPreview.requestKey),
+      MealSwapService.swapMeal(
+        user.id,
+        current.id,
+        favorite.id,
+        false,
+        true,
+        suspendedPreview.previewToken,
+        suspendedPreview.requestKey
+      ),
       /changed|not available|not certified/
     );
     await prisma.mealLibrary.update({ where: { id: favorite.id }, data: { status: 'APPROVED' } });
@@ -220,9 +275,19 @@ async function main() {
     const rollbackPreview = await MealSwapService.getSwapPreview(user.id, current.id, other.id);
     const rebuild = GroceryService.generateGroceryList;
     try {
-      GroceryService.generateGroceryList = async () => { throw new Error('Fixture grocery rebuild failure'); };
+      GroceryService.generateGroceryList = async () => {
+        throw new Error('Fixture grocery rebuild failure');
+      };
       await assert.rejects(
-        MealSwapService.swapMeal(user.id, current.id, other.id, false, true, rollbackPreview.previewToken, rollbackPreview.requestKey),
+        MealSwapService.swapMeal(
+          user.id,
+          current.id,
+          other.id,
+          false,
+          true,
+          rollbackPreview.previewToken,
+          rollbackPreview.requestKey
+        ),
         /Fixture grocery rebuild failure/
       );
     } finally {
@@ -244,7 +309,15 @@ async function main() {
       },
     });
     const currentPreview = await MealSwapService.getSwapPreview(user.id, current.id, other.id);
-    await MealSwapService.swapMeal(user.id, current.id, other.id, false, true, currentPreview.previewToken, currentPreview.requestKey);
+    await MealSwapService.swapMeal(
+      user.id,
+      current.id,
+      other.id,
+      false,
+      true,
+      currentPreview.previewToken,
+      currentPreview.requestKey
+    );
     const [currentPlan, daily] = await Promise.all([
       prisma.mealPlan.findUniqueOrThrow({ where: { id: current.id } }),
       prisma.dailyNutritionLog.findFirstOrThrow({ where: { userId: user.id, logDate: today } }),

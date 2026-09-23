@@ -90,7 +90,10 @@ async function main() {
       }))
   );
   for (let offset = 0; offset < applicability.length; offset += 500) {
-    await prisma.mealLibraryApplicableType.createMany({ data: applicability.slice(offset, offset + 500), skipDuplicates: true });
+    await prisma.mealLibraryApplicableType.createMany({
+      data: applicability.slice(offset, offset + 500),
+      skipDuplicates: true,
+    });
   }
   await prisma.mealLibrarySafetyDeclaration.deleteMany({
     where: {

@@ -33,7 +33,10 @@ export interface LibraryMeal {
   id: string;
   mealName: string;
   mealType: string;
-  applicableMealTypes?: Array<{ mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK'; reviewStatus: 'PROPOSED' | 'REVIEWED' }>;
+  applicableMealTypes?: Array<{
+    mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
+    reviewStatus: 'PROPOSED' | 'REVIEWED';
+  }>;
   riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | null;
   riceRoleReviewStatus?: 'NOT_REVIEWED' | 'PROPOSED' | 'REVIEWED';
   includedRiceG?: number | null;
