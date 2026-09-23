@@ -4,6 +4,7 @@ import type {
   CandidatePage,
   RecipeCandidateProjection,
   RecipeCandidateProvider,
+  RecipeCandidateProvenance,
 } from './recipe-candidate-provider';
 
 type Row = Prisma.RawRecipeCandidateGetPayload<{ include: { applicableMealTypes: true } }>;
@@ -53,7 +54,7 @@ function project(row: Row): RecipeCandidateProjection {
   return {
     id: row.id,
     providerRecordId: row.sourceRecordId,
-    provenance: 'PANLASANG_PINOY',
+    provenance: row.sourceName === 'USER_OBSERVED' ? 'USER_OBSERVED' : 'PANLASANG_PINOY',
     displayName: row.recipeName,
     normalizedName: row.normalizedName,
     category: row.category,
@@ -75,10 +76,12 @@ function project(row: Row): RecipeCandidateProjection {
   };
 }
 
-export class PanlasangRecipeCandidateProvider implements RecipeCandidateProvider {
-  readonly provenance = 'PANLASANG_PINOY' as const;
+export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider {
+  readonly provenance = 'MIXED_CORPUS' as const;
 
   async list(input: {
+    sourceKind?: RecipeCandidateProvenance;
+    recentFirst?: boolean;
     mealType?: MealType;
     dietaryPreference?: DietaryPreference;
     search?: string;
@@ -93,6 +96,7 @@ export class PanlasangRecipeCandidateProvider implements RecipeCandidateProvider
     const rows = await prisma.rawRecipeCandidate.findMany({
       where: {
         status: 'AVAILABLE',
+        sourceName: input.sourceKind ?? { in: ['PANLASANG_PINOY', 'USER_OBSERVED'] },
         ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
         ...(input.dietaryPreference ? { dietaryTags: { array_contains: [input.dietaryPreference] } } : {}),
         ...(input.search ? { recipeName: { contains: input.search, mode: 'insensitive' } } : {}),
@@ -110,16 +114,19 @@ export class PanlasangRecipeCandidateProvider implements RecipeCandidateProvider
           : {}),
       },
       include: { applicableMealTypes: { orderBy: { mealType: 'asc' } } },
-      orderBy: [{ normalizedName: 'asc' }, { id: 'asc' }],
+      orderBy: input.recentFirst && !input.cursor
+        ? [{ indexedAt: 'desc' }, { id: 'asc' }]
+        : [{ normalizedName: 'asc' }, { id: 'asc' }],
       take: limit + 1,
     });
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     return {
       items: page.map(project),
-      nextCursor: hasMore && page.length ? encodeCursor(page[page.length - 1]) : null,
+      nextCursor: !input.recentFirst && hasMore && page.length ? encodeCursor(page[page.length - 1]) : null,
     };
   }
 }
 
-export const panlasangRecipeCandidateProvider = new PanlasangRecipeCandidateProvider();
+export const databaseRecipeCandidateProvider = new DatabaseRecipeCandidateProvider();
+export const panlasangRecipeCandidateProvider = databaseRecipeCandidateProvider;

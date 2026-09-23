@@ -6,6 +6,7 @@ import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { OutsideMealCaptureService } from '@/services/outside-meal-capture.service';
 import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
+import { ObservedMealService } from '@/services/observed-meal.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import { MealFavoriteService } from '@/services/meal-favorite.service';
 import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
@@ -451,6 +452,8 @@ export class MealsController {
           provisionalCalories: true, mealType: true, notes: true, estimationContext: true,
           outsideImageMime: true, voidedAt: true, loggedAt: true,
           outsideItems: { include: {
+            observedSubmissions: { select: { id: true, sourceRevision: true, status: true,
+              imageReuseConsentedAt: true }, orderBy: { createdAt: 'desc' }, take: 3 },
             revisions: { orderBy: { revision: 'desc' }, take: 1,
               select: { revision: true, reason: true } },
             review: { select: {
@@ -593,6 +596,27 @@ export class MealsController {
     } catch (error: any) {
       return res.status(error?.statusCode ?? 400).json({ success: false,
         error: sanitizeErrorMessage(error, 'Could not send clarification.') });
+    }
+  }
+
+  static async consentToObservedMealReuse(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await ObservedMealService.consent(req.user!.userId, req.params.id, req.params.itemId,
+        req.body);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false,
+        error: sanitizeErrorMessage(error, 'Could not submit this food for reuse.') });
+    }
+  }
+
+  static async withdrawObservedMealReuse(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await ObservedMealService.withdraw(req.user!.userId, req.params.id);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false,
+        error: sanitizeErrorMessage(error, 'Could not withdraw reuse permission.') });
     }
   }
 

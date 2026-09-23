@@ -61,6 +61,8 @@ export interface MealHistoryLog {
     includedInTotals?: boolean;
     currentRevision?: number;
     revisions?: Array<{ revision: number; reason?: string | null }>;
+    observedSubmissions?: Array<{ id: string; sourceRevision: number; status: string;
+      imageReuseConsentedAt?: string | null }>;
     review?: {
       id: string;
       status: string;
@@ -639,6 +641,18 @@ export function useMealsWorkspace() {
     await fetchHistory();
   };
 
+  const handleObservedConsent = async (logId: string, itemId: string, imageReuseConsent: boolean) => {
+    await api.post(`/user/meals/logs/${logId}/items/${itemId}/observed-consent`, {
+      detailsConsent: true, imageReuseConsent, imageRightsConfirmed: imageReuseConsent,
+    });
+    await fetchHistory();
+  };
+
+  const handleObservedWithdraw = async (submissionId: string) => {
+    await api.post(`/user/meals/observed-submissions/${submissionId}/withdraw`);
+    await fetchHistory();
+  };
+
   const groupHistoryByDate = () => {
     const grouped: Record<string, MealHistoryLog[]> = {};
     historyLogs.forEach((log) => {
@@ -755,6 +769,8 @@ export function useMealsWorkspace() {
     handleVoidOutsideLog,
     handleRequestOutsideReview,
     handleReplyToOutsideReview,
+    handleObservedConsent,
+    handleObservedWithdraw,
     libraryMeals,
     isLibraryLoading,
     libraryTotalCount,

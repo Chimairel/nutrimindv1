@@ -139,15 +139,15 @@ async function main() {
     );
   }
   await prisma.rawRecipeCandidate.updateMany({
-    where: { contentSignature: { in: keepSignatures } },
+    where: { sourceName: 'PANLASANG_PINOY', contentSignature: { in: keepSignatures } },
     data: { status: 'AVAILABLE' },
   });
   await prisma.rawRecipeCandidate.updateMany({
-    where: { contentSignature: { notIn: keepSignatures } },
+    where: { sourceName: 'PANLASANG_PINOY', contentSignature: { notIn: keepSignatures } },
     data: { status: 'RETIRED' },
   });
   const indexed = await prisma.rawRecipeCandidate.findMany({
-    where: { contentSignature: { in: keepSignatures } },
+    where: { sourceName: 'PANLASANG_PINOY', contentSignature: { in: keepSignatures } },
     select: { id: true, recipeName: true, category: true, mealType: true },
   });
   const applicabilityRows: Prisma.RawRecipeApplicableTypeCreateManyInput[] = [];

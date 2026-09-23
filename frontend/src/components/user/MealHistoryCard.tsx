@@ -17,11 +17,14 @@ interface MealHistoryCardProps {
   onVoidOutsideLog?: (logId: string, reason: string) => Promise<void>;
   onRequestOutsideReview?: (logId: string, itemId: string) => Promise<void>;
   onReplyToOutsideReview?: (logId: string, itemId: string, message: string) => Promise<void>;
+  onObservedConsent?: (logId: string, itemId: string, imageReuseConsent: boolean) => Promise<void>;
+  onObservedWithdraw?: (submissionId: string) => Promise<void>;
   className?: string;
 }
 
 export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem, onVoidOutsideLog,
-  onRequestOutsideReview, onReplyToOutsideReview, className = '' }: MealHistoryCardProps) {
+  onRequestOutsideReview, onReplyToOutsideReview, onObservedConsent, onObservedWithdraw,
+  className = '' }: MealHistoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [noteInput, setNoteInput] = useState(log.notes || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -33,6 +36,8 @@ export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem,
   const [voidReason, setVoidReason] = useState('');
   const [isChanging, setIsChanging] = useState(false);
   const [clarification, setClarification] = useState('');
+  const [consentItemId, setConsentItemId] = useState<string | null>(null);
+  const [shareImage, setShareImage] = useState(false);
 
   // Normalize mealType from log.mealType or guess from mealName
   const normalizedType = (log.mealType || '').toUpperCase();
@@ -358,6 +363,39 @@ export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem,
                           catch { setSaveError('Could not request estimate review.'); }
                           finally { setIsChanging(false); }
                         }}>{item.review ? 'Request another estimate review' : 'Request nutrition estimate review'}</button>}
+                      {!isVoided && ['VERIFIED', 'CORRECTED'].includes(item.review?.status ?? '') &&
+                        item.portionGrams && item.portionGrams > 0 && (() => {
+                          const submission = item.observedSubmissions?.find((row) =>
+                            row.sourceRevision === item.currentRevision && row.status !== 'WITHDRAWN');
+                          return submission ? <div className="text-xs text-brand-muted">
+                            <p>Deidentified food-detail reuse: {submission.status.replaceAll('_', ' ').toLowerCase()}.
+                              This does not certify a recipe or reuse your private notes.</p>
+                            {onObservedWithdraw && <button type="button" className="text-brand-green underline"
+                              disabled={isChanging} onClick={async () => {
+                                setIsChanging(true); setSaveError(null);
+                                try { await onObservedWithdraw(submission.id); }
+                                catch { setSaveError('Could not withdraw reuse permission.'); }
+                                finally { setIsChanging(false); }
+                              }}>Withdraw future reuse</button>}
+                          </div> : consentItemId === item.id ? <div className="space-y-2 rounded-lg border border-brand-border p-3 text-xs">
+                            <p>Allow a nutritionist to turn this confirmed estimate into a deidentified food reference or recipe candidate. Your identity and private notes will not be shared. This is optional.</p>
+                            {log.hasImage && <label className="flex items-start gap-2"><input type="checkbox"
+                              checked={shareImage} onChange={(event) => setShareImage(event.target.checked)} />
+                              I own this photo and separately allow its reuse. Photos are not currently copied into the shared corpus.</label>}
+                            <div className="flex gap-3"><button type="button" disabled={isChanging}
+                              className="text-brand-green underline" onClick={async () => {
+                                if (!onObservedConsent) return;
+                                setIsChanging(true); setSaveError(null);
+                                try { await onObservedConsent(log.id, item.id, shareImage); setConsentItemId(null); }
+                                catch { setSaveError('Could not submit reuse permission.'); }
+                                finally { setIsChanging(false); }
+                              }}>Allow deidentified details</button>
+                              <button type="button" onClick={() => setConsentItemId(null)}>Cancel</button></div>
+                          </div> : onObservedConsent && <button type="button"
+                            className="text-brand-green underline" onClick={() => { setShareImage(false); setConsentItemId(item.id); }}>
+                            Optionally share deidentified food details
+                          </button>;
+                        })()}
                     </div>}
                   </div>
                 ))}

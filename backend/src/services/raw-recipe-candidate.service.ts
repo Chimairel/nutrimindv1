@@ -4,7 +4,7 @@ import { generateGenerativeJSON } from '@/lib/gemini';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
-import { panlasangRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
+import { databaseRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import {
@@ -35,7 +35,6 @@ export interface SourcedRawRecipeMeal {
 }
 
 const MAX_CANDIDATES_PER_TYPE = 24;
-const MAX_CANDIDATE_SCAN_PER_TYPE = 120;
 
 export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
@@ -74,16 +73,16 @@ export async function sourceRawRecipeCandidates(input: {
     mealTypes.map(async (mealType) => {
       if (!isPrimaryMealType(mealType)) return [];
       const range = getMealSlotCalorieRange(input.dailyCalorieTarget, mealType);
-      const page = await panlasangRecipeCandidateProvider.list({
-        mealType,
-        dietaryPreference: input.dietaryPreference,
-        calorieMinimum: range.minimum,
-        calorieMaximum: range.maximum,
-        excludeIds: input.excludeCandidateIds,
-        limit: MAX_CANDIDATE_SCAN_PER_TYPE,
-      });
+      const pages = await Promise.all(([
+        ['PANLASANG_PINOY', 90], ['USER_OBSERVED', 30],
+      ] as const).map(([sourceKind, limit]) => databaseRecipeCandidateProvider.list({
+        sourceKind, recentFirst: sourceKind === 'USER_OBSERVED',
+        mealType, dietaryPreference: input.dietaryPreference,
+        calorieMinimum: range.minimum, calorieMaximum: range.maximum,
+        excludeIds: input.excludeCandidateIds, limit,
+      })));
       const localityScores = input.localityFoodGroupScores ?? new Map<EnnsFoodGroupCode, number>();
-      return page.items
+      return pages.flatMap((page) => page.items)
         .filter((row) => candidateFitsPreference(row, input.dietaryPreference))
         .map((candidate) => {
           const target = range.target;
@@ -212,7 +211,7 @@ export async function sourceRawRecipeCandidates(input: {
       mealType: slot.mealType,
       rawCandidateId: candidate.id,
       mealName: candidate.displayName,
-      description: candidate.description ?? 'Existing recipe sourced from Panlasang Pinoy.',
+      description: candidate.description ?? 'Existing recipe from the broader recipe corpus.',
       calories: candidate.nutrition.calories,
       proteinG: candidate.nutrition.proteinG,
       carbsG: candidate.nutrition.carbsG,

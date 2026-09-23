@@ -37,6 +37,19 @@ type QueueRow = {
   };
 };
 
+type ObservedSubmission = {
+  id: string;
+  sourceRevision: number;
+  createdAt: string;
+  sourceOutsideMealItem: {
+    name: string; portionGrams: number | null; calories: number | null;
+    proteinG: number | null; carbsG: number | null; fatG: number | null;
+    currentRevision: number; nutritionStatus: string;
+    ingredients: unknown;
+    mealLog: { mealType: string | null; estimationContext: string | null; status: string };
+  } | null;
+};
+
 const emptyCorrection = { calories: '', proteinG: '', carbsG: '', fatG: '', reason: '' };
 
 export default function OutsideMealReviewsPage() {
@@ -45,12 +58,23 @@ export default function OutsideMealReviewsPage() {
   const [correction, setCorrection] = useState(emptyCorrection);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [submissions, setSubmissions] = useState<ObservedSubmission[]>([]);
+  const [observed, setObserved] = useState<ObservedSubmission | null>(null);
+  const [observedKind, setObservedKind] = useState<'FOOD_REFERENCE' | 'RECIPE_CANDIDATE'>('FOOD_REFERENCE');
+  const [canonicalName, setCanonicalName] = useState('');
+  const [ingredientLines, setIngredientLines] = useState('');
+  const [preparation, setPreparation] = useState('');
+  const [applicableTypes, setApplicableTypes] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const response = await api.get('/nutritionist/outside-meal-reviews');
-      setRows(response.data?.data ?? []);
+      const [reviews, observations] = await Promise.all([
+        api.get('/nutritionist/outside-meal-reviews'),
+        api.get('/nutritionist/observed-meal-submissions'),
+      ]);
+      setRows(reviews.data?.data ?? []);
+      setSubmissions(observations.data?.data ?? []);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to load outside-meal reviews.'));
     }
@@ -106,6 +130,42 @@ export default function OutsideMealReviewsPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const selectObserved = (row: ObservedSubmission) => {
+    setObserved(row);
+    setObservedKind('FOOD_REFERENCE');
+    setCanonicalName(row.sourceOutsideMealItem?.name ?? '');
+    const ingredients = row.sourceOutsideMealItem?.ingredients;
+    setIngredientLines(Array.isArray(ingredients) ? ingredients.flatMap((item) => {
+      if (!item || typeof item !== 'object' || !('name' in item)) return [];
+      const ingredient = item as { name: string; quantity?: number; unit?: string };
+      return [`${ingredient.name} | ${ingredient.quantity ?? ''} | ${ingredient.unit ?? ''}`];
+    }).join('\n') : '');
+    setPreparation(row.sourceOutsideMealItem?.mealLog.estimationContext ?? '');
+    setApplicableTypes(row.sourceOutsideMealItem?.mealLog.mealType &&
+      ['BREAKFAST', 'LUNCH', 'DINNER'].includes(row.sourceOutsideMealItem.mealLog.mealType)
+      ? [row.sourceOutsideMealItem.mealLog.mealType] : []);
+  };
+
+  const admitObserved = async () => {
+    if (!observed) return;
+    setBusy(true); setError(null);
+    try {
+      const ingredients = ingredientLines.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+        const [name, amount, unit] = line.split('|').map((part) => part.trim());
+        return { name, quantity: Number(amount), unit };
+      });
+      await api.post(`/nutritionist/observed-meal-submissions/${observed.id}/admit`, {
+        kind: observedKind, canonicalName: canonicalName.trim(),
+        ...(observedKind === 'RECIPE_CANDIDATE' ? {
+          ingredients, preparation: preparation.trim(), mealTypes: applicableTypes,
+        } : {}),
+      });
+      setObserved(null);
+      await load();
+    } catch (err) { setError(getApiErrorMessage(err, 'Could not classify this observation.')); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -260,6 +320,49 @@ export default function OutsideMealReviewsPage() {
           )}
         </Card>
       </div>
+      <section className="space-y-3" aria-label="Observed food admissions">
+        <h2 className="font-display text-xl font-extrabold">Consented food observations</h2>
+        <p className="text-sm text-brand-muted">Only current, confirmed estimates with explicit user permission appear here. Admission creates a reference or an unverified recipe candidate; it never certifies a meal.</p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="space-y-2 p-4">
+            {submissions.length === 0 && <p className="text-sm text-brand-muted">No observations awaiting classification.</p>}
+            {submissions.map((row) => <button type="button" key={row.id}
+              onClick={() => selectObserved(row)} className="block w-full rounded-xl border border-brand-border p-3 text-left text-sm hover:border-brand-green">
+              <strong>{row.sourceOutsideMealItem?.name ?? 'Source no longer available'}</strong>
+              <span className="ml-2 text-brand-muted">{row.sourceOutsideMealItem?.portionGrams ?? 'Unknown'} g · revision {row.sourceRevision}</span>
+            </button>)}
+          </Card>
+          <Card className="space-y-3 p-4">
+            {!observed ? <p className="text-sm text-brand-muted">Select a consented observation to classify.</p> : <>
+              <p className="text-xs text-brand-muted">{observed.sourceOutsideMealItem?.calories} kcal · P {observed.sourceOutsideMealItem?.proteinG} g · C {observed.sourceOutsideMealItem?.carbsG} g · F {observed.sourceOutsideMealItem?.fatG} g. Source identity and private notes are excluded.</p>
+              <label className="block text-sm">Outcome<select value={observedKind}
+                onChange={(event) => setObservedKind(event.target.value as typeof observedKind)}
+                className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-2">
+                <option value="FOOD_REFERENCE">Observed food reference</option>
+                <option value="RECIPE_CANDIDATE">Reproducible recipe candidate</option>
+              </select></label>
+              <label className="block text-sm">Deidentified canonical name<input value={canonicalName}
+                onChange={(event) => setCanonicalName(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-2" /></label>
+              {observedKind === 'RECIPE_CANDIDATE' && <>
+                <label className="block text-sm">Ingredients, one per line: name | quantity | unit<textarea
+                  value={ingredientLines} onChange={(event) => setIngredientLines(event.target.value)}
+                  className="mt-1 min-h-24 w-full rounded-xl border border-brand-border bg-brand-surface p-2" /></label>
+                <label className="block text-sm">Preparation method<textarea value={preparation}
+                  onChange={(event) => setPreparation(event.target.value)}
+                  className="mt-1 min-h-24 w-full rounded-xl border border-brand-border bg-brand-surface p-2" /></label>
+                <div className="flex gap-3">{['BREAKFAST', 'LUNCH', 'DINNER'].map((type) => <label key={type} className="flex items-center gap-1 text-xs">
+                  <input type="checkbox" checked={applicableTypes.includes(type)} onChange={(event) =>
+                    setApplicableTypes((previous) => event.target.checked ? [...previous, type] : previous.filter((value) => value !== type))} />
+                  {type.toLowerCase()}</label>)}</div>
+              </>}
+              <Button disabled={canonicalName.trim().length < 2 || busy} onClick={() => void admitObserved()}>
+                Admit deidentified {observedKind === 'FOOD_REFERENCE' ? 'reference' : 'candidate'}
+              </Button>
+            </>}
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

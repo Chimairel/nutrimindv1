@@ -15,6 +15,7 @@ import { evaluateOutsideMealCompatibility } from '@/domain/outside-meal-safety.p
 import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
 import { queryEligibleLibraryPage } from './meal-library-candidate-query.service';
 import { MealSwapService } from './meal-swap.service';
+import { ObservedMealService } from './observed-meal.service';
 
 type EditInput = {
   name: string;
@@ -98,7 +99,7 @@ export class OutsideMealCaptureService {
       label: 'Eligible certified recipe',
     }));
     const knownIds = eligible.map((meal) => meal.id);
-    const [catalog, raw, fnri] = await Promise.all([
+    const [catalog, raw, fnri, observed] = await Promise.all([
       prisma.mealLibrary.findMany({
         where: { mealName: { contains: query, mode: 'insensitive' }, id: { notIn: knownIds } },
         select: { id: true, mealName: true, status: true, dietaryTags: true,
@@ -117,6 +118,13 @@ export class OutsideMealCaptureService {
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
         take: 6,
+      }),
+      prisma.observedFoodReference.findMany({
+        where: { name: { contains: query, mode: 'insensitive' },
+          submissions: { some: { status: 'ADMITTED_REFERENCE' } } },
+        select: { id: true, name: true, servingGrams: true, calories: true,
+          proteinG: true, carbsG: true, fatG: true },
+        orderBy: { name: 'asc' }, take: 6,
       }),
     ]);
     const otherKnown = [
@@ -137,6 +145,10 @@ export class OutsideMealCaptureService {
         label: 'Known recipe; safety not reviewed', compatibility: 'UNKNOWN' })),
       ...fnri.map((food) => ({ kind: 'FNRI_FOOD', id: food.id, name: food.name,
         label: 'FNRI food; enter consumed grams', compatibility: 'UNKNOWN' })),
+      ...observed.map((food) => ({ kind: 'OBSERVED_REFERENCE', id: food.id, name: food.name,
+        serving: `${food.servingGrams} g`,
+        macros: { calories: food.calories, proteinG: food.proteinG, carbsG: food.carbsG, fatG: food.fatG },
+        label: 'Observed food estimate; safety not reviewed', compatibility: 'UNKNOWN' })),
     ].filter((entry, index, all) => all.findIndex((other) => other.name.toLowerCase() === entry.name.toLowerCase()) === index);
     return { eligible, otherKnown, custom: { name: query } };
   }
@@ -194,6 +206,7 @@ export class OutsideMealCaptureService {
         data: { ...next, calorieLow: null, calorieHigh: null, currentRevision: revision },
       });
       if (changed.count !== 1) throw new AppError('This item changed. Reload before editing it.', 409, 'ITEM_REVISION_CHANGED');
+      await ObservedMealService.invalidateSource(tx, item.id);
       await tx.outsideMealItemRevision.create({
         data: {
           outsideMealLogItemId: item.id,
@@ -248,6 +261,7 @@ export class OutsideMealCaptureService {
       if (log.status !== MealLogStatus.DONE) throw new AppError('This entry cannot be voided.', 409, 'OUTSIDE_LOG_NOT_ACTIVE');
       const now = new Date();
       for (const item of log.outsideItems) {
+        await ObservedMealService.invalidateSource(tx, item.id);
         const revision = item.currentRevision + 1;
         await tx.outsideMealItemRevision.create({ data: {
           outsideMealLogItemId: item.id,

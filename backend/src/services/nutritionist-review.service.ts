@@ -23,6 +23,14 @@ import { buildReviewWorkKey } from '@/domain/upcoming-preparation.policy';
 import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 
+export async function assertObservedSourceStillAvailable(tx: Prisma.TransactionClient, rawCandidateId: string | null) {
+  if (!rawCandidateId) return;
+  const candidate = await tx.rawRecipeCandidate.findUnique({ where: { id: rawCandidateId },
+    select: { sourceName: true, status: true } });
+  if (candidate?.sourceName === 'USER_OBSERVED' && candidate.status !== 'AVAILABLE')
+    throw new Error('This observed recipe was withdrawn. Replace the candidate before approving.');
+}
+
 export class NutritionistReviewService {
   static async getReviewQueue(nutritionistProfileId?: string) {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
@@ -472,6 +480,7 @@ export class NutritionistReviewService {
       await prisma.$transaction(
         async (tx) => {
           await lockUserProfile(tx, plan.userId);
+          await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
           const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
           if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
             throw new Error('User information changed. Reopen this review.');
@@ -627,6 +636,7 @@ export class NutritionistReviewService {
     const coalescedApprovedUserIds = await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
+        await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
         if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
           throw new Error('User information changed. Reopen this review.');

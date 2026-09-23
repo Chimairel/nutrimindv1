@@ -1,6 +1,6 @@
 import type { DietaryPreference, MealType, RecipeRiceRole } from '@prisma/client';
 
-export type RecipeCandidateProvenance = 'PANLASANG_PINOY';
+export type RecipeCandidateProvenance = 'PANLASANG_PINOY' | 'USER_OBSERVED';
 
 export interface RecipeCandidateProjection {
   id: string;
@@ -30,8 +30,10 @@ export interface CandidatePage {
 }
 
 export interface RecipeCandidateProvider {
-  readonly provenance: RecipeCandidateProvenance;
+  readonly provenance: RecipeCandidateProvenance | 'MIXED_CORPUS';
   list(input: {
+    sourceKind?: RecipeCandidateProvenance;
+    recentFirst?: boolean;
     mealType?: MealType;
     dietaryPreference?: DietaryPreference;
     search?: string;

@@ -223,7 +223,8 @@ function OutsideMealForm(props: Props) {
         fatG: Number(manual.fatG),
       };
       const reference = selectedSuggestion?.macros;
-      if (!reference || (Object.keys(reported) as Array<keyof typeof reported>).some((key) => reported[key] !== reference[key])) {
+      if (selectedSuggestion?.kind === 'OBSERVED_REFERENCE' || !reference ||
+          (Object.keys(reported) as Array<keyof typeof reported>).some((key) => reported[key] !== reference[key])) {
         submittedItems[0].reportedNutrition = reported;
       }
     }
@@ -265,7 +266,12 @@ function OutsideMealForm(props: Props) {
         {suggestions.otherKnown.map((suggestion) => <button type="button" key={`${suggestion.kind}-${suggestion.id}`}
           className="block w-full rounded-lg p-2 text-left hover:bg-brand-border/30" onClick={() => {
             setSelectedSuggestion(suggestion); props.onMealNameChange(suggestion.name); setSuggestions(null);
-            setUseManualValues(false);
+            if (suggestion.kind === 'OBSERVED_REFERENCE' && suggestion.macros) {
+              setManual(Object.fromEntries(Object.entries(suggestion.macros).map(([key, value]) =>
+                [key, String(value)])) as typeof manual);
+              setUseManualValues(true);
+              setPortionInput(String(parseFloat(suggestion.serving ?? '')));
+            } else setUseManualValues(false);
           }}><strong>{suggestion.name}</strong> · {suggestion.label}</button>)}
       </div>}
       <p className="-mt-3 text-xs text-brand-muted">

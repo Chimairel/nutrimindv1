@@ -11,6 +11,7 @@ import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { summarizeOutsideMealNutrition } from '@/domain/outside-meal.policy';
 import { MealSwapService } from './meal-swap.service';
+import { ObservedMealService } from './observed-meal.service';
 
 const CLAIM_MINUTES = 30;
 
@@ -124,6 +125,7 @@ export class OutsideMealReviewService {
           metadata: { reviewId: review.id, revision: item.currentRevision } } });
         return review;
       }
+      if (item.review) await ObservedMealService.invalidateSource(tx, item.id);
       const review = item.review ? await tx.outsideMealReview.update({ where: { id: item.review.id }, data: {
         status: OutsideMealReviewStatus.PENDING, requestedByUserAt: now, queueReason: 'USER_REQUEST',
         priority: 60, claimedByNutritionistId: null, claimedAt: null, claimedRevision: null,
@@ -276,6 +278,7 @@ export class OutsideMealReviewService {
           },
         });
         if (itemChange.count !== 1) throw new AppError('The claimed revision changed.', 409, 'STALE_REVIEW_REVISION');
+        await ObservedMealService.invalidateSource(tx, item.id);
         await tx.outsideMealReview.update({
           where: { id: review.id },
           data: { status: reviewStatus, reviewedAt: now, reviewedRevision: review.claimedRevision,

@@ -71,6 +71,8 @@ export default function WeeklyPlanPage() {
     handleVoidOutsideLog,
     handleRequestOutsideReview,
     handleReplyToOutsideReview,
+    handleObservedConsent,
+    handleObservedWithdraw,
     libraryTotalCount,
     handleSwapClick,
     handleMealStatusToggle,
@@ -761,7 +763,9 @@ export default function WeeklyPlanPage() {
                           <MealHistoryCard key={log.id} log={log} onUpdateNotes={handleUpdateLogNotes}
                             onEditOutsideItem={handleEditOutsideItem} onVoidOutsideLog={handleVoidOutsideLog}
                             onRequestOutsideReview={handleRequestOutsideReview}
-                            onReplyToOutsideReview={handleReplyToOutsideReview} />
+                            onReplyToOutsideReview={handleReplyToOutsideReview}
+                            onObservedConsent={handleObservedConsent}
+                            onObservedWithdraw={handleObservedWithdraw} />
                         ))}
                       </div>
                     </section>

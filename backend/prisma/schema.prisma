@@ -229,6 +229,13 @@ enum RawRecipeCandidateStatus {
   RETIRED
 }
 
+enum ObservedMealSubmissionStatus {
+  SUBMITTED
+  ADMITTED_REFERENCE
+  ADMITTED_RECIPE
+  WITHDRAWN
+}
+
 enum MealCandidateProvenance {
   CERTIFIED_LIBRARY
   RAW_RECIPE_CORPUS
@@ -664,6 +671,7 @@ model User {
   auditEvents                      AuditEvent[]
   outsideMealPreviews              OutsideMealPreview[]
   outsideMealAiUsage               OutsideMealAiUsage[]
+  observedMealSubmissions           ObservedMealSubmission[]
   waterLogs                        WaterLog[]
   nutritionistApplicationsReviewed NutritionistApplication[]        @relation("NutritionistApplicationReviewer")
   nutritionistApplicationInvite    NutritionistApplication?         @relation("NutritionistApplicationInvitee")
@@ -1252,6 +1260,7 @@ model RawRecipeCandidate {
   updatedAt            DateTime                  @updatedAt
   mealPlans            MealPlan[]
   applicableMealTypes  RawRecipeApplicableType[]
+  observedSubmissions  ObservedMealSubmission[]
 
   @@index([status, mealType, calories])
   @@index([normalizedName])
@@ -1593,11 +1602,53 @@ model OutsideMealLogItem {
   updatedAt           DateTime                       @updatedAt
   revisions           OutsideMealItemRevision[]
   review              OutsideMealReview?
+  observedSubmissions ObservedMealSubmission[]
 
   @@unique([mealLogId, position])
   @@index([nutritionStatus, compatibilityStatus, createdAt], map: "OutsideMealLogItem_status_compat_created_idx")
   @@index([foodItemId])
   @@index([mealLibraryId])
+}
+
+model ObservedFoodReference {
+  id          String @id @default(cuid())
+  signature   String @unique @db.VarChar(64)
+  name        String @db.VarChar(180)
+  normalizedName String @db.VarChar(180)
+  servingGrams Float
+  calories    Float
+  proteinG    Float
+  carbsG      Float
+  fatG        Float
+  createdAt   DateTime @default(now())
+  submissions ObservedMealSubmission[]
+
+  @@index([normalizedName])
+}
+
+model ObservedMealSubmission {
+  id                       String @id @default(cuid())
+  sourceUserId             String?
+  sourceUser               User? @relation(fields: [sourceUserId], references: [id], onDelete: SetNull)
+  sourceOutsideMealItemId  String?
+  sourceOutsideMealItem    OutsideMealLogItem? @relation(fields: [sourceOutsideMealItemId], references: [id], onDelete: SetNull)
+  sourceRevision           Int
+  detailsConsentedAt       DateTime
+  imageReuseConsentedAt    DateTime?
+  status                   ObservedMealSubmissionStatus @default(SUBMITTED)
+  foodReferenceId          String?
+  foodReference            ObservedFoodReference? @relation(fields: [foodReferenceId], references: [id], onDelete: SetNull)
+  rawRecipeCandidateId     String?
+  rawRecipeCandidate       RawRecipeCandidate? @relation(fields: [rawRecipeCandidateId], references: [id], onDelete: SetNull)
+  classifiedByNutritionistId String?
+  classifiedAt             DateTime?
+  withdrawnAt              DateTime?
+  createdAt                DateTime @default(now())
+
+  @@unique([sourceOutsideMealItemId, sourceRevision], map: "ObservedMealSubmission_sourceOutsideMealItemId_sourceRevision_k")
+  @@index([status, createdAt])
+  @@index([rawRecipeCandidateId, status])
+  @@index([foodReferenceId, status])
 }
 
 model OutsideMealItemRevision {

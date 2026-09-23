@@ -86,6 +86,20 @@ export const outsideMealItemEditSchema = z.object({
 });
 export const outsideMealVoidSchema = z.object({ reason: z.string().trim().min(3).max(500) }).strict();
 export const outsideMealReplySchema = z.object({ message: z.string().trim().min(3).max(1000) }).strict();
+export const observedMealConsentSchema = z.object({
+  detailsConsent: z.literal(true),
+  imageReuseConsent: z.boolean(),
+  imageRightsConfirmed: z.boolean(),
+}).strict().refine((value) => !value.imageReuseConsent || value.imageRightsConfirmed,
+  { message: 'Confirm image rights before allowing image reuse.' });
+export const observedMealAdmissionSchema = z.object({
+  kind: z.enum(['FOOD_REFERENCE', 'RECIPE_CANDIDATE']),
+  canonicalName: z.string().trim().min(2).max(180),
+  ingredients: z.array(z.object({ name: z.string().trim().min(2).max(120),
+    quantity: z.number().positive().max(5000), unit: z.string().trim().min(1).max(30) }).strict()).max(60).optional(),
+  preparation: z.string().trim().max(4000).optional(),
+  mealTypes: z.array(z.nativeEnum(MealType)).min(1).max(4).optional(),
+}).strict();
 
 export const outsideMealReviewParamsSchema = z.object({ id: boundedId }).strict();
 
