@@ -5,6 +5,7 @@ import { MealGenerationService } from '@/services/meal-generation.service';
 import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { OutsideMealCaptureService } from '@/services/outside-meal-capture.service';
+import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import { MealFavoriteService } from '@/services/meal-favorite.service';
 import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
@@ -449,7 +450,16 @@ export class MealsController {
           dataSource: true, status: true, warningType: true, nutritionCompleteness: true,
           provisionalCalories: true, mealType: true, notes: true, estimationContext: true,
           outsideImageMime: true, voidedAt: true, loggedAt: true,
-          outsideItems: true,
+          outsideItems: { include: {
+            revisions: { orderBy: { revision: 'desc' }, take: 1,
+              select: { revision: true, reason: true } },
+            review: { select: {
+            id: true, status: true, queueReason: true, requestedByUserAt: true,
+            reviewedRevision: true, reviewedAt: true,
+            messages: { select: { id: true, sender: true, itemRevision: true, content: true, createdAt: true },
+              orderBy: { createdAt: 'asc' }, take: 12 },
+          } },
+          } },
           mealPlan: { select: { mealType: true, swapLogs: { orderBy: { swappedAt: 'desc' }, take: 1 } } },
         },
         orderBy: { loggedAt: 'desc' },
@@ -561,6 +571,28 @@ export class MealsController {
       return res.json({ success: true, data });
     } catch (error: any) {
       return res.status(error?.statusCode ?? 400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to void outside meal.') });
+    }
+  }
+
+  static async requestOutsideItemReview(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await OutsideMealReviewService.requestByUser(req.user!.userId, req.params.id, req.params.itemId);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false,
+        error: sanitizeErrorMessage(error, 'Could not request outside-meal review.') });
+    }
+  }
+
+  static async replyToOutsideItemReview(req: AuthenticatedRequest, res: Response) {
+    try {
+      const data = await OutsideMealReviewService.replyByUser(
+        req.user!.userId, req.params.id, req.params.itemId, req.body.message
+      );
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      return res.status(error?.statusCode ?? 400).json({ success: false,
+        error: sanitizeErrorMessage(error, 'Could not send clarification.') });
     }
   }
 

@@ -340,6 +340,11 @@ enum OutsideMealReviewStatus {
   UNVERIFIABLE
 }
 
+enum OutsideMealMessageSender {
+  USER
+  NUTRITIONIST
+}
+
 enum AssignmentStatus {
   PENDING
   ACTIVE
@@ -1629,11 +1634,29 @@ model OutsideMealReview {
   claimedByNutritionist   NutritionistProfile?    @relation("OutsideMealReviewAssignee", fields: [claimedByNutritionistId], references: [id], onDelete: Restrict)
   claimedAt               DateTime?
   reviewedAt              DateTime?
+  claimedRevision          Int?
+  reviewedRevision         Int?
+  requestedByUserAt        DateTime?
+  queueReason              String?                 @db.VarChar(60)
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
+  messages                OutsideMealReviewMessage[]
 
   @@index([status, priority, createdAt])
   @@index([claimedByNutritionistId, status])
+}
+
+model OutsideMealReviewMessage {
+  id                 String                   @id @default(cuid())
+  outsideMealReviewId String
+  review             OutsideMealReview        @relation(fields: [outsideMealReviewId], references: [id], onDelete: Cascade)
+  sender             OutsideMealMessageSender
+  authorUserId       String
+  itemRevision       Int
+  content            String                   @db.VarChar(1000)
+  createdAt          DateTime                 @default(now())
+
+  @@index([outsideMealReviewId, createdAt])
 }
 
 model OutsideMealAiUsage {

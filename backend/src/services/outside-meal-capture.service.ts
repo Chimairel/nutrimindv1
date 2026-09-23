@@ -12,6 +12,7 @@ import { AppError } from '@/errors/AppError';
 import { assertValidOutsideMealMacros, summarizeOutsideMealNutrition, type OutsideMealMacros } from '@/domain/outside-meal.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { evaluateOutsideMealCompatibility } from '@/domain/outside-meal-safety.policy';
+import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
 import { queryEligibleLibraryPage } from './meal-library-candidate-query.service';
 import { MealSwapService } from './meal-swap.service';
 
@@ -214,8 +215,17 @@ export class OutsideMealCaptureService {
       if (item.review) {
         await tx.outsideMealReview.update({
           where: { outsideMealLogItemId: item.id },
-          data: { status: 'PENDING', claimedByNutritionistId: null, claimedAt: null, reviewedAt: null },
+          data: { status: 'PENDING', claimedByNutritionistId: null, claimedAt: null,
+            claimedRevision: null, reviewedRevision: null, reviewedAt: null },
         });
+      } else {
+        const queueReason = outsideReviewQueueReason({
+          ...next, calorieLow: null, calorieHigh: null,
+        });
+        if (queueReason) await tx.outsideMealReview.create({ data: {
+          outsideMealLogItemId: item.id, queueReason,
+          priority: compatibilityStatus === OutsideMealCompatibilityStatus.CONFLICT_DETECTED ? 80 : 30,
+        } });
       }
       const result = await summarizeAndPersist(tx, logId);
       await MealSwapService.recalculateDailyNutritionLog(userId, item.mealLog.loggedAt, tx);

@@ -85,12 +85,13 @@ export const outsideMealItemEditSchema = z.object({
   message: 'Provide macro values or mark the item unresolved.',
 });
 export const outsideMealVoidSchema = z.object({ reason: z.string().trim().min(3).max(500) }).strict();
+export const outsideMealReplySchema = z.object({ message: z.string().trim().min(3).max(1000) }).strict();
 
 export const outsideMealReviewParamsSchema = z.object({ id: boundedId }).strict();
 
 export const outsideMealReviewBodySchema = z
   .object({
-    action: z.enum(['VERIFY', 'CORRECT', 'NEEDS_MORE_INFO']),
+    action: z.enum(['VERIFY', 'CORRECT', 'NEEDS_MORE_INFO', 'UNVERIFIABLE']),
     calories: z.number().min(0).max(10_000).optional(),
     proteinG: z.number().min(0).max(1_000).optional(),
     carbsG: z.number().min(0).max(2_000).optional(),

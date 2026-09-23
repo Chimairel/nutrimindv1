@@ -31,6 +31,7 @@
     "test:acceptance:batch5-grocery": "tsx scripts/batch5-progressive-grocery-acceptance.ts",
     "test:acceptance:batch6-swaps": "tsx scripts/batch6-contextual-swap-acceptance.ts",
     "test:acceptance:batch7-outside": "tsx scripts/batch7-outside-capture-acceptance.ts",
+    "test:acceptance:batch8-outside-review": "tsx scripts/batch8-outside-review-acceptance.ts",
     "test:acceptance:structured-safety": "tsx scripts/structured-safety-intake-acceptance.ts",
     "test:acceptance:structured-replacement": "tsx scripts/structured-safety-replacement-acceptance.ts",
     "measure:structured-coverage": "tsx scripts/measure-structured-library-coverage.ts",

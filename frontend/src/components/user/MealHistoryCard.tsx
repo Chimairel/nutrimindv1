@@ -15,10 +15,13 @@ interface MealHistoryCardProps {
     unresolved?: boolean; reason: string;
   }) => Promise<void>;
   onVoidOutsideLog?: (logId: string, reason: string) => Promise<void>;
+  onRequestOutsideReview?: (logId: string, itemId: string) => Promise<void>;
+  onReplyToOutsideReview?: (logId: string, itemId: string, message: string) => Promise<void>;
   className?: string;
 }
 
-export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem, onVoidOutsideLog, className = '' }: MealHistoryCardProps) {
+export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem, onVoidOutsideLog,
+  onRequestOutsideReview, onReplyToOutsideReview, className = '' }: MealHistoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [noteInput, setNoteInput] = useState(log.notes || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -29,6 +32,7 @@ export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem,
   const [markUnresolved, setMarkUnresolved] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [isChanging, setIsChanging] = useState(false);
+  const [clarification, setClarification] = useState('');
 
   // Normalize mealType from log.mealType or guess from mealName
   const normalizedType = (log.mealType || '').toUpperCase();
@@ -314,6 +318,47 @@ export default function MealHistoryCard({ log, onUpdateNotes, onEditOutsideItem,
                       <button disabled={isChanging} className="rounded bg-brand-green p-2 font-bold text-white" type="submit">Save revision</button>
                       <button type="button" onClick={() => setEditingItemId(null)}>Cancel</button>
                     </form>}
+                    {log.source === 'USER_LOGGED' && <div className="mt-2 space-y-2 border-t border-brand-border/60 pt-2">
+                      <p className="font-semibold text-brand-muted">
+                        {item.review?.status === 'PENDING' ? 'Queued for nutrition estimate review' :
+                          item.review?.status === 'CLAIMED' ? 'Nutrition estimate under review' :
+                          item.review?.status === 'VERIFIED' ? 'Nutrition estimate confirmed' :
+                          item.review?.status === 'CORRECTED' ? 'Corrected and confirmed nutrition estimate' :
+                          item.review?.status === 'NEEDS_MORE_INFO' ? 'Nutritionist needs more information' :
+                          item.review?.status === 'UNVERIFIABLE' ? 'Estimate could not be confirmed; it remains estimated' :
+                          'No nutritionist review requested'}
+                      </p>
+                      {item.review && ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
+                        item.revisions?.[0]?.revision === (item.review.reviewedRevision ?? -1) + 1 && item.revisions[0].reason &&
+                        <p className="rounded-lg bg-brand-surface p-2 text-brand-muted">
+                          Nutritionist rationale: {item.revisions[0].reason}
+                        </p>}
+                      {item.review?.messages?.map((message) => <p key={message.id} className="rounded-lg bg-brand-surface p-2 text-brand-muted">
+                        <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'You'}:</strong> {message.content}
+                        <span className="ml-2 text-[10px]">Revision {message.itemRevision}</span>
+                      </p>)}
+                      {!isVoided && item.review?.status === 'NEEDS_MORE_INFO' && onReplyToOutsideReview &&
+                        <form className="space-y-2" onSubmit={async (event) => {
+                          event.preventDefault(); setIsChanging(true); setSaveError(null);
+                          try { await onReplyToOutsideReview(log.id, item.id, clarification.trim()); setClarification(''); }
+                          catch { setSaveError('Could not send your clarification.'); }
+                          finally { setIsChanging(false); }
+                        }}>
+                          <textarea className="w-full rounded border p-2" maxLength={1000} value={clarification}
+                            onChange={(event) => setClarification(event.target.value)}
+                            placeholder="Answer the specific nutritionist question" aria-label="Clarification reply" />
+                          <button type="submit" disabled={isChanging || clarification.trim().length < 3}
+                            className="rounded bg-brand-green px-3 py-1 font-bold text-white disabled:opacity-50">Send clarification</button>
+                        </form>}
+                      {!isVoided && onRequestOutsideReview &&
+                        (!item.review || ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status)) &&
+                        <button type="button" disabled={isChanging} className="text-brand-green underline" onClick={async () => {
+                          setIsChanging(true); setSaveError(null);
+                          try { await onRequestOutsideReview(log.id, item.id); }
+                          catch { setSaveError('Could not request estimate review.'); }
+                          finally { setIsChanging(false); }
+                        }}>{item.review ? 'Request another estimate review' : 'Request nutrition estimate review'}</button>}
+                    </div>}
                   </div>
                 ))}
               </div>

@@ -13,6 +13,10 @@ type QueueRow = {
   id: string;
   priority: number;
   status: string;
+  queueReason: string | null;
+  claimedRevision: number | null;
+  messages: Array<{ id: string; sender: 'USER' | 'NUTRITIONIST'; itemRevision: number;
+    content: string; createdAt: string }>;
   claimStatus: { claimedByMe: boolean; claimedByOther: boolean; claimedByName: string | null };
   outsideMealLogItem: {
     id: string;
@@ -24,8 +28,12 @@ type QueueRow = {
     calorieLow: number | null;
     calorieHigh: number | null;
     compatibilityStatus: string;
+    nutritionStatus: string;
+    includedInTotals: boolean;
+    currentRevision: number;
     ingredients: string[] | null;
-    mealLog: { mealName: string; mealType: string | null; loggedAt: string };
+    mealLog: { mealName: string; mealType: string | null; loggedAt: string;
+      estimationContext?: string | null; outsideImageMime?: string | null };
   };
 };
 
@@ -55,8 +63,9 @@ export default function OutsideMealReviewsPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.post(`/nutritionist/outside-meal-reviews/${row.id}/claim`);
-      setSelected({ ...row, claimStatus: { claimedByMe: true, claimedByOther: false, claimedByName: null } });
+      const response = await api.post(`/nutritionist/outside-meal-reviews/${row.id}/claim`);
+      setSelected({ ...response.data.data,
+        claimStatus: { claimedByMe: true, claimedByOther: false, claimedByName: null } });
       setCorrection({
         calories: String(row.outsideMealLogItem.calories ?? ''),
         proteinG: String(row.outsideMealLogItem.proteinG ?? ''),
@@ -72,7 +81,7 @@ export default function OutsideMealReviewsPage() {
     }
   };
 
-  const resolve = async (action: 'VERIFY' | 'CORRECT' | 'NEEDS_MORE_INFO') => {
+  const resolve = async (action: 'VERIFY' | 'CORRECT' | 'NEEDS_MORE_INFO' | 'UNVERIFIABLE') => {
     if (!selected) return;
     setBusy(true);
     setError(null);
@@ -105,7 +114,7 @@ export default function OutsideMealReviewsPage() {
         icon={ClipboardCheck}
         eyebrow="Nutrition review"
         title="Outside meal estimates"
-        description="Review AI estimates in risk order. Corrections automatically update the user's tracker and preserve the original estimate."
+        description="Confirm an intake estimate, correct it, ask for detail, or mark it unverifiable. This does not certify a reusable recipe."
       />
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-status-error-text/30 bg-status-error-bg/10 p-4 text-sm text-status-error-text">
@@ -123,8 +132,8 @@ export default function OutsideMealReviewsPage() {
           </div>
           {rows.length === 0 ? (
             <EmptyState
-              title="No AI estimates waiting"
-              description="New provisional outside-meal estimates will appear here."
+              title="No outside-meal estimates waiting"
+              description="User requests and selected uncertain or conflicting entries will appear here."
             />
           ) : (
             rows.map((row) => (
@@ -144,7 +153,7 @@ export default function OutsideMealReviewsPage() {
                         {new Date(row.outsideMealLogItem.mealLog.loggedAt).toLocaleString()}
                       </p>
                     </div>
-                    <span className="text-xs font-bold">Priority {row.priority}</span>
+                    <span className="text-xs font-bold">{row.queueReason?.replaceAll('_', ' ').toLowerCase() ?? 'Review'} · priority {row.priority}</span>
                   </div>
                   <p className="mt-2 text-sm">
                     {Math.round(row.outsideMealLogItem.calories ?? 0)} kcal · P {row.outsideMealLogItem.proteinG ?? 0}g
@@ -170,11 +179,32 @@ export default function OutsideMealReviewsPage() {
             <div className="flex flex-col gap-4">
               <div>
                 <h2 className="font-display text-xl font-extrabold">{selected.outsideMealLogItem.name}</h2>
+                <p className="text-xs text-brand-muted">Reviewing revision {selected.claimedRevision ?? selected.outsideMealLogItem.currentRevision} · {selected.queueReason?.replaceAll('_', ' ').toLowerCase()}</p>
                 <p className="text-xs text-brand-muted">
-                  AI range: {selected.outsideMealLogItem.calorieLow ?? '—'}–
+                  Estimated range: {selected.outsideMealLogItem.calorieLow ?? '—'}–
                   {selected.outsideMealLogItem.calorieHigh ?? '—'} kcal
                 </p>
+                {selected.outsideMealLogItem.mealLog.estimationContext &&
+                  <p className="mt-2 rounded-lg bg-brand-bgAlt p-2 text-xs">Preparation context: {selected.outsideMealLogItem.mealLog.estimationContext}</p>}
+                {selected.outsideMealLogItem.ingredients?.length ?
+                  <p className="mt-2 text-xs text-brand-muted">Recorded ingredients: {selected.outsideMealLogItem.ingredients.join(', ')}</p> : null}
+                {selected.outsideMealLogItem.mealLog.outsideImageMime && <button type="button" className="mt-2 text-xs text-brand-green underline"
+                  onClick={async () => {
+                    try {
+                      const response = await api.get(`/nutritionist/outside-meal-reviews/${selected.id}/image`, { responseType: 'blob' });
+                      const url = URL.createObjectURL(response.data);
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                    } catch (err) { setError(getApiErrorMessage(err, 'Could not open this review image.')); }
+                  }}>View attached photo</button>}
               </div>
+              {selected.messages?.length > 0 && <div className="space-y-2 rounded-xl border border-brand-border p-3 text-xs">
+                <p className="font-bold">Clarification history</p>
+                {selected.messages.map((message) => <p key={message.id}>
+                  <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'User'}:</strong> {message.content}
+                  <span className="ml-2 text-brand-muted">revision {message.itemRevision}</span>
+                </p>)}
+              </div>}
               <div className="grid grid-cols-2 gap-3">
                 {(['calories', 'proteinG', 'carbsG', 'fatG'] as const).map((field) => (
                   <label key={field} className="text-xs font-bold">
@@ -206,7 +236,7 @@ export default function OutsideMealReviewsPage() {
                   onClick={() => void resolve('VERIFY')}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Verify
+                  Confirm estimate
                 </Button>
                 <Button
                   variant="secondary"
@@ -223,6 +253,8 @@ export default function OutsideMealReviewsPage() {
                   <ClipboardCheck className="mr-2 h-4 w-4" />
                   Need info
                 </Button>
+                <Button variant="secondary" disabled={correction.reason.trim().length < 3}
+                  onClick={() => void resolve('UNVERIFIABLE')}>Mark unverifiable</Button>
               </div>
             </div>
           )}

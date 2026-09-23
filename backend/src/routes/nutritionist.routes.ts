@@ -57,6 +57,17 @@ router.patch(
   })
 );
 
+router.get(
+  '/outside-meal-reviews/:id/image',
+  validateZodRequest({ params: outsideMealReviewParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const image = await OutsideMealReviewService.imageForClaimedReview(req.nutritionistProfileId!, req.params.id);
+    res.setHeader('Content-Type', image.mime);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(image.buffer);
+  })
+);
+
 /**
  * GET /api/nutritionist/queue
  * Returns the review queue (assigned first, sorted by confidence flag).

@@ -27,6 +27,7 @@ import {
 import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-swap.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { evaluateOutsideMealCompatibility } from '@/domain/outside-meal-safety.policy';
+import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
 import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
 import { AppError } from '@/errors/AppError';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
@@ -585,10 +586,11 @@ Preparation and serving context: ${JSON.stringify(estimationContext)}`,
                     snapshot: item as unknown as Prisma.InputJsonValue,
                   },
                 },
-                ...(item.source === OutsideMealItemSource.GEMINI_ESTIMATED
+                ...(outsideReviewQueueReason(item)
                   ? {
                       review: {
                         create: {
+                          queueReason: outsideReviewQueueReason(item),
                           priority: outsideMealReviewPriority({
                             compatibilityStatus: item.compatibilityStatus,
                             warningCount: item.warnings.length,

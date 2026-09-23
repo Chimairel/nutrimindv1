@@ -1287,7 +1287,7 @@ Update this checklist only with linked engineering evidence.
 - [x] Batch 5 — progressive current/next groceries ([CHG-20260923-02 evidence](BATCH_5_PROGRESSIVE_GROCERY_IMPLEMENTATION.md))
 - [x] Batch 6 — eligible library and swaps ([CHG-20260923-03 evidence](BATCH_6_CONTEXTUAL_SWAP_IMPLEMENTATION.md))
 - [x] Batch 7 — outside capture and immutable tracking
-- [ ] Batch 8 — outside RND clarification/confirmation
+- [x] Batch 8 — outside RND clarification/confirmation ([CHG-20260923-05 evidence](BATCH_8_OUTSIDE_MEAL_REVIEW_IMPLEMENTATION.md))
 - [ ] Batch 9 — observed reference and candidate reuse
 - [ ] Batch 10 — connected three-role verification
 

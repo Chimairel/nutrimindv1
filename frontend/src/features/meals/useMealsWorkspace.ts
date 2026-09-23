@@ -60,6 +60,16 @@ export interface MealHistoryLog {
     source?: string;
     includedInTotals?: boolean;
     currentRevision?: number;
+    revisions?: Array<{ revision: number; reason?: string | null }>;
+    review?: {
+      id: string;
+      status: string;
+      queueReason?: string | null;
+      reviewedRevision?: number | null;
+      reviewedAt?: string | null;
+      messages: Array<{ id: string; sender: 'USER' | 'NUTRITIONIST'; itemRevision: number;
+        content: string; createdAt: string }>;
+    } | null;
   }>;
 }
 
@@ -619,6 +629,16 @@ export function useMealsWorkspace() {
     await Promise.all([fetchHistory(), fetchMeals()]);
   };
 
+  const handleRequestOutsideReview = async (logId: string, itemId: string) => {
+    await api.post(`/user/meals/logs/${logId}/items/${itemId}/request-review`);
+    await fetchHistory();
+  };
+
+  const handleReplyToOutsideReview = async (logId: string, itemId: string, message: string) => {
+    await api.post(`/user/meals/logs/${logId}/items/${itemId}/reply`, { message });
+    await fetchHistory();
+  };
+
   const groupHistoryByDate = () => {
     const grouped: Record<string, MealHistoryLog[]> = {};
     historyLogs.forEach((log) => {
@@ -733,6 +753,8 @@ export function useMealsWorkspace() {
     handleUpdateLogNotes,
     handleEditOutsideItem,
     handleVoidOutsideLog,
+    handleRequestOutsideReview,
+    handleReplyToOutsideReview,
     libraryMeals,
     isLibraryLoading,
     libraryTotalCount,

@@ -15,6 +15,7 @@ import {
   outsideMealItemParamsSchema,
   outsideMealItemEditSchema,
   outsideMealVoidSchema,
+  outsideMealReplySchema,
   resourceIdParamsSchema,
   swapMealBodySchema,
   swapPreviewQuerySchema,
@@ -83,6 +84,8 @@ router.post('/log-outside', validateZodRequest({ body: outsideMealBodySchema }),
 router.get('/outside-suggestions', validateZodRequest({ query: outsideMealSuggestionsQuerySchema }), MealsController.getOutsideSuggestions);
 router.patch('/logs/:id/items/:itemId', validateZodRequest({ params: outsideMealItemParamsSchema, body: outsideMealItemEditSchema }), MealsController.editOutsideItem);
 router.post('/logs/:id/void', validateZodRequest({ params: resourceIdParamsSchema, body: outsideMealVoidSchema }), MealsController.voidOutsideLog);
+router.post('/logs/:id/items/:itemId/request-review', validateZodRequest({ params: outsideMealItemParamsSchema }), MealsController.requestOutsideItemReview);
+router.post('/logs/:id/items/:itemId/reply', validateZodRequest({ params: outsideMealItemParamsSchema, body: outsideMealReplySchema }), MealsController.replyToOutsideItemReview);
 router.post('/logs/:id/image', validateZodRequest({ params: resourceIdParamsSchema }), outsideImageUpload.single('image'), MealsController.attachOutsideImage);
 router.get('/logs/:id/image', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getOutsideImage);
 
