@@ -42,6 +42,16 @@ test('administrator can inspect account, nutritionist, and operations workspaces
   await visitAtBothSizes(page, '/admin/users');
   await visitAtBothSizes(page, '/admin/nutritionists');
   await visitAtBothSizes(page, '/admin/operations');
+  await page.goto('/admin/nutritionists');
+  await page.getByRole('button', { name: /Active professionals/i }).click();
+  const professional = page
+    .getByText(`batch10-browser-nutritionist-${runId}@example.invalid`)
+    .locator('xpath=ancestor::div[contains(@class,"rounded-2xl")]')
+    .first();
+  await professional.getByRole('button', { name: 'Lead enabled' }).click();
+  await expect(professional.getByRole('button', { name: 'Enable Lead' })).toBeVisible();
+  await professional.getByRole('button', { name: 'Enable Lead' }).click();
+  await expect(professional.getByRole('button', { name: 'Lead enabled' })).toBeVisible();
 });
 
 test('patient and nutritionist complete an outside-meal clarification and correction', async ({ browser }) => {
