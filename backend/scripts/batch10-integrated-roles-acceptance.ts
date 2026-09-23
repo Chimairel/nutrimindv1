@@ -2,7 +2,7 @@ import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { MealType } from '@prisma/client';
+import { MealPlanCycleStatus, MealType } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { AdminService } from '../src/services/admin.service';
 import { MealLogService } from '../src/services/meal-log.service';
@@ -10,12 +10,45 @@ import { OutsideMealReviewService } from '../src/services/outside-meal-review.se
 import { ObservedMealService } from '../src/services/observed-meal.service';
 import { databaseRecipeCandidateProvider } from '../src/services/panlasang-recipe-candidate.provider';
 import { UserPrivacyService } from '../src/services/user-privacy.service';
+import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
+import { NutritionistReviewService } from '../src/services/nutritionist-review.service';
+import { createOrReuseLibraryDraftFromApprovedPlan } from '../src/services/meal-library-publication.service';
+import { NutritionistLibraryService } from '../src/services/nutritionist-library.service';
+import { certifyLibraryMealSafety } from '../src/services/nutritionist-library-certification.service';
+import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
+import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
 
 async function main() {
+  const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
+  if (process.env.BATCH10_DISPOSABLE_DB !== '1' || !['127.0.0.1', 'localhost'].includes(databaseHost)) {
+    throw new Error(
+      'This approval journey writes append-only work credits. Run it only against a disposable local database.'
+    );
+  }
   const marker = randomUUID();
   const accounts: string[] = [];
   let submissionId: string | null = null;
   let candidateId: string | null = null;
+  let planId: string | null = null;
+  let cycleId: string | null = null;
+  let libraryMealId: string | null = null;
+  async function removePublishedFixture() {
+    if (planId) {
+      await prisma.mealPlanReviewDecision.deleteMany({ where: { mealPlanId: planId } });
+      await prisma.mealPlan.updateMany({ where: { id: planId }, data: { libraryMealId: null } });
+      await prisma.mealPlan.deleteMany({ where: { id: planId } });
+      planId = null;
+    }
+    if (cycleId) {
+      await prisma.mealPlanCycle.deleteMany({ where: { id: cycleId } });
+      cycleId = null;
+    }
+    if (libraryMealId) {
+      await prisma.mealLibrarySafetyReview.deleteMany({ where: { mealLibraryId: libraryMealId } });
+      await prisma.mealLibrary.deleteMany({ where: { id: libraryMealId } });
+      libraryMealId = null;
+    }
+  }
   try {
     const admin = await prisma.user.create({
       data: {
@@ -78,7 +111,7 @@ async function main() {
             goal: 'MAINTAIN',
             activityLevel: 'LIGHTLY_ACTIVE',
             dietaryPreference: 'OMNIVORE',
-            dailyCalorieTarget: 2000,
+            dailyCalorieTarget: 1200,
           },
         },
       },
@@ -161,9 +194,8 @@ async function main() {
       kind: 'RECIPE_CANDIDATE',
       canonicalName: mealName,
       ingredients: [
-        { name: 'chicken', quantity: 100, unit: 'g' },
-        { name: 'carrot', quantity: 50, unit: 'g' },
-        { name: 'water', quantity: 100, unit: 'ml' },
+        { name: 'Chicken breast', quantity: 100, unit: 'g' },
+        { name: 'Carrot', quantity: 50, unit: 'g' },
       ],
       preparation: 'Simmer the chicken and carrots in water until fully cooked.',
       mealTypes: [MealType.LUNCH],
@@ -188,6 +220,114 @@ async function main() {
     assert.equal(JSON.stringify(candidate).includes(patient.email), false);
     assert.equal(JSON.stringify(candidate).includes('Private patient note'), false);
 
+    const chicken =
+      (await prisma.foodItem.findFirst({ where: { name: { equals: 'Chicken breast', mode: 'insensitive' } } })) ??
+      (await prisma.foodItem.create({
+        data: { name: 'Chicken breast', category: 'POULTRY', calories: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
+      }));
+    const carrot =
+      (await prisma.foodItem.findFirst({ where: { name: { equals: 'Carrot', mode: 'insensitive' } } })) ??
+      (await prisma.foodItem.create({
+        data: { name: 'Carrot', category: 'VEGETABLES', calories: 41, proteinG: 0.9, carbsG: 9.6, fatG: 0.2 },
+      }));
+    cycleId = `batch10-observed-${marker}`;
+    const cycle = await createFixturePlanCycle(prisma, {
+      id: cycleId,
+      userId: patient.id,
+      status: MealPlanCycleStatus.ACTIVE,
+    });
+    const plan = await prisma.mealPlan.create({
+      data: {
+        planGroupId: cycle.id,
+        userId: patient.id,
+        mealType: MealType.LUNCH,
+        mealName,
+        description: 'Simmer the chicken and carrots in water until fully cooked.',
+        calories: 420,
+        proteinG: 32,
+        carbsG: 46,
+        fatG: 13,
+        scheduledDate: cycle.startDate,
+        candidateProvenance: 'RAW_RECIPE_CORPUS',
+        sourceRawRecipeCandidateId: candidateId,
+        claimedByNutritionistId: rnd.id,
+        claimedAt: new Date(),
+        ingredients: {
+          create: [
+            {
+              ingredientName: 'Chicken breast',
+              category: 'PROTEIN',
+              foodItemId: chicken.id,
+              dataSource: 'FNRI',
+              quantity: 100,
+              unit: 'g',
+            },
+            {
+              ingredientName: 'Carrot',
+              category: 'PRODUCE',
+              foodItemId: carrot.id,
+              dataSource: 'FNRI',
+              quantity: 50,
+              unit: 'g',
+            },
+          ],
+        },
+      },
+    });
+    planId = plan.id;
+    const approved = await NutritionistReviewService.approveMealPlan(
+      rnd.id,
+      plan.id,
+      'Reviewed the observed recipe for this patient.'
+    );
+    assert.equal(approved.success, true);
+    const draft = await createOrReuseLibraryDraftFromApprovedPlan(rnd.id, plan.id);
+    assert.equal(draft.deduplicated, false);
+    libraryMealId = draft.meal.id;
+    assert.equal(draft.meal.safetyEvidenceStatus, 'INCOMPLETE');
+    const eligibleQuery = {
+      mealType: MealType.LUNCH,
+      dailyCalorieTarget: 1200,
+      userConditions: [],
+      userAllergens: [],
+      profile: { userId: patient.id, dietaryPreference: 'OMNIVORE', otherConditions: null, otherAllergies: null },
+      search: mealName,
+      limit: 10,
+    } as const;
+    assert.equal(
+      (await queryEligibleLibraryMeals(eligibleQuery)).some((meal) => meal.id === libraryMealId),
+      false
+    );
+    const edited = await NutritionistLibraryService.editLibraryMeal(rndUser.id, 'NUTRITIONIST', libraryMealId, {
+      mealName,
+      description: plan.description,
+      calories: 420,
+      proteinG: 32,
+      carbsG: 46,
+      fatG: 13,
+      applicableMealTypes: [MealType.LUNCH],
+      riceRole: 'PAIR_WITH_RICE',
+    });
+    const certified = await certifyLibraryMealSafety(
+      rnd.id,
+      libraryMealId,
+      certifyMealLibrarySafetySchema.parse({
+        expectedRevision: edited.safetyEvidenceRevision,
+        conditionDeclarationState: 'NOT_REVIEWED',
+        allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
+        crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
+        suitableConditions: [],
+        allergensPresent: [],
+        allergensReviewedAbsent: ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS'],
+      })
+    );
+    assert.equal(certified?.safetyEvidenceStatus, 'COMPLETE');
+    assert.equal(
+      (await queryEligibleLibraryMeals(eligibleQuery)).some((meal) => meal.id === libraryMealId),
+      true
+    );
+    await removePublishedFixture();
+
     await UserPrivacyService.deleteAccount(patient.id, { password });
     accounts.splice(accounts.indexOf(patient.id), 1);
     assert.equal(await prisma.user.count({ where: { id: patient.id } }), 0);
@@ -211,12 +351,17 @@ async function main() {
       1
     );
     console.log(
-      '[Batch 10 integrated roles] PASS: admin Lead, user log, RND clarification/correction, consented raw candidate, privacy deletion'
+      '[Batch 10 integrated roles] PASS: admin Lead, user log, RND clarification/correction, observed candidate plan approval, explicit reusable certification, privacy deletion'
     );
   } finally {
+    await removePublishedFixture();
     if (submissionId) await prisma.observedMealSubmission.deleteMany({ where: { id: submissionId } });
     if (candidateId) await prisma.rawRecipeCandidate.deleteMany({ where: { id: candidateId } });
-    for (const id of accounts) await prisma.user.delete({ where: { id } }).catch(() => undefined);
+    for (const id of accounts) {
+      const reviewer = await prisma.nutritionistProfile.findUnique({ where: { userId: id }, select: { id: true } });
+      if (reviewer) continue; // work credits are append-only; the disposable database is destroyed after this run.
+      await prisma.user.delete({ where: { id } });
+    }
     await prisma.$disconnect();
   }
 }
