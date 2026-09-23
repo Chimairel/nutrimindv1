@@ -10,7 +10,7 @@ const email = (role: string) => `batch10-browser-${role}-${runId}@example.invali
 
 async function cleanup() {
   const users = await prisma.user.findMany({
-    where: { email: { in: ['user', 'nutritionist', 'admin'].map(email) } },
+    where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding'].map(email) } },
     select: { id: true },
   });
   for (const user of users) await prisma.user.delete({ where: { id: user.id } });
@@ -20,7 +20,7 @@ async function cleanup() {
 async function create() {
   assert.equal(
     await prisma.user.count({
-      where: { email: { in: ['user', 'nutritionist', 'admin'].map(email) } },
+      where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding'].map(email) } },
     }),
     0,
     'Fixture identity already exists; clean it before creating again.'
@@ -92,7 +92,16 @@ async function create() {
         await prisma.nutritionReport.create({ data: { userId: account.id, ...report } });
       }
     }
-    console.log('[Batch 10 browser fixture] three role accounts ready');
+    await prisma.user.create({
+      data: {
+        email: email('onboarding'),
+        name: 'Batch 10 New Patient',
+        passwordHash,
+        role: 'USER',
+        emailVerified: true,
+      },
+    });
+    console.log('[Batch 10 browser fixture] three role accounts and one new patient ready');
   } catch (error) {
     await cleanup();
     throw error;

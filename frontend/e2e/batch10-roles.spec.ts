@@ -21,6 +21,54 @@ async function visitAtBothSizes(page: Page, route: string) {
   }
 }
 
+test('a new email account completes onboarding with national planning and opens its baseline report', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const expectStep = (path: RegExp) => expect(page).toHaveURL(path, { timeout: 25_000 });
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill(`batch10-browser-onboarding-${runId}@example.invalid`);
+  await page.getByLabel(/^Password$/).fill('SyntheticBrowser123!');
+  await page.getByRole('button', { name: /^Sign in$/i }).click();
+  await expectStep(/\/onboarding\/stats$/);
+  await page.getByRole('button', { name: 'Female', exact: true }).click();
+  await page.getByLabel('Age (Years)').fill('28');
+  await page.getByLabel('Height (cm)').fill('160');
+  await page.getByRole('spinbutton', { name: 'Weight (kg)', exact: true }).fill('60');
+  await page.getByRole('button', { name: 'Continue to Step 2' }).click();
+  await expectStep(/\/onboarding\/preferences$/);
+
+  await expect(page.getByRole('combobox', { name: 'Region' })).toHaveJSProperty('required', false);
+  await page.getByRole('button', { name: 'Continue to Step 3' }).click();
+  await expectStep(/\/onboarding\/conditions$/);
+
+  await page.getByRole('button', { name: 'No diagnosed condition' }).click();
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await page.getByRole('checkbox', { name: /I reviewed these entries/i }).check();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expectStep(/\/onboarding\/allergies$/);
+
+  for (const category of ['Food Allergies', 'Intolerances', 'Foods to Avoid']) {
+    await page.getByRole('tab', { name: category }).click();
+    await page.getByRole('button', { name: 'No food restriction' }).click();
+  }
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await page.getByRole('checkbox', { name: /I reviewed these entries/i }).check();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expectStep(/\/onboarding\/shopping-day$/);
+
+  await page.locator('#shopping-day-6').click();
+  await page.getByRole('button', { name: 'Continue to Step 6' }).click();
+  await expectStep(/\/onboarding\/tos$/);
+  await page.locator('#medicalDisclaimer').check();
+  await page.locator('#healthDataProcessing').check();
+  await page.locator('#privacyPolicy').check();
+  await page.getByRole('button', { name: 'Complete Onboarding & Go to Dashboard' }).click();
+  await expectStep(/\/dashboard$/);
+  await page.goto('/nutrition-report');
+  await expect(page.getByRole('heading', { name: 'Nutrition report history' })).toBeVisible();
+});
+
 test('patient workspace opens the plan, groceries, library, and history at desktop and mobile sizes', async ({
   page,
 }) => {

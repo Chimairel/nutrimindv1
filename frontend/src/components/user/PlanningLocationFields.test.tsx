@@ -57,4 +57,27 @@ describe('PlanningLocationFields', () => {
     expect(onLevelChange).toHaveBeenLastCalledWith('NATIONAL');
     expect(onProvinceHucNameChange).toHaveBeenCalledWith('');
   });
+
+  it('allows the national default without a location and requires only the selected detail level', () => {
+    const callbacks = {
+      onLevelChange: vi.fn(),
+      onRegionNameChange: vi.fn(),
+      onProvinceHucNameChange: vi.fn(),
+      required: true,
+    };
+    const { rerender } = render(
+      <PlanningLocationFields level="NATIONAL" regionName="" provinceHucName="" {...callbacks} />
+    );
+    expect(screen.getByRole('combobox', { name: 'Region' })).not.toBeRequired();
+    expect(screen.getByRole('combobox', { name: 'Province / highly urbanized city' })).not.toBeRequired();
+
+    rerender(<PlanningLocationFields level="REGION" regionName="Central Visayas" provinceHucName="" {...callbacks} />);
+    expect(screen.getByRole('combobox', { name: 'Region' })).toBeRequired();
+    expect(screen.getByRole('combobox', { name: 'Province / highly urbanized city' })).not.toBeRequired();
+
+    rerender(
+      <PlanningLocationFields level="PROVINCE_HUC" regionName="Central Visayas" provinceHucName="" {...callbacks} />
+    );
+    expect(screen.getByRole('combobox', { name: 'Province / highly urbanized city' })).toBeRequired();
+  });
 });

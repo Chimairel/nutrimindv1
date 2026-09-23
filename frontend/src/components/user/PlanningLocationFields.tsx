@@ -20,6 +20,7 @@ interface PlanningLocationFieldsProps {
 }
 
 export default function PlanningLocationFields({
+  level,
   regionName,
   provinceHucName,
   onLevelChange,
@@ -130,7 +131,7 @@ export default function PlanningLocationFields({
             }}
             placeholder="Start typing, e.g. Central Visayas"
             maxLength={120}
-            required={required}
+            required={required && level !== 'NATIONAL'}
             disabled={disabled}
             autoComplete="off"
           />
@@ -196,7 +197,7 @@ export default function PlanningLocationFields({
             }}
             placeholder={isRegionPresent ? 'Start typing, e.g. Cebu' : 'Choose a region first'}
             maxLength={160}
-            required={required}
+            required={required && level === 'PROVINCE_HUC'}
             disabled={disabled || !isRegionEffective}
             autoComplete="off"
           />
