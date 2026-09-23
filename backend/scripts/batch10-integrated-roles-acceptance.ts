@@ -17,6 +17,7 @@ import { NutritionistLibraryService } from '../src/services/nutritionist-library
 import { certifyLibraryMealSafety } from '../src/services/nutritionist-library-certification.service';
 import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
+import { validateGeneratedMealCandidate } from '../src/domain/generated-meal-validation.policy';
 
 async function main() {
   const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
@@ -219,6 +220,24 @@ async function main() {
     assert.equal(rawPage.items.find((row) => row.id === candidateId)?.provenance, 'USER_OBSERVED');
     assert.equal(JSON.stringify(candidate).includes(patient.email), false);
     assert.equal(JSON.stringify(candidate).includes('Private patient note'), false);
+
+    const candidateIngredients = [
+      { name: 'Chicken breast', category: 'PROTEIN' },
+      { name: 'Carrot', category: 'PRODUCE' },
+    ];
+    const precheck = validateGeneratedMealCandidate({
+      ingredients: candidateIngredients,
+      dietaryPreference: 'OMNIVORE',
+      allergens: [],
+    });
+    assert.equal(precheck.accepted, true);
+    assert.equal(precheck.classification.status, 'COMPLETE');
+    assert.equal(
+      validateGeneratedMealCandidate({ ingredients: candidateIngredients, dietaryPreference: 'VEGAN', allergens: [] })
+        .accepted,
+      false,
+      'The same raw recipe must fail a definite dietary conflict before review.'
+    );
 
     const chicken =
       (await prisma.foodItem.findFirst({ where: { name: { equals: 'Chicken breast', mode: 'insensitive' } } })) ??
