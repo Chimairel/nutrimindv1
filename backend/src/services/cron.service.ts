@@ -7,11 +7,11 @@ import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
 
 export class CronService {
-  static async retrySafetyRevalidation() {
+  static async retrySafetyRevalidation(now: Date = new Date()) {
     const pending = await prisma.mealPlan.findMany({
       where: {
         requiresSafetyRevalidation: true,
-        scheduledDate: { gte: getStartOfManilaBusinessDay() },
+        scheduledDate: { gte: getStartOfManilaBusinessDay(now) },
         status: 'PENDING_REVIEW',
       },
       distinct: ['userId'],
@@ -31,15 +31,15 @@ export class CronService {
    * Aggregates completed calorie logs from yesterday for all onboarded users,
    * calculates clinical calorie adherence, and logs daily performance metrics.
    */
-  static async runDailyCheckin() {
+  static async runDailyCheckin(now: Date = new Date()) {
     console.log('[CronService] Initiating daily nutrition check-in aggregates...');
 
     // 1. Resolve 'yesterday' time bounds
-    const yesterdayStart = new Date(getStartOfManilaBusinessDay().getTime() - 86_400_000);
+    const yesterdayStart = new Date(getStartOfManilaBusinessDay(now).getTime() - 86_400_000);
     const yesterdayEnd = new Date(yesterdayStart.getTime() + 86_400_000 - 1);
     await enforceClearanceCircuitBreakers();
-    await this.retrySafetyRevalidation();
-    const upcomingPreparation = await UpcomingPlanPreparationService.runScheduled();
+    await this.retrySafetyRevalidation(now);
+    const upcomingPreparation = await UpcomingPlanPreparationService.runScheduled(now);
 
     console.log(`[CronService] Targeted time bounds: ${yesterdayStart.toISOString()} -> ${yesterdayEnd.toISOString()}`);
 

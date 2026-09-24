@@ -89,26 +89,35 @@ export class UpcomingPlanPreparationService {
   }
 
   static async runScheduled(now: Date = new Date()) {
-    const users = await prisma.user.findMany({
-      where: {
-        role: 'USER',
-        onboardingDone: true,
-        nutritionReport: { acknowledgedAt: { not: null }, isStale: false },
-      },
-      select: { id: true },
-      take: 100,
-    });
-    const results = { prepared: 0, existing: 0, notOpen: 0, failed: 0 };
-    for (const user of users) {
-      try {
-        const result = await this.ensureForUser(user.id, now);
-        if (result.state === 'PREPARED') results.prepared += 1;
-        else if (result.state === 'EXISTING') results.existing += 1;
-        else results.notOpen += 1;
-      } catch (error) {
-        results.failed += 1;
-        console.error(`[UpcomingPreparation] Scheduled preparation failed for user ${user.id}:`, error);
+    const results = { scanned: 0, prepared: 0, existing: 0, notOpen: 0, failed: 0 };
+    let afterId: string | undefined;
+    while (true) {
+      const users = await prisma.user.findMany({
+        where: {
+          id: afterId ? { gt: afterId } : undefined,
+          role: 'USER',
+          onboardingDone: true,
+          nutritionReport: { acknowledgedAt: { not: null }, isStale: false },
+        },
+        orderBy: { id: 'asc' },
+        select: { id: true },
+        take: 100,
+      });
+      if (users.length === 0) break;
+      afterId = users[users.length - 1].id;
+      for (const user of users) {
+        results.scanned += 1;
+        try {
+          const result = await this.ensureForUser(user.id, now);
+          if (result.state === 'PREPARED') results.prepared += 1;
+          else if (result.state === 'EXISTING') results.existing += 1;
+          else results.notOpen += 1;
+        } catch (error) {
+          results.failed += 1;
+          console.error(`[UpcomingPreparation] Scheduled preparation failed for user ${user.id}:`, error);
+        }
       }
+      if (users.length < 100) break;
     }
     return results;
   }

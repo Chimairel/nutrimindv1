@@ -201,7 +201,7 @@ Values prefixed with `NEXT_PUBLIC_` are exposed to browser code and must never c
 
 ### Scheduled jobs
 
-Call `POST /api/cron/daily-checkin` once per day for daily nutrition aggregates. It requires `Authorization: Bearer <CRON_SECRET>`. Weekly plans are generated for the current cycle when the user requests one or when the application detects that an existing plan has rolled into its next active cycle; KAINARA does not pre-generate a future paid-tier plan.
+Arrange an external daily caller for `POST /api/cron/daily-checkin`, for example at 00:10 Asia/Manila (16:10 UTC on the preceding calendar date). It requires `Authorization: Bearer <CRON_SECRET>`. The call records yesterday's nutrition aggregates, retries safety revalidation, and prepares eligible next-week cycles before shopping. User visits to meals or groceries also trigger preparation recovery. The repository does not install a scheduler: a running backend and a configured external caller are required for preparation to start without a user visit. Generated candidates still require the ordinary safety checks and RND review before their slots become actionable.
 
 ## Available verification commands
 
