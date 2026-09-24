@@ -14,7 +14,15 @@ export interface RecipeCandidateProjection {
   sourceUrl: string;
   applicableMealTypes: MealType[];
   dietaryTags: DietaryPreference[];
-  ingredients: Array<{ name: string; quantity?: number; unit?: string }>;
+  ingredients: Array<{
+    name: string;
+    quantity?: number;
+    unit?: string;
+    foodItemId?: string;
+    fnriFoodName?: string;
+    fnriMatchMethod?: string;
+    fnriMappingVersion?: string;
+  }>;
   ingredientsComplete: boolean;
   nutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
   servingDescription: string | null;

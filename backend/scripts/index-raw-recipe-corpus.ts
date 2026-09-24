@@ -6,6 +6,11 @@ import { classifyMealIngredients } from '../src/domain/meal-ingredient-classific
 import { proposeMealTypeApplicability } from '../src/domain/meal-applicability.policy';
 import { proposeRiceRole } from '../src/domain/recipe-rice-role.policy';
 import { buildRawRecipeContentSignature } from '../src/domain/raw-recipe-content-signature.policy';
+import {
+  createSourceIngredientFnriMatcher,
+  isInvalidSourceIngredientLabel,
+  SOURCE_INGREDIENT_FNRI_MAPPING_VERSION,
+} from '../src/domain/source-ingredient-fnri-match.policy';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
@@ -79,15 +84,36 @@ async function main() {
   console.log(JSON.stringify(summary, null, 2));
   if (!APPLY) return;
 
+  const fnriFoods = await prisma.foodItem.findMany({
+    where: { source: 'FNRI' },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+  const fnriMatcher = createSourceIngredientFnriMatcher(fnriFoods);
+
   const keepSignatures = [...unique.keys()];
   const rows: Prisma.RawRecipeCandidateCreateManyInput[] = [];
   for (const [contentSignature, recipe] of unique) {
     const rawIngredients = recipe.ingredients1Person ?? [];
-    const ingredients = rawIngredients.map((ingredient) => ({
-      name: String(ingredient.name ?? ingredient.text ?? '').trim(),
-      quantity: finite(ingredient.quantity),
-      unit: String(ingredient.unit ?? '').trim() || null,
-    }));
+    const ingredients = rawIngredients.map((ingredient) => {
+      const name = String(ingredient.name ?? ingredient.text ?? '').trim();
+      const match = fnriMatcher.match(name);
+      return {
+        name,
+        quantity: finite(ingredient.quantity),
+        unit: String(ingredient.unit ?? '').trim() || null,
+        foodItemId: match?.food.id ?? null,
+        fnriFoodName: match?.food.name ?? null,
+        fnriMatchMethod: match?.method ?? null,
+        fnriMatchStatus: match
+          ? 'MATCHED'
+          : isInvalidSourceIngredientLabel(name)
+            ? 'INVALID_SOURCE_FRAGMENT'
+            : 'UNRESOLVED',
+        fnriMappingVersion: SOURCE_INGREDIENT_FNRI_MAPPING_VERSION,
+        excludedFromPlanning: isInvalidSourceIngredientLabel(name),
+      };
+    });
     const classification = classifyMealIngredients(ingredients);
     const nutrition = recipe.nutritionPerServing ?? null;
     const tags = classification.compatibleDietaryPreferences.length

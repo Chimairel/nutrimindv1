@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import type { IngredientEvidenceSource } from './ingredient-evidence';
 
 export interface QueueItem {
   id: string;
@@ -75,7 +76,9 @@ export interface DetailData {
   };
   ingredients: {
     name: string;
-    source: 'FNRI' | 'GEMINI_ESTIMATED';
+    source: IngredientEvidenceSource;
+    foodItemId?: string | null;
+    fnriFoodName?: string | null;
     quantity?: number | null;
     unit?: string | null;
   }[];
@@ -103,7 +106,7 @@ export interface ReviewPayload {
     proteinG: number;
     carbsG: number;
     fatG: number;
-    ingredients: { name: string; category: string; dataSource: 'FNRI' | 'GEMINI_ESTIMATED' }[];
+    ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
   };
 }
 
@@ -124,7 +127,7 @@ export type ReviewEditForm = {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  ingredients: { name: string; category: string; dataSource: 'FNRI' | 'GEMINI_ESTIMATED' }[];
+  ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
 };
 
 export function useNutritionistReviews() {
@@ -157,7 +160,7 @@ export function useNutritionistReviews() {
     proteinG: number;
     carbsG: number;
     fatG: number;
-    ingredients: { name: string; category: string; dataSource: 'FNRI' | 'GEMINI_ESTIMATED' }[];
+    ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
   }>({
     mealName: '',
     description: '',

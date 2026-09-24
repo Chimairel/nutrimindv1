@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
+import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
 import GovernanceQueuePanel, { ReviewTabs, type ReviewWorkspaceTab } from './GovernanceQueuePanel';
 
 export default function ReviewsPage() {
@@ -290,7 +291,7 @@ export default function ReviewsPage() {
 
                 {/* Health Conditions */}
                 <div className="space-y-1.5">
-                  <h4 className="text-xs font-bold text-brand-muted">⚠️ Conditions</h4>
+                  <h4 className="text-xs font-bold text-brand-muted">Conditions</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {detailData.user.conditions.length === 0 ? (
                       <span className="text-xs text-brand-muted italic">None declared</span>
@@ -309,7 +310,7 @@ export default function ReviewsPage() {
 
                 {/* Allergies */}
                 <div className="space-y-1.5">
-                  <h4 className="text-xs font-bold text-brand-muted">🚫 Allergies</h4>
+                  <h4 className="text-xs font-bold text-brand-muted">Allergies</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {detailData.user.allergies.length === 0 ? (
                       <span className="text-xs text-brand-muted italic">None declared</span>
@@ -497,10 +498,20 @@ export default function ReviewsPage() {
                             className="bg-brand-bg text-brand-text border border-brand-border rounded px-2 py-1 text-xs flex-grow focus:outline-none focus:border-brand-green"
                           />
                           <Badge
-                            variant={ing.dataSource === 'FNRI' ? 'verified' : 'pending'}
+                            variant={
+                              ing.dataSource === 'FNRI'
+                                ? 'verified'
+                                : ing.dataSource === 'SOURCE_RECIPE'
+                                  ? 'user'
+                                  : 'pending'
+                            }
                             className="text-[8px] uppercase select-none"
                           >
-                            {ing.dataSource === 'FNRI' ? 'FNRI' : 'EST'}
+                            {ing.dataSource === 'FNRI'
+                              ? 'FNRI'
+                              : ing.dataSource === 'SOURCE_RECIPE'
+                                ? 'Source'
+                                : 'AI est.'}
                           </Badge>
                           <button
                             onClick={() => removeIngredientField(idx)}
@@ -511,31 +522,7 @@ export default function ReviewsPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {detailData.ingredients.map((ing, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-brand-surface border border-brand-border text-xs rounded-lg text-brand-muted"
-                          >
-                            <span>
-                              {ing.name}
-                              {ing.quantity != null
-                                ? ` · ${ing.quantity} ${ing.unit || ''}`
-                                : ' · Quantity unavailable'}
-                            </span>
-                            <span
-                              className="text-[9px]"
-                              title={
-                                ing.source === 'FNRI'
-                                  ? 'FNRI nutrition source; professional review is separate'
-                                  : 'AI Estimated'
-                              }
-                            >
-                              {ing.source === 'FNRI' ? '✅' : '⚠️'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                      <IngredientEvidenceList ingredients={detailData.ingredients} />
                     )}
                   </div>
                 </div>

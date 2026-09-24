@@ -65,6 +65,8 @@
     "meals:reclassify-panlasang:apply": "tsx scripts/reclassify-panlasang-corpus.ts --apply",
     "meals:certified-signatures:dry-run": "tsx scripts/backfill-certified-recipe-signatures.ts",
     "meals:certified-signatures:apply": "tsx scripts/backfill-certified-recipe-signatures.ts --apply",
+    "meals:reconcile-panlasang-fnri:dry-run": "tsx scripts/reconcile-panlasang-fnri-identities.ts",
+    "meals:reconcile-panlasang-fnri:apply": "tsx scripts/reconcile-panlasang-fnri-identities.ts --apply",
     "enns:derive-locality": "tsx scripts/derive-enns-food-group-locality.ts",
     "enns:locality:dry-run": "tsx scripts/import-enns-food-group-locality.ts",
     "enns:locality:apply": "tsx scripts/import-enns-food-group-locality.ts --apply",

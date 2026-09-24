@@ -13,11 +13,12 @@ function jsonStrings(value: Prisma.JsonValue): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
-function ingredients(value: Prisma.JsonValue): RecipeCandidateProjection['ingredients'] {
+export function parseRecipeCandidateIngredients(value: Prisma.JsonValue): RecipeCandidateProjection['ingredients'] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
     const record = item as Record<string, unknown>;
+    if (record.excludedFromPlanning === true) return [];
     const name = typeof record.name === 'string' ? record.name.trim() : '';
     if (!name) return [];
     const quantity =
@@ -25,7 +26,16 @@ function ingredients(value: Prisma.JsonValue): RecipeCandidateProjection['ingred
         ? record.quantity
         : undefined;
     const unit = typeof record.unit === 'string' && record.unit.trim() ? record.unit.trim() : undefined;
-    return [{ name, quantity, unit }];
+    const foodItemId = typeof record.foodItemId === 'string' && record.foodItemId ? record.foodItemId : undefined;
+    const fnriFoodName =
+      typeof record.fnriFoodName === 'string' && record.fnriFoodName ? record.fnriFoodName : undefined;
+    const fnriMatchMethod =
+      typeof record.fnriMatchMethod === 'string' && record.fnriMatchMethod ? record.fnriMatchMethod : undefined;
+    const fnriMappingVersion =
+      typeof record.fnriMappingVersion === 'string' && record.fnriMappingVersion
+        ? record.fnriMappingVersion
+        : undefined;
+    return [{ name, quantity, unit, foodItemId, fnriFoodName, fnriMatchMethod, fnriMappingVersion }];
   });
 }
 
@@ -46,7 +56,7 @@ function decodeCursor(cursor?: string): { normalizedName: string; id: string } |
 }
 
 function project(row: Row): RecipeCandidateProjection {
-  const parsedIngredients = ingredients(row.ingredients);
+  const parsedIngredients = parseRecipeCandidateIngredients(row.ingredients);
   const nutrition =
     row.calories === null || row.proteinG === null || row.carbsG === null || row.fatG === null
       ? null

@@ -27,7 +27,7 @@ export interface SourcedRawRecipeMeal {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  ingredients: Array<{ foodItemId: null; name: string; quantity?: number; unit?: string }>;
+  ingredients: Array<{ foodItemId: string | null; name: string; quantity?: number; unit?: string }>;
   candidateRank: number;
   rankingScore: number;
   rankingReasonCodes: PreparationRankingReasonCode[];
@@ -99,7 +99,10 @@ export function selectRawRecipeCandidates(input: {
       proteinG: candidate.nutrition!.proteinG,
       carbsG: candidate.nutrition!.carbsG,
       fatG: candidate.nutrition!.fatG,
-      ingredients: candidate.ingredients.map((ingredient) => ({ foodItemId: null, ...ingredient })),
+      ingredients: candidate.ingredients.map((ingredient) => ({
+        ...ingredient,
+        foodItemId: ingredient.foodItemId ?? null,
+      })),
       candidateRank: index + 1,
       rankingScore: candidate._ranking.score,
       rankingReasonCodes: candidate._ranking.reasonCodes,

@@ -72,7 +72,7 @@ export async function prepareGeneratedMealIngredients(input: {
           !(
             meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS &&
             (ingredient.quantity === undefined || ingredient.quantity <= 0)
-          ) && !(ingredient.foodItemId && input.groundedFoodById.has(ingredient.foodItemId))
+          ) && !ingredient.foodItemId
       )
       .map((ingredient) => ingredient.name)
   );
@@ -81,9 +81,7 @@ export async function prepareGeneratedMealIngredients(input: {
     ...new Set([
       ...[...fnriByName.values()].flatMap((food) => (food ? [food.id] : [])),
       ...input.meals.flatMap((meal) =>
-        meal.ingredients.flatMap((ingredient) =>
-          ingredient.foodItemId && input.groundedFoodById.has(ingredient.foodItemId) ? [ingredient.foodItemId] : []
-        )
+        meal.ingredients.flatMap((ingredient) => (ingredient.foodItemId ? [ingredient.foodItemId] : []))
       ),
     ]),
   ];
@@ -101,6 +99,7 @@ export async function prepareGeneratedMealIngredients(input: {
 
     for (const ingredient of rawMeal.ingredients) {
       const ingredientName = ingredient.name;
+      const linkedFood = ingredient.foodItemId ? compositionById.get(ingredient.foodItemId) : undefined;
       if (
         rawMeal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS &&
         (ingredient.quantity === undefined || ingredient.quantity <= 0)
@@ -108,8 +107,8 @@ export async function prepareGeneratedMealIngredients(input: {
         hasEstimatedIngredient = true;
         ingredientsData.push({
           ingredientName,
-          category: 'PANTRY',
-          foodItemId: null,
+          category: linkedFood?.category || 'PANTRY',
+          foodItemId: linkedFood?.id ?? null,
           dataSource: MealIngredientDataSource.SOURCE_RECIPE,
         });
         continue;
@@ -122,6 +121,18 @@ export async function prepareGeneratedMealIngredients(input: {
           category: groundedFood.category || 'PANTRY',
           foodItemId: groundedFood.id,
           dataSource: MealIngredientDataSource.FNRI,
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+        });
+        continue;
+      }
+
+      if (linkedFood && rawMeal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS) {
+        ingredientsData.push({
+          ingredientName,
+          category: linkedFood.category || 'PANTRY',
+          foodItemId: linkedFood.id,
+          dataSource: MealIngredientDataSource.SOURCE_RECIPE,
           quantity: ingredient.quantity,
           unit: ingredient.unit,
         });

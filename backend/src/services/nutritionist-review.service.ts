@@ -241,7 +241,9 @@ export class NutritionistReviewService {
     const updatedMealPlan = await prisma.mealPlan.findUnique({
       where: { id: mealPlanId },
       include: {
-        ingredients: true,
+        ingredients: {
+          include: { foodItem: { select: { id: true, name: true } } },
+        },
         user: {
           include: {
             userProfile: true,
@@ -392,6 +394,8 @@ export class NutritionistReviewService {
       ingredients: updatedMealPlan.ingredients.map((ing) => ({
         name: ing.ingredientName,
         source: ing.dataSource,
+        foodItemId: ing.foodItemId,
+        fnriFoodName: ing.foodItem?.name ?? null,
         quantity: ing.quantity,
         unit: ing.unit,
       })),
