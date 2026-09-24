@@ -147,8 +147,8 @@ export default function AuthShell({
           className="relative z-20 flex flex-1 flex-col items-center justify-center scroll-mt-4 px-4 pt-2 pb-8 sm:px-8 sm:py-12 lg:p-12 xl:p-16 bg-brand-bg/40 transition-colors duration-300 dark:bg-[#07100d] lg:bg-transparent"
         >
           <div className={`w-full ${wide ? 'max-w-[540px]' : 'max-w-[460px]'}`}>
-            {/* White floating card matching reference design */}
-            <div className="auth-card relative rounded-[28px] sm:rounded-[32px] bg-white p-6 sm:p-8 shadow-2xl border border-neutral-200/80 dark:border-white/20 text-neutral-900">
+            {/* White floating card matching reference design with dark mode glow */}
+            <div className="auth-card floating-card-shadow relative rounded-[28px] sm:rounded-[32px] bg-white p-6 sm:p-8 border border-neutral-200/80 dark:border-white/20 text-neutral-900">
               <div className="mb-5 sm:mb-6">
                 <p className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
                   {eyebrow}
