@@ -17,6 +17,8 @@ import { UserProfileService } from '../src/services/user-profile.service';
 import { NutritionReportService } from '../src/services/nutrition-report.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { ProfileCycleAdaptationService } from '../src/services/profile-cycle-adaptation.service';
+import { GroceryService } from '../src/services/grocery.service';
+import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 
 const DAY = 86_400_000;
 
@@ -25,6 +27,10 @@ function atDay(base: Date, offset: number) {
 }
 
 async function main() {
+  // This journey verifies profile/report/cycle/grocery state without starting
+  // the separate AI-backed preparation worker on report acknowledgment.
+  const triggerPreparation = UpcomingPlanPreparationService.triggerNonBlocking;
+  UpcomingPlanPreparationService.triggerNonBlocking = () => undefined;
   const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const user = await prisma.user.create({
     data: {
@@ -77,6 +83,7 @@ async function main() {
     },
   });
 
+  let libraryMealId: string | null = null;
   try {
     const today = getStartOfManilaBusinessDay();
     const baseProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
@@ -145,8 +152,56 @@ async function main() {
       },
     });
 
+    const recipeSignature = `profile-cycle-${key}`;
+    const libraryMeal = await prisma.mealLibrary.create({
+      data: {
+        mealName: 'Upcoming acceptance breakfast',
+        mealType: MealType.BREAKFAST,
+        calories: 500,
+        proteinG: 25,
+        carbsG: 60,
+        fatG: 18,
+        recipeSignature,
+        status: 'APPROVED',
+        safetyEvidenceStatus: 'COMPLETE',
+      },
+    });
+    libraryMealId = libraryMeal.id;
+    await prisma.mealPlan.create({
+      data: {
+        planGroupId: cycles[1].id,
+        userId: user.id,
+        libraryMealId: libraryMeal.id,
+        status: MealPlanStatus.APPROVED,
+        mealType: MealType.BREAKFAST,
+        mealName: libraryMeal.mealName,
+        calories: 500,
+        proteinG: 25,
+        carbsG: 60,
+        fatG: 18,
+        scheduledDate: atDay(today, 7),
+        requiresSafetyRevalidation: false,
+        safetyPolicyVersion: 'MEAL_PLAN_SAFETY_V2',
+        baseRecipeSignature: recipeSignature,
+        composedServingSignature: recipeSignature,
+        ingredients: {
+          create: { ingredientName: 'Old-plan ingredient', category: 'Vegetable', quantity: 100, unit: 'g' },
+        },
+      },
+    });
+    const beforeEdit = await GroceryService.getCycleProjection(user.id, cycles[1].id);
+    assert.deepEqual(
+      beforeEdit.groceryList?.groceryItems.map((item) => item.ingredientName),
+      ['Old-plan ingredient']
+    );
+
     const first = await UserProfileService.updateUserProfile(user.id, { weightKg: 71 });
     assert.equal(first.revision, 1);
+    assert.notEqual(first.dailyCalorieTarget, baseProfile.dailyCalorieTarget);
+    const staleReport = await prisma.nutritionReport.findUniqueOrThrow({ where: { userId: user.id } });
+    assert.equal(staleReport.isStale, true);
+    assert.equal(staleReport.acknowledgedAt, null);
+    await assert.rejects(NutritionReportService.acknowledgeReport(user.id, 1), /out of date/);
     const afterOrdinary = await prisma.mealPlanCycle.findMany({ where: { userId: user.id } });
     assert.equal(
       afterOrdinary.find((cycle) => cycle.id === cycles[0].id)?.profileAdaptationState,
@@ -165,6 +220,10 @@ async function main() {
     });
     assert.equal(activeSnapshot.weightKg, 70);
     assert.equal(activeSnapshot.profileRevision, 0);
+    const pausedGroceries = await GroceryService.getCycleProjection(user.id, cycles[1].id);
+    assert.equal(pausedGroceries.groceryList, null);
+    assert.equal(pausedGroceries.actionability.canCheckItems, false);
+    assert.equal(pausedGroceries.actionability.canExportPdf, false);
 
     const auditCount = await prisma.healthProfileRevision.count({ where: { userId: user.id } });
     const identical = await UserProfileService.updateUserProfile(user.id, { weightKg: 71 });
@@ -172,11 +231,16 @@ async function main() {
     assert.equal(await prisma.healthProfileRevision.count({ where: { userId: user.id } }), auditCount);
 
     await publishFixtureReport(user.id, 2, 1);
+    await assert.rejects(NutritionReportService.acknowledgeReport(user.id, 1), /out of date/);
     await NutritionReportService.acknowledgeReport(user.id, 2);
     assert.equal(
       (await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: cycles[1].id } })).profileAdaptationState,
       ProfileCycleAdaptationState.REBUILD_REQUIRED
     );
+    const afterAcknowledgment = await GroceryService.getCycleProjection(user.id, cycles[1].id);
+    assert.equal(afterAcknowledgment.groceryList, null);
+    assert.equal(afterAcknowledgment.actionability.canCheckItems, false);
+    assert.equal((await prisma.groceryList.findFirstOrThrow({ where: { planGroupId: cycles[1].id } })).isStale, true);
 
     const riceUpdated = await UserProfileService.updateUserProfile(user.id, {
       ricePreference: RicePreference.WITH_RICE,
@@ -244,7 +308,9 @@ async function main() {
       )
     );
   } finally {
+    UpcomingPlanPreparationService.triggerNonBlocking = triggerPreparation;
     await prisma.user.deleteMany({ where: { id: user.id } });
+    if (libraryMealId) await prisma.mealLibrary.deleteMany({ where: { id: libraryMealId } });
     await prisma.$disconnect();
   }
 }

@@ -26,19 +26,27 @@ export class ProfileCycleAdaptationService {
     now: Date = new Date()
   ) {
     const businessDay = getStartOfManilaBusinessDay(now);
-    return tx.mealPlanCycle.updateMany({
-      where: {
-        userId,
-        startDate: { gt: businessDay },
-        shoppingStartedAt: null,
-        status: { notIn: [...TERMINAL_CYCLE_STATUSES, MealPlanCycleStatus.SHOPPING_STARTED] },
-      },
+    const affectedCycles = {
+      userId,
+      startDate: { gt: businessDay },
+      shoppingStartedAt: null,
+      status: { notIn: [...TERMINAL_CYCLE_STATUSES, MealPlanCycleStatus.SHOPPING_STARTED] },
+    };
+    const updated = await tx.mealPlanCycle.updateMany({
+      where: affectedCycles,
       data: {
         profileAdaptationState: ProfileCycleAdaptationState.AWAITING_REPORT_ACKNOWLEDGMENT,
         requestedProfileRevision: profileRevision,
         pendingProfileChangeKinds: [...new Set(changeKinds)],
       },
     });
+    // A prepared grocery list reflects the previous cycle snapshot. Hide it as
+    // soon as the edit is saved, before report acknowledgment or a rebuild.
+    await tx.groceryList.updateMany({
+      where: { userId, cycle: affectedCycles },
+      data: { isStale: true },
+    });
+    return updated;
   }
 
   /** Safety changes fail closed across every unconsumed current/future cycle. */
