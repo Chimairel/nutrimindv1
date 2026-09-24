@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
 import prisma from '../src/lib/prisma';
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../src/domain/onboarding.policy';
+import { getCurrentWeeklyCycleWindow, getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
+import { getStartOfManilaBusinessDay } from '../src/domain/meal-actionability.policy';
+import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
+import { GroceryService } from '../src/services/grocery.service';
 
 const runId = process.env.BATCH10_BROWSER_RUN_ID;
 assert.ok(runId && /^[a-z0-9-]{8,64}$/.test(runId), 'A unique BATCH10_BROWSER_RUN_ID is required.');
@@ -52,7 +56,7 @@ async function create() {
                     goal: 'MAINTAIN' as const,
                     activityLevel: 'LIGHTLY_ACTIVE' as const,
                     dietaryPreference: 'OMNIVORE' as const,
-                    dailyCalorieTarget: 2000,
+                    dailyCalorieTarget: 1300,
                     shoppingDayOfWeek: 6,
                   },
                 },
@@ -90,6 +94,74 @@ async function create() {
           version: 1,
         };
         await prisma.nutritionReport.create({ data: { userId: account.id, ...report } });
+        const candidates = await queryEligibleLibraryMeals({
+          mealType: 'BREAKFAST',
+          dailyCalorieTarget: 1300,
+          userConditions: ['NONE'],
+          userAllergens: ['NONE'],
+          profile: {
+            userId: account.id,
+            dietaryPreference: 'OMNIVORE',
+            otherConditions: null,
+            otherAllergies: null,
+          },
+          limit: 20,
+        });
+        assert.ok(candidates.length >= 2, 'Browser swap journey needs two existing certified breakfasts.');
+        const [original, favorite] = candidates;
+        await prisma.mealFavorite.create({ data: { userId: account.id, mealLibraryId: favorite.id } });
+        const now = new Date();
+        const today = getStartOfManilaBusinessDay(now);
+        const windows = [getCurrentWeeklyCycleWindow(6, now), getNextWeeklyCycleWindow(6, now)];
+        for (const [index, window] of windows.entries()) {
+          const cycleId = `batch10-browser-${index === 0 ? 'current' : 'upcoming'}-${runId}`;
+          await prisma.mealPlanCycle.create({
+            data: {
+              id: cycleId,
+              userId: account.id,
+              planType: 'WEEKLY',
+              startDate: window.startDate,
+              endDate: window.endDate,
+              preparationOpensAt: new Date(window.startDate.getTime() - 4 * 86_400_000),
+              shoppingDeadlineAt: new Date(window.startDate.getTime() - 86_400_000),
+              expectedSlotCount: 1,
+              status: index === 0 ? 'ACTIVE' : 'UNDER_REVIEW',
+              ...(index === 0 ? { deadlineOutcome: 'COMPLETE' as const } : {}),
+            },
+          });
+          await prisma.mealPlan.create({
+            data: {
+              planGroupId: cycleId,
+              userId: account.id,
+              libraryMealId: original.id,
+              status: 'APPROVED',
+              planType: 'WEEKLY',
+              mealType: 'BREAKFAST',
+              mealName: original.mealName,
+              calories: original.calories,
+              proteinG: original.proteinG,
+              carbsG: original.carbsG,
+              fatG: original.fatG,
+              scheduledDate: index === 0 ? today : window.startDate,
+              reviewedAt: now,
+              requiresSafetyRevalidation: false,
+              safetyPolicyVersion: 'MEAL_PLAN_SAFETY_V2',
+              baseRecipeSignature: original.recipeSignature,
+              composedServingSignature: original.recipeSignature,
+              ingredients: {
+                create: original.ingredients.map((ingredient) => ({
+                  ingredientName: ingredient.ingredientName,
+                  category: ingredient.category,
+                  quantity: ingredient.quantity,
+                  unit: ingredient.unit,
+                  foodItemId: ingredient.foodItemId,
+                  dataSource: ingredient.dataSource,
+                })),
+              },
+            },
+          });
+          await GroceryService.generateGroceryList(account.id, undefined, cycleId);
+        }
       }
     }
     await prisma.user.create({

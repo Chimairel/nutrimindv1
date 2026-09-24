@@ -91,6 +91,38 @@ test('patient workspace opens the plan, groceries, library, and history at deskt
   await visitAtBothSizes(page, '/grocery');
 });
 
+test('patient swaps a current and prepared upcoming breakfast with a favorite certified meal', async ({ page }) => {
+  test.setTimeout(120_000);
+  await signIn(page, 'user');
+  await page.goto('/meals');
+
+  const swapVisibleMeal = async () => {
+    await page
+      .getByRole('button', { name: /^Open .* details$/ })
+      .first()
+      .click();
+    await page.getByRole('button', { name: 'Swap Meal' }).click();
+    const dialog = page.getByRole('dialog', { name: /^Swap / });
+    await expect(dialog.getByRole('button', { name: 'Select' }).first()).toBeVisible({ timeout: 25_000 });
+    const firstOption = dialog.locator('h4').first();
+    const favoriteName = await firstOption.innerText();
+    await expect(firstOption.locator('..')).toContainText('Favorite');
+    await dialog.getByRole('button', { name: 'Select' }).first().click();
+    await expect(dialog.getByRole('button', { name: 'Confirm swap' })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Confirm swap' }).click();
+    await expect(dialog).toHaveCount(0, { timeout: 25_000 });
+    await expect(page.getByRole('button', { name: `Open ${favoriteName} details` })).toBeVisible();
+    return favoriteName;
+  };
+
+  const favoriteName = await swapVisibleMeal();
+  await page.getByRole('button', { name: 'Next plan day' }).click();
+  await expect(page.getByRole('button', { name: /^Open .* details$/ }).first()).toBeVisible();
+  expect(await swapVisibleMeal()).toBe(favoriteName);
+  await page.goto('/grocery');
+  await expect(page.getByText('We could not load this page.')).toHaveCount(0);
+});
+
 test('nutritionist can open plan, outside meal, and library review workspaces', async ({ page }) => {
   await signIn(page, 'nutritionist');
   await visitAtBothSizes(page, '/nutritionist/reviews');

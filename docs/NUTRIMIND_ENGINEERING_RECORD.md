@@ -4180,3 +4180,10 @@ Reproduced the reported generic 500 response by sending an application POST thro
 
 - Extended the plan-cycle acceptance with an upcoming library-backed, cleared meal and its generated ingredient projection. It verifies the next-cycle grocery list is actionable before the shopping deadline, then advances the service clock to the next Manila business day. The prior seven-day cycle completes, the upcoming cycle becomes current and active, its exact meal plan ID remains cleared, and its grocery list becomes the current workspace. The duplicate live cycle identity constraint also remains enforced.
 - The acceptance passed after all 66 migrations on a fresh disposable PostgreSQL 16.4 database, which was removed. This synthetic fixture contains one scheduled slot; completion of a real 21-slot generation and RND review before cutoff is still unverified in Batch 10.
+
+## 117. Current and upcoming swap browser journey (2026-09-24)
+
+**Change ID:** CHG-20260924-07
+
+- Extended the browser fixture using existing certified breakfast rows: one current and one prepared upcoming slot plus a favorited eligible replacement. A new Playwright journey opens each slot, verifies the favorite ranks first, confirms both swaps, and reaches groceries afterward. No library certifications are fabricated by this fixture.
+- The first run against remote development timed out while its swap-options request was still loading. A disposable PostgreSQL 17 restore of the verified development backup removed that latency; all seven role browser tests passed in about 90 seconds. The five local fixture accounts were removed and the servers/container stopped. Background Gemini requests received quota responses during the run, so live provider generation remains unverified. The remaining Batch 10 gaps are tracked in [Batch 10 integrated journeys](BATCH_10_INTEGRATED_JOURNEYS.md).
