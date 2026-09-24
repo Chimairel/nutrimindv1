@@ -17,6 +17,7 @@
     "scripts/structured-safety-replacement-acceptance.ts",
     "scripts/batch10-integrated-roles-acceptance.ts",
     "scripts/batch10-browser-fixture.ts",
-    "scripts/batch10-email-auth-acceptance.ts"
+    "scripts/batch10-email-auth-acceptance.ts",
+    "scripts/batch10-rnd-rejection-fallback-acceptance.ts"
   ]
 }

@@ -102,7 +102,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           title: isSecondReview ? 'Meal review requires adjudication' : 'Meal Plan Needs Changes ⚠️',
           message: isSecondReview
             ? `Independent reviewers disagreed about "${plan.mealName}". It is blocked pending Lead adjudication.`
-            : `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason.trim().replace(/[.!?]+$/, '')}. A replacement is being generated.`,
+            : `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason.trim().replace(/[.!?]+$/, '')}. We are checking for a safe replacement; this slot is unavailable until one is reviewed.`,
           type: NotificationType.PLAN_REJECTED,
         },
       });
@@ -351,5 +351,24 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
     console.error('[NutritionistService] Replacement meal generation failed:', err);
   }
 
-  return { success: true };
+  await prisma.$transaction([
+    prisma.notification.create({
+      data: {
+        userId: plan.userId,
+        title: 'No reviewed replacement available yet',
+        message: `The rejected ${plan.mealType.toLowerCase()} slot has no reviewed replacement. It will remain unavailable unless a new candidate is approved.`,
+        type: NotificationType.PLAN_REJECTED,
+      },
+    }),
+    prisma.auditEvent.create({
+      data: {
+        actorUserId: reviewer.userId,
+        action: 'MEAL_PLAN_REPLACEMENT_UNAVAILABLE',
+        entityType: 'MealPlan',
+        entityId: mealPlanId,
+        metadata: { planGroupId: plan.planGroupId, scheduledDate: plan.scheduledDate.toISOString() },
+      },
+    }),
+  ]);
+  return { success: true, replacementPlanId: null, replacementUnavailable: true };
 }

@@ -37,6 +37,7 @@
     "test:acceptance:batch10-email-auth": "tsx scripts/batch10-email-auth-acceptance.ts",
     "test:acceptance:batch10-scheduled-preparation": "tsx scripts/batch10-scheduled-preparation-acceptance.ts",
     "test:acceptance:batch10-full-library-plan": "tsx scripts/batch10-full-library-plan-acceptance.ts",
+    "test:acceptance:batch10-rnd-rejection": "tsx scripts/batch10-rnd-rejection-fallback-acceptance.ts",
     "test:acceptance:structured-safety": "tsx scripts/structured-safety-intake-acceptance.ts",
     "test:acceptance:structured-replacement": "tsx scripts/structured-safety-replacement-acceptance.ts",
     "measure:structured-coverage": "tsx scripts/measure-structured-library-coverage.ts",
