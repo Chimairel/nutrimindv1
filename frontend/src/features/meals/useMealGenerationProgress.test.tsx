@@ -77,6 +77,27 @@ describe('useMealGenerationProgress', () => {
     expect(result.current.stageMessage).toBe('Starting fresh generation.');
   });
 
+  it('ignores a stale job that is still marked generating', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: {
+          status: 'GENERATING',
+          progressPct: 25,
+          stageMessage: 'Old library scan',
+          startedAt: new Date(Date.now() - 3600_000).toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    const { result } = renderHook(() => useMealGenerationProgress(true));
+    act(() => result.current.begin('Starting fresh generation.'));
+
+    await waitFor(() => expect(getMock).toHaveBeenCalled());
+    expect(result.current.progress).toBe(5);
+    expect(result.current.stageMessage).toBe('Starting fresh generation.');
+  });
+
   it('supports explicit fail and reset calls', () => {
     const { result } = renderHook(() => useMealGenerationProgress(false));
 

@@ -94,11 +94,11 @@ describe('OutsideMealModal', () => {
     );
   });
 
-  it('calls AI estimate when HELP ME FIND VALUES WITH PREMIUM AI is clicked', () => {
+  it('calls AI estimate when HELP ME FIND VALUES WITH AI is clicked', () => {
     const onSubmit = vi.fn();
     render(<OutsideMealModal {...defaultProps} onSubmit={onSubmit} />);
 
-    const aiButton = screen.getByText('HELP ME FIND VALUES WITH PREMIUM AI');
+    const aiButton = screen.getByText('HELP ME FIND VALUES WITH AI');
     fireEvent.click(aiButton);
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -166,10 +166,42 @@ describe('OutsideMealModal', () => {
           {
             name: 'Chicken Adobo',
             mealLibraryId: 'pp_adobo',
-            reportedNutrition: { calories: 300, proteinG: 20, carbsG: 10, fatG: 15 },
           },
           { name: 'Rice, well-milled, boiled', portionGrams: 150 },
         ],
+      })
+    );
+  });
+
+  it('scales an FNRI food by consumed grams and keeps the reference source', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          eligible: [],
+          otherKnown: [
+            {
+              id: 'fnri-rice',
+              name: 'Rice, well-milled, boiled',
+              kind: 'FNRI_FOOD',
+              label: 'FNRI food; enter consumed grams',
+              macros: { calories: 129, proteinG: 2.1, carbsG: 29.7, fatG: 0.2 },
+            },
+          ],
+        },
+      },
+    } as never);
+    const onSubmit = vi.fn();
+    render(<OutsideMealModal {...defaultProps} mealName="Rice" onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Ric' } });
+    fireEvent.click(await screen.findByText('Rice, well-milled, boiled'));
+    fireEvent.change(screen.getByLabelText('Amount eaten (grams)'), { target: { value: '150' } });
+    fireEvent.click(screen.getByRole('button', { name: /LOG THIS MEAL/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      false,
+      expect.objectContaining({
+        useAiEstimate: false,
+        items: [{ name: 'Rice, well-milled, boiled', portionGrams: 150 }],
       })
     );
   });

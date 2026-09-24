@@ -330,27 +330,9 @@ export class MealGenerationService {
   static generate7DayPlan = generate7DayPlan;
 
   static async getLatestGenerationStatus(userId: string) {
-    const activeJob = await prisma.mealPlanGenerationJob.findFirst({
-      where: { userId, status: MealPlanGenerationJobStatus.GENERATING },
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        status: true,
-        progressPct: true,
-        stageCode: true,
-        stageMessage: true,
-        planGroupId: true,
-        lastErrorCode: true,
-        startedAt: true,
-        completedAt: true,
-        updatedAt: true,
-      },
-    });
-    if (activeJob) return activeJob;
-
     return prisma.mealPlanGenerationJob.findFirst({
       where: { userId },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ startedAt: 'desc' }, { updatedAt: 'desc' }],
       select: {
         id: true,
         status: true,

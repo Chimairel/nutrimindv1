@@ -59,13 +59,16 @@ export function useMealGenerationProgress(active: boolean) {
         const response = await api.get('/user/meals/generation-status');
         const job = response.data?.data;
         if (mounted && job) {
-          // If the job in the database was updated before this active generation started,
-          // ignore the stale job from previous runs (with 5s clock tolerance)
-          if (startedAtRef.current && job.updatedAt) {
-            const jobUpdatedAt = new Date(job.updatedAt).getTime();
-            if (jobUpdatedAt < startedAtRef.current - 5000 && job.status !== 'GENERATING') {
+          // A prior run can remain marked GENERATING. Its start time, rather
+          // than its last update, determines whether it belongs to this run.
+          if (startedAtRef.current && job.startedAt) {
+            const jobStartedAt = new Date(job.startedAt).getTime();
+            if (jobStartedAt < startedAtRef.current - 5000) {
               return;
             }
+          } else if (startedAtRef.current && job.updatedAt) {
+            const jobUpdatedAt = new Date(job.updatedAt).getTime();
+            if (jobUpdatedAt < startedAtRef.current - 5000) return;
           }
 
           if (job.status === 'FAILED') {
@@ -114,4 +117,3 @@ export function useMealGenerationProgress(active: boolean) {
     reset,
   };
 }
-

@@ -382,7 +382,7 @@ export async function generate7DayPlan(
           );
         } catch (aiErr) {
           console.warn(`[Meal Generation] Gemini generation attempt ${attempt} failed:`, aiErr);
-          if (attempt === 3) break;
+          if (attempt === 3) throw aiErr;
           continue;
         }
 
@@ -404,37 +404,7 @@ export async function generate7DayPlan(
         pendingSlots = pendingSlots.filter((slot) => rejectedKeys.has(`${slot.dayNumber}:${slot.mealType}`));
       }
       if (pendingSlots.length) {
-        console.warn(
-          `[Meal Generation] Falling back to eligible library meals for ${pendingSlots.length} unmatched slot(s).`
-        );
-        for (const slot of pendingSlots) {
-          const matchingLibMeal = eligibleLibraryMeals.find((m) => m.mealType === slot.mealType);
-          if (matchingLibMeal) {
-            accepted.push({
-              dayNumber: slot.dayNumber,
-              mealType: slot.mealType,
-              mealName: matchingLibMeal.mealName,
-              description: matchingLibMeal.description,
-              calories: matchingLibMeal.calories,
-              proteinG: matchingLibMeal.proteinG,
-              carbsG: matchingLibMeal.carbsG,
-              fatG: matchingLibMeal.fatG,
-              candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
-              ingredients: matchingLibMeal.ingredients.map((ing) => ({
-                ingredientName: ing.ingredientName,
-                quantity: ing.quantity,
-                unit: ing.unit,
-                calories: ing.calories,
-                proteinG: ing.proteinG,
-                carbsG: ing.carbsG,
-                fatG: ing.fatG,
-                foodItemId: ing.foodItemId,
-                dataSource: ing.dataSource,
-              })),
-            });
-          }
-        }
-        pendingSlots = [];
+        throw new Error(`Deterministic validation rejected ${pendingSlots.length} meal slot(s) after 3 attempts.`);
       }
       return accepted;
     }
@@ -884,7 +854,7 @@ export async function generate7DayPlan(
     });
   }
 
-  if (cycleTiming.planType === PlanType.STARTER) {
+  if (planType === PlanType.STARTER) {
     const nextStart = new Date(cycleTiming.endDate.getTime() + 86_400_000);
     const dateStr = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
@@ -892,14 +862,19 @@ export async function generate7DayPlan(
       month: 'short',
       day: 'numeric',
     }).format(nextStart);
-    await prisma.notification.create({
-      data: {
-        userId,
-        title: 'Starter Meal Plan Active',
-        message: `Your kickoff bridge plan is ready. Your full 7-day weekly cycle begins on ${dateStr}.`,
-        type: NotificationType.ASSIGNMENT,
-      },
-    });
+    try {
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: 'Starter Meal Plan Active',
+          message: `Your kickoff bridge plan is ready. Your full 7-day weekly cycle begins on ${dateStr}.`,
+          type: NotificationType.ASSIGNMENT,
+        },
+      });
+    } catch (error) {
+      // The plan has already been committed; a notification failure cannot undo it.
+      console.warn('[Meal Generation] Could not create starter plan notification:', error);
+    }
   }
 
   return newPlanGroupId;

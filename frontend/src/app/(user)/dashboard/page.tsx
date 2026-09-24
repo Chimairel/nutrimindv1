@@ -89,7 +89,7 @@ export default function DashboardPage() {
       dayAfter.setDate(dayAfter.getDate() + 1);
       return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
     }
-    return 'Monday, Sep 28';
+    return null;
   }, [isStarterPlan, currentCycle?.endDate]);
 
   const notifiedStarterPlan = useRef(false);

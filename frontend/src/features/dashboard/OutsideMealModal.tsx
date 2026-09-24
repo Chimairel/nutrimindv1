@@ -20,6 +20,7 @@ import type { MealType } from '@/types';
 import type { OutsideMealInputItem, OutsideMealWarning } from './model';
 import RiceAccompanimentSelect from '@/components/user/RiceAccompanimentSelect';
 import { ricePlateNutrition, type RiceReference } from '@/lib/rice-accompaniment';
+import { displayMacros, emptyMacros, parseItems } from './outside-meal-input';
 
 type SubmitOptions = {
   useAiEstimate: boolean;
@@ -78,17 +79,6 @@ const sourceLabels: Record<OutsideMealWarning['items'][number]['source'], string
   NUTRITIONIST_REVIEWED: 'Nutritionist reviewed',
   UNRESOLVED: 'Unresolved',
 };
-
-function parseItems(value: string): OutsideMealInputItem[] {
-  return value
-    .split(',')
-    .map((raw) => raw.trim())
-    .filter(Boolean)
-    .map((raw) => {
-      const match = raw.match(/^(.*?)(?:\s*[-(]\s*)(\d+(?:\.\d+)?)\s*g(?:rams?)?\s*\)?$/i);
-      return { name: (match?.[1] ?? raw).trim(), ...(match ? { portionGrams: Number(match[2]) } : {}) };
-    });
-}
 
 export function OutsideMealModal(props: Props) {
   return (
@@ -236,7 +226,7 @@ function OutsideMealForm(props: Props) {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Nutritional values (editable numbers)
-  const [manual, setManual] = useState({ calories: '', proteinG: '', carbsG: '', fatG: '' });
+  const [manual, setManual] = useState(emptyMacros);
   const [baseNutrition, setBaseNutrition] = useState<{
     calories: number;
     proteinG: number;
@@ -244,6 +234,7 @@ function OutsideMealForm(props: Props) {
     fatG: number;
   } | null>(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
+  const [portionGrams, setPortionGrams] = useState('');
   const [riceReference, setRiceReference] = useState<RiceReference | null>(null);
   const [selectedRicePairing, setSelectedRicePairing] = useState<'ULAM' | 'RICE_INCLUDED' | 'STANDALONE' | null>(null);
   const [riceGrams, setRiceGrams] = useState(0);
@@ -291,6 +282,9 @@ function OutsideMealForm(props: Props) {
       props.onMealNameChange(value);
       if (selectedSuggestion && value.trim() !== selectedSuggestion.name.trim()) {
         setSelectedSuggestion(null);
+        setBaseNutrition(null);
+        setManual(emptyMacros);
+        setPortionGrams('');
         setRiceReference(null);
         setSelectedRicePairing(null);
         setRiceGrams(0);
@@ -339,20 +333,19 @@ function OutsideMealForm(props: Props) {
   const handleSelectSuggestion = (dish: Suggestion) => {
     props.onMealNameChange(dish.name);
     setSelectedSuggestion(dish);
+    setPortionGrams(dish.kind === 'FNRI_FOOD' ? '100' : '');
     setSelectedRicePairing(dish.ricePairing ?? null);
     setRiceReference(
-      dish.ricePairing === 'ULAM' || dish.ricePairing === 'RICE_INCLUDED' ? dish.riceReference ?? null : null
+      dish.ricePairing === 'ULAM' || dish.ricePairing === 'RICE_INCLUDED' ? (dish.riceReference ?? null) : null
     );
     setRiceGrams(0);
 
     if (dish.macros) {
       setBaseNutrition(dish.macros);
-      setManual({
-        calories: String(Math.round(dish.macros.calories)),
-        proteinG: String(Math.round(dish.macros.proteinG * 10) / 10),
-        carbsG: String(Math.round(dish.macros.carbsG * 10) / 10),
-        fatG: String(Math.round(dish.macros.fatG * 10) / 10),
-      });
+      setManual(displayMacros(dish.macros));
+    } else {
+      setBaseNutrition(null);
+      setManual(emptyMacros);
     }
     setShowDropdown(false);
   };
@@ -360,12 +353,15 @@ function OutsideMealForm(props: Props) {
   // Quick portion multiplier presets (keeps all values freely editable!)
   const applyPortionMultiplier = (multiplier: number) => {
     if (!baseNutrition) return;
-    setManual({
-      calories: String(Math.round(baseNutrition.calories * multiplier)),
-      proteinG: String(Math.round(baseNutrition.proteinG * multiplier * 10) / 10),
-      carbsG: String(Math.round(baseNutrition.carbsG * multiplier * 10) / 10),
-      fatG: String(Math.round(baseNutrition.fatG * multiplier * 10) / 10),
-    });
+    setManual(
+      displayMacros({
+        calories: baseNutrition.calories * multiplier,
+        proteinG: baseNutrition.proteinG * multiplier,
+        carbsG: baseNutrition.carbsG * multiplier,
+        fatG: baseNutrition.fatG * multiplier,
+      })
+    );
+    if (selectedSuggestion?.kind === 'FNRI_FOOD') setPortionGrams(String(100 * multiplier));
   };
 
   // Handle Photo selection from camera or file picker
@@ -400,6 +396,7 @@ function OutsideMealForm(props: Props) {
 
   // Submit with user-entered or auto-filled editable manual values
   const handleSubmit = (useAi = false) => {
+    const selectedName = selectedSuggestion?.name ?? props.mealName.trim();
     const hasManual =
       manual.calories.trim() !== '' ||
       manual.proteinG.trim() !== '' ||
@@ -408,9 +405,31 @@ function OutsideMealForm(props: Props) {
 
     let submittedItems: OutsideMealInputItem[];
 
-    if (hasManual && !useAi) {
+    const fnriGrams = selectedSuggestion?.kind === 'FNRI_FOOD' ? Number(portionGrams) : null;
+    if (selectedSuggestion?.kind === 'FNRI_FOOD' && (!fnriGrams || fnriGrams <= 0)) return;
+    const referenceFactor = selectedSuggestion?.kind === 'FNRI_FOOD' && fnriGrams ? fnriGrams / 100 : 1;
+    const referenceMacros = baseNutrition
+      ? displayMacros({
+          calories: baseNutrition.calories * referenceFactor,
+          proteinG: baseNutrition.proteinG * referenceFactor,
+          carbsG: baseNutrition.carbsG * referenceFactor,
+          fatG: baseNutrition.fatG * referenceFactor,
+        })
+      : null;
+    const unchangedReference =
+      referenceMacros &&
+      (Object.keys(referenceMacros) as Array<keyof typeof referenceMacros>).every(
+        (key) => manual[key] === referenceMacros[key]
+      );
+    const useReference =
+      !useAi &&
+      unchangedReference &&
+      (selectedSuggestion?.kind === 'ELIGIBLE_LIBRARY' || selectedSuggestion?.kind === 'FNRI_FOOD');
+
+    if (hasManual && !useAi && !useReference) {
       const singleItem: OutsideMealInputItem = {
-        name: props.mealName.trim() || 'Custom Meal',
+        name: selectedName || 'Custom Meal',
+        ...(fnriGrams ? { portionGrams: fnriGrams } : {}),
         reportedNutrition: {
           calories: Number(manual.calories) || 0,
           proteinG: Number(manual.proteinG) || 0,
@@ -426,7 +445,12 @@ function OutsideMealForm(props: Props) {
       }
       submittedItems = [singleItem];
     } else {
-      submittedItems = parsedItems.length > 0 ? parsedItems.map((item) => ({ ...item })) : [{ name: props.mealName.trim() }];
+      submittedItems = selectedSuggestion
+        ? [{ name: selectedName }]
+        : parsedItems.length > 0
+          ? parsedItems.map((item) => ({ ...item }))
+          : [{ name: selectedName }];
+      if (fnriGrams && submittedItems.length === 1) submittedItems[0].portionGrams = fnriGrams;
       if (
         selectedSuggestion?.id &&
         (selectedSuggestion.kind === 'ELIGIBLE_LIBRARY' || selectedSuggestion.kind === 'KNOWN_CATALOG') &&
@@ -514,7 +538,8 @@ function OutsideMealForm(props: Props) {
                 setRiceReference(null);
                 setSelectedRicePairing(null);
                 setRiceGrams(0);
-                setManual({ calories: '', proteinG: '', carbsG: '', fatG: '' });
+                setManual(emptyMacros);
+                setPortionGrams('');
               }}
               className="absolute right-3 top-2.5 text-brand-muted hover:text-brand-text"
             >
@@ -523,8 +548,8 @@ function OutsideMealForm(props: Props) {
           ) : null}
         </div>
         <p className="mt-0.5 text-[10px] text-brand-muted">
-          For multiple foods, separate each one with a comma. Add a measured portion like <strong>rice (150g)</strong> for
-          FNRI matching.
+          For multiple foods, separate each one with a comma. Add a measured portion like <strong>rice (150g)</strong>{' '}
+          for FNRI matching.
         </p>
 
         {/* Autocomplete Dropdown List */}
@@ -567,6 +592,39 @@ function OutsideMealForm(props: Props) {
         )}
       </div>
 
+      {selectedSuggestion?.kind === 'FNRI_FOOD' && baseNutrition && (
+        <div className="flex flex-col gap-1 rounded-xl border border-brand-border/70 bg-brand-surface/50 p-3.5">
+          <label htmlFor="fnriPortionGrams" className="text-xs font-bold text-brand-text/90">
+            Amount eaten (grams)
+          </label>
+          <input
+            id="fnriPortionGrams"
+            type="number"
+            min="1"
+            step="1"
+            required
+            value={portionGrams}
+            onChange={(event) => {
+              const grams = event.target.value;
+              setPortionGrams(grams);
+              const factor = Number(grams) / 100;
+              setManual(
+                grams && factor > 0
+                  ? displayMacros({
+                      calories: baseNutrition.calories * factor,
+                      proteinG: baseNutrition.proteinG * factor,
+                      carbsG: baseNutrition.carbsG * factor,
+                      fatG: baseNutrition.fatG * factor,
+                    })
+                  : emptyMacros
+              );
+            }}
+            className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-brand-text outline-none focus:border-brand-green"
+          />
+          <p className="text-[10px] text-brand-muted">FNRI values are per 100 g; this amount scales the estimate.</p>
+        </div>
+      )}
+
       {/* 3. Nutritional Values (Estimated) - Open by default & fully editable */}
       <div className="rounded-xl border border-brand-border/70 bg-brand-surface/50 p-3.5">
         <div className="mb-2 flex items-center justify-between">
@@ -577,7 +635,7 @@ function OutsideMealForm(props: Props) {
               {selectedSuggestion.kind === 'ELIGIBLE_LIBRARY'
                 ? 'From verified recipe'
                 : selectedSuggestion.kind === 'KNOWN_CATALOG'
-                  ? 'Auto-filled from verified recipe'
+                  ? 'From catalog; safety not confirmed'
                   : selectedSuggestion.kind === 'FNRI_FOOD'
                     ? 'From FNRI · per 100g reference'
                     : 'From observed reference'}
@@ -689,8 +747,8 @@ function OutsideMealForm(props: Props) {
         <div className="space-y-2">
           {selectedRicePairing === 'RICE_INCLUDED' && (
             <p className="text-xs text-brand-muted">
-              The recipe estimate already includes its listed rice. If your rice portion within the dish differs,
-              edit the nutrition estimate above. Use this field only for rice added beyond the recipe serving.
+              The recipe estimate already includes its listed rice. If your rice portion within the dish differs, edit
+              the nutrition estimate above. Use this field only for rice added beyond the recipe serving.
             </p>
           )}
           <RiceAccompanimentSelect
@@ -703,7 +761,8 @@ function OutsideMealForm(props: Props) {
           {ricePlatePreview && (
             <p className="text-xs font-semibold text-brand-text">
               Plate preview: {Math.round(ricePlatePreview.calories)} kcal ·{' '}
-              {Math.round(ricePlatePreview.carbsG * 10) / 10}g carbs. Rice appears as its own FNRI item in the confirmation.
+              {Math.round(ricePlatePreview.carbsG * 10) / 10}g carbs. Rice appears as its own FNRI item in the
+              confirmation.
             </p>
           )}
         </div>
@@ -782,7 +841,7 @@ function OutsideMealForm(props: Props) {
           className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/10 py-2.5 px-4 text-xs font-extrabold text-brand-green transition hover:bg-brand-green/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles className="h-4 w-4" />
-          HELP ME FIND VALUES WITH PREMIUM AI
+          HELP ME FIND VALUES WITH AI
         </button>
         <p className="mt-1.5 text-[10px] text-brand-muted">
           Use AI if unresolved — AI values count immediately as provisional and enter nutritionist review.
@@ -794,7 +853,11 @@ function OutsideMealForm(props: Props) {
         type="submit"
         variant="primary"
         className="w-full py-3.5 text-xs font-extrabold uppercase tracking-wider"
-        disabled={!props.mealName.trim() || Boolean(imageError)}
+        disabled={
+          !props.mealName.trim() ||
+          Boolean(imageError) ||
+          (selectedSuggestion?.kind === 'FNRI_FOOD' && !(Number(portionGrams) > 0))
+        }
         isLoading={props.isLoading}
       >
         LOG THIS MEAL

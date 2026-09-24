@@ -224,16 +224,10 @@ export default function NotificationDropdown() {
                           : 'bg-status-warning-bg/15 text-status-warning-text'
                       }`}
                     >
-                      {isPlanningReady ? (
-                        <ShieldCheck className="h-4 w-4" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4" />
-                      )}
+                      {isPlanningReady ? <ShieldCheck className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                     </span>
                     <div className="min-w-0">
-                      <h4 className="font-display text-xs font-bold text-brand-text truncate">
-                        Planner status
-                      </h4>
+                      <h4 className="font-display text-xs font-bold text-brand-text truncate">Planner status</h4>
                       <span className="text-[10px] text-brand-muted truncate block">
                         {isPlanningReady ? 'Eligible for planning' : 'Action required'}
                       </span>
@@ -304,12 +298,8 @@ export default function NotificationDropdown() {
                       <Sprout className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
-                      <h4 className="font-display text-xs font-bold text-brand-text truncate">
-                        Starter Plan Active
-                      </h4>
-                      <span className="text-[10px] text-brand-muted truncate block">
-                        Kickoff bridge plan
-                      </span>
+                      <h4 className="font-display text-xs font-bold text-brand-text truncate">Starter Plan Active</h4>
+                      <span className="text-[10px] text-brand-muted truncate block">Kickoff bridge plan</span>
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green">
@@ -318,9 +308,9 @@ export default function NotificationDropdown() {
                 </div>
 
                 <p className="mt-2 text-[11px] leading-relaxed text-brand-muted">
-                  You are currently on a starter bridge plan. Your full 7-day weekly cycle begins on{' '}
+                  You are currently on a starter bridge plan. Your full 7-day weekly cycle begins{' '}
                   <span className="font-semibold text-brand-text">
-                    {cycleInfo.nextCycleDay || 'Monday, Sep 28'}
+                    {cycleInfo.nextCycleDay ? `on ${cycleInfo.nextCycleDay}` : 'after this bridge plan ends'}
                   </span>
                   .
                 </p>
