@@ -124,6 +124,11 @@ export class OutsideMealCaptureService {
           status: true,
           dietaryTags: true,
           safetyDeclarations: { select: { declarationType: true, canonicalKey: true } },
+          calories: true,
+          proteinG: true,
+          carbsG: true,
+          fatG: true,
+          nutritionServingDescription: true,
         },
         orderBy: { mealName: 'asc' },
         take: 8,
@@ -136,7 +141,7 @@ export class OutsideMealCaptureService {
       }),
       prisma.foodItem.findMany({
         where: { name: { contains: query, mode: 'insensitive' }, source: 'FNRI' },
-        select: { id: true, name: true },
+        select: { id: true, name: true, calories: true, proteinG: true, carbsG: true, fatG: true },
         orderBy: { name: 'asc' },
         take: 6,
       }),
@@ -164,6 +169,8 @@ export class OutsideMealCaptureService {
           kind: 'KNOWN_CATALOG',
           id: meal.id,
           name: meal.mealName,
+          serving: meal.nutritionServingDescription || '1 serving',
+          macros: { calories: meal.calories, proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG },
           label: flaggedAllergen?.canonicalKey
             ? `Possible ${flaggedAllergen.canonicalKey.toLowerCase()} conflict`
             : dietaryConflict
@@ -183,6 +190,8 @@ export class OutsideMealCaptureService {
         kind: 'FNRI_FOOD',
         id: food.id,
         name: food.name,
+        serving: '100g reference',
+        macros: { calories: food.calories, proteinG: food.proteinG, carbsG: food.carbsG, fatG: food.fatG },
         label: 'FNRI food; enter consumed grams',
         compatibility: 'UNKNOWN',
       })),

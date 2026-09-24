@@ -437,7 +437,7 @@ export default function WeeklyPlanPage() {
             ) : (
               <div className="py-12">
                 <EmptyState
-                  icon={<Calendar className="h-8 w-8 text-brand-green" />}
+                  useSleepingGraphic
                   title="No Active Meal Plan"
                   description="Generate a customized 7-day plan (21 meals) using varied, affordable food choices matched to your nutrition needs and preferences."
                   actionText="Generate 7-Day Plan"

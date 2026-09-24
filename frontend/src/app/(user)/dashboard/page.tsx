@@ -14,7 +14,7 @@ import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Calendar, Plus, AlertTriangle, Soup, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
@@ -495,7 +495,7 @@ export default function DashboardPage() {
         ) : currentMeals.length === 0 && !pendingReview ? (
           <div className="py-12">
             <EmptyState
-              icon={<Soup className="h-8 w-8 text-brand-green" />}
+              useSleepingGraphic
               title="No Active Meal Plan"
               description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
               actionText="Generate Meal Plan"
