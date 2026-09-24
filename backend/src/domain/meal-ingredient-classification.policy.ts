@@ -129,7 +129,7 @@ const ANIMAL_DERIVED_PATTERNS = [
 // being treated as plant based.
 const RECOGNIZED_NON_ANIMAL_PATTERNS = [
   /\b(?:rice|corn|oat|quinoa|noodle|pasta|bread|flour|starch|sugar|salt|pepper|spice|seasoning|oil|vinegar|water|stock|broth)\b/u,
-  /\b(?:tomato|onion|garlic|ginger|carrot|potato|sweet potato|kamote|squash|pumpkin|eggplant|okra|cabbage|lettuce|spinach|kangkong|pechay|broccoli|cauliflower|bean|pea|lentil|chickpea|tofu|tempeh|mushroom)\b/u,
+  /\b(?:tomato|onion|garlic|ginger|carrots?|potato|sweet potato|kamote|squash|pumpkin|eggplant|okra|cabbage|lettuce|spinach|kangkong|pechay|broccoli|cauliflower|bean|pea|lentil|chickpea|tofu|tempeh|mushroom)\b/u,
   /\b(?:banana|mango|papaya|pineapple|apple|orange|lemon|lime|calamansi|coconut|avocado|strawberry|fruit)\b/u,
   /\b(?:soy|miso|tahini|sesame|cacao|cocoa|chocolate|coffee|tea|herb|basil|oregano|parsley|cilantro|spring onion|chili)\b/u,
 ] as const;

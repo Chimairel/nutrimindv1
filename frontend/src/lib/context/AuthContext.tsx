@@ -28,6 +28,7 @@ export interface UserSession {
 export interface AuthContextType {
   user: UserSession | null;
   isLoading: boolean;
+  profileLoadError: boolean;
   login: (token: string) => Promise<UserSession | null>;
   logout: () => Promise<void>;
   completeAccountDeletion: () => void;
@@ -40,12 +41,15 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserSession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [profileLoadError, setProfileLoadError] = useState(false);
   const sessionRequestId = useRef(0);
   const router = useRouter();
 
   // Refresh user profile details from backend to ensure state accuracy
   const refreshSession = async () => {
     const requestId = ++sessionRequestId.current;
+    setIsLoading(true);
+    setProfileLoadError(false);
 
     try {
       const response = await api.get('/user/profile');
@@ -92,8 +96,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (requestId !== sessionRequestId.current) return null;
 
         setUser(refreshedUser);
+        setProfileLoadError(false);
         return refreshedUser;
       }
+      if (requestId === sessionRequestId.current) setProfileLoadError(true);
       return null;
     } catch (error) {
       if (requestId !== sessionRequestId.current) return null;
@@ -103,6 +109,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if ((error as { response?: { status?: number } }).response?.status === 401) {
         clearSessionResourceCache();
         setUser(null);
+        setProfileLoadError(false);
+      } else {
+        setProfileLoadError(true);
       }
       return null;
     } finally {
@@ -184,6 +193,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     sessionRequestId.current += 1;
     setIsLoading(true);
+    setProfileLoadError(false);
     setSessionRefreshSuppressed(true);
     try {
       await api.post('/auth/logout');
@@ -203,6 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const completeAccountDeletion = () => {
     sessionRequestId.current += 1;
     setSessionRefreshSuppressed(true);
+    setProfileLoadError(false);
     cookieHelper.clear('nutrimind_session');
     clearSessionResourceCache();
     setUser(null);
@@ -219,6 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isLoading,
+        profileLoadError,
         login,
         logout,
         completeAccountDeletion,

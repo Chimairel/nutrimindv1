@@ -15,9 +15,13 @@ const email = (role: string) => `batch10-browser-${role}-${runId}@example.invali
 async function cleanup() {
   const users = await prisma.user.findMany({
     where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding', 'report'].map(email) } },
-    select: { id: true },
+    select: { id: true, role: true },
   });
-  for (const user of users) await prisma.user.delete({ where: { id: user.id } });
+  // Patient log revisions can point to the fixture RND with a restricting FK.
+  // Remove patient-owned logs before removing their reviewer account.
+  for (const user of users.sort((a, b) => Number(a.role === 'NUTRITIONIST') - Number(b.role === 'NUTRITIONIST'))) {
+    await prisma.user.delete({ where: { id: user.id } });
+  }
   console.log(`[Batch 10 browser fixture] removed ${users.length} accounts`);
 }
 

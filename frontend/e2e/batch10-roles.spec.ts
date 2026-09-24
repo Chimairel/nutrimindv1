@@ -147,7 +147,7 @@ test('administrator can inspect account, nutritionist, and operations workspaces
   await expect(professional.getByRole('button', { name: 'Lead enabled' })).toBeVisible();
 });
 
-test('patient and nutritionist complete an outside-meal clarification and correction', async ({ browser }) => {
+test('patient and nutritionist correct an outside meal and admit a consented recipe candidate', async ({ browser }) => {
   test.setTimeout(120_000);
   const patient = await browser.newPage();
   const nutritionist = await browser.newPage();
@@ -200,9 +200,36 @@ test('patient and nutritionist complete an outside-meal clarification and correc
 
     await patient.reload();
     const correctedCard = patient.locator('article').filter({ hasText: mealName });
+    await expect(correctedCard).toBeVisible({ timeout: 20_000 });
     await correctedCard.locator('[role="button"]').first().click();
     await expect(correctedCard.getByText('Corrected and confirmed nutrition estimate')).toBeVisible();
     await expect(correctedCard.getByText('420 kcal', { exact: true }).first()).toBeVisible();
+    await correctedCard.getByRole('button', { name: 'Optionally share deidentified food details' }).click();
+    await correctedCard.getByRole('button', { name: 'Allow deidentified details' }).click();
+    await expect(correctedCard.getByText(/Deidentified food-detail reuse: submitted/)).toBeVisible();
+
+    await nutritionist.reload();
+    const observation = nutritionist.getByRole('region', { name: 'Observed food admissions' });
+    await observation.getByRole('button', { name: new RegExp(mealName) }).click();
+    await observation.getByRole('combobox', { name: 'Outcome' }).selectOption('RECIPE_CANDIDATE');
+    await observation
+      .getByRole('textbox', { name: 'Deidentified canonical name' })
+      .fill('Home-cooked chicken and carrot stew');
+    await observation
+      .getByRole('textbox', { name: /Ingredients, one per line/ })
+      .fill('Chicken | 150 | g\nCarrots | 50 | g\nBroth | 50 | ml');
+    await observation
+      .getByRole('textbox', { name: 'Preparation method' })
+      .fill('Simmer the chicken and carrots in broth until cooked through, then serve one bowl.');
+    await observation.getByRole('checkbox', { name: 'lunch' }).check();
+    await observation.getByRole('button', { name: 'Admit deidentified candidate' }).click();
+    await expect(observation.getByRole('button', { name: new RegExp(mealName) })).toHaveCount(0);
+    await expect(observation.getByText('No observations awaiting classification.')).toBeVisible();
+
+    await patient.reload();
+    const admittedCard = patient.locator('article').filter({ hasText: mealName });
+    await admittedCard.locator('[role="button"]').first().click();
+    await expect(admittedCard.getByText(/Deidentified food-detail reuse: admitted recipe/)).toBeVisible();
   } finally {
     await patient.close();
     await nutritionist.close();

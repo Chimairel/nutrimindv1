@@ -27,6 +27,9 @@ import nutritionistApplicationRouter from '@/routes/nutritionist-application.rou
 
 // Initialize Express app
 const app = express();
+// Personalized API responses must not turn into bodyless 304 responses during
+// auth hydration or safety/profile refreshes.
+app.disable('etag');
 if (env.TRUST_PROXY) app.set('trust proxy', 1);
 
 if (env.NODE_ENV !== 'production' || env.API_DOCS_ENABLED) {

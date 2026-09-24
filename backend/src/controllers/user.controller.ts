@@ -40,6 +40,7 @@ export class UserController {
    * Returns complete profile details (User + Profile + Conditions + Allergies + NutritionReport status)
    */
   static async getProfile(req: AuthenticatedRequest, res: Response) {
+    res.set('Cache-Control', 'private, no-store');
     try {
       const userId = req.user?.userId;
       if (!userId) {

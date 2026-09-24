@@ -22,6 +22,10 @@ test('[TEST-202] deterministic classifier finds definite allergens and hierarchi
   assert.deepEqual(shrimp.detectedAllergens, ['GLUTEN', 'SHELLFISH']);
   assert.equal(hasDefiniteDietaryConflict(shrimp, 'VEGETARIAN'), true);
   assert.equal(hasDefiniteDietaryConflict(shrimp, 'PESCATARIAN'), false);
+
+  const stew = classifyMealIngredients([{ name: 'chicken' }, { name: 'carrots' }, { name: 'broth' }]);
+  assert.equal(stew.status, 'COMPLETE');
+  assert.deepEqual(stew.unknownIngredients, []);
 });
 
 test('[TEST-203] unknown ingredients never become inferred vegetarian or allergen-free evidence', () => {

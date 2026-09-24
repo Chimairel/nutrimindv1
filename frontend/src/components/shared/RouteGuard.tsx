@@ -23,7 +23,7 @@ interface RouteGuardProps {
  * Report acknowledgment gates meal actions on the server, not access to profile/history.
  */
 export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, profileLoadError, refreshSession, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -55,7 +55,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   ].some((route) => pathname.startsWith(route));
 
   let redirectTarget: string | null = null;
-  if (!isLoading) {
+  if (!isLoading && !profileLoadError) {
     if (!user && !isPublicRoute) {
       redirectTarget = '/login';
     } else if (user) {
@@ -89,6 +89,33 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   // Render a full-screen loading spinner while the status is being resolved
   if (isLoading || redirectTarget) {
     return <PortalLoadingState fullScreen />;
+  }
+
+  if (profileLoadError && user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-brand-text">
+        <div role="alert" className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-6">
+          <h1 className="font-display text-xl font-bold">Could not load your account profile</h1>
+          <p className="mt-2 text-sm text-brand-muted">Your account status could not be checked. Please try again.</p>
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={() => void refreshSession()}
+              className="rounded-xl bg-brand-green px-4 py-2 font-bold text-brand-bg"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="rounded-xl border border-brand-border px-4 py-2"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Double-check authorization matching before rendering sensitive components
