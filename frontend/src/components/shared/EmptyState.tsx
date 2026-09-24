@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import { Soup } from 'lucide-react';
-import { useTheme } from '@/lib/context/ThemeContext';
+import StateNotice from './StateNotice';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -31,19 +31,24 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   className = '',
 }) => {
-  let activeTheme = 'light';
-  try {
-    const themeContext = useTheme();
-    activeTheme = themeContext.theme;
-  } catch {
-    activeTheme = 'light';
+  if (useSleepingGraphic) {
+    return (
+      <StateNotice
+        variant="no-meal-plan"
+        title={title}
+        description={description}
+        action={
+          actionText
+            ? {
+                label: actionText,
+                onClick: onAction,
+              }
+            : null
+        }
+        className={className}
+      />
+    );
   }
-
-  const graphic = useSleepingGraphic
-    ? activeTheme === 'dark'
-      ? '/logo/sleeping-dark.svg'
-      : '/logo/sleeping-light.svg'
-    : imageSrc;
 
   return (
     <div
@@ -52,10 +57,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         ${className}
       `}
     >
-      {graphic ? (
+      {imageSrc ? (
         <div className="relative mb-5 flex h-44 w-44 sm:h-52 sm:w-52 items-center justify-center transition-transform hover:scale-105 duration-500 ease-out">
           <Image
-            src={graphic}
+            src={imageSrc}
             alt={imageAlt || title}
             width={imageSize}
             height={imageSize}

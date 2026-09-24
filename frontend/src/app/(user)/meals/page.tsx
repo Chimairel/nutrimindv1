@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
-import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import MealCard from '@/components/user/MealCard';
 import MealActivityCalendar from '@/components/user/MealActivityCalendar';
@@ -15,7 +14,7 @@ import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import { toast } from '@/components/ui/Sonner';
-import UnauthorizedState from '@/components/shared/UnauthorizedState';
+import StateNotice from '@/components/shared/StateNotice';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
   Sprout,
@@ -390,9 +389,8 @@ export default function WeeklyPlanPage() {
           (isLoading ? (
             <MealPlanSkeleton />
           ) : isReportPending ? (
-            <UnauthorizedState
-              eyebrow="Action Required"
-              title="Nutrition Report Pending"
+            <StateNotice
+              variant="action-needed"
               description="Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed."
               action={{
                 label: 'View Nutrition Report',
@@ -435,15 +433,16 @@ export default function WeeklyPlanPage() {
                   ))}
               </section>
             ) : (
-              <div className="py-12">
-                <EmptyState
-                  useSleepingGraphic
-                  title="No Active Meal Plan"
-                  description="Generate a customized 7-day plan (21 meals) using varied, affordable food choices matched to your nutrition needs and preferences."
-                  actionText="Generate 7-Day Plan"
-                  onAction={handleRegeneratePlan}
-                />
-              </div>
+              <StateNotice
+                variant="no-meal-plan"
+                title="No Active Meal Plan"
+                description="Generate a customized 7-day plan (21 meals) using varied, affordable food choices matched to your nutrition needs and preferences."
+                action={{
+                  label: isRegenerating ? 'Generating Plan...' : 'Generate 7-Day Plan',
+                  onClick: handleRegeneratePlan,
+                  isLoading: isRegenerating,
+                }}
+              />
             )
           ) : (
             <div className="flex flex-col gap-4 text-left">
@@ -562,9 +561,8 @@ export default function WeeklyPlanPage() {
 
         {activeTab === 'history' &&
           (isReportPending ? (
-            <UnauthorizedState
-              eyebrow="Action Required"
-              title="Nutrition Report Pending"
+            <StateNotice
+              variant="action-needed"
               description="Please review and acknowledge your personalized nutrition report before viewing your meal history."
               action={{
                 label: 'View Nutrition Report',
@@ -865,9 +863,8 @@ export default function WeeklyPlanPage() {
 
         {activeTab === 'library' &&
           (isReportPending ? (
-            <UnauthorizedState
-              eyebrow="Action Required"
-              title="Nutrition Report Pending"
+            <StateNotice
+              variant="action-needed"
               description="Please review and acknowledge your personalized nutrition report before browsing the meal library."
               action={{
                 label: 'View Nutrition Report',

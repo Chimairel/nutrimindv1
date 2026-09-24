@@ -6,10 +6,9 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
-import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { toast } from '@/components/ui/Sonner';
-import UnauthorizedState from '@/components/shared/UnauthorizedState';
+import StateNotice from '@/components/shared/StateNotice';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
@@ -483,9 +482,8 @@ export default function DashboardPage() {
         {isLoading ? (
           <DashboardSkeleton />
         ) : isReportPending ? (
-          <UnauthorizedState
-            eyebrow="Action Required"
-            title="Nutrition Report Pending"
+          <StateNotice
+            variant="action-needed"
             description="Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed."
             action={{
               label: 'View Nutrition Report',
@@ -493,15 +491,16 @@ export default function DashboardPage() {
             }}
           />
         ) : currentMeals.length === 0 && !pendingReview ? (
-          <div className="py-12">
-            <EmptyState
-              useSleepingGraphic
-              title="No Active Meal Plan"
-              description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
-              actionText="Generate Meal Plan"
-              onAction={handleGeneratePlan}
-            />
-          </div>
+          <StateNotice
+            variant="no-meal-plan"
+            title="No Active Meal Plan"
+            description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
+            action={{
+              label: isGenerating ? 'Generating Plan...' : 'Generate Meal Plan',
+              onClick: handleGeneratePlan,
+              isLoading: isGenerating,
+            }}
+          />
         ) : (
           <>
             {daySelectors.length > 0 && (
