@@ -35,6 +35,19 @@ test('[TEST-203] unknown ingredients never become inferred vegetarian or allerge
   assert.deepEqual(result.unknownIngredients, ['proprietary house mix']);
 });
 
+test('[TEST-203A] exact FNRI soybean curd is plant based without hiding real dairy', () => {
+  for (const name of ['Soybean cheese, soft curd', 'Soybean cheese, hard curd', 'Soybean cheese, salted']) {
+    const tofu = classifyMealIngredients([{ name, category: 'PROTEIN' }]);
+    assert.equal(tofu.status, 'COMPLETE');
+    assert.deepEqual(tofu.detectedAllergens, []);
+    assert.ok(tofu.compatibleDietaryPreferences.includes('VEGAN'));
+  }
+  const withMilk = classifyMealIngredients([{ name: 'Soybean cheese, soft curd with milk' }]);
+  assert.ok(withMilk.detectedAllergens.includes('DAIRY'));
+  const cheese = classifyMealIngredients([{ name: 'Goat cheese' }]);
+  assert.ok(cheese.detectedAllergens.includes('DAIRY'));
+});
+
 test('[TEST-204] condition evaluator ignores drafts and evaluates approved rules in their declared basis', () => {
   const base = {
     id: 'sodium-rule',

@@ -1,6 +1,6 @@
 import type { DietaryPreference } from '@prisma/client';
 
-export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V1';
+export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V2';
 
 export type CanonicalAllergen = 'SHELLFISH' | 'NUTS' | 'DAIRY' | 'GLUTEN' | 'EGGS';
 export type IngredientClassificationStatus = 'COMPLETE' | 'NEEDS_REVIEW';
@@ -147,6 +147,14 @@ function matchesAny(value: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(value));
 }
 
+// FNRI names tofu as "soybean cheese". Only these exact food names receive
+// the tofu interpretation; a composite containing milk still detects dairy.
+const FNRI_SOYBEAN_CURD_NAMES = new Set([
+  'soybean cheese salted',
+  'soybean cheese soft curd',
+  'soybean cheese hard curd',
+]);
+
 export function classifyMealIngredients(
   ingredients: readonly IngredientClassificationInput[]
 ): IngredientClassificationResult {
@@ -160,7 +168,8 @@ export function classifyMealIngredients(
 
   for (const ingredient of ingredients) {
     const normalized = normalize(ingredient.name ?? '');
-    const classificationText = `${normalized} ${normalize(ingredient.category ?? '')}`.trim();
+    const classificationText =
+      `${FNRI_SOYBEAN_CURD_NAMES.has(normalized) ? 'tofu' : normalized} ${normalize(ingredient.category ?? '')}`.trim();
     const facts: string[] = [];
     if (!normalized) {
       unknownIngredients.push(String(ingredient.name ?? ''));

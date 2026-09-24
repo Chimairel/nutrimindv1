@@ -11,6 +11,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   MealIngredientDataSource,
+  MealApplicabilityReviewStatus,
+  MealApplicabilitySource,
   MealLibrarySafetyEvidenceStatus,
   MealLibrarySafetyReviewOutcome,
   MealLibraryStatus,
@@ -38,12 +40,42 @@ import { evaluateMealLibrarySafetyEvidence } from '../src/domain/meal-library-sa
 import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-signature.policy';
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
 import { isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
+import {
+  classifyMealIngredients,
+  MEAL_INGREDIENT_CLASSIFICATION_VERSION,
+} from '../src/domain/meal-ingredient-classification.policy';
 
 const APPLY = process.argv.includes('--apply');
 const OFFLINE_DRY_RUN = process.argv.includes('--offline-dry-run');
 const SEED_REVIEW_REASON = CURRENT_CATALOGUE_REVIEW_REASON;
 const NUTRITIONIST_EMAIL = 'nutritionist@gmail.com';
 const COVERAGE_GAP_ADDITION_NAMES = ['Tokwa Ampalaya Rice Bowl', 'Tokwa Sayote and Sitaw Dinner Plate'] as const;
+
+async function ensureFixtureReviewedMealType(mealLibraryId: string, mealType: MealType) {
+  await prisma.mealLibraryApplicableType.upsert({
+    where: { mealLibraryId_mealType: { mealLibraryId, mealType } },
+    create: {
+      mealLibraryId,
+      mealType,
+      source: MealApplicabilitySource.NUTRITIONIST_REVIEW,
+      reviewStatus: MealApplicabilityReviewStatus.REVIEWED,
+    },
+    update: {
+      source: MealApplicabilitySource.NUTRITIONIST_REVIEW,
+      reviewStatus: MealApplicabilityReviewStatus.REVIEWED,
+    },
+  });
+}
+
+function needsSoybeanCurdClassificationRefresh(
+  meal: CommonMealDefinition,
+  storedVersion: string | null | undefined
+): boolean {
+  return (
+    meal.ingredients.some((item) => /^Soybean cheese, (?:salted|soft curd|hard curd)$/u.test(item.foodName)) &&
+    storedVersion !== MEAL_INGREDIENT_CLASSIFICATION_VERSION
+  );
+}
 
 async function resolveFnriFoods(): Promise<Map<string, CatalogueFnriFoodEvidence>> {
   const requiredNames = [
@@ -282,6 +314,17 @@ async function main() {
     throw new Error('--apply and --offline-dry-run cannot be combined.');
   }
   assertCommonMealCatalogue();
+  for (const meal of COMMON_MEAL_CATALOGUE) {
+    const classification = classifyMealIngredients(
+      meal.ingredients.map((item) => ({ name: item.foodName, category: item.category }))
+    );
+    const undeclared = classification.detectedAllergens.filter((allergen) => !meal.allergensPresent.includes(allergen));
+    if (classification.status !== 'COMPLETE' || undeclared.length > 0) {
+      throw new Error(
+        `Catalogue ingredient classification conflicts with ${meal.mealName}: ${undeclared.join(', ') || classification.unknownIngredients.join(', ')}`
+      );
+    }
+  }
   const counts = Object.fromEntries(
     ['BREAKFAST', 'LUNCH', 'DINNER'].map((type) => [
       type,
@@ -309,6 +352,45 @@ async function main() {
   const foods = await resolveFnriFoods();
   console.log(
     `Validated ${COMMON_MEAL_CATALOGUE.length} meals (${JSON.stringify(counts)}) and ${foods.size} exact FNRI foods.`
+  );
+  const managedRows = await prisma.mealLibrary.findMany({
+    where: {
+      mealName: { in: COMMON_MEAL_CATALOGUE.map((meal) => meal.mealName) },
+      safetyReviews: { some: { reasonCode: { in: [...MANAGED_CATALOGUE_REVIEW_REASONS] } } },
+    },
+    select: {
+      mealName: true,
+      safetyEvidenceStatus: true,
+      ingredientClassificationVersion: true,
+      safetyReviews: {
+        where: { reasonCode: { in: [...MANAGED_CATALOGUE_REVIEW_REASONS] } },
+        select: { reasonCode: true, evidenceSnapshot: true },
+      },
+      applicableMealTypes: { select: { mealType: true, source: true, reviewStatus: true } },
+    },
+  });
+  const definitionsByName = new Map(COMMON_MEAL_CATALOGUE.map((meal) => [meal.mealName, meal]));
+  const missingReviewedTypes = managedRows.filter(
+    (row) =>
+      !row.applicableMealTypes.some(
+        (entry) =>
+          entry.mealType === definitionsByName.get(row.mealName)?.mealType &&
+          entry.source === MealApplicabilitySource.NUTRITIONIST_REVIEW &&
+          entry.reviewStatus === MealApplicabilityReviewStatus.REVIEWED
+      )
+  ).length;
+  const soybeanCurdRefreshes = managedRows.filter((row) =>
+    needsSoybeanCurdClassificationRefresh(definitionsByName.get(row.mealName)!, row.ingredientClassificationVersion)
+  ).length;
+  const recertifications = managedRows.filter((row) => {
+    const meal = definitionsByName.get(row.mealName)!;
+    return (
+      !hasCurrentCatalogueDefinition(meal, row) ||
+      needsSoybeanCurdClassificationRefresh(meal, row.ingredientClassificationVersion)
+    );
+  }).length;
+  console.log(
+    `Preflight: ${managedRows.length} existing managed meals; ${missingReviewedTypes} missing reviewed meal-type facts; ${soybeanCurdRefreshes} soybean-curd classifier refreshes; ${recertifications} recertifications; ${COMMON_MEAL_CATALOGUE.length - managedRows.length} new meals.`
   );
   console.log(`Reviewer: ${nutritionist.user.name} (${nutritionist.prcLicenseNumber})`);
   if (!APPLY) {
@@ -341,7 +423,12 @@ async function main() {
 
     let mealId = managed?.id;
     let expectedRevision = managed?.safetyEvidenceRevision;
-    if (managed && hasCurrentCatalogueDefinition(meal, managed)) {
+    if (
+      managed &&
+      hasCurrentCatalogueDefinition(meal, managed) &&
+      !needsSoybeanCurdClassificationRefresh(meal, managed.ingredientClassificationVersion)
+    ) {
+      await ensureFixtureReviewedMealType(managed.id, meal.mealType as MealType);
       skipped += 1;
       continue;
     }
@@ -472,6 +559,7 @@ async function main() {
       allergensPresent: meal.allergensPresent,
       allergensReviewedAbsent,
     });
+    await ensureFixtureReviewedMealType(mealId, meal.mealType as MealType);
     certified += 1;
     console.log(`Certified ${meal.mealType.toLowerCase()}: ${meal.mealName}`);
   }
@@ -481,6 +569,7 @@ async function main() {
     include: {
       ingredients: { orderBy: { position: 'asc' } },
       safetyDeclarations: true,
+      applicableMealTypes: true,
       flags: { where: { status: 'PENDING' } },
       safetyReviewedByNutritionist: { include: { user: { select: { role: true } } } },
     },
@@ -502,6 +591,16 @@ async function main() {
     }
     if (row.verifiedByNutritionistId !== nutritionist.id) {
       throw new Error(`Unexpected verifier for managed meal: ${row.mealName}`);
+    }
+    if (
+      !row.applicableMealTypes.some(
+        (entry) =>
+          entry.mealType === row.mealType &&
+          entry.source === MealApplicabilitySource.NUTRITIONIST_REVIEW &&
+          entry.reviewStatus === MealApplicabilityReviewStatus.REVIEWED
+      )
+    ) {
+      throw new Error(`Reviewed meal-type evidence is missing for managed meal: ${row.mealName}`);
     }
   }
 
