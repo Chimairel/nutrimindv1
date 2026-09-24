@@ -103,7 +103,7 @@ interface CurrentPlanSnapshot {
   nextCycleDay?: string | null;
 }
 
-const planResource = 'user-meals-current';
+const planResource = 'user-meals-workspace';
 const historyResource = (search: string, source: string, status: string) =>
   `user-meals-history:${search}:${source}:${status}`;
 const libraryResource = (search: string, mealType: string, favoriteOnly = false, riceRole = 'All') =>

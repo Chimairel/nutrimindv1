@@ -44,6 +44,7 @@ export default function NotificationDropdown() {
   const [cycleInfo, setCycleInfo] = useState<{ isStarterPlan: boolean; nextCycleDay: string | null } | null>(() => {
     const cached =
       readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-current') ||
+      readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-workspace') ||
       readSessionResource<CachedPlanInfo>(user?.userId, 'current-meal-plan');
     if (cached) {
       const isStarter =
@@ -70,6 +71,7 @@ export default function NotificationDropdown() {
     if (isOpen && user?.role === 'USER') {
       const cached =
         readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-current') ||
+        readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-workspace') ||
         readSessionResource<CachedPlanInfo>(user?.userId, 'current-meal-plan');
       if (cached) {
         const isStarter =
