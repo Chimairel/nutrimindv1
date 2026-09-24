@@ -2,7 +2,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
-import Avatar from '@/components/ui/Avatar';
+import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
 import { Stethoscope, ShieldAlert, Salad } from 'lucide-react';
 import { useState } from 'react';
 import api from '@/lib/axios';
@@ -164,56 +164,22 @@ export function NutritionistLibraryModals({ workspace }: Props) {
 
       {/* Verifier Profile Modal */}
       {selectedVerifier && activeModal === 'verifier' && (
-        <Modal isOpen={true} onClose={() => setActiveModal(null)} title="Nutritionist Profile" size="md">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3.5 border-b border-brand-border/60 pb-3">
-              <Avatar name={selectedVerifier.user.name} size="lg" />
-              <div className="min-w-0 flex-1">
-                <h3 className="truncate font-display text-base font-black text-brand-text">
-                  {selectedVerifier.user.name}
-                </h3>
-                <p className="font-mono text-xs font-bold text-brand-green">PRC {selectedVerifier.prcLicenseNumber}</p>
-                <p className="text-xs text-brand-muted">{selectedVerifier.specialization || 'General Nutrition'}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <span className="block font-bold text-brand-muted uppercase">PRC License</span>
-                <span className="text-brand-text font-semibold">{selectedVerifier.prcLicenseNumber}</span>
-              </div>
-              <div>
-                <span className="block font-bold text-brand-muted uppercase">License Expiry</span>
-                <span className="text-brand-text font-semibold">
-                  {new Date(selectedVerifier.prcLicenseExpiry).toLocaleDateString()}
-                </span>
-              </div>
-              <div>
-                <span className="block font-bold text-brand-muted uppercase">Specialization</span>
-                <span className="text-brand-text font-semibold">
-                  {selectedVerifier.specialization || 'General Nutrition'}
-                </span>
-              </div>
-              <div>
-                <span className="block font-bold text-brand-muted uppercase">Experience</span>
-                <span className="text-brand-text font-semibold">{selectedVerifier.yearsOfExperience || 0} years</span>
-              </div>
-            </div>
-
-            {selectedVerifier.university && (
-              <div>
-                <span className="block text-xs font-bold text-brand-muted uppercase">University</span>
-                <span className="text-sm text-brand-text font-semibold">{selectedVerifier.university}</span>
-              </div>
-            )}
-
-            <div>
-              <span className="block text-xs font-bold text-brand-muted uppercase">Biography</span>
-              <p className="text-sm text-brand-text leading-relaxed mt-1">
-                {selectedVerifier.bio || 'No biography written.'}
-              </p>
-            </div>
-          </div>
-        </Modal>
+        <NutritionistCredentialModal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          verifier={{
+            name: selectedVerifier.user.name,
+            image: selectedVerifier.user.image,
+            officialHeadshot: selectedVerifier.officialHeadshot,
+            digitalSignature: selectedVerifier.digitalSignature,
+            prcLicenseNumber: selectedVerifier.prcLicenseNumber,
+            prcLicenseExpiry: selectedVerifier.prcLicenseExpiry,
+            specialization: selectedVerifier.specialization,
+            yearsOfExperience: selectedVerifier.yearsOfExperience,
+            university: selectedVerifier.university,
+            bio: selectedVerifier.bio,
+          }}
+        />
       )}
 
       {/* Independent reusable-evidence certification */}

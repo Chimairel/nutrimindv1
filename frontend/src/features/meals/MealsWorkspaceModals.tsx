@@ -3,7 +3,8 @@ import Button from '@/components/ui/Button';
 import MealImage from '@/components/user/MealImage';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { AlertTriangle, Heart, ShieldCheck, Soup } from 'lucide-react';
+import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
+import { AlertTriangle, Heart, Soup } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 
@@ -36,58 +37,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
   return (
     <>
       {selectedVerifier && (
-        <Modal
+        <NutritionistCredentialModal
           isOpen={true}
           onClose={() => setSelectedVerifier(null)}
-          title={selectedVerifier.name}
-          description="Nutritionist who reviewed and certified this reusable meal."
-          size="md"
-        >
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.06] p-4">
-              <div className="flex items-center gap-2 text-brand-green">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="font-display text-sm font-extrabold">Verified nutritionist-dietitian</span>
-              </div>
-              <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
-                <div>
-                  <dt className="text-brand-muted">PRC license</dt>
-                  <dd className="mt-1 font-mono font-bold text-brand-text">{selectedVerifier.prcLicenseNumber}</dd>
-                </div>
-                <div>
-                  <dt className="text-brand-muted">Valid until</dt>
-                  <dd className="mt-1 font-bold text-brand-text">
-                    {new Date(selectedVerifier.prcLicenseExpiry).toLocaleDateString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-brand-muted">Specialization</dt>
-                  <dd className="mt-1 font-bold text-brand-text">
-                    {selectedVerifier.specialization || 'General nutrition'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-brand-muted">Experience</dt>
-                  <dd className="mt-1 font-bold text-brand-text">{selectedVerifier.yearsOfExperience ?? 0} years</dd>
-                </div>
-              </dl>
-            </div>
-            {selectedVerifier.university && (
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">Education</p>
-                <p className="mt-1 font-semibold text-brand-text">{selectedVerifier.university}</p>
-              </div>
-            )}
-            {selectedVerifier.bio && (
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">
-                  Professional profile
-                </p>
-                <p className="mt-1 text-sm leading-6 text-brand-muted">{selectedVerifier.bio}</p>
-              </div>
-            )}
-          </div>
-        </Modal>
+          verifier={selectedVerifier}
+        />
       )}
 
       {/* Swap Options Modal */}
@@ -326,8 +280,19 @@ export function MealsWorkspaceModals({ workspace }: Props) {
 
                       {/* Verifier Badge */}
                       <div className="text-[10px] text-brand-muted pt-1">
-                        Verified by: <span className="text-brand-green font-bold">{option.verifiedBy}</span> (PRC:{' '}
-                        {option.prcLicenseNumber})
+                        Verified by:{' '}
+                        {option.verifier ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedVerifier(option.verifier!)}
+                            className="text-brand-green font-bold hover:underline"
+                          >
+                            {option.verifiedBy}
+                          </button>
+                        ) : (
+                          <span className="text-brand-green font-bold">{option.verifiedBy}</span>
+                        )}{' '}
+                        (PRC: {option.prcLicenseNumber})
                       </div>
                     </div>
 
