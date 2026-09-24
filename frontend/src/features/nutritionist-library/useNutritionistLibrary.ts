@@ -24,8 +24,11 @@ export interface Verifier {
   yearsOfExperience?: number;
   university?: string;
   bio?: string;
+  officialHeadshot?: string | null;
+  digitalSignature?: string | null;
   user: {
     name: string;
+    image?: string | null;
   };
 }
 

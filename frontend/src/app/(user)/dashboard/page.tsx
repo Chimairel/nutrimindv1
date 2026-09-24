@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const [planSnapshot, setPlanSnapshot] = useState<CurrentPlanSnapshot['planSnapshot']>(
     cachedPlan?.planSnapshot ?? null
   );
-  const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot>(cachedPlan?.cycle ?? null);
+  const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.cycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
   const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
@@ -93,6 +93,7 @@ export default function DashboardPage() {
   }, [isStarterPlan, currentCycle?.endDate]);
 
   const notifiedStarterPlan = useRef(false);
+  const notifiedPendingReview = useRef(false);
 
   useEffect(() => {
     if (pendingReview && !notifiedPendingReview.current) {
@@ -365,9 +366,9 @@ export default function DashboardPage() {
     options?: {
       useAiEstimate: boolean;
       items: OutsideMealInputItem[];
-      consumedAt: string;
-      estimationContext: string;
-      imageFile: File | null;
+      consumedAt?: string;
+      estimationContext?: string;
+      imageFile?: File | null;
     }
   ) => {
     setLogError(null);

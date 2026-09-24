@@ -21,6 +21,7 @@ export interface PendingMealPreview {
   scheduledDate: string;
   ingredients: { ingredientName: string; category: string }[];
   image?: PublicMealImage | null;
+  planType?: 'STARTER' | 'WEEKLY';
 }
 
 export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPreview }) {
