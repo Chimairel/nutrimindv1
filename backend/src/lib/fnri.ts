@@ -9,6 +9,55 @@ export interface LookupResult {
 }
 
 /**
+ * Resolve all distinct plan ingredients against one FNRI snapshot. An absent
+ * match stays unknown; meal generation must not spend a Gemini call inventing
+ * ingredient composition or turn a source recipe into verified evidence.
+ */
+export async function lookupFnriIngredients(names: readonly string[]): Promise<Map<string, FoodItem | null>> {
+  const uniqueNames = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
+  const resolved = new Map<string, FoodItem | null>();
+  if (uniqueNames.length === 0) return resolved;
+
+  const [foods, aliases] = await Promise.all([
+    prisma.foodItem.findMany({ where: { source: 'FNRI' }, orderBy: { name: 'asc' } }),
+    prisma.foodAlias.findMany({
+      where: { foodItem: { source: 'FNRI' } },
+      select: { alias: true, normalizedAlias: true, foodItemId: true, verifiedAt: true },
+    }),
+  ]);
+  const foodById = new Map(foods.map((food) => [food.id, food]));
+  const exactByName = new Map(foods.map((food) => [food.name.toLowerCase(), food]));
+  const aliasByName = new Map<string, (typeof aliases)[number]>();
+  for (const alias of aliases) {
+    for (const key of [alias.normalizedAlias, alias.alias.toLowerCase()]) {
+      if (key && !aliasByName.has(key)) aliasByName.set(key, alias);
+    }
+  }
+
+  for (const name of uniqueNames) {
+    const normalized = normalizeFoodName(name);
+    const exact = exactByName.get(name.toLowerCase());
+    const alias = aliasByName.get(normalized) ?? aliasByName.get(name.toLowerCase());
+    const aliasFood = alias ? foodById.get(alias.foodItemId) : undefined;
+    const trustedAlias =
+      aliasFood && (alias?.verifiedAt || selectStrongFNRIMatch(name, [aliasFood])) ? aliasFood : undefined;
+    if (exact || trustedAlias) {
+      resolved.set(name, exact ?? trustedAlias ?? null);
+      continue;
+    }
+    const lookupToken = normalized
+      .split(' ')
+      .filter(Boolean)
+      .sort((left, right) => right.length - left.length)[0];
+    const lexicalCandidates = lookupToken
+      ? foods.filter((food) => food.name.toLowerCase().includes(lookupToken)).slice(0, 50)
+      : [];
+    resolved.set(name, exact ?? trustedAlias ?? selectStrongFNRIMatch(name, lexicalCandidates));
+  }
+  return resolved;
+}
+
+/**
  * Executes the 4-step ingredient lookup chain:
  * 1. Exact Match (Case-insensitive check on FoodItem.name)
  * 2. Alias Match (accepts only a strong lexical target; legacy auto-aliases are untrusted)

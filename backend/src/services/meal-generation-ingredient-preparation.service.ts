@@ -1,6 +1,6 @@
 import { AIConfidenceFlag, MealCandidateProvenance, MealIngredientDataSource, MealType } from '@prisma/client';
 import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
-import { lookupIngredient } from '@/lib/fnri';
+import { lookupFnriIngredients } from '@/lib/fnri';
 import prisma from '@/lib/prisma';
 import type { PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 
@@ -65,6 +65,31 @@ export async function prepareGeneratedMealIngredients(input: {
 }): Promise<{ preparedMeals: PreparedGeneratedMeal[]; compositionRevisions: Map<string, number> }> {
   const preparedMeals: PreparedGeneratedMeal[] = [];
   const compositionRevisions = new Map<string, number>();
+  const namesToResolve = input.meals.flatMap((meal) =>
+    meal.ingredients
+      .filter(
+        (ingredient) =>
+          !(
+            meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS &&
+            (ingredient.quantity === undefined || ingredient.quantity <= 0)
+          ) && !(ingredient.foodItemId && input.groundedFoodById.has(ingredient.foodItemId))
+      )
+      .map((ingredient) => ingredient.name)
+  );
+  const fnriByName = await lookupFnriIngredients(namesToResolve);
+  const resolvedIds = [
+    ...new Set([
+      ...[...fnriByName.values()].flatMap((food) => (food ? [food.id] : [])),
+      ...input.meals.flatMap((meal) =>
+        meal.ingredients.flatMap((ingredient) =>
+          ingredient.foodItemId && input.groundedFoodById.has(ingredient.foodItemId) ? [ingredient.foodItemId] : []
+        )
+      ),
+    ]),
+  ];
+  const composition = await prisma.foodItem.findMany({ where: { id: { in: resolvedIds } } });
+  const compositionById = new Map(composition.map((food) => [food.id, food]));
+  composition.forEach((food) => compositionRevisions.set(food.id, food.compositionRevision));
 
   for (const rawMeal of input.meals) {
     const slot = input.unmatchedSlots.find(
@@ -103,37 +128,37 @@ export async function prepareGeneratedMealIngredients(input: {
         continue;
       }
 
-      try {
-        const lookup = await lookupIngredient(ingredientName);
-        if (lookup.source === 'ESTIMATED') hasEstimatedIngredient = true;
+      const food = fnriByName.get(ingredientName.trim());
+      if (food) {
         ingredientsData.push({
-          ingredientName: lookup.food.name || ingredientName,
-          category: lookup.food.category || 'PANTRY',
-          foodItemId: lookup.food.id || null,
-          dataSource:
-            lookup.source === 'ESTIMATED' ? MealIngredientDataSource.GEMINI_ESTIMATED : MealIngredientDataSource.FNRI,
+          ingredientName: food.name,
+          category: food.category || 'PANTRY',
+          foodItemId: food.id,
+          dataSource: MealIngredientDataSource.FNRI,
           quantity: ingredient.quantity,
           unit: ingredient.unit,
         });
-      } catch (lookupError) {
-        console.warn(`Ingredient lookup failed for: ${ingredientName}, using as estimated.`, lookupError);
+      } else {
         hasEstimatedIngredient = true;
         ingredientsData.push({
           ingredientName,
           category: 'PANTRY',
           foodItemId: null,
-          dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
+          dataSource:
+            rawMeal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
+              ? MealIngredientDataSource.SOURCE_RECIPE
+              : MealIngredientDataSource.GEMINI_ESTIMATED,
           quantity: ingredient.quantity,
           unit: ingredient.unit,
         });
       }
     }
 
-    const composition = await prisma.foodItem.findMany({
-      where: { id: { in: ingredientsData.flatMap((item) => (item.foodItemId ? [item.foodItemId] : [])) } },
+    const mealComposition = ingredientsData.flatMap((item) => {
+      const food = item.foodItemId ? compositionById.get(item.foodItemId) : undefined;
+      return food ? [food] : [];
     });
-    composition.forEach((food) => compositionRevisions.set(food.id, food.compositionRevision));
-    const reconciliation = reconcileFnriMealTotals(ingredientsData, composition);
+    const reconciliation = reconcileFnriMealTotals(ingredientsData, mealComposition);
     if (!reconciliation.complete) hasEstimatedIngredient = true;
     let confidence = reconciliation.complete ? AIConfidenceFlag.CAUTION : AIConfidenceFlag.NEEDS_REVIEW;
     if (input.userHasConditions) {

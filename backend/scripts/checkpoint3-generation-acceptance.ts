@@ -46,7 +46,7 @@ async function main() {
       where: { createdAt: { gte: startedAt } },
       _count: { _all: true },
     });
-    assert.ok(aiOperations.some((row) => row.operation === 'MEAL_PLAN_CORPUS_LOOKUP'));
+    assert.ok(!aiOperations.some((row) => row.operation === 'MEAL_PLAN_CORPUS_LOOKUP'));
     console.log(
       JSON.stringify(
         {

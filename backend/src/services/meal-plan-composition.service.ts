@@ -271,44 +271,28 @@ export async function generate7DayPlan(
   }
 
   // --- STEP 2: Search the broader recipe corpus without granting it safety authority. ---
-  const rawCorpusMeals: GeneratedMeal[] = [];
-  const excludedRawCandidateIds = new Set<string>();
-  let openCorpusSlots = [...unmatchedSlots];
-  for (let attempt = 1; attempt <= 2 && openCorpusSlots.length; attempt += 1) {
-    const rawCorpusResult = await sourceRawRecipeCandidates({
-      slots: openCorpusSlots,
-      dailyCalorieTarget,
-      dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
-      conditions: userConditions,
-      allergens: userAllergens,
-      otherConditions,
-      otherAllergies,
-      excludeCandidateIds: [...excludedRawCandidateIds],
-      localityFoodGroupScores: localizedFoodGroupScores,
-      localityEvidenceText: localizedConsumption.text,
-    });
-    const acceptedSlotKeys = new Set<string>();
-    for (const meal of rawCorpusResult.meals) {
-      const validation = validateGeneratedMealCandidate({
-        ingredients: meal.ingredients,
-        dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
-        allergens: userAllergens,
-        customAllergies: splitCustomRestrictions(otherAllergies),
-      });
-      if (!validation.accepted) {
-        excludedRawCandidateIds.add(meal.rawCandidateId);
-        continue;
-      }
-      acceptedSlotKeys.add(`${meal.dayNumber}:${meal.mealType}`);
-      rawCorpusMeals.push({
-        ...meal,
-        candidateProvenance: MealCandidateProvenance.RAW_RECIPE_CORPUS,
-      });
-    }
-    openCorpusSlots = openCorpusSlots.filter((slot) => !acceptedSlotKeys.has(`${slot.dayNumber}:${slot.mealType}`));
-    if (!rawCorpusResult.meals.length) break;
-  }
-  const generationSlots = openCorpusSlots;
+  await updateGenerationProgress(
+    generationJobId,
+    35,
+    'CORPUS_LOOKUP',
+    'Ranking existing recipes for the remaining meal slots.'
+  );
+  const rawCorpusResult = await sourceRawRecipeCandidates({
+    slots: unmatchedSlots,
+    dailyCalorieTarget,
+    dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+    conditions: userConditions,
+    allergens: userAllergens,
+    otherConditions,
+    otherAllergies,
+    localityFoodGroupScores: localizedFoodGroupScores,
+    localityEvidenceText: localizedConsumption.text,
+  });
+  const rawCorpusMeals: GeneratedMeal[] = rawCorpusResult.meals.map((meal) => ({
+    ...meal,
+    candidateProvenance: MealCandidateProvenance.RAW_RECIPE_CORPUS,
+  }));
+  const generationSlots = rawCorpusResult.remainingSlots;
 
   // --- STEP 3: Bounded from-scratch generation only for still-empty slots. ---
   const groundedFoodById = new Map<string, GroundedFoodReference>();
@@ -449,6 +433,12 @@ export async function generate7DayPlan(
   const createdPlansList: any[] = [];
 
   // Resolve ingredient identities and composition snapshots before opening the save transaction.
+  await updateGenerationProgress(
+    generationJobId,
+    65,
+    'INGREDIENT_RECONCILIATION',
+    'Checking recipe ingredients against FNRI food records.'
+  );
   const { preparedMeals: preparedAiMeals, compositionRevisions } = await prepareGeneratedMealIngredients({
     meals: aiMeals,
     unmatchedSlots,
