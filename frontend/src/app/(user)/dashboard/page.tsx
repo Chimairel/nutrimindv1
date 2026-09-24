@@ -23,6 +23,8 @@ import { GroceryPreviewCard } from '@/features/dashboard/GroceryPreviewCard';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import {
   calculateDashboardMetrics,
+  getDashboardCycleDates,
+  type CycleMetaSnapshot,
   type OutsideMealLog,
   type OutsideMealInputItem,
   type OutsideMealWarning,
@@ -38,6 +40,7 @@ interface CurrentPlanSnapshot {
     dailyCalorieTarget: number;
     dailyMacroTargets: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }>;
   } | null;
+  cycle?: CycleMetaSnapshot;
 }
 
 interface CheckinSnapshot {
@@ -73,6 +76,7 @@ export default function DashboardPage() {
   const [planSnapshot, setPlanSnapshot] = useState<CurrentPlanSnapshot['planSnapshot']>(
     cachedPlan?.planSnapshot ?? null
   );
+  const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot>(cachedPlan?.cycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
   const notifiedPendingReview = useRef(false);
@@ -86,20 +90,10 @@ export default function DashboardPage() {
     }
   }, [pendingReview]);
 
-  // Extract unique scheduledDate values in chronological order, keeping past days of the active plan visible
+  // Extract unique scheduledDate values in chronological order, keeping full 7-day cycle with past days visible
   const uniqueDates = React.useMemo(() => {
-    const scheduledMeals = [...currentMeals, ...(pendingReview?.meals ?? [])];
-
-    if (scheduledMeals.length === 0) return [];
-    const dateKeys = Array.from(
-      new Set(
-        scheduledMeals
-          .map((meal) => getManilaDateKey(meal.scheduledDate))
-          .filter((dateKey): dateKey is string => Boolean(dateKey))
-      )
-    );
-    return dateKeys.map((dateKey) => new Date(`${dateKey}T00:00:00+08:00`)).sort((a, b) => a.getTime() - b.getTime());
-  }, [currentMeals, pendingReview]);
+    return getDashboardCycleDates(currentMeals, pendingReview?.meals ?? [], currentCycle);
+  }, [currentMeals, pendingReview, currentCycle]);
 
   // Sync selected day offset to today if present in the plan
   useEffect(() => {
@@ -149,6 +143,7 @@ export default function DashboardPage() {
       setCurrentMeals(snapshot.meals);
       setPendingReview(snapshot.pendingReview);
       setPlanSnapshot(snapshot.planSnapshot);
+      setCurrentCycle(snapshot.cycle ?? null);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
     [ownerId]
@@ -238,6 +233,7 @@ export default function DashboardPage() {
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
           planSnapshot: res.data.meta?.planSnapshot ?? null,
+          cycle: res.data.meta?.cycle ?? null,
         });
       }
     } catch (err: unknown) {
@@ -303,6 +299,7 @@ export default function DashboardPage() {
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
           planSnapshot: res.data.meta?.planSnapshot ?? null,
+          cycle: res.data.meta?.cycle ?? null,
         });
       }
     } catch (err) {
@@ -327,6 +324,7 @@ export default function DashboardPage() {
           meals: res.data.data.meals,
           pendingReview: res.data.data.pendingReview ?? null,
           planSnapshot: res.data.data.planSnapshot ?? null,
+          cycle: res.data.data.cycle ?? null,
         });
       }
     } catch (err: unknown) {

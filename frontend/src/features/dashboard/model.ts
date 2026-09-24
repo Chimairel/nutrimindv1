@@ -1,6 +1,6 @@
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
-import { getManilaDateKey } from '@/lib/manila-date';
+import { getManilaDateKey, addCalendarDays, manilaDateFromKey } from '@/lib/manila-date';
 
 export interface OutsideMealLog {
   loggedAt: string;
@@ -64,6 +64,66 @@ export type OutsideMealWarning = {
   };
   usedAi: boolean;
 };
+
+export type CycleMetaSnapshot = {
+  id?: string;
+  planType?: string;
+  startDate?: string | Date | null;
+  endDate?: string | Date | null;
+  status?: string;
+} | null;
+
+/**
+ * Returns a full 7-day weekly cycle date range for the dashboard date selector.
+ * If the active plan is a STARTER bridge plan, partial plan, or in-flight weekly plan,
+ * this anchors on the cycle end date and expands backwards to ensure all 7 days of the
+ * weekly cycle are present, with elapsed days styled as grayed-out past dates.
+ */
+export function getDashboardCycleDates(
+  scheduledMeals: MealPlan[],
+  pendingMeals: PendingMealPreview[] = [],
+  cycleMeta?: CycleMetaSnapshot,
+  now: Date = new Date()
+): Date[] {
+  const allMeals = [...scheduledMeals, ...pendingMeals];
+  if (allMeals.length === 0) return [];
+
+  const todayKey = getManilaDateKey(now);
+  const mealDateKeys = Array.from(
+    new Set(
+      allMeals
+        .map((m) => getManilaDateKey(m.scheduledDate))
+        .filter((k): k is string => Boolean(k))
+    )
+  ).sort();
+
+  if (mealDateKeys.length === 0) return [];
+
+  // Determine the anchor end date for the 7-day weekly cycle
+  let endKey = mealDateKeys[mealDateKeys.length - 1];
+  if (cycleMeta?.endDate) {
+    const cycleEndKey = getManilaDateKey(cycleMeta.endDate);
+    if (cycleEndKey) {
+      endKey = cycleEndKey;
+    }
+  }
+
+  // Ensure endKey covers at least today if all meals were in the past
+  if (todayKey && todayKey > endKey) {
+    endKey = todayKey;
+  }
+
+  // Generate the full 7-day weekly cycle window ending on endKey
+  const cycleDateKeys: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    cycleDateKeys.push(addCalendarDays(endKey, -i));
+  }
+
+  // Merge with any meal dates that fall outside the 7-day window to guarantee no meal is omitted
+  const allDateKeys = Array.from(new Set([...cycleDateKeys, ...mealDateKeys])).sort();
+
+  return allDateKeys.map((k) => manilaDateFromKey(k));
+}
 
 export function calculateDashboardMetrics(input: {
   activeDate: Date;
