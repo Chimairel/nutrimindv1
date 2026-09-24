@@ -7,6 +7,21 @@
 
 ---
 
+## Shared checkout and change attribution
+
+Codex and Antigravity use `C:\Users\chima\Desktop\Nutrimind` as the shared working copy when the owner wants edits visible to both immediately. This does not make concurrent edits to the same file safe.
+
+1. Before editing, inspect `git status --short` and the current commit. Agree on task or file ownership when both tools are active. Only one tool edits a given file at a time.
+2. Commit a finished, reviewable unit before handing its files to the other tool. Stage only files you worked on and inspect the staged diff; do not sweep another tool's uncommitted edits into your commit.
+3. Use a concise commit subject describing the change and a body trailer of `Assisted-by: Codex` or `Assisted-by: Antigravity`. The trailer identifies the tool responsible for that commit, not a clinical reviewer or a guarantee that it typed every line. If both tools contribute, split their work into separate commits.
+4. Push completed commits to `origin/development` after confirming the branch is current. File saves in this shared folder are immediately visible to both tools; Git is the durable history and remote sync. Do not pull, reset, stash, or switch branches over someone else's uncommitted work.
+5. Record significant architecture, clinical-safety, schema, data, or cross-role decisions and their verification in `docs/NUTRIMIND_ENGINEERING_RECORD.md` using its existing change IDs. Routine UI/code edits need a clear commit and tests, not a second per-file log.
+6. For truly simultaneous work on overlapping files, use separate branches/worktrees and review the integration explicitly before merging. A shared-folder commit cannot reliably attribute interleaved edits.
+
+These rules are a coordination convention. Git history is the source of truth for changed lines; the engineering record explains consequential decisions and evidence.
+
+---
+
 ## 1. Project Overview
 
 ### 1.1 Purpose and Problem Statement
