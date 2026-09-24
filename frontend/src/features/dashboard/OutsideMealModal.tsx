@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, Camera, CheckCircle2, Info, Sparkles, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
@@ -198,12 +198,20 @@ function OutsideMealForm(props: Props) {
   const [useAiEstimate, setUseAiEstimate] = useState(false);
   const [useManualValues, setUseManualValues] = useState(false);
   const [manual, setManual] = useState({ calories: '', proteinG: '', carbsG: '', fatG: '' });
+  const [baseNutrition, setBaseNutrition] = useState<{
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+  } | null>(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
   const [suggestions, setSuggestions] = useState<{ eligible: Suggestion[]; otherKnown: Suggestion[] } | null>(null);
   const [portionInput, setPortionInput] = useState('');
   const [estimationContext, setEstimationContext] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [consumedLocal, setConsumedLocal] = useState(() => {
     const now = new Date();
     return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
@@ -216,6 +224,45 @@ function OutsideMealForm(props: Props) {
     [props.mealName, selectedSuggestion]
   );
   const canUseManual = items.length === 1;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+        setImageFile(null);
+        setImagePreview(null);
+        setImageError('Choose a JPG, PNG, or WebP image under 2 MB.');
+        return;
+      }
+      setImageFile(file);
+      setImageError(null);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const applyPortionMultiplier = (multiplier: number) => {
+    if (!baseNutrition) return;
+    setManual({
+      calories: String(Math.round(baseNutrition.calories * multiplier)),
+      proteinG: String(Math.round(baseNutrition.proteinG * multiplier * 10) / 10),
+      carbsG: String(Math.round(baseNutrition.carbsG * multiplier * 10) / 10),
+      fatG: String(Math.round(baseNutrition.fatG * multiplier * 10) / 10),
+    });
+  };
 
   useEffect(() => {
     if (
@@ -244,7 +291,7 @@ function OutsideMealForm(props: Props) {
     };
   }, [props.isOpen, props.mealName, selectedSuggestion]);
 
-  const submit = () => {
+  const submit = (forceAi = false) => {
     const submittedItems = items.map((item) => ({ ...item }));
     if (
       canUseManual &&
@@ -260,7 +307,7 @@ function OutsideMealForm(props: Props) {
     ) {
       submittedItems[0].portionGrams = Number(portionInput);
     }
-    if (useManualValues && canUseManual) {
+    if (useManualValues && canUseManual && !forceAi) {
       const reported = {
         calories: Number(manual.calories),
         proteinG: Number(manual.proteinG),
@@ -277,7 +324,7 @@ function OutsideMealForm(props: Props) {
       }
     }
     props.onSubmit(false, {
-      useAiEstimate,
+      useAiEstimate: forceAi || useAiEstimate,
       items: submittedItems,
       consumedAt: new Date(consumedLocal).toISOString(),
       estimationContext,
@@ -300,6 +347,7 @@ function OutsideMealForm(props: Props) {
         value={props.mealName}
         onChange={(event) => {
           setSelectedSuggestion(null);
+          setBaseNutrition(null);
           props.onMealNameChange(event.target.value);
         }}
         disabled={props.isLoading}
@@ -317,6 +365,7 @@ function OutsideMealForm(props: Props) {
                 props.onMealNameChange(suggestion.name);
                 setSuggestions(null);
                 if (suggestion.macros) {
+                  setBaseNutrition(suggestion.macros);
                   setManual(
                     Object.fromEntries(
                       Object.entries(suggestion.macros).map(([key, value]) => [key, String(value)])
@@ -339,6 +388,7 @@ function OutsideMealForm(props: Props) {
                 props.onMealNameChange(suggestion.name);
                 setSuggestions(null);
                 if (suggestion.kind === 'OBSERVED_REFERENCE' && suggestion.macros) {
+                  setBaseNutrition(suggestion.macros);
                   setManual(
                     Object.fromEntries(
                       Object.entries(suggestion.macros).map(([key, value]) => [key, String(value)])
@@ -346,7 +396,10 @@ function OutsideMealForm(props: Props) {
                   );
                   setUseManualValues(true);
                   setPortionInput(String(parseFloat(suggestion.serving ?? '')));
-                } else setUseManualValues(false);
+                } else {
+                  setUseManualValues(false);
+                  setBaseNutrition(null);
+                }
               }}
             >
               <strong>{suggestion.name}</strong> · {suggestion.label}
@@ -450,22 +503,46 @@ function OutsideMealForm(props: Props) {
         </span>
       </label>
       {useManualValues && canUseManual && (
-        <div className="grid grid-cols-2 gap-3">
-          {(['calories', 'proteinG', 'carbsG', 'fatG'] as const).map((field) => (
-            <Input
-              key={field}
-              id={`manual-${field}`}
-              type="number"
-              min="0"
-              step="0.1"
-              label={{ calories: 'Calories', proteinG: 'Protein (g)', carbsG: 'Carbs (g)', fatG: 'Fat (g)' }[field]}
-              value={manual[field]}
-              onChange={(event) => setManual((current) => ({ ...current, [field]: event.target.value }))}
-              required
-            />
-          ))}
+        <div className="space-y-3 rounded-xl border border-brand-border/70 bg-brand-surface/50 p-3.5">
+          {baseNutrition && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-brand-muted">Portion scale:</span>
+              <div className="flex gap-1.5">
+                {[0.5, 1, 1.5, 2].map((multiplier) => (
+                  <button
+                    key={multiplier}
+                    type="button"
+                    onClick={() => applyPortionMultiplier(multiplier)}
+                    className="rounded-lg border border-brand-border bg-brand-bgAlt/80 px-2.5 py-1 text-[11px] font-bold text-brand-text transition hover:border-brand-green hover:text-brand-green"
+                  >
+                    {multiplier}x
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {(['calories', 'proteinG', 'carbsG', 'fatG'] as const).map((field) => (
+              <Input
+                key={field}
+                id={`manual-${field}`}
+                type="number"
+                min="0"
+                step="0.1"
+                label={{ calories: 'Calories', proteinG: 'Protein (g)', carbsG: 'Carbs (g)', fatG: 'Fat (g)' }[field]}
+                value={manual[field]}
+                onChange={(event) => setManual((current) => ({ ...current, [field]: event.target.value }))}
+                required
+              />
+            ))}
+          </div>
+          <p className="flex items-center gap-1 text-[10px] text-brand-muted">
+            <Info className="h-3 w-3 shrink-0" />
+            Values are editable. Tweak any numbers above or enter your own nutrition-label or menu values.
+          </p>
         </div>
       )}
+
       <Input
         id="estimationContext"
         label="Serving and preparation details (for estimation)"
@@ -473,47 +550,95 @@ function OutsideMealForm(props: Props) {
         placeholder="Ingredients, cooking method, sauces, sugar, or drinks"
         onChange={(event) => setEstimationContext(event.target.value)}
       />
-      <Input
-        id="notes"
-        label="Private personal note (optional)"
-        placeholder="A note for your own record"
-        value={props.notes}
-        onChange={(event) => props.onNotesChange(event.target.value)}
-        disabled={props.isLoading}
-      />
-      <label className="text-xs font-semibold text-brand-text">
-        Photo (optional)
-        <input
-          className="mt-2 block w-full text-xs"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
-            if (
-              file &&
-              (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024)
-            ) {
-              setImageFile(null);
-              setImageError('Choose a JPG, PNG, or WebP image under 2 MB.');
-            } else {
-              setImageFile(file);
-              setImageError(null);
-            }
-          }}
-        />
-        <span className="mt-1 block text-brand-muted">
-          JPG, PNG, or WebP, up to 2 MB. Only your account can retrieve it.
-        </span>
-        {imageError && <span className="mt-1 block text-status-error-text">{imageError}</span>}
-      </label>
+
+      {/* Side-by-Side Dual Reference Block: Photo Upload on Left, Notes on Right */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* Left: Photo Upload / Camera Capture */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-bold text-brand-text/90">Photo (optional)</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative flex h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-brand-border/70 bg-brand-surface/40 p-3 text-center transition hover:border-brand-green/60 hover:bg-brand-surface/60 overflow-hidden"
+          >
+            {imagePreview ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imagePreview} alt="Meal photo preview" className="h-full w-full object-cover rounded-lg" />
+                <button
+                  type="button"
+                  onClick={handleClearImage}
+                  className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white hover:bg-black transition"
+                  title="Remove photo"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="mb-1 flex h-8 w-8 items-center justify-center rounded-full bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green transition">
+                  <Camera className="h-4 w-4" />
+                </div>
+                <span className="text-[11px] font-semibold text-brand-muted group-hover:text-brand-text transition">
+                  Upload photo or use camera
+                </span>
+                <span className="text-[9px] text-brand-muted/70">JPG, PNG, or WebP up to 2 MB</span>
+              </>
+            )}
+          </div>
+          {imageError && <span className="text-[10px] text-status-error-text">{imageError}</span>}
+        </div>
+
+        {/* Right: Notes */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="mealNotes" className="text-xs font-bold text-brand-text/90">
+            Notes (optional)
+          </label>
+          <textarea
+            id="mealNotes"
+            rows={4}
+            placeholder="A note for your own record (e.g. restaurant, serving details)"
+            value={props.notes}
+            onChange={(e) => props.onNotesChange(e.target.value)}
+            disabled={props.isLoading}
+            className="h-28 w-full resize-none rounded-xl border border-brand-border/80 bg-brand-surface/80 p-2.5 text-xs text-brand-text placeholder-brand-muted/70 outline-none transition focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+          />
+        </div>
+      </div>
+
+      {/* AI Assistant Fallback ("Still not sure?") */}
+      <div className="rounded-xl border border-brand-border/60 bg-brand-surface/30 p-3 text-center">
+        <span className="mb-1.5 block text-[11px] font-semibold text-brand-muted">Still not sure?</span>
+        <button
+          type="button"
+          onClick={() => submit(true)}
+          disabled={props.isLoading || !props.mealName.trim()}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/10 py-2.5 px-4 text-xs font-extrabold text-brand-green transition hover:bg-brand-green/20 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Sparkles className="h-4 w-4" />
+          HELP ME ESTIMATE VALUES WITH AI
+        </button>
+        <p className="mt-1.5 text-[10px] text-brand-muted">
+          AI values count immediately as estimates and enter nutritionist review. Limits: 5 items/day and 30/30 days.
+        </p>
+      </div>
+
+      {/* Primary Action: LOG THIS MEAL */}
       <Button
         type="submit"
         variant="primary"
-        className="w-full py-3.5 text-xs font-bold"
+        className="w-full py-3.5 text-xs font-extrabold uppercase tracking-wider"
         disabled={items.length === 0 || items.length > 10 || Boolean(imageError)}
         isLoading={props.isLoading}
       >
-        Check nutrition sources
+        Log this meal
       </Button>
     </form>
   );

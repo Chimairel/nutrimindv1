@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
+import { toast } from '@/components/ui/Sonner';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
@@ -75,6 +75,16 @@ export default function DashboardPage() {
   );
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
+  const notifiedPendingReview = useRef(false);
+
+  useEffect(() => {
+    if (pendingReview && !notifiedPendingReview.current) {
+      notifiedPendingReview.current = true;
+      toast.info('Your meal plan is currently in preview while a nutritionist verifies it.', {
+        id: 'dashboard-clinical-review-preview',
+      });
+    }
+  }, [pendingReview]);
 
   // Extract unique scheduledDate values in chronological order, keeping past days of the active plan visible
   const uniqueDates = React.useMemo(() => {
@@ -447,8 +457,6 @@ export default function DashboardPage() {
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />}
-
         {error && !error.toLowerCase().includes('nutrition report') ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <div className="flex items-center gap-2">

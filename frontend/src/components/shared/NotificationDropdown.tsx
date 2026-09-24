@@ -1,11 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
-import { CheckCircle, AlertTriangle, ClipboardList, Calendar, Bell, Inbox } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  CheckCircle,
+  AlertTriangle,
+  ClipboardList,
+  Calendar,
+  Bell,
+  Inbox,
+  ShieldCheck,
+  AlertCircle,
+  ArrowRight,
+} from 'lucide-react';
 
 export default function NotificationDropdown() {
+  const { user } = useAuth();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isOnboardingDone = Boolean(user?.onboardingDone);
+  const isTosAccepted = Boolean(user?.tosAccepted);
+  const isReportAcknowledged = Boolean(user?.reportAcknowledged);
+  const isPlanningReady = isOnboardingDone && isTosAccepted && isReportAcknowledged;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,9 +47,13 @@ export default function NotificationDropdown() {
   const getIconForType = (type: string) => {
     switch (type) {
       case 'PLAN_APPROVED':
+      case 'OUTSIDE_MEAL_REVIEWED':
+      case 'FLAG_RESOLVED':
         return <CheckCircle className="w-4 h-4 text-brand-green" />;
       case 'PLAN_REJECTED':
+      case 'MEAL_FLAGGED':
         return <AlertTriangle className="w-4 h-4 text-status-error-text" />;
+      case 'OUTSIDE_MEAL_MORE_INFO':
       case 'REVIEW_REQUEST':
         return <ClipboardList className="w-4 h-4 text-status-pending-text" />;
       case 'WEEKLY_CHECKIN':
@@ -53,11 +75,13 @@ export default function NotificationDropdown() {
       >
         <Bell className="h-[18px] w-[18px]" />
 
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent text-[8px] font-bold text-[#07100d]">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
-        )}
+        ) : user?.role === 'USER' && !isPlanningReady ? (
+          <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-amber-500" />
+        ) : null}
       </button>
 
       {isOpen && (
@@ -92,6 +116,89 @@ export default function NotificationDropdown() {
           </div>
 
           <div className="custom-scrollbar flex-1 overflow-y-auto bg-brand-bgAlt/45 p-2.5">
+            {/* Planner Status Section */}
+            {user?.role === 'USER' && (
+              <div className="mb-2.5 rounded-[18px] border border-brand-border/80 bg-brand-surface p-3 text-left shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
+                        isPlanningReady
+                          ? 'bg-brand-green/10 text-brand-green'
+                          : 'bg-status-warning-bg/15 text-status-warning-text'
+                      }`}
+                    >
+                      {isPlanningReady ? (
+                        <ShieldCheck className="h-4 w-4" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4" />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <h4 className="font-display text-xs font-bold text-brand-text truncate">
+                        Planner status
+                      </h4>
+                      <span className="text-[10px] text-brand-muted truncate block">
+                        {isPlanningReady ? 'Eligible for planning' : 'Action required'}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider ${
+                      isPlanningReady
+                        ? 'border border-brand-green/30 bg-brand-green/10 text-brand-green'
+                        : 'border border-status-warning-text/30 bg-status-warning-bg/15 text-status-warning-text'
+                    }`}
+                  >
+                    {isPlanningReady ? 'Ready' : 'Pending'}
+                  </span>
+                </div>
+
+                <p className="mt-2 text-[11px] leading-relaxed text-brand-muted">
+                  {isPlanningReady
+                    ? 'All intake requirements and clinical acknowledgments are complete. You can generate or customize meal plans.'
+                    : !isReportAcknowledged
+                      ? 'Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed.'
+                      : !isTosAccepted
+                        ? 'Please accept the clinical disclaimer and Terms of Service to enable meal planning.'
+                        : 'Please complete your health intake onboarding to enable personalized meal planning.'}
+                </p>
+
+                {!isPlanningReady && (
+                  <div className="mt-2">
+                    {!isReportAcknowledged ? (
+                      <Link
+                        href="/profile/nutrition-report"
+                        onClick={() => setIsOpen(false)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                      >
+                        <span>View nutrition report</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    ) : !isTosAccepted ? (
+                      <Link
+                        href="/onboarding/tos"
+                        onClick={() => setIsOpen(false)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                      >
+                        <span>Accept Terms of Service</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/onboarding/stats"
+                        onClick={() => setIsOpen(false)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                      >
+                        <span>Complete onboarding</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {isLoading ? (
               <div className="space-y-2" aria-label="Loading notifications">
                 {[0, 1, 2].map((item) => (

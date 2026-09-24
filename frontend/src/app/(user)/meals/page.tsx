@@ -14,7 +14,7 @@ import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
-import ClinicalReviewBanner from '@/components/shared/ClinicalReviewBanner';
+import { toast } from '@/components/ui/Sonner';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
@@ -119,6 +119,16 @@ export default function WeeklyPlanPage() {
   }, [activeTab, setSubTab]);
 
   const activePlanPillRef = useRef<HTMLButtonElement | null>(null);
+  const notifiedPendingReview = useRef(false);
+
+  useEffect(() => {
+    if (pendingReview && !notifiedPendingReview.current) {
+      notifiedPendingReview.current = true;
+      toast.info('Your meal plan is currently in preview while a nutritionist verifies it.', {
+        id: 'meals-clinical-review-preview',
+      });
+    }
+  }, [pendingReview]);
 
   useEffect(() => {
     if (activePlanPillRef.current) {
@@ -146,8 +156,6 @@ export default function WeeklyPlanPage() {
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
-        {pendingReview && <ClinicalReviewBanner pendingCount={pendingReview.mealCount ?? pendingReview.meals.length} />}
-
         {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
         {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
           <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
