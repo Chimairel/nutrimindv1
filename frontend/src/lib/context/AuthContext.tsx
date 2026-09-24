@@ -32,7 +32,7 @@ export interface AuthContextType {
   login: (token: string) => Promise<UserSession | null>;
   logout: () => Promise<void>;
   completeAccountDeletion: () => void;
-  refreshSession: () => Promise<UserSession | null>;
+  refreshSession: (options?: { showLoader?: boolean }) => Promise<UserSession | null>;
   updateUserSession: (updates: Partial<UserSession>) => void;
 }
 
@@ -46,9 +46,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   // Refresh user profile details from backend to ensure state accuracy
-  const refreshSession = async () => {
+  const refreshSession = async (options?: { showLoader?: boolean }) => {
     const requestId = ++sessionRequestId.current;
-    setIsLoading(true);
+    if (options?.showLoader || !user) {
+      setIsLoading(true);
+    }
     setProfileLoadError(false);
 
     try {
@@ -154,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     checkAuthCookie();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (token: string) => {

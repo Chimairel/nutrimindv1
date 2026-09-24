@@ -11,6 +11,7 @@ import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } fr
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { writeSessionResource } from '@/lib/session-resource-cache';
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 const options = dayNames.map((day, index) => ({
@@ -25,7 +26,7 @@ export default function OnboardingShoppingDayPage() {
   const searchParams = useSearchParams();
   const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading: isHydrating } = useProfile();
-  const { refreshSession } = useAuth();
+  const { user, refreshSession } = useAuth();
   const [selected, setSelected] = useState<ShoppingDayOfWeek | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,12 +53,15 @@ export default function OnboardingShoppingDayPage() {
 
     setIsLoading(true);
     try {
-      await api.post('/user/onboarding/shopping-day', { shoppingDayOfWeek: selected });
-      await refreshSession();
+      const res = await api.post('/user/onboarding/shopping-day', { shoppingDayOfWeek: selected });
+      const ownerId = user?.userId || profile?.id;
+      if (res.data?.data && ownerId) {
+        writeSessionResource(ownerId, 'user-profile', res.data.data);
+      }
       router.push('/onboarding/tos');
+      void refreshSession();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to save your preference. Please try again.'));
-    } finally {
       setIsLoading(false);
     }
   };

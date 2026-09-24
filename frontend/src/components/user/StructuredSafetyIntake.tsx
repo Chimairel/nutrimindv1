@@ -264,7 +264,6 @@ export default function StructuredSafetyIntake({
       await onSaved(response.data.data.entries, response.data.data.changed);
     } catch (caught: unknown) {
       setError(getApiErrorMessage(caught, 'Unable to save these entries.'));
-    } finally {
       setIsBusy(false);
     }
   };

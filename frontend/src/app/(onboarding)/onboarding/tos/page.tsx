@@ -175,7 +175,6 @@ export default function OnboardingTosPage() {
       router.push('/dashboard');
     } catch (err) {
       setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
-    } finally {
       setIsLoading(false);
     }
   };

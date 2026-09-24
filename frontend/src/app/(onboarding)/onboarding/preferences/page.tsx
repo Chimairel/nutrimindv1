@@ -14,13 +14,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import PlanningLocationFields from '@/components/user/PlanningLocationFields';
 import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
+import { writeSessionResource } from '@/lib/session-resource-cache';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading: isHydrating } = useProfile();
-  const { refreshSession } = useAuth();
+  const { user, refreshSession } = useAuth();
   const [dietary, setDietary] = useState<DietaryPreference>('OMNIVORE');
   const [ricePreference, setRicePreference] = useState<RicePreference>('FLEXIBLE');
   const [culture, setCulture] = useState('Filipino');
@@ -50,7 +51,7 @@ export default function OnboardingPreferencesPage() {
     setIsLoading(true);
     try {
       // Send preference specs to backend profile endpoint to extend user profile
-      await api.post('/user/onboarding/profile', {
+      const response = await api.post('/user/onboarding/profile', {
         dietaryPreference: dietary,
         ricePreference,
         foodCulture: normalizeFoodCulture(culture),
@@ -59,13 +60,18 @@ export default function OnboardingPreferencesPage() {
         planningProvinceHucName: planningLevel === 'PROVINCE_HUC' ? planningProvinceHuc.trim() : null,
         mealLocalityPreference,
       });
-      await refreshSession();
 
-      // Proceed to Step 3: Conditions (or Review if from review)
-      router.push(isFromReview ? '/onboarding/tos' : '/onboarding/conditions');
+      const ownerId = user?.userId || profile?.id;
+      if (response.data?.data && ownerId) {
+        writeSessionResource(ownerId, 'user-profile', response.data.data);
+      }
+
+      // Proceed to Step 3: Conditions (or Review if from review) immediately
+      const nextTarget = isFromReview ? '/onboarding/tos' : '/onboarding/conditions';
+      router.push(nextTarget);
+      void refreshSession();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to save preferences. Please check your connection.'));
-    } finally {
       setIsLoading(false);
     }
   };

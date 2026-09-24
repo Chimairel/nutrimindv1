@@ -12,13 +12,14 @@ import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, Check, 
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { writeSessionResource } from '@/lib/session-resource-cache';
 
 export default function OnboardingStatsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFromReview = searchParams.get('from') === 'review';
   const { profile, isLoading: isHydrating, error: profileError } = useProfile();
-  const { refreshSession } = useAuth();
+  const { user, refreshSession } = useAuth();
   const [goal, setGoal] = useState<Goal>('MAINTAIN');
   const [age, setAge] = useState('');
   const [height, setHeight] = useState('');
@@ -164,7 +165,7 @@ export default function OnboardingStatsPage() {
     setIsLoading(true);
     try {
       // Send stats to backend onboarding profile endpoint
-      await api.post('/user/onboarding/profile', {
+      const response = await api.post('/user/onboarding/profile', {
         age: parsedAge,
         heightCm: parsedHeight,
         weightKg: parsedWeight,
@@ -174,13 +175,17 @@ export default function OnboardingStatsPage() {
         activityLevel,
       });
 
-      await refreshSession();
+      const ownerId = user?.userId || profile?.id;
+      if (response.data?.data && ownerId) {
+        writeSessionResource(ownerId, 'user-profile', response.data.data);
+      }
 
-      // Advance to review or step 2: Preferences
-      router.push(isFromReview ? '/onboarding/tos' : '/onboarding/preferences');
+      // Advance to review or step 2: Preferences immediately
+      const nextTarget = isFromReview ? '/onboarding/tos' : '/onboarding/preferences';
+      router.push(nextTarget);
+      void refreshSession();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to save stats. Please verify your connection.'));
-    } finally {
       setIsLoading(false);
     }
   };

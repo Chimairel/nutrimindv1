@@ -69,8 +69,9 @@ export default function OnboardingSafetyStep({
               editableDomains={editableDomains}
               submitLabel={isFromReview ? 'Save & Return to Review' : 'Save and continue'}
               onSaved={async () => {
-                await refreshSession();
-                router.push(isFromReview ? '/onboarding/tos' : nextHref);
+                const nextTarget = isFromReview ? '/onboarding/tos' : nextHref;
+                router.push(nextTarget);
+                void refreshSession();
               }}
             />
           )}
