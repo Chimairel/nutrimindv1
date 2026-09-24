@@ -8,22 +8,33 @@ import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.serv
 
 export class CronService {
   static async retrySafetyRevalidation(now: Date = new Date()) {
-    const pending = await prisma.mealPlan.findMany({
-      where: {
-        requiresSafetyRevalidation: true,
-        scheduledDate: { gte: getStartOfManilaBusinessDay(now) },
-        status: 'PENDING_REVIEW',
-      },
-      distinct: ['userId'],
-      select: { userId: true },
-      take: 50,
-    });
-    for (const { userId } of pending) {
-      try {
-        await UserSafetyRecheckService.runSafetyRecheck(userId);
-      } catch (error) {
-        console.error('[Revalidation] Pending meals remain blocked; retry on the next run.', error);
+    let afterId: string | undefined;
+    while (true) {
+      const pendingUsers = await prisma.user.findMany({
+        where: {
+          id: afterId ? { gt: afterId } : undefined,
+          mealPlans: {
+            some: {
+              requiresSafetyRevalidation: true,
+              scheduledDate: { gte: getStartOfManilaBusinessDay(now) },
+              status: 'PENDING_REVIEW',
+            },
+          },
+        },
+        orderBy: { id: 'asc' },
+        select: { id: true },
+        take: 50,
+      });
+      if (pendingUsers.length === 0) break;
+      afterId = pendingUsers[pendingUsers.length - 1].id;
+      for (const { id } of pendingUsers) {
+        try {
+          await UserSafetyRecheckService.runSafetyRecheck(id);
+        } catch (error) {
+          console.error('[Revalidation] Pending meals remain blocked; retry on the next run.', error);
+        }
       }
+      if (pendingUsers.length < 50) break;
     }
   }
 
