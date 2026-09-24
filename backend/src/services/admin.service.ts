@@ -339,7 +339,7 @@ export class AdminService {
       rawRecipeCandidates,
       aiUsageByOperation30d: aiUsageByOperation30d.map((row) => ({
         operation: row.operation,
-        purpose: row.purpose,
+        purpose: row.purpose ?? 'UNSPECIFIED',
         status: row.status,
         count: row._count._all,
       })),
