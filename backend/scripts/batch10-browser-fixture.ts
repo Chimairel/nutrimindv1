@@ -10,7 +10,7 @@ const email = (role: string) => `batch10-browser-${role}-${runId}@example.invali
 
 async function cleanup() {
   const users = await prisma.user.findMany({
-    where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding'].map(email) } },
+    where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding', 'report'].map(email) } },
     select: { id: true },
   });
   for (const user of users) await prisma.user.delete({ where: { id: user.id } });
@@ -20,7 +20,7 @@ async function cleanup() {
 async function create() {
   assert.equal(
     await prisma.user.count({
-      where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding'].map(email) } },
+      where: { email: { in: ['user', 'nutritionist', 'admin', 'onboarding', 'report'].map(email) } },
     }),
     0,
     'Fixture identity already exists; clean it before creating again.'
@@ -101,7 +101,52 @@ async function create() {
         emailVerified: true,
       },
     });
-    console.log('[Batch 10 browser fixture] three role accounts and one new patient ready');
+    await prisma.user.create({
+      data: {
+        email: email('report'),
+        name: 'Batch 10 Report Patient',
+        passwordHash,
+        role: 'USER',
+        emailVerified: true,
+        onboardingDone: true,
+        tosAccepted: true,
+        acceptedTermsVersion: CURRENT_TERMS_VERSION,
+        acceptedPrivacyVersion: CURRENT_PRIVACY_VERSION,
+        healthDataConsentedAt: new Date(),
+        userProfile: {
+          create: {
+            age: 28,
+            biologicalSex: 'FEMALE',
+            heightCm: 160,
+            weightKg: 60,
+            targetWeightKg: 60,
+            goal: 'MAINTAIN',
+            activityLevel: 'LIGHTLY_ACTIVE',
+            dietaryPreference: 'OMNIVORE',
+            dailyCalorieTarget: 2000,
+            shoppingDayOfWeek: 6,
+          },
+        },
+        healthConditions: { create: { condition: 'NONE' } },
+        allergies: { create: { allergen: 'NONE' } },
+        nutritionReport: {
+          create: {
+            profileRevision: 0,
+            isStale: false,
+            version: 1,
+            acknowledgedAt: null,
+            generalSummary: 'Synthetic unacknowledged report for browser gate testing.',
+            foodsToAvoid: [],
+            foodsToLimit: [],
+            foodsRecommended: [],
+            drinksGuidance: [],
+            basedOnConditions: ['NONE'],
+            basedOnAllergies: ['NONE'],
+          },
+        },
+      },
+    });
+    console.log('[Batch 10 browser fixture] three role accounts, new patient, and report patient ready');
   } catch (error) {
     await cleanup();
     throw error;

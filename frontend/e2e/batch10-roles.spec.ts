@@ -69,6 +69,19 @@ test('a new email account completes onboarding with national planning and opens 
   await expect(page.getByRole('heading', { name: 'Nutrition report history' })).toBeVisible();
 });
 
+test('an unacknowledged persisted report gates login until the patient acknowledges it', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill(`batch10-browser-report-${runId}@example.invalid`);
+  await page.getByLabel(/^Password$/).fill('SyntheticBrowser123!');
+  await page.getByRole('button', { name: /^Sign in$/i }).click();
+  await expect(page).toHaveURL(/\/nutrition-report$/, { timeout: 25_000 });
+  await expect(page.getByText('Synthetic unacknowledged report for browser gate testing.')).toBeVisible();
+  await page.getByRole('button', { name: 'I Acknowledge Report' }).click();
+  await expect(page).toHaveURL(/\/profile$/, { timeout: 25_000 });
+  await page.goto('/dashboard');
+  await expect(page.getByText('We could not load this page.')).toHaveCount(0);
+});
+
 test('patient workspace opens the plan, groceries, library, and history at desktop and mobile sizes', async ({
   page,
 }) => {
