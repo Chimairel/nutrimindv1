@@ -19,12 +19,14 @@ async function main() {
   const suffix = randomUUID();
   const email = `plan-cycle-${suffix}@example.invalid`;
   let userId: string | null = null;
+  let upcomingLibraryMealId: string | null = null;
 
   try {
     const now = new Date();
     const today = MealPlanCycleService.getBusinessDay(now);
-    const currentStart = getScheduledMealDate(today, -6);
-    const upcomingStart = getScheduledMealDate(today, 1);
+    const currentStart = getScheduledMealDate(today, -5);
+    const currentEnd = getScheduledMealDate(today, 1);
+    const upcomingStart = getScheduledMealDate(today, 2);
     const user = await prisma.user.create({
       data: {
         name: 'Plan Cycle Acceptance',
@@ -55,7 +57,7 @@ async function main() {
         userId: user.id,
         planType: PlanType.WEEKLY,
         startDate: currentStart,
-        endDate: today,
+        endDate: currentEnd,
         preparationOpensAt: getScheduledMealDate(currentStart, -4),
         shoppingDeadlineAt: getScheduledMealDate(currentStart, -1),
         expectedSlotCount: 3,
@@ -141,6 +143,7 @@ async function main() {
     );
 
     const upcomingId = `acceptance-upcoming-${suffix}`;
+    const upcomingReadyAt = getScheduledMealDate(upcomingStart, -2);
     await prisma.mealPlanCycle.create({
       data: {
         id: upcomingId,
@@ -150,11 +153,57 @@ async function main() {
         endDate: getScheduledMealDate(upcomingStart, 6),
         preparationOpensAt: getScheduledMealDate(upcomingStart, -4),
         shoppingDeadlineAt: getScheduledMealDate(upcomingStart, -1),
-        expectedSlotCount: 21,
+        expectedSlotCount: 1,
         status: MealPlanCycleStatus.READY_TO_SHOP,
-        readyAt: now,
+        readyAt: upcomingReadyAt,
       },
     });
+    const recipeSignature = randomUUID().replaceAll('-', '');
+    const upcomingLibraryMeal = await prisma.mealLibrary.create({
+      data: {
+        mealName: 'Prepared upcoming breakfast',
+        mealType: MealType.BREAKFAST,
+        calories: 500,
+        proteinG: 20,
+        carbsG: 60,
+        fatG: 15,
+        recipeSignature,
+        status: 'APPROVED',
+        safetyEvidenceStatus: 'COMPLETE',
+      },
+    });
+    upcomingLibraryMealId = upcomingLibraryMeal.id;
+    const preparedMeal = await prisma.mealPlan.create({
+      data: {
+        planGroupId: upcomingId,
+        userId: user.id,
+        libraryMealId: upcomingLibraryMeal.id,
+        status: MealPlanStatus.APPROVED,
+        planType: PlanType.WEEKLY,
+        mealType: MealType.BREAKFAST,
+        mealName: upcomingLibraryMeal.mealName,
+        calories: 500,
+        proteinG: 20,
+        carbsG: 60,
+        fatG: 15,
+        scheduledDate: upcomingStart,
+        reviewedAt: upcomingReadyAt,
+        requiresSafetyRevalidation: false,
+        safetyPolicyVersion: 'MEAL_PLAN_SAFETY_V2',
+        baseRecipeSignature: recipeSignature,
+        composedServingSignature: recipeSignature,
+        ingredients: {
+          create: { ingredientName: 'Prepared rice', category: 'Grain', quantity: 150, unit: 'g' },
+        },
+      },
+    });
+    const preparedGroceries = await GroceryService.getCycleProjection(user.id, upcomingId, now);
+    assert.equal(preparedGroceries.coverage.clearedSlotCount, 1);
+    assert.equal(preparedGroceries.actionability.canCheckItems, true);
+    assert.deepEqual(
+      preparedGroceries.groceryList?.groceryItems.map((item) => item.ingredientName),
+      ['Prepared rice']
+    );
     const identities = await MealPlanCycleService.getCurrentAndUpcoming(user.id, now);
     assert.equal(identities.current?.id, currentId);
     assert.equal(identities.upcoming?.id, upcomingId);
@@ -170,19 +219,28 @@ async function main() {
           endDate: getScheduledMealDate(upcomingStart, 6),
           preparationOpensAt: getScheduledMealDate(upcomingStart, -4),
           shoppingDeadlineAt: getScheduledMealDate(upcomingStart, -1),
-          expectedSlotCount: 21,
+          expectedSlotCount: 1,
           status: MealPlanCycleStatus.UNDER_REVIEW,
         },
       }),
       (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
     );
 
-    const afterPromotion = await MealPlanCycleService.getCurrentCycle(
-      user.id,
-      new Date(upcomingStart.getTime() + 60 * 60 * 1000)
-    );
+    const promotedNow = new Date(upcomingStart.getTime() + 60 * 60 * 1000);
+    const afterPromotion = await MealPlanCycleService.getCurrentCycle(user.id, promotedNow);
     assert.equal(afterPromotion?.id, upcomingId);
     assert.equal(afterPromotion?.status, MealPlanCycleStatus.ACTIVE);
+    assert.deepEqual(await MealPlanCycleService.getClearedMealPlanIds(user.id, upcomingId, promotedNow), [
+      preparedMeal.id,
+    ]);
+    const promotedGroceries = await GroceryService.getGroceryWorkspace(user.id, promotedNow);
+    assert.equal(promotedGroceries.current?.cycle.id, upcomingId);
+    assert.equal(promotedGroceries.upcoming, null);
+    assert.equal(promotedGroceries.current?.actionability.canCheckItems, true);
+    assert.deepEqual(
+      promotedGroceries.current?.groceryList?.groceryItems.map((item) => item.ingredientName),
+      ['Prepared rice']
+    );
     assert.equal(
       (await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: currentId } })).status,
       MealPlanCycleStatus.COMPLETED
@@ -197,10 +255,12 @@ async function main() {
         promotionIdempotent: true,
         shoppingStartRecorded: true,
         shoppingListFrozenAfterStart: true,
+        preparedMealAndGroceriesPromoted: true,
       })
     );
   } finally {
     if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
+    if (upcomingLibraryMealId) await prisma.mealLibrary.deleteMany({ where: { id: upcomingLibraryMealId } });
     await prisma.$disconnect();
   }
 }
