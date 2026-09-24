@@ -12,7 +12,23 @@ import {
   ShieldCheck,
   AlertCircle,
   ArrowRight,
+  Sprout,
 } from 'lucide-react';
+import api from '@/lib/axios';
+import { readSessionResource } from '@/lib/session-resource-cache';
+import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+
+interface CachedPlanInfo {
+  isStarterPlan?: boolean;
+  nextCycleDay?: string | null;
+  cycles?: {
+    current?: { planType?: string; endDate?: string | Date } | null;
+    upcoming?: { startDate?: string | Date } | null;
+  } | null;
+  cycle?: { planType?: string; endDate?: string | Date } | null;
+  meals?: Array<{ planType?: string }>;
+  pendingReview?: { planType?: string } | null;
+}
 
 export default function NotificationDropdown() {
   const { user } = useAuth();
@@ -24,6 +40,82 @@ export default function NotificationDropdown() {
   const isTosAccepted = Boolean(user?.tosAccepted);
   const isReportAcknowledged = Boolean(user?.reportAcknowledged);
   const isPlanningReady = isOnboardingDone && isTosAccepted && isReportAcknowledged;
+
+  const [cycleInfo, setCycleInfo] = useState<{ isStarterPlan: boolean; nextCycleDay: string | null } | null>(() => {
+    const cached =
+      readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-current') ||
+      readSessionResource<CachedPlanInfo>(user?.userId, 'current-meal-plan');
+    if (cached) {
+      const isStarter =
+        cached.isStarterPlan ??
+        (cached.cycles?.current?.planType === 'STARTER' ||
+          cached.cycle?.planType === 'STARTER' ||
+          cached.meals?.[0]?.planType === 'STARTER' ||
+          cached.pendingReview?.planType === 'STARTER');
+      const nextDay =
+        cached.nextCycleDay ??
+        (cached.cycles?.upcoming?.startDate
+          ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cached.cycles.upcoming.startDate)), {
+              weekday: 'long',
+              month: 'short',
+              day: 'numeric',
+            })
+          : null);
+      return { isStarterPlan: Boolean(isStarter), nextCycleDay: nextDay };
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (isOpen && user?.role === 'USER') {
+      const cached =
+        readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-current') ||
+        readSessionResource<CachedPlanInfo>(user?.userId, 'current-meal-plan');
+      if (cached) {
+        const isStarter =
+          cached.isStarterPlan ??
+          (cached.cycles?.current?.planType === 'STARTER' ||
+            cached.cycle?.planType === 'STARTER' ||
+            cached.meals?.[0]?.planType === 'STARTER' ||
+            cached.pendingReview?.planType === 'STARTER');
+        const nextDay =
+          cached.nextCycleDay ??
+          (cached.cycles?.upcoming?.startDate
+            ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cached.cycles.upcoming.startDate)), {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              })
+            : null);
+        setCycleInfo({ isStarterPlan: Boolean(isStarter), nextCycleDay: nextDay });
+      } else {
+        api
+          .get('/user/meals/cycles')
+          .then((res) => {
+            if (res.data?.success && res.data?.data) {
+              const { current, upcoming } = res.data.data;
+              const isStarter = current?.planType === 'STARTER';
+              let nextDay: string | null = null;
+              if (upcoming?.startDate) {
+                nextDay = formatManilaDate(manilaDateFromKey(getManilaDateKey(upcoming.startDate)), {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric',
+                });
+              } else if (current?.endDate) {
+                const dayAfter = new Date(current.endDate);
+                dayAfter.setDate(dayAfter.getDate() + 1);
+                nextDay = formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
+              }
+              setCycleInfo({ isStarterPlan: Boolean(isStarter), nextCycleDay: nextDay });
+            }
+          })
+          .catch(() => {
+            // silent fallback
+          });
+      }
+    }
+  }, [isOpen, user?.role, user?.userId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,6 +142,8 @@ export default function NotificationDropdown() {
       case 'OUTSIDE_MEAL_REVIEWED':
       case 'FLAG_RESOLVED':
         return <CheckCircle className="w-4 h-4 text-brand-green" />;
+      case 'ASSIGNMENT':
+        return <Sprout className="w-4 h-4 text-brand-green" />;
       case 'PLAN_REJECTED':
       case 'MEAL_FLAGGED':
         return <AlertTriangle className="w-4 h-4 text-status-error-text" />;
@@ -196,6 +290,49 @@ export default function NotificationDropdown() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Starter Plan Status Card */}
+            {user?.role === 'USER' && cycleInfo?.isStarterPlan && (
+              <div className="mb-2.5 rounded-[18px] border border-brand-green/30 bg-brand-green/5 p-3 text-left shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                      <Sprout className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h4 className="font-display text-xs font-bold text-brand-text truncate">
+                        Starter Plan Active
+                      </h4>
+                      <span className="text-[10px] text-brand-muted truncate block">
+                        Kickoff bridge plan
+                      </span>
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green">
+                    Starter
+                  </span>
+                </div>
+
+                <p className="mt-2 text-[11px] leading-relaxed text-brand-muted">
+                  You are currently on a starter bridge plan. Your full 7-day weekly cycle begins on{' '}
+                  <span className="font-semibold text-brand-text">
+                    {cycleInfo.nextCycleDay || 'Monday, Sep 28'}
+                  </span>
+                  .
+                </p>
+
+                <div className="mt-2">
+                  <Link
+                    href="/meals"
+                    onClick={() => setIsOpen(false)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                  >
+                    <span>View meal plan</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
               </div>
             )}
 

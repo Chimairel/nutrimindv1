@@ -189,8 +189,8 @@ async function main() {
       goal: 'MAINTAIN',
       activityLevel: 'LIGHTLY_ACTIVE',
       dailyCalorieTarget: 1850,
-      shoppingDayGroup: 'WEEKEND',
-      shoppingDayOfWeek: 6,
+      shoppingDayGroup: 'WEEKDAY',
+      shoppingDayOfWeek: 0,
     },
     create: {
       userId: testUser.id,
@@ -201,8 +201,8 @@ async function main() {
       goal: 'MAINTAIN',
       activityLevel: 'LIGHTLY_ACTIVE',
       dailyCalorieTarget: 1850,
-      shoppingDayGroup: 'WEEKEND',
-      shoppingDayOfWeek: 6,
+      shoppingDayGroup: 'WEEKDAY',
+      shoppingDayOfWeek: 0,
     },
   });
 

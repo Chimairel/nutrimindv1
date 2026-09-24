@@ -81,7 +81,18 @@ export default function DashboardPage() {
   const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot>(cachedPlan?.cycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
-  const notifiedPendingReview = useRef(false);
+  const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
+  const nextCycleDay = React.useMemo(() => {
+    if (!isStarterPlan) return null;
+    if (currentCycle?.endDate) {
+      const dayAfter = new Date(currentCycle.endDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
+    }
+    return 'Monday, Sep 28';
+  }, [isStarterPlan, currentCycle?.endDate]);
+
+  const notifiedStarterPlan = useRef(false);
 
   useEffect(() => {
     if (pendingReview && !notifiedPendingReview.current) {
@@ -91,6 +102,15 @@ export default function DashboardPage() {
       });
     }
   }, [pendingReview]);
+
+  useEffect(() => {
+    if (isStarterPlan && nextCycleDay && !notifiedStarterPlan.current) {
+      notifiedStarterPlan.current = true;
+      toast.info(`You're on a starter plan. Your full 7-day cycle begins on ${nextCycleDay}.`, {
+        id: 'dashboard-starter-plan-notice',
+      });
+    }
+  }, [isStarterPlan, nextCycleDay]);
 
   // Extract unique scheduledDate values in chronological order, keeping full 7-day cycle with past days visible
   const uniqueDates = React.useMemo(() => {

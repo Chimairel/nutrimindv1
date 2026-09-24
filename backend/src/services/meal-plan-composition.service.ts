@@ -884,5 +884,23 @@ export async function generate7DayPlan(
     });
   }
 
+  if (cycleTiming.planType === PlanType.STARTER) {
+    const nextStart = new Date(cycleTiming.endDate.getTime() + 86_400_000);
+    const dateStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    }).format(nextStart);
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: 'Starter Meal Plan Active',
+        message: `Your kickoff bridge plan is ready. Your full 7-day weekly cycle begins on ${dateStr}.`,
+        type: NotificationType.ASSIGNMENT,
+      },
+    });
+  }
+
   return newPlanGroupId;
 }

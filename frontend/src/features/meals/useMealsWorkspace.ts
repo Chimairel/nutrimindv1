@@ -8,6 +8,7 @@ import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCar
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
+import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 
 export interface SwapOption {
   id: string;
@@ -94,6 +95,12 @@ interface PendingReviewState {
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReviewState | null;
+  cycles?: {
+    current?: CycleMetaSnapshot | null;
+    upcoming?: CycleMetaSnapshot | null;
+  } | null;
+  isStarterPlan?: boolean;
+  nextCycleDay?: string | null;
 }
 
 const planResource = 'user-meals-current';
@@ -115,6 +122,10 @@ export function useMealsWorkspace() {
   // Meal Plan states
   const hasPlanData = Boolean(cachedPlan && (cachedPlan.meals.length > 0 || cachedPlan.pendingReview));
   const [meals, setMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
+  const [cycles, setCycles] = useState<{
+    current?: CycleMetaSnapshot | null;
+    upcoming?: CycleMetaSnapshot | null;
+  } | null>(cachedPlan?.cycles ?? null);
   const [isLoading, setIsLoading] = useState(!hasPlanData);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
@@ -189,6 +200,7 @@ export function useMealsWorkspace() {
     (snapshot: CurrentPlanSnapshot) => {
       setMeals(snapshot.meals);
       setPendingReview(snapshot.pendingReview);
+      setCycles(snapshot.cycles ?? null);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
     [ownerId, currentPlanResource]
@@ -204,6 +216,7 @@ export function useMealsWorkspace() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          cycles: res.data.meta?.cycles ?? null,
         });
       }
     } catch (err: unknown) {
@@ -309,7 +322,7 @@ export function useMealsWorkspace() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (ownerId) {
       fetchMeals();
 
       let activeDateKey = getManilaDateKey();
@@ -334,29 +347,29 @@ export function useMealsWorkspace() {
         document.removeEventListener('visibilitychange', refreshOnVisibility);
       };
     }
-  }, [user, fetchMeals]);
+  }, [ownerId, fetchMeals]);
 
   useEffect(() => {
-    if (!user) {
+    if (!ownerId) {
       secondaryDataPrefetchedForUserRef.current = null;
       return;
     }
 
-    if (secondaryDataPrefetchedForUserRef.current === user.userId) return;
-    secondaryDataPrefetchedForUserRef.current = user.userId;
+    if (secondaryDataPrefetchedForUserRef.current === ownerId) return;
+    secondaryDataPrefetchedForUserRef.current = ownerId;
     fetchHistory();
     fetchLibrary();
-  }, [user, fetchHistory, fetchLibrary]);
+  }, [ownerId, fetchHistory, fetchLibrary]);
 
   useEffect(() => {
-    if (user) {
+    if (ownerId) {
       if (activeTab === 'history') {
         fetchHistory();
       } else if (activeTab === 'library') {
         fetchLibrary();
       }
     }
-  }, [user, activeTab, fetchHistory, fetchLibrary]);
+  }, [ownerId, activeTab, fetchHistory, fetchLibrary]);
 
   useEffect(() => {
     const sourceMeals = [...meals, ...(pendingReview?.meals ?? [])];
@@ -477,6 +490,7 @@ export function useMealsWorkspace() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          cycles: res.data.meta?.cycles ?? null,
         });
       }
       // Reload history so history tab and heatmap immediately update
@@ -729,20 +743,55 @@ export function useMealsWorkspace() {
     displayedPlanDays.findIndex((day) => day.dateKey === selectedPlanDateKey)
   );
   const selectedPlanDay = displayedPlanDays[selectedPlanDayIndex] ?? null;
-  const isStarterPlan = meals[0]?.planType === 'STARTER' || pendingReview?.planType === 'STARTER';
+  const isStarterPlan =
+    cycles?.current?.planType === 'STARTER' ||
+    (!cycles?.current && (meals[0]?.planType === 'STARTER' || pendingReview?.planType === 'STARTER'));
+
+  const starterMeals = [
+    ...meals.filter((m) => m.planType === 'STARTER'),
+    ...(pendingReview?.meals?.filter((m) => m.planType === 'STARTER') ?? []),
+  ].sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
 
   const starterFirstDate =
-    isStarterPlan && displayedPlanDays.length > 0 ? manilaDateFromKey(displayedPlanDays[0].dateKey) : null;
+    isStarterPlan && starterMeals.length > 0
+      ? manilaDateFromKey(getManilaDateKey(starterMeals[0].scheduledDate))
+      : isStarterPlan && cycles?.current?.startDate
+        ? manilaDateFromKey(getManilaDateKey(cycles.current.startDate))
+        : null;
+
   const starterLastDate =
-    isStarterPlan && displayedPlanDays.length > 0
-      ? manilaDateFromKey(displayedPlanDays[displayedPlanDays.length - 1].dateKey)
-      : null;
+    isStarterPlan && starterMeals.length > 0
+      ? manilaDateFromKey(getManilaDateKey(starterMeals[starterMeals.length - 1].scheduledDate))
+      : isStarterPlan && cycles?.current?.endDate
+        ? manilaDateFromKey(getManilaDateKey(cycles.current.endDate))
+        : null;
 
   const nextCycleDay = (() => {
-    if (!isStarterPlan || !starterLastDate) return null;
-    const dayAfter = new Date(starterLastDate);
-    dayAfter.setDate(dayAfter.getDate() + 1);
-    return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
+    if (!isStarterPlan) return null;
+    if (cycles?.upcoming?.startDate) {
+      return formatManilaDate(manilaDateFromKey(getManilaDateKey(cycles.upcoming.startDate)), {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    const weeklyMeals = [
+      ...meals.filter((m) => m.planType === 'WEEKLY'),
+      ...(pendingReview?.meals?.filter((m) => m.planType === 'WEEKLY') ?? []),
+    ].sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+    if (weeklyMeals.length > 0) {
+      return formatManilaDate(manilaDateFromKey(getManilaDateKey(weeklyMeals[0].scheduledDate)), {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    if (starterLastDate) {
+      const dayAfter = new Date(starterLastDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
+    }
+    return null;
   })();
   const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
   const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;

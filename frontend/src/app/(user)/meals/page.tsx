@@ -17,7 +17,6 @@ import { toast } from '@/components/ui/Sonner';
 import StateNotice from '@/components/shared/StateNotice';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
-  Sprout,
   Calendar,
   History,
   BookOpen,
@@ -85,8 +84,6 @@ export default function WeeklyPlanPage() {
     selectedPlanDayIndex,
     selectedPlanDay,
     isStarterPlan,
-    starterFirstDate,
-    starterLastDate,
     nextCycleDay,
     displayedMealCount,
     completedMealCount,
@@ -120,6 +117,7 @@ export default function WeeklyPlanPage() {
 
   const activePlanPillRef = useRef<HTMLButtonElement | null>(null);
   const notifiedPendingReview = useRef(false);
+  const notifiedStarterPlan = useRef(false);
 
   useEffect(() => {
     if (pendingReview && !notifiedPendingReview.current) {
@@ -129,6 +127,15 @@ export default function WeeklyPlanPage() {
       });
     }
   }, [pendingReview]);
+
+  useEffect(() => {
+    if (isStarterPlan && nextCycleDay && !notifiedStarterPlan.current) {
+      notifiedStarterPlan.current = true;
+      toast.info(`You're on a starter plan. Your full 7-day cycle begins on ${nextCycleDay}.`, {
+        id: 'meals-starter-plan-notice',
+      });
+    }
+  }, [isStarterPlan, nextCycleDay]);
 
   useEffect(() => {
     if (activePlanPillRef.current) {
@@ -160,27 +167,6 @@ export default function WeeklyPlanPage() {
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
-        {/* Starter Plan Banner — shown only for STARTER plans and when activeTab is plan */}
-        {activeTab === 'plan' && !isLoading && isStarterPlan && starterFirstDate && starterLastDate && nextCycleDay && (
-          <div className="w-full rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5 flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Sprout className="w-5 h-5 text-brand-green" />
-              <h2 className="text-base font-extrabold text-brand-green font-display tracking-tight">
-                Your Starter Plan
-              </h2>
-            </div>
-            <p className="text-xs text-brand-muted">
-              {displayedPlanDays.length} day{displayedPlanDays.length !== 1 ? 's' : ''} ·{' '}
-              {formatManilaDate(starterFirstDate, { weekday: 'short', month: 'short', day: 'numeric' })} to{' '}
-              {formatManilaDate(starterLastDate, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </p>
-            <p className="text-[11px] text-brand-text/60 leading-relaxed">
-              Your full 7-day plan begins on <span className="font-semibold text-brand-text/80">{nextCycleDay}</span>,
-              matching your preferred shopping day.
-            </p>
-          </div>
-        )}
-
         {/* Header Block */}
         <PortalPageHeader
           title={
@@ -194,8 +180,8 @@ export default function WeeklyPlanPage() {
           }
           description={
             activeTab === 'plan'
-              ? isStarterPlan
-                ? `${displayedPlanDays.length}-day kickoff plan. Your full weekly cycle starts ${nextCycleDay}.`
+              ? isStarterPlan && nextCycleDay
+                ? `Starter kickoff plan. Your full weekly cycle starts ${nextCycleDay}.`
                 : 'Your complete scheduled breakdown, macro targets, and meal review states.'
               : activeTab === 'history'
                 ? 'Your logged intake history, completion states, and swapped items.'
