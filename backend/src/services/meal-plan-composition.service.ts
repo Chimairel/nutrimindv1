@@ -370,14 +370,22 @@ export async function generate7DayPlan(
           compositionForValidation,
           existingMeals
         );
-        const aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
-          validationFailures.length
-            ? `${prompt}\nPrevious deterministic validation failures: ${validationFailures.join('; ')}`
-            : prompt,
-          systemInstruction,
-          MealResponseSchema,
-          { operation: AiUsageOperation.MEAL_PLAN_GENERATION, purpose: `UNMATCHED_SLOT_ATTEMPT_${attempt}` }
-        );
+        let aiResponse: GeminiMealPlanResponse | null = null;
+        try {
+          aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
+            validationFailures.length
+              ? `${prompt}\nPrevious deterministic validation failures: ${validationFailures.join('; ')}`
+              : prompt,
+            systemInstruction,
+            MealResponseSchema,
+            { operation: AiUsageOperation.MEAL_PLAN_GENERATION, purpose: `UNMATCHED_SLOT_ATTEMPT_${attempt}` }
+          );
+        } catch (aiErr) {
+          console.warn(`[Meal Generation] Gemini generation attempt ${attempt} failed:`, aiErr);
+          if (attempt === 3) break;
+          continue;
+        }
+
         const rejectedKeys = new Set<string>();
         for (const meal of aiResponse.meals) {
           const validation = validateGeneratedMealCandidate({
@@ -396,7 +404,37 @@ export async function generate7DayPlan(
         pendingSlots = pendingSlots.filter((slot) => rejectedKeys.has(`${slot.dayNumber}:${slot.mealType}`));
       }
       if (pendingSlots.length) {
-        throw new Error(`Deterministic validation rejected ${pendingSlots.length} meal slot(s) after 3 attempts.`);
+        console.warn(
+          `[Meal Generation] Falling back to eligible library meals for ${pendingSlots.length} unmatched slot(s).`
+        );
+        for (const slot of pendingSlots) {
+          const matchingLibMeal = eligibleLibraryMeals.find((m) => m.mealType === slot.mealType);
+          if (matchingLibMeal) {
+            accepted.push({
+              dayNumber: slot.dayNumber,
+              mealType: slot.mealType,
+              mealName: matchingLibMeal.mealName,
+              description: matchingLibMeal.description,
+              calories: matchingLibMeal.calories,
+              proteinG: matchingLibMeal.proteinG,
+              carbsG: matchingLibMeal.carbsG,
+              fatG: matchingLibMeal.fatG,
+              candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
+              ingredients: matchingLibMeal.ingredients.map((ing) => ({
+                ingredientName: ing.ingredientName,
+                quantity: ing.quantity,
+                unit: ing.unit,
+                calories: ing.calories,
+                proteinG: ing.proteinG,
+                carbsG: ing.carbsG,
+                fatG: ing.fatG,
+                foodItemId: ing.foodItemId,
+                dataSource: ing.dataSource,
+              })),
+            });
+          }
+        }
+        pendingSlots = [];
       }
       return accepted;
     }

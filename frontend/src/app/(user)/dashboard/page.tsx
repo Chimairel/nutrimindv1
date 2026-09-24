@@ -67,8 +67,11 @@ export default function DashboardPage() {
     progress: generationProgress,
     elapsedSeconds: generationElapsedSeconds,
     stageMessage: generationStageMessage,
+    isFailed: generationIsFailed,
+    errorMessage: generationErrorMessage,
     begin: beginGenerationProgress,
     complete: completeGenerationProgress,
+    fail: failGenerationProgress,
   } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
@@ -325,12 +328,14 @@ export default function DashboardPage() {
           planSnapshot: res.data.data.planSnapshot ?? null,
           cycle: res.data.data.cycle ?? null,
         });
+        generationRequestInFlight.current = false;
+        setIsGenerating(false);
       }
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Gemini failed to generate standard plan.'));
-    } finally {
+      const msg = getApiErrorMessage(err, 'Gemini failed to generate standard plan.');
+      failGenerationProgress(msg);
+      setError(msg);
       generationRequestInFlight.current = false;
-      setIsGenerating(false);
     }
   };
 
@@ -415,6 +420,13 @@ export default function DashboardPage() {
         progress={generationProgress}
         elapsedSeconds={generationElapsedSeconds}
         stageMessage={generationStageMessage}
+        isFailed={generationIsFailed}
+        errorMessage={generationErrorMessage}
+        onRetry={() => void handleGeneratePlan()}
+        onCancel={() => {
+          generationRequestInFlight.current = false;
+          setIsGenerating(false);
+        }}
       />
     );
   }

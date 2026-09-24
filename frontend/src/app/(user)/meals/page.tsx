@@ -76,6 +76,7 @@ export default function WeeklyPlanPage() {
     handleSwapClick,
     handleMealStatusToggle,
     handleRegeneratePlan,
+    setIsRegenerating,
     handleHistorySearchSubmit,
     groupHistoryByDate,
     groupedDays,
@@ -141,6 +142,10 @@ export default function WeeklyPlanPage() {
         progress={regenerationProgress.progress}
         elapsedSeconds={regenerationProgress.elapsedSeconds}
         stageMessage={regenerationProgress.stageMessage}
+        isFailed={regenerationProgress.isFailed}
+        errorMessage={regenerationProgress.errorMessage}
+        onRetry={() => void handleRegeneratePlan({ replaceExisting: true, skipConfirm: true })}
+        onCancel={() => setIsRegenerating(false)}
       />
     );
   }

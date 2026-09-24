@@ -507,11 +507,12 @@ export function useMealsWorkspace() {
             meals: res.data.data.meals,
             pendingReview: res.data.data.pendingReview ?? null,
           });
+          setIsRegenerating(false);
         }
       } catch (err: unknown) {
-        setError(getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.'));
-      } finally {
-        setIsRegenerating(false);
+        const msg = getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.');
+        regenerationProgress.fail(msg);
+        setError(msg);
       }
     },
     [pendingReview, meals.length, regenerationProgress, applyCurrentPlan]
@@ -813,6 +814,7 @@ export function useMealsWorkspace() {
     handleConfirmSwapAnyway,
     handleMealStatusToggle,
     handleRegeneratePlan,
+    setIsRegenerating,
     handleHistorySearchSubmit,
     handleLibrarySearchSubmit,
     groupHistoryByDate,
