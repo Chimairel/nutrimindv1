@@ -76,6 +76,7 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
   console.log(`[FNRI Lookup] Step 1: Searching exact match for: "${cleanName}"`);
   const exactMatch = await prisma.foodItem.findFirst({
     where: {
+      source: 'FNRI',
       name: {
         equals: cleanName,
         mode: 'insensitive',
@@ -95,6 +96,7 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
   console.log(`[FNRI Lookup] Step 2: Searching alias database for: "${cleanName}"`);
   const aliasMatch = await prisma.foodAlias.findFirst({
     where: {
+      foodItem: { source: 'FNRI' },
       OR: [{ normalizedAlias: normalizeFoodName(cleanName) }, { alias: { equals: cleanName, mode: 'insensitive' } }],
     },
     include: {
@@ -128,6 +130,7 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
   const fuzzyCandidates = lookupToken
     ? await prisma.foodItem.findMany({
         where: {
+          source: 'FNRI',
           name: {
             contains: lookupToken,
             mode: 'insensitive',

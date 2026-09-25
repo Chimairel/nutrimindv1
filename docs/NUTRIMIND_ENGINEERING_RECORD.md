@@ -31,8 +31,8 @@ Rules:
 | ADR | Architecture/design decision | ADR-030 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-028 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-038 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260925-17 |
-| TEST | Test case or verification procedure | TEST-227 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260926-05 |
+| TEST | Test case or verification procedure | TEST-229 |
 | UNC | Unresolved uncertainty | UNC-019 |
 | DOC | Documentation correction or addition | DOC-071 |
 
@@ -4472,3 +4472,15 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - A repeatable, audited curation script validates 34 specific recipe-label aliases against the FNRI CSV and database catalogue. It repairs the legacy unverified `malunggay leaves` alias, which incorrectly pointed to dried malunggay powder, so it points to the raw leaf record. It rejects any other conflicting mapping instead of overwriting it.
 - The version 2 reconciliation linked 373 additional ingredient occurrences, for 6,475 linked total; 13,456 remain unresolved. The applied reconciliation refreshed identity metadata across 1,960 recipe records plus 41 records affected by the final five aliases, and updated 7 already-scheduled ingredient food IDs. It does not promote source-recipe nutrient evidence to FNRI evidence or certify any meal. Nutritionist ingredient labels now distinguish an FNRI name match from complete nutrition evidence.
 - Verification: backend matcher tests and full backend suite (527 pass, 0 fail, 1 existing TODO), 256 frontend tests, backend scripts TypeScript check, both production builds, lint for both applications, and changed-file formatting passed. Final post-apply reconciliation dry run found zero recipe or plan rows to update. The repository-wide `check` gate stops on five pre-existing modules above its 900-line limit, and repository-wide formatting reports 92 unrelated files.
+
+## 147. Key-free USDA FoodData Central composition fallback (2026-09-26)
+
+**Change ID:** CHG-20260926-04
+
+**Verification IDs:** TEST-227, TEST-228
+
+- Chose pinned official FoodData Central dataset downloads over a runtime USDA API key. No USDA credential is stored in code, browser configuration, or the VPS environment. The derived snapshot records 13,535 nutrient-complete Foundation Foods (April 2026), FNDDS 2021–2023 (October 2024), and historical SR Legacy (April 2018) rows. Source download URLs and SHA-256 checks are pinned in the reproducible derivation script; the source deliveries are excluded from Git. `backend/data/usda/README.md` records provenance, limits, and deployment commands.
+- Added nullable FDC provenance columns and a `USDA_FDC` meal ingredient source through additive migration `20260926030000_usda_food_composition_fallback`. FNRI remains the first lookup. USDA is consulted only for one exact normalized food identity or an admin verified alias when FNRI does not resolve the name. Ambiguous names remain unresolved. Per-100-g values can replace meal macro totals only when every ingredient has a defensible gram or kilogram amount. Source recipe identity links alone do not become measured nutrient evidence. Existing FNRI-only reusable meal certification remains strict; USDA evidence requires per-user professional review and local applicability judgment.
+- Applied the migration and imported all 13,535 USDA rows into the configured shared-development Neon database. The Panlasang reconciliation linked 646 previously unresolved ingredient occurrences across 533 of 1,960 indexed recipes, preserving source recipe nutrient uncertainty. The repeat dry run reported zero further recipe updates. The legacy FNRI reconciliation preserves these USDA links when no FNRI match is found. Admin catalogue and nutritionist review screens label USDA provenance; the public sources page names its exact role and limitations. Admin composition edits to the pinned USDA rows are blocked so a local correction cannot silently masquerade as the official snapshot.
+- API processes cache the immutable USDA name index for ten minutes while loading verified aliases fresh; an empty catalogue is not cached so a running development server can observe a completed import. The Docker backend copies the derived snapshot, and a compiled production importer command works without `tsx` or a USDA API credential. Consumption survey and grocery price mappings remain FNRI-scoped.
+- Verification: Prisma schema validation, backend and frontend production builds, frontend TypeScript check, backend suite **531 passed, 0 failed, 1 existing TODO**, and frontend suite **257 passed**. A live lookup returned USDA FDC 2710186 for `Olive oil` and no match for an unknown spice. Focused policy tests cover unique exact/verified alias matching, ambiguity, and measured gram reconciliation. This verifies data import and lookup, not ingredient equivalence for every Filipino recipe, clinical suitability, or a browser journey. The production VPS has not been migrated or imported by this change.

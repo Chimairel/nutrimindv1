@@ -12,7 +12,7 @@ interface Metric {
 
 export default function DataSummary({ summary }: { summary: WorkspaceSummary }) {
   const metrics: Metric[] = [
-    { label: 'FNRI foods', value: summary.foodItems, detail: 'canonical nutrient records', icon: Database },
+    { label: 'Food records', value: summary.foodItems, detail: 'FNRI and USDA nutrient records', icon: Database },
     { label: 'Verified aliases', value: summary.foodAliases, detail: 'search and import labels', icon: Tags },
     {
       label: 'Clinical meal library',

@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 const categoryIcons = {
   PHILIPPINE_NUTRITION: Database,
+  INTERNATIONAL_FOOD_COMPOSITION: Database,
   CLINICAL_METHOD: FlaskConical,
   SAFETY_GUIDANCE: ShieldCheck,
   RECIPE_PROVENANCE: BookOpenCheck,
@@ -89,7 +90,9 @@ export default function SourcesPage() {
                     <ul className="mt-3 space-y-2 text-sm leading-6 text-brand-text">
                       {policy.deterministicUse.map((use) => (
                         <li key={use} className="flex gap-2">
-                          <span aria-hidden className="text-brand-green">•</span>
+                          <span aria-hidden className="text-brand-green">
+                            •
+                          </span>
                           <span>{use}</span>
                         </li>
                       ))}

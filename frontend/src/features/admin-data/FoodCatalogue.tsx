@@ -35,7 +35,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
       });
       setResult(response.data.data);
     } catch (error) {
-      onError(getApiError(error, 'Could not search the FNRI catalogue.'));
+      onError(getApiError(error, 'Could not search the food composition catalogue.'));
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
           <div className="flex items-center gap-3">
             <Tags className="h-5 w-5 text-brand-green" />
             <div>
-              <h2 className="font-display text-lg font-black">FNRI catalogue and aliases</h2>
+              <h2 className="font-display text-lg font-black">Food composition catalogue and aliases</h2>
               <p className="text-xs text-brand-muted">
                 {canonicalFoodCount.toLocaleString()} nutrient records remain canonical; admins may add audited search
                 and import labels.
@@ -85,7 +85,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
       >
         <form className="flex gap-2" onSubmit={findFoods}>
           <Input
-            label="Search FNRI catalogue"
+            label="Search food composition catalogue"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search canonical names or aliases"
@@ -104,12 +104,19 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
                 <div className="min-w-0">
                   <p className="font-bold text-brand-text">{food.name}</p>
                   <p className="mt-1 text-[11px] text-brand-muted">
+                    {food.source === 'USDA_FDC' ? 'USDA FoodData Central' : food.source}
+                    {food.sourceRecordId ? ` · ID ${food.sourceRecordId}` : ''}
+                    {food.sourceDataset ? ` · ${food.sourceDataset}` : ''}
+                  </p>
+                  <p className="mt-1 text-[11px] text-brand-muted">
                     {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g per 100 g
                   </p>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
-                  Composition
-                </Button>
+                {food.source !== 'USDA_FDC' && (
+                  <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
+                    Composition
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => setSelected(food)}>
                   Add alias
                 </Button>
@@ -122,7 +129,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
                       alias.verifiedByAdmin
                         ? `Verified by ${alias.verifiedByAdmin.name}`
                         : alias.verifiedAt
-                          ? 'Curated FNRI alias'
+                          ? 'Curated food alias'
                           : 'Legacy alias'
                     }
                     className={`rounded-full border px-2.5 py-1 text-[10px] ${alias.verifiedAt ? 'border-brand-green/25 bg-brand-green/10 text-brand-green' : 'border-brand-border text-brand-muted'}`}
@@ -137,7 +144,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
           ))}
         </div>
         {result.totalPages > 1 && (
-          <nav aria-label="FNRI catalogue pages" className="mt-5 flex items-center justify-between gap-3">
+          <nav aria-label="Food catalogue pages" className="mt-5 flex items-center justify-between gap-3">
             <Button
               type="button"
               size="sm"
@@ -172,8 +179,8 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
               Add a verified alias for {selected.name}
             </p>
             <p className="mt-1 text-xs text-brand-muted">
-              Aliases affect food matching, so collisions with another FNRI record are rejected and every change is
-              audited.
+              Aliases affect food matching, so collisions with another composition record are rejected and every change
+              is audited.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <Input

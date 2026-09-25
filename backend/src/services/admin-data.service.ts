@@ -97,10 +97,10 @@ export class AdminDataService {
     };
   }
 
-  static async listFoods(page: number, limit: number, search?: string) {
+  static async listFoods(page: number, limit: number, search?: string, source?: 'FNRI' | 'USDA_FDC') {
     const pagination = normalizePagination(page, limit, 25);
     const normalizedSearch = normalizeSearch(search);
-    const where = normalizedSearch
+    const searchWhere = normalizedSearch
       ? {
           OR: [
             { name: { contains: normalizedSearch, mode: 'insensitive' as const } },
@@ -108,6 +108,7 @@ export class AdminDataService {
           ],
         }
       : {};
+    const where = { ...searchWhere, ...(source ? { source } : {}) };
     const [foods, total] = await Promise.all([
       prisma.foodItem.findMany({
         where,
@@ -264,6 +265,7 @@ export class AdminDataService {
       throw new Error('Consumption CSV files require a FOOD_CONSUMPTION source.');
     }
     const foods = await prisma.foodItem.findMany({
+      where: { source: 'FNRI' },
       select: { id: true, name: true, aliases: { select: { alias: true, verifiedAt: true } } },
     });
     const foodIndex = this.buildFoodIndex(foods);
@@ -318,7 +320,7 @@ export class AdminDataService {
     ]);
     if (!stat) throw new Error('Consumption statistic not found.');
     if (stat.release.status !== ReferenceDataReleaseStatus.DRAFT) throw new Error('Only draft mappings can change.');
-    if (!food) throw new Error('FNRI food item not found.');
+    if (!food || food.source !== 'FNRI') throw new Error('FNRI food item not found.');
     return prisma.$transaction(async (tx) => {
       const updated = await tx.foodConsumptionStat.update({
         where: { id: statId },
@@ -427,15 +429,15 @@ export class AdminDataService {
         select: { id: true, foodItemId: true, alias: true, normalizedAlias: true, verifiedAt: true },
       }),
     ]);
-    if (!target) throw new Error('FNRI food item not found.');
+    if (!target) throw new Error('Food composition record not found.');
     const foodCollision = foods.find((food) => normalizeFoodName(food.name) === normalizedAlias);
     if (foodCollision) {
-      if (foodCollision.id === target.id) throw new Error('The alias is already the canonical FNRI food name.');
-      throw new Error(`That label is the canonical name of another FNRI food: ${foodCollision.name}.`);
+      if (foodCollision.id === target.id) throw new Error('The alias is already the canonical food name.');
+      throw new Error(`That label is the canonical name of another food: ${foodCollision.name}.`);
     }
     const collisions = aliases.filter((alias) => normalizeFoodName(alias.alias) === normalizedAlias);
     if (collisions.some((alias) => alias.foodItemId !== target.id)) {
-      throw new Error('That normalized alias already points to another FNRI food.');
+      throw new Error('That normalized alias already points to another food.');
     }
     if (collisions.length > 1) {
       throw new Error(

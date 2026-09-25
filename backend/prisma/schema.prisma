@@ -146,6 +146,7 @@ enum MealLogDataSource {
 
 enum MealIngredientDataSource {
   FNRI
+  USDA_FDC
   GEMINI_ESTIMATED
   SOURCE_RECIPE
 }
@@ -1089,6 +1090,10 @@ model FoodItem {
   water               Float?
   outsideMealItems    OutsideMealLogItem[]
   source              String                    @default("FNRI")
+  sourceRecordId      String?                   @db.VarChar(80)
+  sourceReferenceUrl  String?                   @db.VarChar(500)
+  sourceDataset       String?                   @db.VarChar(120)
+  sourcePublishedAt   DateTime?
 
   // Relations
   aliases                FoodAlias[]
@@ -1099,6 +1104,8 @@ model FoodItem {
   conversionEvidenceTo   IngredientConversionEvidence[]    @relation("IngredientConversionToFood")
   consumptionStats       FoodConsumptionStat[]
   planServingComponents  MealPlanServingComponent[]
+
+  @@unique([source, sourceRecordId])
 }
 
 model FoodAlias {

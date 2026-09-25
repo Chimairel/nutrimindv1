@@ -52,6 +52,8 @@ export class FoodCompositionService {
   }
   static async draft(adminId: string, foodItemId: string, input: z.infer<typeof compositionDraftSchema>) {
     const food = await prisma.foodItem.findUniqueOrThrow({ where: { id: foodItemId } });
+    if (food.source === 'USDA_FDC')
+      throw new Error('USDA snapshot values are immutable; update the pinned source dataset instead.');
     if (food.compositionRevision !== input.expectedRevision)
       throw new Error('Composition changed. Reload the food record.');
     return prisma.foodCompositionRevision.create({
@@ -75,6 +77,12 @@ export class FoodCompositionService {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(741010)`;
         const draft = await tx.foodCompositionRevision.findUniqueOrThrow({ where: { id } });
         if (draft.publishedAt) return draft;
+        const draftFood = await tx.foodItem.findUniqueOrThrow({
+          where: { id: draft.foodItemId },
+          select: { source: true },
+        });
+        if (draftFood.source === 'USDA_FDC')
+          throw new Error('USDA snapshot values are immutable; update the pinned source dataset instead.');
         const affected = await tx.mealPlan.findMany({
           where: {
             scheduledDate: { gte: getStartOfManilaBusinessDay() },

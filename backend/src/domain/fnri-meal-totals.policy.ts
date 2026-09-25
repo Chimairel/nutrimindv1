@@ -2,7 +2,11 @@ type Composition = { id: string; calories: number; proteinG: number; carbsG: num
 type Portion = { foodItemId: string | null; quantity?: number | null; unit?: string | null };
 
 /** FNRI composition is per 100 g of the named food/preparation. No guessed cup/piece conversions. */
-export function reconcileFnriMealTotals(ingredients: readonly Portion[], foods: readonly Composition[]) {
+export function reconcileFnriMealTotals(
+  ingredients: readonly Portion[],
+  foods: readonly Composition[],
+  acceptedSources: readonly string[] = ['FNRI']
+) {
   const byId = new Map(foods.map((food) => [food.id, food]));
   const totals = { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
   let resolved = 0;
@@ -16,7 +20,7 @@ export function reconcileFnriMealTotals(ingredients: readonly Portion[], foods: 
         : null;
     if (
       !food ||
-      food.source !== 'FNRI' ||
+      !acceptedSources.includes(food.source) ||
       factor === null ||
       !item.quantity ||
       !Number.isFinite(item.quantity) ||

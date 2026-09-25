@@ -434,11 +434,14 @@ export class MealLogService {
         },
         restrictions
       );
-    const exact = await prisma.foodItem.findFirst({ where: { name: { equals: item.name, mode: 'insensitive' } } });
+    const exact = await prisma.foodItem.findFirst({
+      where: { source: 'FNRI', name: { equals: item.name, mode: 'insensitive' } },
+    });
     const alias = exact
       ? null
       : await prisma.foodAlias.findFirst({
           where: {
+            foodItem: { source: 'FNRI' },
             OR: [
               { normalizedAlias: normalizeFoodName(item.name) },
               { alias: { equals: item.name, mode: 'insensitive' } },
@@ -452,7 +455,7 @@ export class MealLogService {
     if (!food) {
       const firstToken = normalize(item.name).split(/\s+/)[0];
       const candidates = await prisma.foodItem.findMany({
-        where: { name: { contains: firstToken, mode: 'insensitive' } },
+        where: { source: 'FNRI', name: { contains: firstToken, mode: 'insensitive' } },
         take: 30,
       });
       food = selectStrongFNRIMatch(item.name, candidates);

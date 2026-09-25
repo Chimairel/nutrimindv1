@@ -1,14 +1,23 @@
-export type IngredientEvidenceSource = 'FNRI' | 'SOURCE_RECIPE' | 'GEMINI_ESTIMATED';
+export type IngredientEvidenceSource = 'FNRI' | 'USDA_FDC' | 'SOURCE_RECIPE' | 'GEMINI_ESTIMATED';
 
 export function getIngredientEvidencePresentation(input: {
   source: IngredientEvidenceSource;
-  fnriFoodName?: string | null;
+  compositionFoodName?: string | null;
+  compositionSource?: string | null;
+  compositionSourceUrl?: string | null;
 }) {
-  if (input.fnriFoodName) {
+  if (input.compositionFoodName && input.compositionSource === 'USDA_FDC') {
+    return {
+      label: 'USDA',
+      borderClass: 'border-sky-500/30',
+      title: `USDA FoodData Central identity linked: ${input.compositionFoodName}. ${input.compositionSourceUrl ?? ''} Portion conversion, local applicability, and professional review remain separate.`,
+    };
+  }
+  if (input.compositionFoodName && input.compositionSource === 'FNRI') {
     return {
       label: '✓',
       borderClass: 'border-status-verified-text/30',
-      title: `FNRI identity linked: ${input.fnriFoodName}. Portion conversion and professional review remain separate.`,
+      title: `FNRI identity linked: ${input.compositionFoodName}. Portion conversion and professional review remain separate.`,
     };
   }
   if (input.source === 'SOURCE_RECIPE') {

@@ -46,7 +46,13 @@ export interface DetailData {
   clinicalEvidence?: {
     policyVersion: string;
     requirements: Array<{ area: string; state: string; message: string }>;
-    documents: Array<{ id: string; area: string; documentType: string; validUntil: string | null; facts: Array<{ code: string; valueText: string | null; valueNumber: number | null; unit: string | null }> }>;
+    documents: Array<{
+      id: string;
+      area: string;
+      documentType: string;
+      validUntil: string | null;
+      facts: Array<{ code: string; valueText: string | null; valueNumber: number | null; unit: string | null }>;
+    }>;
   };
   mealPlan: {
     id: string;
@@ -86,7 +92,9 @@ export interface DetailData {
     name: string;
     source: IngredientEvidenceSource;
     foodItemId?: string | null;
-    fnriFoodName?: string | null;
+    compositionFoodName?: string | null;
+    compositionSource?: string | null;
+    compositionSourceUrl?: string | null;
     quantity?: number | null;
     unit?: string | null;
   }[];

@@ -1,6 +1,7 @@
 node_modules
 dist
 coverage
+data/usda/source-delivery/
 .env
 .env.*
 !.env.example

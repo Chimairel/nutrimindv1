@@ -8,6 +8,7 @@ const foods = {
     {
       id: 'rice',
       name: 'Rice, white, boiled',
+      source: 'FNRI',
       calories: 130,
       proteinG: 2.7,
       carbsG: 28,
@@ -27,7 +28,7 @@ describe('FoodCatalogue', () => {
 
     expect(screen.getByText(/1,537 nutrient records remain canonical/)).toBeInTheDocument();
     expect(screen.getByText(/130 kcal/)).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'FNRI catalogue pages' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Food catalogue pages' })).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 129')).toBeInTheDocument();
   });
 

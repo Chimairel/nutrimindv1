@@ -317,6 +317,15 @@ test('[TEST-016] Gemini-estimated ingredients force review and uncertainty', () 
   assert.ok(result.reasonCodes.includes('AI_ESTIMATED_INGREDIENT'));
 });
 
+test('USDA composition is recognized evidence but still requires review', () => {
+  const result = evaluateRestrictions({
+    evidence: completeEvidence([], [{ dataSource: 'USDA_FDC', resolved: true, linked: true }]),
+  });
+  assert.equal(result.decision, 'REVIEW');
+  assert.ok(result.reasonCodes.includes('USDA_COMPOSITION_REQUIRES_REVIEW'));
+  assert.equal(result.reasonCodes.includes('UNKNOWN_METADATA_KEY'), false);
+});
+
 test('[TEST-016] unresolved or unlinked ingredients force review', () => {
   for (const ingredient of [
     { dataSource: 'FNRI', resolved: false, linked: true },

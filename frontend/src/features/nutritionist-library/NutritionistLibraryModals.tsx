@@ -153,9 +153,11 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                       >
                         {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
                           ? 'FNRI linked'
-                          : ingredient.foodItemId
-                            ? 'FNRI name matched; nutrition evidence pending'
-                            : 'FNRI identity unresolved'}
+                          : ingredient.dataSource === 'USDA_FDC' && ingredient.foodItemId
+                            ? 'USDA composition linked; certification pending'
+                            : ingredient.foodItemId
+                              ? `${ingredient.foodItemId.startsWith('USDA_FDC_') ? 'USDA' : 'FNRI'} name matched; nutrition evidence pending`
+                              : 'Composition identity unresolved'}
                       </span>
                     </div>
                   ))
@@ -271,9 +273,11 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                       >
                         {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
                           ? 'FNRI linked'
-                          : ingredient.foodItemId
-                            ? 'FNRI name matched; nutrition evidence pending'
-                            : 'FNRI identity unresolved'}
+                          : ingredient.dataSource === 'USDA_FDC' && ingredient.foodItemId
+                            ? 'USDA composition linked; certification pending'
+                            : ingredient.foodItemId
+                              ? `${ingredient.foodItemId.startsWith('USDA_FDC_') ? 'USDA' : 'FNRI'} name matched; nutrition evidence pending`
+                              : 'Composition identity unresolved'}
                       </span>
                     </div>
                   ))

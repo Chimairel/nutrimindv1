@@ -73,13 +73,17 @@ export interface LibraryMeal {
   verifiedByNutritionistId: string | null;
   verifiedByNutritionist?: Verifier;
   flags?: Flag[];
-  safetyReviews?: Array<{ id: string; reasonCode: string | null; evidenceSnapshot?: { nutritionBasis?: string } | null }>;
+  safetyReviews?: Array<{
+    id: string;
+    reasonCode: string | null;
+    evidenceSnapshot?: { nutritionBasis?: string } | null;
+  }>;
   ingredients?: {
     id: string;
     ingredientName: string;
     category?: string | null;
     foodItemId?: string | null;
-    dataSource: 'FNRI' | 'GEMINI_ESTIMATED' | 'SOURCE_RECIPE';
+    dataSource: 'FNRI' | 'USDA_FDC' | 'GEMINI_ESTIMATED' | 'SOURCE_RECIPE';
     position: number;
     quantity?: number | null;
     unit?: string | null;

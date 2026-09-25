@@ -256,7 +256,12 @@ const routes: RouteDocumentation[] = [
   { method: 'get', path: '/api/admin/structured-safety-operations', tag: 'Admin', summary: 'Read safety operations' },
   { method: 'get', path: '/api/admin/compensation', tag: 'Compensation', summary: 'Read compensation workspace' },
   { method: 'get', path: '/api/admin/data', tag: 'Data governance', summary: 'Read the reference-data workspace' },
-  { method: 'get', path: '/api/admin/data/foods', tag: 'Data governance', summary: 'Search the FNRI food catalogue' },
+  {
+    method: 'get',
+    path: '/api/admin/data/foods',
+    tag: 'Data governance',
+    summary: 'Search the FNRI and USDA food composition catalogue',
+  },
   {
     method: 'get',
     path: '/api/admin/data/releases/{id}/stats',

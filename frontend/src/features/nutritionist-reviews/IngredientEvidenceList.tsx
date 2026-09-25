@@ -4,7 +4,9 @@ interface IngredientEvidenceListProps {
   ingredients: Array<{
     name: string;
     source: IngredientEvidenceSource;
-    fnriFoodName?: string | null;
+    compositionFoodName?: string | null;
+    compositionSource?: string | null;
+    compositionSourceUrl?: string | null;
     quantity?: number | null;
     unit?: string | null;
   }>;
@@ -15,6 +17,7 @@ export default function IngredientEvidenceList({ ingredients }: IngredientEviden
     <>
       <div className="mb-2 flex flex-wrap gap-2 text-[9px] font-semibold text-brand-muted">
         <span className="text-status-verified-text">● FNRI identity linked</span>
+        <span className="text-sky-400">● USDA composition identity</span>
         <span className="text-sky-400">● Source recipe, unmatched</span>
         <span className="text-amber-500">● AI estimate</span>
       </div>

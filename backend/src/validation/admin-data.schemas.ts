@@ -64,6 +64,7 @@ export const createFoodAliasSchema = z
 export const adminDataListQuerySchema = z
   .object({
     search: z.string().trim().max(200).optional(),
+    source: z.enum(['FNRI', 'USDA_FDC']).optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(25),
   })

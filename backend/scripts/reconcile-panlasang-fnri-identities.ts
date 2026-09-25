@@ -78,7 +78,11 @@ async function main() {
       }
       return {
         ...ingredient,
-        foodItemId: match?.food.id ?? null,
+        foodItemId:
+          match?.food.id ??
+          (typeof ingredient.foodItemId === 'string' && ingredient.foodItemId.startsWith('USDA_FDC_')
+            ? ingredient.foodItemId
+            : null),
         fnriFoodName: match?.food.name ?? null,
         fnriMatchMethod: match?.method ?? null,
         fnriMatchStatus: match ? 'MATCHED' : isInvalid ? 'INVALID_SOURCE_FRAGMENT' : 'UNRESOLVED',

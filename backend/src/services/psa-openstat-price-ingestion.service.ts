@@ -49,7 +49,11 @@ function canonicalJson(value: unknown): string {
 }
 
 async function resolveUniqueFoodItemId(tx: Prisma.TransactionClient, foodName: string): Promise<string> {
-  const matches = await tx.foodItem.findMany({ where: { name: foodName }, select: { id: true }, take: 2 });
+  const matches = await tx.foodItem.findMany({
+    where: { name: foodName, source: 'FNRI' },
+    select: { id: true },
+    take: 2,
+  });
   if (matches.length !== 1) {
     throw new Error(`FNRI food name must resolve exactly once: ${foodName} (matches=${matches.length})`);
   }

@@ -285,7 +285,7 @@ function ConsumptionMappingPanel({
   async function findFoods() {
     try {
       const response = await api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', {
-        params: { page: 1, limit: 20, search: foodSearch },
+        params: { page: 1, limit: 20, search: foodSearch, source: 'FNRI' },
       });
       setFoods(response.data.data.foods);
     } catch (error) {

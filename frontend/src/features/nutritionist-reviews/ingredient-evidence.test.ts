@@ -5,10 +5,21 @@ describe('nutritionist ingredient evidence presentation', () => {
   it('shows an FNRI identity link without claiming professional verification', () => {
     const result = getIngredientEvidencePresentation({
       source: 'SOURCE_RECIPE',
-      fnriFoodName: 'Rice, well-milled, boiled',
+      compositionFoodName: 'Rice, well-milled, boiled',
+      compositionSource: 'FNRI',
     });
     expect(result.label).toBe('✓');
     expect(result.title).toContain('FNRI identity linked');
+    expect(result.title).toContain('professional review remain separate');
+  });
+
+  it('labels USDA composition without implying reusable certification', () => {
+    const result = getIngredientEvidencePresentation({
+      source: 'USDA_FDC',
+      compositionFoodName: 'Olive oil',
+      compositionSource: 'USDA_FDC',
+    });
+    expect(result.label).toBe('USDA');
     expect(result.title).toContain('professional review remain separate');
   });
 

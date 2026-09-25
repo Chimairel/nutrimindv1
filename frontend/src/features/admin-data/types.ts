@@ -66,6 +66,10 @@ export interface FoodAlias {
 export interface FoodItem {
   id: string;
   name: string;
+  source: string;
+  sourceRecordId?: string | null;
+  sourceReferenceUrl?: string | null;
+  sourceDataset?: string | null;
   calories: number;
   proteinG: number;
   carbsG: number;

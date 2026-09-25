@@ -71,10 +71,15 @@ router.get(
   validateZodRequest({ query: adminDataListQuerySchema }),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { page, limit, search } = req.query as unknown as { page: number; limit: number; search?: string };
-      return res.json({ success: true, data: await AdminDataService.listFoods(page, limit, search) });
+      const { page, limit, search, source } = req.query as unknown as {
+        page: number;
+        limit: number;
+        search?: string;
+        source?: 'FNRI' | 'USDA_FDC';
+      };
+      return res.json({ success: true, data: await AdminDataService.listFoods(page, limit, search, source) });
     } catch (error: unknown) {
-      return failure(res, error, 'Failed to retrieve the FNRI catalogue.', 500);
+      return failure(res, error, 'Failed to retrieve the food composition catalogue.', 500);
     }
   }
 );

@@ -46,6 +46,7 @@ export const RESTRICTION_REASON_CODE_ORDER = Object.freeze([
   'MISSING_INGREDIENT_EVIDENCE',
   'UNKNOWN_METADATA_KEY',
   'AI_ESTIMATED_INGREDIENT',
+  'USDA_COMPOSITION_REQUIRES_REVIEW',
   'UNRESOLVED_INGREDIENT',
   'UNREVIEWED_CONDITION_RULE',
   'KNOWN_CONDITION_REQUIRES_REVIEW',
@@ -155,6 +156,7 @@ const REVIEW_REASON_CODES = new Set<RestrictionReasonCode>([
   'MISSING_INGREDIENT_EVIDENCE',
   'UNKNOWN_METADATA_KEY',
   'AI_ESTIMATED_INGREDIENT',
+  'USDA_COMPOSITION_REQUIRES_REVIEW',
   'UNRESOLVED_INGREDIENT',
   'UNREVIEWED_CONDITION_RULE',
   'KNOWN_CONDITION_REQUIRES_REVIEW',
@@ -510,6 +512,9 @@ export function evaluateRestrictions(input: RestrictionEvaluationInput): Restric
       if (ingredient.dataSource === 'GEMINI_ESTIMATED') {
         reasons.add('AI_ESTIMATED_INGREDIENT');
         estimatedOrUnresolvedIngredient = true;
+        ingredientsComplete = false;
+      } else if (ingredient.dataSource === 'USDA_FDC') {
+        reasons.add('USDA_COMPOSITION_REQUIRES_REVIEW');
         ingredientsComplete = false;
       } else if (ingredient.dataSource !== 'FNRI') {
         reasons.add('UNKNOWN_METADATA_KEY');

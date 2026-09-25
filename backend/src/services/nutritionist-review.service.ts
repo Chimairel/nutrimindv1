@@ -1,7 +1,14 @@
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
 import { lockUserProfile } from './profile-revision.service';
-import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma, ClinicalEvidenceArea } from '@prisma/client';
+import {
+  MealPlanStatus,
+  AIConfidenceFlag,
+  NotificationType,
+  MealIngredientDataSource,
+  Prisma,
+  ClinicalEvidenceArea,
+} from '@prisma/client';
 
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import {
@@ -26,7 +33,11 @@ import { compareDeadlineReviewPriority } from '@/domain/upcoming-preparation.pol
 import { rejectMealPlan } from './nutritionist-rejection.service';
 import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
-import { CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION, evaluateClinicalEvidenceRequirements, type DiabetesContext } from '@/domain/clinical-evidence-requirement.policy';
+import {
+  CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,
+  evaluateClinicalEvidenceRequirements,
+  type DiabetesContext,
+} from '@/domain/clinical-evidence-requirement.policy';
 
 export async function assertObservedSourceStillAvailable(tx: Prisma.TransactionClient, rawCandidateId: string | null) {
   if (!rawCandidateId) return;
@@ -74,19 +85,42 @@ export class NutritionistReviewService {
     });
 
     const userIds = [...new Set(pendingMeals.map((meal) => meal.userId))];
-    const [conditions, documents, contexts] = userIds.length ? await Promise.all([
-      prisma.healthCondition.findMany({ where: { userId: { in: userIds } }, select: { userId: true, condition: true } }),
-      prisma.clinicalDocument.findMany({ where: { userId: { in: userIds } }, select: { userId: true, id: true, area: true, status: true, validUntil: true, revision: true, sha256: true, createdAt: true } }),
-      prisma.clinicalContextResponse.findMany({ where: { userId: { in: userIds }, area: ClinicalEvidenceArea.DIABETES }, select: { userId: true, responses: true } }),
-    ]) : [[], [], []];
-    const readinessByUser = new Map(userIds.map((userId) => [
-      userId,
-      evaluateClinicalEvidenceRequirements({
-        conditions: conditions.filter((item) => item.userId === userId).map((item) => item.condition),
-        documents: documents.filter((item) => item.userId === userId),
-        diabetesContext: (contexts.find((item) => item.userId === userId)?.responses as DiabetesContext | undefined) ?? null,
-      }).every((requirement) => requirement.state === 'READY'),
-    ]));
+    const [conditions, documents, contexts] = userIds.length
+      ? await Promise.all([
+          prisma.healthCondition.findMany({
+            where: { userId: { in: userIds } },
+            select: { userId: true, condition: true },
+          }),
+          prisma.clinicalDocument.findMany({
+            where: { userId: { in: userIds } },
+            select: {
+              userId: true,
+              id: true,
+              area: true,
+              status: true,
+              validUntil: true,
+              revision: true,
+              sha256: true,
+              createdAt: true,
+            },
+          }),
+          prisma.clinicalContextResponse.findMany({
+            where: { userId: { in: userIds }, area: ClinicalEvidenceArea.DIABETES },
+            select: { userId: true, responses: true },
+          }),
+        ])
+      : [[], [], []];
+    const readinessByUser = new Map(
+      userIds.map((userId) => [
+        userId,
+        evaluateClinicalEvidenceRequirements({
+          conditions: conditions.filter((item) => item.userId === userId).map((item) => item.condition),
+          documents: documents.filter((item) => item.userId === userId),
+          diabetesContext:
+            (contexts.find((item) => item.userId === userId)?.responses as DiabetesContext | undefined) ?? null,
+        }).every((requirement) => requirement.state === 'READY'),
+      ])
+    );
     const clinicallyReadyMeals = pendingMeals.filter((meal) => readinessByUser.get(meal.userId) !== false);
 
     const workCounts = new Map<string, number>();
@@ -194,9 +228,8 @@ export class NutritionistReviewService {
           claimedByName,
           coolingDownForMe: Boolean(cooldownUntil),
           cooldownUntil,
-          claimExpiresAt: claimedByMe && meal.claimedAt
-            ? new Date(meal.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS)
-            : null,
+          claimExpiresAt:
+            claimedByMe && meal.claimedAt ? new Date(meal.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS) : null,
         },
       };
     });
@@ -280,7 +313,9 @@ export class NutritionistReviewService {
         }
         const cooldownUntil = getReviewClaimCooldownUntil(current, nutritionistProfileId, now);
         if (cooldownUntil) {
-          throw new Error(`Your claim expired. Other nutritionists can review this meal now; you can try again after ${cooldownUntil.toLocaleTimeString()}.`);
+          throw new Error(
+            `Your claim expired. Other nutritionists can review this meal now; you can try again after ${cooldownUntil.toLocaleTimeString()}.`
+          );
         }
         if (isReviewClaimActive(current, now) && current.claimedByNutritionistId !== nutritionistProfileId) {
           throw new Error(
@@ -297,7 +332,7 @@ export class NutritionistReviewService {
       where: { id: mealPlanId, ...getNutritionistReviewableMealPlanWhere() },
       include: {
         ingredients: {
-          include: { foodItem: { select: { id: true, name: true } } },
+          include: { foodItem: { select: { id: true, name: true, source: true, sourceReferenceUrl: true } } },
         },
         user: {
           include: {
@@ -311,7 +346,11 @@ export class NutritionistReviewService {
     });
 
     if (!updatedMealPlan) throw new Error('This meal is no longer awaiting review. Please refresh the queue.');
-    if (!acquireClaim && isReviewClaimActive(updatedMealPlan, now) && updatedMealPlan.claimedByNutritionistId !== nutritionistProfileId) {
+    if (
+      !acquireClaim &&
+      isReviewClaimActive(updatedMealPlan, now) &&
+      updatedMealPlan.claimedByNutritionistId !== nutritionistProfileId
+    ) {
       throw new Error('This meal was already claimed by another nutritionist. Please refresh the queue.');
     }
 
@@ -405,6 +444,14 @@ export class NutritionistReviewService {
       });
     }
 
+    const usdaIngredients = updatedMealPlan.ingredients.filter((ing) => ing.dataSource === 'USDA_FDC');
+    if (usdaIngredients.length > 0) {
+      warnings.push({
+        severity: 'IMPORTANT',
+        message: `${usdaIngredients.length} ingredient(s) use USDA FoodData Central composition. Confirm food identity, gram amount, local applicability, and restrictions before approval.`,
+      });
+    }
+
     if (updatedMealPlan.requiresSafetyRevalidation)
       warnings.push({
         severity: 'IMPORTANT',
@@ -472,7 +519,9 @@ export class NutritionistReviewService {
         name: ing.ingredientName,
         source: ing.dataSource,
         foodItemId: ing.foodItemId,
-        fnriFoodName: ing.foodItem?.name ?? null,
+        compositionFoodName: ing.foodItem?.name ?? null,
+        compositionSource: ing.foodItem?.source ?? null,
+        compositionSourceUrl: ing.foodItem?.sourceReferenceUrl ?? null,
         quantity: ing.quantity,
         unit: ing.unit,
       })),
@@ -487,19 +536,25 @@ export class NutritionistReviewService {
       requiresIndependentSecondReview:
         updatedMealPlan.highRiskReviewRequired && updatedMealPlan.reviewApprovalCount === 1,
       claimStatus: {
-        claimedByMe: isReviewClaimActive(updatedMealPlan, now) && updatedMealPlan.claimedByNutritionistId === nutritionistProfileId,
+        claimedByMe:
+          isReviewClaimActive(updatedMealPlan, now) &&
+          updatedMealPlan.claimedByNutritionistId === nutritionistProfileId,
         claimedByOther: false,
         claimedByName: null,
-        claimExpiresAt: isReviewClaimActive(updatedMealPlan, now) && updatedMealPlan.claimedByNutritionistId === nutritionistProfileId && updatedMealPlan.claimedAt
-          ? new Date(updatedMealPlan.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS)
-          : null,
+        claimExpiresAt:
+          isReviewClaimActive(updatedMealPlan, now) &&
+          updatedMealPlan.claimedByNutritionistId === nutritionistProfileId &&
+          updatedMealPlan.claimedAt
+            ? new Date(updatedMealPlan.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS)
+            : null,
       },
     };
   }
 
   static async releaseReviewClaim(nutritionistProfileId: string, mealPlanId: string) {
     const reviewer = await prisma.nutritionistProfile.findUnique({
-      where: { id: nutritionistProfileId }, select: { userId: true },
+      where: { id: nutritionistProfileId },
+      select: { userId: true },
     });
     if (!reviewer) throw new Error('Nutritionist profile not found.');
     return prisma.$transaction(async (tx) => {
@@ -679,7 +734,16 @@ export class NutritionistReviewService {
                 carbsG,
                 fatG,
                 policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-                clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({ id, revision, sha256, area, documentType, validUntil })),
+                clinicalDocuments: clinicalDocuments.map(
+                  ({ id, revision, sha256, area, documentType, validUntil }) => ({
+                    id,
+                    revision,
+                    sha256,
+                    area,
+                    documentType,
+                    validUntil,
+                  })
+                ),
               },
             },
           });
@@ -856,7 +920,14 @@ export class NutritionistReviewService {
               carbsG,
               fatG,
               policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-              clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({ id, revision, sha256, area, documentType, validUntil })),
+              clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({
+                id,
+                revision,
+                sha256,
+                area,
+                documentType,
+                validUntil,
+              })),
             },
           },
         });

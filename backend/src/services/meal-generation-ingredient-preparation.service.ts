@@ -1,6 +1,6 @@
 import { AIConfidenceFlag, MealCandidateProvenance, MealIngredientDataSource, MealType } from '@prisma/client';
 import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
-import { lookupFnriIngredients } from '@/lib/fnri';
+import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
 import prisma from '@/lib/prisma';
 import type { PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 
@@ -76,10 +76,10 @@ export async function prepareGeneratedMealIngredients(input: {
       )
       .map((ingredient) => ingredient.name)
   );
-  const fnriByName = await lookupFnriIngredients(namesToResolve);
+  const compositionByName = await lookupIngredientCompositions(namesToResolve);
   const resolvedIds = [
     ...new Set([
-      ...[...fnriByName.values()].flatMap((food) => (food ? [food.id] : [])),
+      ...[...compositionByName.values()].flatMap((food) => (food ? [food.id] : [])),
       ...input.meals.flatMap((meal) =>
         meal.ingredients.flatMap((ingredient) => (ingredient.foodItemId ? [ingredient.foodItemId] : []))
       ),
@@ -139,13 +139,13 @@ export async function prepareGeneratedMealIngredients(input: {
         continue;
       }
 
-      const food = fnriByName.get(ingredientName.trim());
+      const food = compositionByName.get(ingredientName.trim());
       if (food) {
         ingredientsData.push({
           ingredientName: food.name,
           category: food.category || 'PANTRY',
           foodItemId: food.id,
-          dataSource: MealIngredientDataSource.FNRI,
+          dataSource: food.source === 'FNRI' ? MealIngredientDataSource.FNRI : MealIngredientDataSource.USDA_FDC,
           quantity: ingredient.quantity,
           unit: ingredient.unit,
         });
@@ -169,9 +169,17 @@ export async function prepareGeneratedMealIngredients(input: {
       const food = item.foodItemId ? compositionById.get(item.foodItemId) : undefined;
       return food ? [food] : [];
     });
-    const reconciliation = reconcileFnriMealTotals(ingredientsData, mealComposition);
-    if (!reconciliation.complete) hasEstimatedIngredient = true;
-    let confidence = reconciliation.complete ? AIConfidenceFlag.CAUTION : AIConfidenceFlag.NEEDS_REVIEW;
+    const reconciliation = reconcileFnriMealTotals(
+      ingredientsData.filter(
+        (item) =>
+          item.dataSource === MealIngredientDataSource.FNRI || item.dataSource === MealIngredientDataSource.USDA_FDC
+      ),
+      mealComposition,
+      ['FNRI', 'USDA_FDC']
+    );
+    const completeReconciliation = reconciliation.complete && ingredientsData.length === reconciliation.total;
+    if (!completeReconciliation) hasEstimatedIngredient = true;
+    let confidence = completeReconciliation ? AIConfidenceFlag.CAUTION : AIConfidenceFlag.NEEDS_REVIEW;
     if (input.userHasConditions) {
       confidence = hasEstimatedIngredient ? AIConfidenceFlag.NEEDS_REVIEW : AIConfidenceFlag.CAUTION;
     }
@@ -184,7 +192,7 @@ export async function prepareGeneratedMealIngredients(input: {
       proteinG: Number(rawMeal.proteinG) || 0,
       carbsG: Number(rawMeal.carbsG) || 0,
       fatG: Number(rawMeal.fatG) || 0,
-      ...(reconciliation.complete ? reconciliation.totals : {}),
+      ...(completeReconciliation ? reconciliation.totals : {}),
       scheduledDate,
       aiConfidenceFlag: confidence,
       rawCandidateId: rawMeal.rawCandidateId,

@@ -1,5 +1,9 @@
 export type EvidenceSourceCategory =
-  'PHILIPPINE_NUTRITION' | 'CLINICAL_METHOD' | 'SAFETY_GUIDANCE' | 'RECIPE_PROVENANCE';
+  | 'PHILIPPINE_NUTRITION'
+  | 'INTERNATIONAL_FOOD_COMPOSITION'
+  | 'CLINICAL_METHOD'
+  | 'SAFETY_GUIDANCE'
+  | 'RECIPE_PROVENANCE';
 
 export type EvidenceSourceStatus = 'USED' | 'DRAFT_REVIEW' | 'PROVENANCE_ONLY';
 
@@ -66,6 +70,19 @@ export const EVIDENCE_SOURCES: readonly EvidenceSource[] = Object.freeze([
     status: 'USED',
     role: 'Published aggregate food-consumption evidence used for coarse locality preferences, never individual diagnosis.',
     href: 'https://enutrition.fnri.dost.gov.ph/uploads/2018-2019%20Facts%20and%20Figures%20-%20Food%20Consumption%20Survey.pdf',
+  },
+  {
+    id: 'usda-fdc',
+    name: 'USDA FoodData Central',
+    shortName: 'USDA FDC',
+    mark: 'USDA',
+    category: 'INTERNATIONAL_FOOD_COMPOSITION',
+    status: 'USED',
+    role: 'Downloaded food composition records used only when a unique exact identity or admin verified alias has no FNRI match.',
+    href: 'https://fdc.nal.usda.gov/download-datasets/',
+    sourceVersion: 'Foundation Foods April 2026; FNDDS 2021–2023; SR Legacy April 2018',
+    limitation:
+      'US food nutrients do not establish Philippine product equivalence, allergy safety, medical suitability, or reusable meal certification.',
   },
   {
     id: 'mifflin',
@@ -268,7 +285,10 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     explanation:
       'A blood-pressure condition for which KAINARA can evaluate an approved sodium policy only against a complete day of meals.',
     evidenceSourceIds: ['nhlbi-dash', 'fnri-pdri'],
-    deterministicUse: ['Sum sodium across the complete day', 'Compare the daily total with the selected policy version'],
+    deterministicUse: [
+      'Sum sodium across the complete day',
+      'Compare the daily total with the selected policy version',
+    ],
     calculation: 'Daily sodium total = sum of sodium from every planned ingredient and meal',
     reviewBoundary:
       'The 2,300 mg and 1,500 mg values are different policy variants. Neither becomes active until the exact variant and scope are approved by RNDs.',
@@ -279,7 +299,10 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     explanation:
       'Diabetes affects glucose regulation. KAINARA can calculate fiber adequacy and show carbohydrate evidence, but one number cannot establish meal suitability.',
     evidenceSourceIds: ['ada', 'ada-consensus'],
-    deterministicUse: ['Calculate the daily fiber reference', 'Flag refined carbohydrate or missing nutrient evidence for review'],
+    deterministicUse: [
+      'Calculate the daily fiber reference',
+      'Flag refined carbohydrate or missing nutrient evidence for review',
+    ],
     calculation: 'Fiber reference = daily calories ÷ 1,000 × 14 g',
     reviewBoundary:
       'Medication, glucose response, carbohydrate amount and timing remain individualized, so diabetes clearance requires an RND.',
@@ -290,7 +313,10 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     explanation:
       'Kidney disease can change protein, sodium, potassium and phosphorus needs. Those needs depend on structured clinical context.',
     evidenceSourceIds: ['kdigo', 'niddk-ckd'],
-    deterministicUse: ['Calculate a review reference when weight and complete-day evidence exist', 'Mark missing stage, dialysis or nutrient evidence as unevaluable'],
+    deterministicUse: [
+      'Calculate a review reference when weight and complete-day evidence exist',
+      'Mark missing stage, dialysis or nutrient evidence as unevaluable',
+    ],
     calculation: 'Candidate protein reference = body weight in kg × approved g/kg/day coefficient',
     reviewBoundary:
       'Stage, dialysis, labs, medication and nutritional status prevent broad automatic clearance. Two independent reviews remain required.',
@@ -301,7 +327,10 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     explanation:
       'This intake category covers different cardiovascular diagnoses, so sodium and saturated-fat checks are review evidence rather than a diagnosis-wide answer.',
     evidenceSourceIds: ['aha', 'aha-sodium'],
-    deterministicUse: ['Calculate saturated fat as a percentage of daily energy', 'Sum complete-day sodium when available'],
+    deterministicUse: [
+      'Calculate saturated fat as a percentage of daily energy',
+      'Sum complete-day sodium when available',
+    ],
     calculation: 'Saturated-fat reference = daily calories × 6% ÷ 9 kcal per gram',
     reviewBoundary:
       'The 6% value applies when lowering LDL is indicated. Diagnosis subtype and treatment context require enhanced review.',
@@ -312,8 +341,12 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     explanation:
       'Pregnancy checks depend on ingredient identity, cooking state, pasteurization, mercury category and quantified daily caffeine.',
     evidenceSourceIds: ['cdc-pregnancy', 'fda-pregnancy', 'acog'],
-    deterministicUse: ['Block definite high-risk ingredient or preparation conflicts', 'Flag unknown preparation facts and caffeine quantity'],
-    calculation: 'Daily caffeine total = sum of quantified caffeine across every serving; candidate limit is under 200 mg/day',
+    deterministicUse: [
+      'Block definite high-risk ingredient or preparation conflicts',
+      'Flag unknown preparation facts and caffeine quantity',
+    ],
+    calculation:
+      'Daily caffeine total = sum of quantified caffeine across every serving; candidate limit is under 200 mg/day',
     reviewBoundary:
       'Unknown preparation or quantity fails closed. Pregnancy remains enhanced review, and lactation needs a separate policy.',
   },
@@ -323,7 +356,11 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     explanation:
       'Allergy, intolerance and preference are separate facts. A declared allergen conflict is excluded rather than balanced against a nutrient target.',
     evidenceSourceIds: ['ph-fda-labeling', 'fda-allergens'],
-    deterministicUse: ['Match declared ingredients and known derivatives', 'Exclude a definite conflict', 'Treat ambiguous labels and cross-contact as unknown'],
+    deterministicUse: [
+      'Match declared ingredients and known derivatives',
+      'Exclude a definite conflict',
+      'Treat ambiguous labels and cross-contact as unknown',
+    ],
     reviewBoundary:
       'KAINARA does not invent a generally safe exposure amount. Missing declarations, compound ingredients and cross-contact require review.',
   },
@@ -331,6 +368,7 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
 
 export const EVIDENCE_CATEGORY_LABELS: Readonly<Record<EvidenceSourceCategory, string>> = Object.freeze({
   PHILIPPINE_NUTRITION: 'Philippine nutrition and consumption data',
+  INTERNATIONAL_FOOD_COMPOSITION: 'International food composition fallback',
   CLINICAL_METHOD: 'Calculation methods and condition guidance',
   SAFETY_GUIDANCE: 'Food and pregnancy safety guidance',
   RECIPE_PROVENANCE: 'Recipe provenance',
