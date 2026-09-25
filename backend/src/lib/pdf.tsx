@@ -51,6 +51,34 @@ export const NutritionReportPDF = ({ user, report }: { user: any; report: any })
   const conditions = parseJsonArray(report.basedOnConditions);
   const allergies = parseJsonArray(report.basedOnAllergies);
 
+  if (report.reportPolicyVersion && Array.isArray(report.referenceItems)) {
+    return (
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <Text style={styles.header}>KAINARA Nutrition Guidance</Text>
+          <Text style={styles.text}>Version {report.version} | Prepared {new Date(report.generatedAt).toLocaleDateString()}</Text>
+          <View style={styles.divider} />
+          <Text style={styles.text}>Name: {user.name}</Text>
+          <Text style={styles.text}>Estimated energy target: {user.userProfile?.dailyCalorieTarget || 'TBD'} kcal/day</Text>
+          <Text style={styles.text}>Reported conditions: {conditions.length ? conditions.join(', ') : 'None reported'}</Text>
+          <Text style={styles.text}>Reported food restrictions: {allergies.length ? allergies.join(', ') : 'None reported'}</Text>
+          <View style={styles.divider} />
+          <Text style={styles.title}>What these numbers mean</Text>
+          <Text style={styles.text}>{report.generalSummary}</Text>
+          {report.referenceItems.map((item: { heading: string; value: string; explanation: string; sourceTitle: string; sourceUrl: string }, index: number) => (
+            <View key={index} style={styles.section} wrap={false}>
+              <Text style={styles.title}>{item.heading}: {item.value}</Text>
+              <Text style={styles.text}>{item.explanation}</Text>
+              <Text style={styles.text}>Source: {item.sourceTitle}</Text>
+              <Text style={styles.text}>{item.sourceUrl}</Text>
+            </View>
+          ))}
+          <Text style={styles.text}>Acknowledgment records review of this document. Meal eligibility and Registered Nutritionist-Dietitian review are separate checks.</Text>
+        </Page>
+      </Document>
+    );
+  }
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -117,8 +145,7 @@ export const NutritionReportPDF = ({ user, report }: { user: any; report: any })
         </View>
 
         <Text style={styles.footer}>
-          Profile-grounded, FNRI-referenced guidance. AI assists with the guidance draft; meals follow separate safety
-          and RND review gates.
+          Archived guidance from a prior report version. Review your current guidance for up-to-date references.
         </Text>
       </Page>
     </Document>

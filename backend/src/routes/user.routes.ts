@@ -12,7 +12,6 @@ import validate from '@/middleware/validate';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import validateZodBody, { validateZodRequest } from '@/middleware/validateZod';
 import { requireReadyUser, requireUserPrerequisites, requireVerifiedUser } from '@/middleware/userPrerequisites';
-import { geminiLimiter } from '@/middleware/rateLimiter';
 import {
   consentSchema,
   emptyBodySchema,
@@ -165,7 +164,6 @@ router.get('/nutrition-report/pdf', requireReportEligible, UserController.downlo
 router.post(
   '/nutrition-report/generate',
   requireReportEligible,
-  geminiLimiter,
   validateZodBody(emptyBodySchema),
   UserController.generateReport
 );

@@ -11,6 +11,6 @@ export function getPostAuthDestination(
   if (user.role === 'NUTRITIONIST') return '/nutritionist/reviews';
   if (!user.onboardingDone) return user.onboardingNextPath || '/onboarding/stats';
   if (!user.tosAccepted) return '/onboarding/tos';
-  if (!user.reportAcknowledged) return '/nutrition-report';
+  if (!user.reportAcknowledged) return '/profile/nutrition-report';
   return '/dashboard';
 }

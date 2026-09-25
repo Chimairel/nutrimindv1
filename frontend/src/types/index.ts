@@ -121,6 +121,16 @@ export interface Allergy {
 }
 
 export interface NutritionReport {
+  reportPolicyVersion?: string | null;
+  referenceItems?: Array<{
+    heading: string;
+    value: string;
+    explanation: string;
+    classification: 'CALCULATED_REFERENCE' | 'GENERAL_REFERENCE' | 'REQUIRES_INDIVIDUAL_REVIEW';
+    sourceCode: string;
+    sourceTitle: string;
+    sourceUrl: string;
+  }>;
   version: number;
   isStale: boolean;
   profileRevision: number;

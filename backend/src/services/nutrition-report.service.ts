@@ -1,67 +1,44 @@
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
-import { generateGenerativeJSON } from '@/lib/gemini';
-import { getFNRISubset } from '@/lib/fnri';
-import { formatMealLocalityPreference } from '@/domain/planning-location.policy';
-import { z } from 'zod';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { buildDeterministicNutritionGuidance, NUTRITION_GUIDANCE_POLICY_VERSION } from '@/domain/deterministic-nutrition-report.policy';
 import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
 import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
-import { calculateNutritionReferences } from '@/domain/nutrition-reference-calculation.policy';
-import { NotificationType } from '@prisma/client';
 import { PlanningReadinessService } from './planning-readiness.service';
 
-const NUTRITION_REPORT_SYSTEM_CONTEXT = `
-You are generating a nutrition report for a system with this
-EXACT JSON response shape. You MUST use these exact
-field names — do not rename, do not restructure, do not
-add extra fields.
-
-Required response format:
-{
-  "foodsToAvoid": string[],
-  "foodsToLimit": string[],
-  "foodsRecommended": string[],
-  "drinksGuidance": string[],
-  "generalSummary": string
-}
-
-Rules:
-- Return ONLY valid JSON. No markdown formatting, no
-  code fences, no backticks, no preamble, no explanation
-  text before or after the JSON
-`;
-
 type StoredNutritionReport = NonNullable<Awaited<ReturnType<typeof prisma.nutritionReport.findUnique>>>;
+type ReportResponse = StoredNutritionReport & { referenceItems: ReturnType<typeof buildDeterministicNutritionGuidance>['referenceItems']; reportPolicyVersion: string | null };
 
 export class NutritionReportService {
-  private static readonly generationInFlight = new Map<string, Promise<StoredNutritionReport>>();
-  /**
-   * Fetches the current nutrition report for the user.
-   */
-  static async getReport(userId: string) {
-    return prisma.nutritionReport.findUnique({
-      where: { userId },
-    });
+  private static readonly generationInFlight = new Map<string, Promise<ReportResponse>>();
+
+  static async getReport(userId: string): Promise<ReportResponse | null> {
+    const report = await prisma.nutritionReport.findUnique({ where: { userId } });
+    if (!report) return null;
+    const version = await prisma.nutritionReportVersion.findFirst({ where: { userId, version: report.version } });
+    const content = version?.content as Record<string, unknown> | undefined;
+    const policyVersion = version?.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION ? version.policyVersion : null;
+    return {
+      ...report, isStale: report.isStale || !policyVersion,
+      referenceItems: policyVersion && Array.isArray(content?.referenceItems)
+        ? content.referenceItems as ReportResponse['referenceItems'] : [],
+      reportPolicyVersion: policyVersion,
+    };
   }
 
-  /**
-   * Acknowledges the user's current report by setting acknowledgedAt to now.
-   */
   static async acknowledgeReport(userId: string, expectedVersion?: number) {
     const result = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
       const report = await tx.nutritionReport.findUniqueOrThrow({ where: { userId } });
       const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
-      if (report.isStale || report.profileRevision !== profile.revision || expectedVersion !== report.version) {
-        throw new Error('This report changed or is out of date. Refresh and review the current version.');
+      const version = await tx.nutritionReportVersion.findFirst({ where: { userId, version: report.version } });
+      if (report.isStale || report.profileRevision !== profile.revision || expectedVersion !== report.version ||
+          version?.policyVersion !== NUTRITION_GUIDANCE_POLICY_VERSION) {
+        throw new Error('This guidance changed or is out of date. Refresh and review the current version.');
       }
       const acknowledgedAt = new Date();
-      await tx.nutritionReportVersion.updateMany({
-        where: { userId, version: report.version },
-        data: { acknowledgedAt },
-      });
+      await tx.nutritionReportVersion.updateMany({ where: { userId, version: report.version }, data: { acknowledgedAt } });
       const firstAcknowledgment = !report.acknowledgedAt;
       const acknowledged = await tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
       await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
@@ -70,16 +47,11 @@ export class NutritionReportService {
     const planningReadiness = await PlanningReadinessService.getForUser(userId);
     if (result.firstAcknowledgment) {
       try {
-        await prisma.notification.create({
-          data: {
-            userId,
-            title: planningReadiness.title,
-            message: planningReadiness.message,
-            type: planningReadiness.canRequestPlan ? NotificationType.ASSIGNMENT : NotificationType.REVIEW_REQUEST,
-          },
-        });
+        await prisma.notification.create({ data: {
+          userId, title: planningReadiness.title, message: planningReadiness.message,
+          type: planningReadiness.canRequestPlan ? NotificationType.ASSIGNMENT : NotificationType.REVIEW_REQUEST,
+        } });
       } catch (error) {
-        // A notification transport failure must not reverse an acknowledged report.
         console.error('[NutritionReportService] Planning-readiness notification failed:', error);
       }
     }
@@ -91,216 +63,53 @@ export class NutritionReportService {
     return prisma.nutritionReportVersion.findMany({ where: { userId }, orderBy: { version: 'desc' }, take: 100 });
   }
 
-  /**
-   * Generates a customized clinical assessment utilizing the Google Gemini API (with cascade fallbacks).
-   * Contextualizes the prompt with seeded FNRI foods to prioritize accessible,
-   * locally obtainable choices without restricting recommendations to one cuisine.
-   */
-  static async generateReport(userId: string): Promise<StoredNutritionReport> {
-    const existingRequest = this.generationInFlight.get(userId);
-    if (existingRequest) return existingRequest;
-
+  static async generateReport(userId: string): Promise<ReportResponse> {
+    const existing = this.generationInFlight.get(userId);
+    if (existing) return existing;
     const request = this.generateReportOnce(userId).finally(() => {
-      if (this.generationInFlight.get(userId) === request) {
-        this.generationInFlight.delete(userId);
-      }
+      if (this.generationInFlight.get(userId) === request) this.generationInFlight.delete(userId);
     });
     this.generationInFlight.set(userId, request);
     return request;
   }
 
-  private static async generateReportOnce(userId: string): Promise<StoredNutritionReport> {
-    // 1. Fetch live user details, profile, conditions, and allergies
+  private static async generateReportOnce(userId: string): Promise<ReportResponse> {
     const { profile, safetyRestrictions, conditions, allergens, otherConditions, otherAllergies } =
-      await loadUserNutritionContext(
-        prisma,
-        userId,
-        'User profile must be initialized before generating a nutrition report.'
-      );
-
-    // Verify stats exist
+      await loadUserNutritionContext(prisma, userId, 'Complete your profile before preparing nutrition guidance.');
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
     if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
-      throw new Error('Please complete Step 1 (statistics & goals) of onboarding first.');
+      throw new Error('Please complete your statistics and goals before preparing nutrition guidance.');
     }
-    const nutritionReferences = calculateNutritionReferences({
-      dailyCalories: dailyCalorieTarget,
-      bodyWeightKg: weightKg,
+    const guidance = buildDeterministicNutritionGuidance({
+      age, dailyCalories: dailyCalorieTarget, weightKg, conditions, allergens,
+      otherConditions: safetyRestrictions.customConditions,
+      otherFoodRestrictions: safetyRestrictions.customFoodRestrictions,
     });
-    const conditionReferenceLines: string[] = [];
-    if (conditions.includes('DIABETES')) {
-      conditionReferenceLines.push(
-        `- Diabetes review-assistance fiber reference: ${nutritionReferences.diabetesReviewFiberG.value} g/day ` +
-          `(${nutritionReferences.diabetesReviewFiberG.coefficientPer1000Kcal} g per 1,000 kcal).`
-      );
-    }
-    if (conditions.includes('HEART_CONDITION')) {
-      conditionReferenceLines.push(
-        `- Cardiovascular review-assistance saturated-fat reference: ${nutritionReferences.cardiovascularReviewSaturatedFatG.value} g/day ` +
-          `(${nutritionReferences.cardiovascularReviewSaturatedFatG.percentOfEnergy}% of energy).`
-      );
-    }
-    if (conditions.includes('KIDNEY_DISEASE')) {
-      conditionReferenceLines.push(
-        `- CKD review-assistance protein reference: ${nutritionReferences.ckdReviewProteinG?.value ?? 'UNEVALUABLE'} g/day ` +
-          `(requires individualized RND review; this value never grants clearance).`
-      );
-    }
-
-    // 2. Fetch seeded FNRI subset to inject as local food composition guidelines
-    const localFoodsSubset = await getFNRISubset();
-    const formattedLocalFoods = localFoodsSubset
-      .map(
-        (f) =>
-          `- ${f.name} [Category: ${f.category || 'N/A'}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g]`
-      )
-      .slice(0, 35)
-      .join('\n');
-
-    // 3. Compile prompt constraints
-    const clinicalSystemInstruction =
-      NUTRITION_REPORT_SYSTEM_CONTEXT +
-      '\n' +
-      'You are a nutrition-guidance drafting assistant for a Philippine meal-planning application. ' +
-      'Do not claim to be a licensed clinician and do not diagnose, prescribe, or replace a physician or Registered Nutritionist-Dietitian. ' +
-      'Use Philippine Food and Nutrition Research Institute (FNRI) references where they are provided. ' +
-      'Your target demographic is young urban health-conscious Filipinos (18-35). ' +
-      'Prioritize medical suitability, affordability, preparation effort, and realistic availability in the Philippines. ' +
-      "Use the person's food-culture preference as context rather than an exclusive cuisine rule. Recommendations may include Filipino foods, " +
-      'universally familiar meals, foods adopted from other cultures, and suitable convenience products. Avoid expensive or hard-to-source items ' +
-      'when an accessible alternative offers comparable nutritional value.';
-
-    const prompt =
-      `Analyze this patient profile and generate a comprehensive clinical nutrition assessment:\n` +
-      `\n` +
-      `[PATIENT PROFILE]\n` +
-      `- Age: ${age} years\n` +
-      `- Height: ${heightCm} cm\n` +
-      `- Current Weight: ${weightKg} kg\n` +
-      `- Goal Target: ${goal} (Daily Caloric Target: ${dailyCalorieTarget} kcal/day)\n` +
-      `- Activity Level: ${activityLevel}\n` +
-      `- Dietary Preference Pattern: ${profile.dietaryPreference || 'OMNIVORE'}\n` +
-      `- Rice Serving Preference: ${profile.ricePreference}\n` +
-      `- Regional Cooking Style & Cultural Background: ${profile.foodCulture || 'Filipino'}\n` +
-      `- Meal Familiarity Preference: ${formatMealLocalityPreference(profile)}\n` +
-      `\n` +
-      `[DETERMINISTIC REFERENCE CALCULATIONS]\n` +
-      `- Policy Version: ${nutritionReferences.policyVersion}\n` +
-      `- Filipino adult PDRI reference ranges at ${dailyCalorieTarget} kcal: ` +
-      `protein ${nutritionReferences.filipinoAdultAmdr.proteinG.minimum}-${nutritionReferences.filipinoAdultAmdr.proteinG.maximum} g/day; ` +
-      `fat ${nutritionReferences.filipinoAdultAmdr.fatG.minimum}-${nutritionReferences.filipinoAdultAmdr.fatG.maximum} g/day; ` +
-      `carbohydrate ${nutritionReferences.filipinoAdultAmdr.carbohydrateG.minimum}-${nutritionReferences.filipinoAdultAmdr.carbohydrateG.maximum} g/day.\n` +
-      `${conditionReferenceLines.length > 0 ? `${conditionReferenceLines.join('\n')}\n` : ''}` +
-      `- These calculated references support education and review. They do not diagnose, prescribe, or independently certify safety.\n` +
-      `\n` +
-      `[CLINICAL CONSTRAINTS]\n` +
-      `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +
-      `- Food Allergies / Intolerances / Avoidances (HARD EXCLUSIONS OR REVIEW GATES): ${allergens.join(', ') || 'NONE'}${otherAllergies ? '; Additional: ' + otherAllergies : ''}\n` +
-      `\n` +
-      `[AVAILABLE NATIVE FILIPINO INGREDIENTS CONTEXT]\n` +
-      `${formattedLocalFoods}\n` +
-      `\n` +
-      `Generate guidelines using the native food items above as references. Return a STRICT, valid JSON object containing exactly these fields:\n` +
-      `{\n` +
-      `  "foodsToAvoid": ["Array of specific food items or categories to AVOID based on conditions and allergies. Be specific to Filipino contexts. Minimum 3 items."],\n` +
-      `  "foodsToLimit": ["Array of food items to LIMIT or control portions (e.g. white rice, sodium elements, saturated fats). Minimum 3 items."],\n` +
-      `  "foodsRecommended": ["Array of nutritious native food recommendations to increase (e.g. malunggay, specific local fish). Minimum 3 items."],\n` +
-      `  "drinksGuidance": ["Array of specific hydration instructions (water metrics, buko juice limits, herbal options). Minimum 2 items."],\n` +
-      `  "generalSummary": "A clear educational nutrition-guidance paragraph (3-4 sentences) explaining how the listed health conditions (e.g. ${conditions.join(', ') || 'none'}) and goals relate to the calorie target. Do not diagnose, prescribe treatment, or claim clinician review."\n` +
-      `}\n` +
-      `\n` +
-      `Rules for content generation:\n` +
-      `- If user has HYPERTENSION, strictly exclude bagoong, patis, high-sodium instant noodles, SPAM, and salty chicharon. Recommends kangkong, banana, low sodium garlic.\n` +
-      `- If user has DIABETES, restrict refined white sugar, sweetened soft drinks, condensed milk, and large portions of white rice. Suggest brown rice, ampalaya, tokwa.\n` +
-      `- If a SHELLFISH restriction is present, exclude shrimps, crabs, mussels, talaba, and bagoong alamang.\n` +
-      `- If a DAIRY restriction is present, exclude fresh milk, evaporated milk, condensed milk, cheese, and halo-halo with dairy.\n` +
-      `- If a GLUTEN restriction is present, exclude wheat flour pan de sal, regular soy sauce, pancit canton.\n` +
-      `- Keep suggestions highly realistic, affordable, and practical for young Filipinos.\n` +
-      `- Return ONLY the clean JSON output. Do not wrap in markdown code blocks.`;
-
-    console.log('[Nutrition Report] Querying Gemini API for an authenticated user...');
-
-    // Define Zod response schema
-    const NutritionReportSchema = z.object({
-      foodsToAvoid: z.array(z.string()),
-      foodsToLimit: z.array(z.string()),
-      foodsRecommended: z.array(z.string()),
-      drinksGuidance: z.array(z.string()),
-      generalSummary: z.string(),
-    });
-
-    // 4. Request the real Gemini AI model to perform the assessment
-    const reportData = await generateGenerativeJSON<{
-      foodsToAvoid: string[];
-      foodsToLimit: string[];
-      foodsRecommended: string[];
-      drinksGuidance: string[];
-      generalSummary: string;
-    }>(prompt, clinicalSystemInstruction, NutritionReportSchema, {
-      operation: 'NUTRITION_REPORT',
-      purpose: 'PROFILE_NUTRITION_REPORT',
-    });
-
-    // Validate structure format
-    if (
-      !Array.isArray(reportData.foodsToAvoid) ||
-      !Array.isArray(reportData.foodsToLimit) ||
-      !Array.isArray(reportData.foodsRecommended) ||
-      !Array.isArray(reportData.drinksGuidance) ||
-      typeof reportData.generalSummary !== 'string'
-    ) {
-      throw new Error('Gemini API returned an invalid JSON schema format.');
-    }
-
     const savedReport = {
-      userId,
-      generalSummary: reportData.generalSummary,
-      foodsToAvoid: reportData.foodsToAvoid,
-      foodsToLimit: reportData.foodsToLimit,
-      foodsRecommended: reportData.foodsRecommended,
-      drinksGuidance: reportData.drinksGuidance,
+      userId, generalSummary: guidance.generalSummary,
+      foodsToAvoid: [] as string[], foodsToLimit: [] as string[],
+      foodsRecommended: [] as string[], drinksGuidance: [] as string[],
       basedOnConditions: [...conditions, ...safetyRestrictions.customConditions],
       basedOnAllergies: [...allergens, ...safetyRestrictions.customFoodRestrictions],
     };
-
-    // 5. Persist the real report to database and reset acknowledgedAt (so guard lock activates)
-    console.log(`[Nutrition Report] Persisting completed report to PostgreSQL...`);
-    return prisma.$transaction(async (tx) => {
+    const stored = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
-      if (currentProfile.revision !== profile.revision)
-        throw new Error('Your profile changed while the report was generating. Please generate it again.');
+      if (currentProfile.revision !== profile.revision) throw new Error('Your profile changed. Please prepare the guidance again.');
       const current = await tx.nutritionReport.findUnique({ where: { userId } });
-      const version = (current?.version ?? 0) + 1;
+      const latest = await tx.nutritionReportVersion.findFirst({ where: { userId }, orderBy: { version: 'desc' } });
+      const version = Math.max(current?.version ?? 0, latest?.version ?? 0) + 1;
       const generatedAt = new Date();
-      const data = {
-        ...savedReport,
-        generatedAt,
-        version,
-        profileRevision: profile.revision,
-        isStale: false,
-        acknowledgedAt: null,
-      };
-      await tx.nutritionReportVersion.create({
-        data: {
-          userId,
-          version,
-          profileRevision: profile.revision,
-          generatedAt,
-          content: savedReport as Prisma.InputJsonObject,
-          profileSnapshot: JSON.parse(
-            JSON.stringify({
-              profile,
-              conditions,
-              allergens,
-              otherConditions,
-              otherAllergies,
-              nutritionReferences,
-            })
-          ),
-        },
-      });
+      const data = { ...savedReport, generatedAt, version, profileRevision: profile.revision, isStale: false, acknowledgedAt: null };
+      await tx.nutritionReportVersion.create({ data: {
+        userId, version, profileRevision: profile.revision, generatedAt,
+        policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
+        content: JSON.parse(JSON.stringify({ ...savedReport, ...guidance })) as Prisma.InputJsonObject,
+        profileSnapshot: JSON.parse(JSON.stringify({ profile, conditions, allergens, otherConditions, otherAllergies,
+          nutritionReferences: guidance.nutritionReferences })) as Prisma.InputJsonObject,
+      } });
       return tx.nutritionReport.upsert({ where: { userId }, update: data, create: data });
     });
+    return { ...stored, referenceItems: guidance.referenceItems, reportPolicyVersion: NUTRITION_GUIDANCE_POLICY_VERSION };
   }
 }

@@ -16,6 +16,8 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/features/reports/ReportHistory', () => ({ default: () => <div>Report archive</div> }));
 
 const report = {
+  reportPolicyVersion: 'NUTRITION_GUIDANCE_DETERMINISTIC_V1',
+  referenceItems: [{ heading: 'Protein reference', value: '50–75 g/day', explanation: '10–15% of 2000 kcal ÷ 4 kcal/g.', classification: 'CALCULATED_REFERENCE', sourceCode: 'DOST_FNRI_PDRI_2015_REV_2018', sourceTitle: 'DOST FNRI — PDRI', sourceUrl: 'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf' }],
   version: 3,
   generatedAt: '2026-09-16T00:00:00Z',
   isStale: false,
@@ -119,9 +121,9 @@ describe('nutrition report lifecycle', () => {
 
     render(<NutritionReportWorkspace />);
 
-    expect(await screen.findByText('How KAINARA prepared this guidance')).toBeInTheDocument();
-    expect(screen.getByText(/Every planned meal follows an eligibility and safety-evidence path/i)).toBeInTheDocument();
-    expect(screen.getAllByText('Dairy')).toHaveLength(1);
-    expect(screen.getByText('Lactose')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nutrition Guidance' })).toBeInTheDocument();
+    expect(screen.getByText(/Meal eligibility and Registered Nutritionist-Dietitian review are separate checks/i)).toBeInTheDocument();
+    expect(screen.getByText('DAIRY, LACTOSE')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'DOST FNRI — PDRI' })).toHaveAttribute('href', 'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf');
   });
 });

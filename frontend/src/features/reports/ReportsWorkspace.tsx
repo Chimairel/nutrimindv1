@@ -38,7 +38,7 @@ export default function ReportsWorkspace() {
       />
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/nutrition-report"
+          href="/profile/nutrition-report"
           className="rounded-xl bg-brand-accent px-4 py-3 text-sm font-bold text-[#07100d]"
         >
           Open current guidance

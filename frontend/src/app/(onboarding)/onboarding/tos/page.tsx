@@ -175,7 +175,7 @@ export default function OnboardingTosPage() {
       // before the backend permits meal planning or other protected actions.
       const nextPath = completion.data?.data?.nextPath;
       router.replace(
-        nextPath === '/dashboard' && refreshed?.reportAcknowledged ? '/dashboard' : '/nutrition-report?next=dashboard'
+        nextPath === '/dashboard' && refreshed?.reportAcknowledged ? '/dashboard' : '/profile/nutrition-report?next=dashboard'
       );
     } catch (err) {
       setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
