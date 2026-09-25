@@ -15,6 +15,8 @@ import { NutritionReport } from '@/types';
 import { AlertTriangle, ClipboardList, Download, XCircle, Check, Droplet, Database, ShieldCheck } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { hasSameRestrictionContext, normalizeRestrictionContext } from '@/lib/restriction-context';
+import { toast } from '@/components/ui/Sonner';
+import type { PlanningReadiness } from '@/types/planning-readiness';
 
 export default function NutritionReportPage() {
   const router = useRouter();
@@ -141,7 +143,7 @@ export default function NutritionReportPage() {
     setError(null);
     setIsAcknowledging(true);
     try {
-      await api.post('/user/nutrition-report/acknowledge', { version: report?.version });
+      const acknowledgment = await api.post('/user/nutrition-report/acknowledge', { version: report?.version });
 
       // Confirm current server state before continuing to a meal action.
       const refreshed = await refreshSession();
@@ -150,9 +152,28 @@ export default function NutritionReportPage() {
         return;
       }
 
+      const readiness = acknowledgment.data?.data?.planningReadiness as PlanningReadiness | undefined;
+      if (readiness) {
+        const options = {
+          description: readiness.message,
+          duration: 9000,
+          action: readiness.canRequestPlan
+            ? undefined
+            : { label: 'Review context', onClick: () => router.push(readiness.actionPath) },
+        };
+        if (!readiness.canRequestPlan) toast.warning(readiness.title, options);
+        else if (readiness.status === 'REQUEST_ALLOWED_REVIEW_EXPECTED') toast.info(readiness.title, options);
+        else toast.success(readiness.title, options);
+        window.dispatchEvent(new Event('nutrimind:notifications-updated'));
+      }
+
       // Only support the explicit internal continuation, never an arbitrary redirect URL.
       const next = new URLSearchParams(window.location.search).get('next');
-      router.push(next === 'regenerate' ? '/meals?regenerate=true' : next === 'dashboard' ? '/dashboard' : '/profile');
+      router.push(
+        readiness?.canRequestPlan === false
+          ? readiness.actionPath
+          : next === 'regenerate' ? '/meals?regenerate=true' : next === 'dashboard' ? '/dashboard' : '/profile'
+      );
     } catch (err) {
       if ((err as { response?: { status?: number } }).response?.status === 409) {
         setReport((current) => (current ? { ...current, isStale: true } : current));

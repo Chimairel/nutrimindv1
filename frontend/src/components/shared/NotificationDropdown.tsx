@@ -17,6 +17,7 @@ import {
 import api from '@/lib/axios';
 import { readSessionResource } from '@/lib/session-resource-cache';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import type { PlanningReadiness } from '@/types/planning-readiness';
 
 interface CachedPlanInfo {
   isStarterPlan?: boolean;
@@ -34,12 +35,28 @@ export default function NotificationDropdown() {
   const { user } = useAuth();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const [planningReadiness, setPlanningReadiness] = useState<PlanningReadiness | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isOnboardingDone = Boolean(user?.onboardingDone);
   const isTosAccepted = Boolean(user?.tosAccepted);
   const isReportAcknowledged = Boolean(user?.reportAcknowledged);
-  const isPlanningReady = isOnboardingDone && isTosAccepted && isReportAcknowledged;
+  const prerequisitesComplete = isOnboardingDone && isTosAccepted && isReportAcknowledged;
+  const isPlanningReady = prerequisitesComplete && planningReadiness?.canRequestPlan === true;
+
+  useEffect(() => {
+    if (!isOpen || user?.role !== 'USER' || !prerequisitesComplete) return;
+    let active = true;
+    setPlanningReadiness(null);
+    api.get('/user/meals/readiness')
+      .then((response) => {
+        if (active && response.data?.success) setPlanningReadiness(response.data.data);
+      })
+      .catch(() => {
+        if (active) setPlanningReadiness(null);
+      });
+    return () => { active = false; };
+  }, [isOpen, user?.role, user?.userId, prerequisitesComplete]);
 
   const [cycleInfo, setCycleInfo] = useState<{ isStarterPlan: boolean; nextCycleDay: string | null } | null>(() => {
     const cached =
@@ -175,7 +192,7 @@ export default function NotificationDropdown() {
           <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent text-[8px] font-bold text-[#07100d]">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
-        ) : user?.role === 'USER' && !isPlanningReady ? (
+        ) : user?.role === 'USER' && (!prerequisitesComplete || planningReadiness?.canRequestPlan === false) ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-amber-500" />
         ) : null}
       </button>
@@ -229,7 +246,7 @@ export default function NotificationDropdown() {
                     <div className="min-w-0">
                       <h4 className="font-display text-xs font-bold text-brand-text truncate">Planner status</h4>
                       <span className="text-[10px] text-brand-muted truncate block">
-                        {isPlanningReady ? 'Eligible for planning' : 'Action required'}
+                        {planningReadiness?.title || (prerequisitesComplete ? 'Checking planning status' : 'Action required')}
                       </span>
                     </div>
                   </div>
@@ -240,13 +257,13 @@ export default function NotificationDropdown() {
                         : 'border border-status-warning-text/30 bg-status-warning-bg/15 text-status-warning-text'
                     }`}
                   >
-                    {isPlanningReady ? 'Ready' : 'Pending'}
+                    {isPlanningReady ? 'Ready' : planningReadiness?.canRequestPlan === false ? 'Blocked' : 'Pending'}
                   </span>
                 </div>
 
                 <p className="mt-2 text-[11px] leading-relaxed text-brand-muted">
-                  {isPlanningReady
-                    ? 'All intake requirements and clinical acknowledgments are complete. You can generate or customize meal plans.'
+                  {prerequisitesComplete
+                    ? planningReadiness?.message || 'Checking current clinical context and meal-planning requirements.'
                     : !isReportAcknowledged
                       ? 'Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed.'
                       : !isTosAccepted
@@ -254,9 +271,18 @@ export default function NotificationDropdown() {
                         : 'Please complete your health intake onboarding to enable personalized meal planning.'}
                 </p>
 
-                {!isPlanningReady && (
+                {(!isPlanningReady || planningReadiness?.status === 'REQUEST_ALLOWED_REVIEW_EXPECTED') && (
                   <div className="mt-2">
-                    {!isReportAcknowledged ? (
+                    {planningReadiness && prerequisitesComplete ? (
+                      <Link
+                        href={planningReadiness.actionPath}
+                        onClick={() => setIsOpen(false)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                      >
+                        <span>{planningReadiness.canRequestPlan ? 'View meals' : 'Review clinical context'}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    ) : !isReportAcknowledged ? (
                       <Link
                         href="/profile/nutrition-report"
                         onClick={() => setIsOpen(false)}

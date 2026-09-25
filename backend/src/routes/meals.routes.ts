@@ -6,6 +6,8 @@ import requireRole from '@/middleware/rbac';
 import { MealsController } from '@/controllers/meals.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
 import requireClinicalEvidenceReady from '@/middleware/clinicalEvidenceReady';
+import { PlanningReadinessService } from '@/services/planning-readiness.service';
+import type { AuthenticatedRequest } from '@/types';
 import { validateZodRequest } from '@/middleware/validateZod';
 import {
   compatibleLibraryQuerySchema,
@@ -36,6 +38,16 @@ const outsideImageUpload = multer({
 router.use(authenticate);
 router.use(requireRole('USER'));
 router.use(requireReadyUser);
+
+router.get('/readiness', async (req, res) => {
+  try {
+    const data = await PlanningReadinessService.getForUser((req as AuthenticatedRequest).user!.userId);
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('[MealsRoutes] Planning readiness failed:', error);
+    return res.status(500).json({ success: false, error: 'Could not check planning status.' });
+  }
+});
 
 /**
  * Route: POST /api/user/meals/generate

@@ -9,6 +9,8 @@ import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
 import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
 import { calculateNutritionReferences } from '@/domain/nutrition-reference-calculation.policy';
+import { NotificationType } from '@prisma/client';
+import { PlanningReadinessService } from './planning-readiness.service';
 
 const NUTRITION_REPORT_SYSTEM_CONTEXT = `
 You are generating a nutrition report for a system with this
@@ -48,7 +50,7 @@ export class NutritionReportService {
    * Acknowledges the user's current report by setting acknowledgedAt to now.
    */
   static async acknowledgeReport(userId: string, expectedVersion?: number) {
-    const acknowledged = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
       const report = await tx.nutritionReport.findUniqueOrThrow({ where: { userId } });
       const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
@@ -60,12 +62,29 @@ export class NutritionReportService {
         where: { userId, version: report.version },
         data: { acknowledgedAt },
       });
+      const firstAcknowledgment = !report.acknowledgedAt;
       const acknowledged = await tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
       await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
-      return acknowledged;
+      return { acknowledged, firstAcknowledgment };
     });
+    const planningReadiness = await PlanningReadinessService.getForUser(userId);
+    if (result.firstAcknowledgment) {
+      try {
+        await prisma.notification.create({
+          data: {
+            userId,
+            title: planningReadiness.title,
+            message: planningReadiness.message,
+            type: planningReadiness.canRequestPlan ? NotificationType.ASSIGNMENT : NotificationType.REVIEW_REQUEST,
+          },
+        });
+      } catch (error) {
+        // A notification transport failure must not reverse an acknowledged report.
+        console.error('[NutritionReportService] Planning-readiness notification failed:', error);
+      }
+    }
     UpcomingPlanPreparationService.triggerNonBlocking(userId);
-    return acknowledged;
+    return { report: result.acknowledged, planningReadiness };
   }
 
   static async getHistory(userId: string) {

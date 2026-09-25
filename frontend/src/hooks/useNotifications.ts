@@ -51,10 +51,12 @@ export function useNotifications() {
     // Refresh on window focus
     const handleFocus = () => fetchNotifications();
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('nutrimind:notifications-updated', handleFocus);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('nutrimind:notifications-updated', handleFocus);
     };
   }, [fetchNotifications, isUserRole]);
 

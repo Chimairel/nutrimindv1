@@ -377,12 +377,13 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const report = await NutritionReportService.acknowledgeReport(userId, req.body.version);
+      const { report, planningReadiness } = await NutritionReportService.acknowledgeReport(userId, req.body.version);
 
       return res.status(200).json({
         success: true,
         data: {
           acknowledgedAt: report.acknowledgedAt,
+          planningReadiness,
         },
       });
     } catch (error: any) {
