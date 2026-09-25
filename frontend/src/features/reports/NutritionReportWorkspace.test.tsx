@@ -53,7 +53,7 @@ describe('nutrition report lifecycle', () => {
   });
   it('loads once despite session object changes, acknowledges the displayed version and returns to profile', async () => {
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'I Acknowledge Report' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/profile'));
     expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/acknowledge', { version: 3 });
     expect(mocks.get.mock.calls.filter(([path]) => path === '/user/nutrition-report')).toHaveLength(1);
@@ -61,13 +61,13 @@ describe('nutrition report lifecycle', () => {
   it('continues an explicit regeneration request only after acknowledgment succeeds', async () => {
     window.history.replaceState({}, '', '/profile/nutrition-report?next=regenerate');
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'I Acknowledge Report' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/meals?regenerate=true'));
   });
   it('continues first-time onboarding to the dashboard only after acknowledgment succeeds', async () => {
     window.history.replaceState({}, '', '/nutrition-report?next=dashboard');
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'I Acknowledge Report' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
   });
   it('does not generate a new report when reading the existing report fails', async () => {
@@ -85,14 +85,43 @@ describe('nutrition report lifecycle', () => {
       path === '/user/nutrition-report' ? Promise.resolve(result({ ...report, isStale: true })) : get(path)
     );
     render(<NutritionReportWorkspace />);
-    await screen.findByRole('button', { name: 'I Acknowledge Report' });
+    await screen.findByRole('button', { name: 'Acknowledge and Continue' });
     expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/generate');
   });
   it('does not navigate if the refreshed session cannot confirm acknowledgment', async () => {
     mocks.refresh.mockResolvedValue(null);
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'I Acknowledge Report' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
     await screen.findByText(/Unable to confirm the current report status/);
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+  it('explains the evidence layers and consolidates repeated food restrictions', async () => {
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) => {
+      if (path === '/user/profile') {
+        return Promise.resolve(
+          result({
+            name: 'Tester',
+            userProfile: { goal: 'MAINTAIN', dailyCalorieTarget: 2000 },
+            safetyEntries: [
+              { domain: 'ALLERGY', canonicalCode: 'DAIRY' },
+              { domain: 'INTOLERANCE', canonicalCode: 'LACTOSE' },
+              { domain: 'AVOIDED_INGREDIENT', canonicalCode: 'DAIRY' },
+            ],
+          })
+        );
+      }
+      if (path === '/user/nutrition-report') {
+        return Promise.resolve(result({ ...report, basedOnAllergies: ['DAIRY', 'LACTOSE'] }));
+      }
+      return get(path);
+    });
+
+    render(<NutritionReportWorkspace />);
+
+    expect(await screen.findByText('How KAINARA prepared this guidance')).toBeInTheDocument();
+    expect(screen.getByText(/Every planned meal follows an eligibility and safety-evidence path/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Dairy')).toHaveLength(1);
+    expect(screen.getByText('Lactose')).toBeInTheDocument();
   });
 });

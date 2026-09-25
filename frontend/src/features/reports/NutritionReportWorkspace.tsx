@@ -12,9 +12,9 @@ import Badge from '@/components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { NutritionReport } from '@/types';
-import { AlertTriangle, ClipboardList, Download, XCircle, Check, Droplet } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Download, XCircle, Check, Droplet, Database, ShieldCheck } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { hasSameRestrictionContext } from '@/lib/restriction-context';
+import { hasSameRestrictionContext, normalizeRestrictionContext } from '@/lib/restriction-context';
 
 export default function NutritionReportPage() {
   const router = useRouter();
@@ -76,8 +76,12 @@ export default function NutritionReportPage() {
       name: typeof p.name === 'string' ? p.name : 'User',
       goal: (p.userProfile as { goal?: string } | undefined)?.goal || 'MAINTAIN',
       dailyCalorieTarget: (p.userProfile as { dailyCalorieTarget?: number } | undefined)?.dailyCalorieTarget || 0,
-      conditions: structuredConditions ?? extractRestrictionKeys(p.healthConditions, 'condition'),
-      allergies: structuredFoodRestrictions ?? extractRestrictionKeys(p.allergies, 'allergen'),
+      conditions: normalizeRestrictionContext(
+        structuredConditions ?? extractRestrictionKeys(p.healthConditions, 'condition')
+      ),
+      allergies: normalizeRestrictionContext(
+        structuredFoodRestrictions ?? extractRestrictionKeys(p.allergies, 'allergen')
+      ),
     });
   }, []);
 
@@ -281,6 +285,12 @@ export default function NutritionReportPage() {
     );
   };
 
+  const formatRestrictionLabel = (restriction: string) =>
+    restriction
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (character) => character.toUpperCase());
+
   return (
     <div className="min-h-screen overflow-x-clip bg-brand-bg text-brand-text p-4 md:p-8 flex flex-col gap-5 pb-48 relative">
       <div className="absolute top-[10%] left-[50%] translate-x-[-50%] h-[400px] w-full max-w-[600px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
@@ -297,11 +307,12 @@ export default function NutritionReportPage() {
           <div className="flex items-center gap-2 mb-1">
             <ClipboardList className="w-6 h-6 text-brand-green shrink-0" />
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-brand-green">
-              Nutrition guidance
+              Personalized nutrition guidance
             </h1>
           </div>
-          <p className="text-xs text-brand-muted">
-            AI-generated guidance · Not independently reviewed by a nutritionist.
+          <p className="max-w-3xl text-xs leading-relaxed text-brand-muted md:text-sm">
+            Built from your current profile, calculated nutrition target, structured restrictions, and Philippine food
+            references.
           </p>
         </div>
         <Button
@@ -315,7 +326,7 @@ export default function NutritionReportPage() {
       </div>
 
       <p className="mx-auto w-full max-w-6xl text-sm text-brand-muted">
-        Version {report.version} · Generated {new Date(report.generatedAt).toLocaleDateString()}
+        Version {report.version} · Prepared {new Date(report.generatedAt).toLocaleDateString()}
         {report.acknowledgedAt ? ' · Acknowledged' : ''}
       </p>
       {/* Main layout container */}
@@ -329,6 +340,33 @@ export default function NutritionReportPage() {
             <span>{error}</span>
           </div>
         )}
+
+        <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4 md:p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-brand-green">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                How KAINARA prepared this guidance
+              </p>
+              <p className="mt-2 max-w-3xl text-xs leading-relaxed text-brand-muted md:text-sm">
+                Your saved health profile and calculated target define the context. FNRI food references ground local
+                choices, while AI assists in drafting the personalized guidance.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wide">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/20 bg-brand-bg/50 px-3 py-1.5 text-brand-green">
+                <Check className="h-3 w-3" aria-hidden="true" /> Current profile matched
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/20 bg-brand-bg/50 px-3 py-1.5 text-brand-green">
+                <Database className="h-3 w-3" aria-hidden="true" /> FNRI referenced
+              </span>
+            </div>
+          </div>
+          <p className="mt-3 border-t border-brand-green/15 pt-3 text-[11px] leading-relaxed text-brand-muted md:text-xs">
+            Meal approval remains a separate safeguard. Every planned meal follows an eligibility and safety-evidence
+            path, with RND review required whenever reviewed reusable evidence is unavailable.
+          </p>
+        </div>
 
         {/* Core Summary card */}
         <Card className="p-6 border-brand-border/60 bg-gradient-to-br from-brand-surface to-brand-bgAlt relative overflow-hidden">
@@ -359,16 +397,14 @@ export default function NutritionReportPage() {
             </div>
             <div>
               <span className="text-[10px] tracking-wider font-bold text-brand-muted uppercase block mb-1">
-                Health Restrictions
+                Safety Profile
               </span>
               <div className="flex gap-1.5 flex-wrap">
                 {profileData && (profileData.conditions.length > 0 || profileData.allergies.length > 0) ? (
                   [...profileData.conditions, ...profileData.allergies].map((restriction, idx) =>
                     restriction ? (
                       <Badge key={idx} variant="rejected">
-                        {String(restriction)
-                          .replace(/_/g, ' ')
-                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                        {formatRestrictionLabel(String(restriction))}
                       </Badge>
                     ) : null
                   )
@@ -486,8 +522,9 @@ export default function NutritionReportPage() {
         <div className="sticky bottom-24 md:bottom-0 z-30 bg-brand-surface/90 border-t border-brand-border py-4 px-6 backdrop-blur-md shadow-2xl flex items-center justify-center">
           <div className="max-w-6xl w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
             <p className="text-[11px] md:text-xs text-brand-muted leading-relaxed max-w-2xl text-center md:text-left">
-              By clicking acknowledge, you confirm that you have read our medical limitations disclaimers and understand
-              that KAINARA recommendations are AI-generated estimations.
+              By continuing, you confirm that the profile, target, and restrictions shown above are current and that you
+              have reviewed this guidance. It supports meal planning and does not replace personal advice from your
+              doctor or Registered Nutritionist-Dietitian.
             </p>
             <Button
               variant="primary"
@@ -495,7 +532,7 @@ export default function NutritionReportPage() {
               className="px-8 py-3 text-sm font-bold tracking-wide shadow-xl min-w-[200px]"
               isLoading={isAcknowledging}
             >
-              I Acknowledge Report
+              Acknowledge and Continue
             </Button>
           </div>
         </div>

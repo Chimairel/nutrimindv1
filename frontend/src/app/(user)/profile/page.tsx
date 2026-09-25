@@ -24,7 +24,7 @@ const sections = [
   {
     href: '/profile/nutrition-report',
     title: 'Nutrition guidance & report',
-    description: 'Clinical summary, foods to favor/avoid, and AI nutrition report',
+    description: 'Personalized guidance grounded in your profile, calculated targets, and food restrictions',
     icon: ClipboardList,
   },
   {

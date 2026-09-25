@@ -337,7 +337,7 @@ export default function NutritionExportPage() {
       {reportData && isReportCurrent && (
         <div className="mb-8 text-left page-break-inside-avoid">
           <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-300 pb-1 mb-3">
-            3. AI-Generated Nutrition Guidance
+            3. Personalized Nutrition Guidance
           </h2>
 
           <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900">
