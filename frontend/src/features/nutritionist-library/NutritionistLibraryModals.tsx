@@ -72,10 +72,13 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                   <span className="text-sm font-bold text-brand-text">{selectedMeal.fatG} g</span>
                 </div>
               </div>
-              {selectedMeal.nutritionServingDescription && <p className="mt-2 text-xs text-brand-muted">Per serving: {selectedMeal.nutritionServingDescription}</p>}
+              {selectedMeal.nutritionServingDescription && (
+                <p className="mt-2 text-xs text-brand-muted">Per serving: {selectedMeal.nutritionServingDescription}</p>
+              )}
               {selectedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
                 <p className="mt-2 rounded-xl border border-brand-border/60 p-3 text-xs text-brand-muted">
-                  Admin-entered calculation/source notes: {selectedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}
+                  Admin-entered calculation/source notes:{' '}
+                  {selectedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}
                 </p>
               )}
             </div>
@@ -137,7 +140,9 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                     >
                       <span className="font-semibold text-brand-text">
                         {ingredient.ingredientName}
-                        {ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit ?? ''} per serving` : ''}
+                        {ingredient.quantity != null
+                          ? ` · ${ingredient.quantity} ${ingredient.unit ?? ''} per serving`
+                          : ''}
                       </span>
                       <span
                         className={
@@ -148,7 +153,9 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                       >
                         {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
                           ? 'FNRI linked'
-                          : 'Unresolved evidence'}
+                          : ingredient.foodItemId
+                            ? 'FNRI name matched; nutrition evidence pending'
+                            : 'FNRI identity unresolved'}
                       </span>
                     </div>
                   ))
@@ -210,11 +217,23 @@ export function NutritionistLibraryModals({ workspace }: Props) {
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-4 text-xs leading-relaxed text-brand-muted">
               <p className="font-bold text-brand-text">Recipe and nutrition submitted for review</p>
-              <p className="mt-2 whitespace-pre-line">{selectedMeal.description || 'No preparation details recorded.'}</p>
-              <p className="mt-2">{selectedMeal.nutritionServingDescription || 'Serving unspecified'} · {selectedMeal.calories} kcal · P {selectedMeal.proteinG} g · C {selectedMeal.carbsG} g · F {selectedMeal.fatG} g</p>
-              <p className="mt-1">Sodium {selectedMeal.sodiumMg ?? 'unknown'} mg · Sugar {selectedMeal.sugarG ?? 'unknown'} g · Fiber {selectedMeal.fiberG ?? 'unknown'} g · Potassium {selectedMeal.potassiumMg ?? 'unknown'} mg · Phosphorus {selectedMeal.phosphorusMg ?? 'unknown'} mg · Saturated fat {selectedMeal.saturatedFatG ?? 'unknown'} g</p>
+              <p className="mt-2 whitespace-pre-line">
+                {selectedMeal.description || 'No preparation details recorded.'}
+              </p>
+              <p className="mt-2">
+                {selectedMeal.nutritionServingDescription || 'Serving unspecified'} · {selectedMeal.calories} kcal · P{' '}
+                {selectedMeal.proteinG} g · C {selectedMeal.carbsG} g · F {selectedMeal.fatG} g
+              </p>
+              <p className="mt-1">
+                Sodium {selectedMeal.sodiumMg ?? 'unknown'} mg · Sugar {selectedMeal.sugarG ?? 'unknown'} g · Fiber{' '}
+                {selectedMeal.fiberG ?? 'unknown'} g · Potassium {selectedMeal.potassiumMg ?? 'unknown'} mg · Phosphorus{' '}
+                {selectedMeal.phosphorusMg ?? 'unknown'} mg · Saturated fat {selectedMeal.saturatedFatG ?? 'unknown'} g
+              </p>
               {selectedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
-                <p className="mt-2">Admin-entered calculation/source notes: {selectedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>
+                <p className="mt-2">
+                  Admin-entered calculation/source notes:{' '}
+                  {selectedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}
+                </p>
               )}
             </div>
 
@@ -239,7 +258,9 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                     >
                       <span className="font-semibold text-brand-text">
                         {ingredient.ingredientName}
-                        {ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit ?? ''} per serving` : ''}
+                        {ingredient.quantity != null
+                          ? ` · ${ingredient.quantity} ${ingredient.unit ?? ''} per serving`
+                          : ''}
                       </span>
                       <span
                         className={
@@ -250,7 +271,9 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                       >
                         {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
                           ? 'FNRI linked'
-                          : 'Blocks certification'}
+                          : ingredient.foodItemId
+                            ? 'FNRI name matched; nutrition evidence pending'
+                            : 'FNRI identity unresolved'}
                       </span>
                     </div>
                   ))

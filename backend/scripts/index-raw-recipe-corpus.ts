@@ -89,7 +89,11 @@ async function main() {
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   });
-  const fnriMatcher = createSourceIngredientFnriMatcher(fnriFoods);
+  const verifiedAliases = await prisma.foodAlias.findMany({
+    where: { verifiedAt: { not: null }, foodItem: { source: 'FNRI' } },
+    select: { alias: true, foodItemId: true, verifiedAt: true },
+  });
+  const fnriMatcher = createSourceIngredientFnriMatcher(fnriFoods, verifiedAliases);
 
   const keepSignatures = [...unique.keys()];
   const rows: Prisma.RawRecipeCandidateCreateManyInput[] = [];

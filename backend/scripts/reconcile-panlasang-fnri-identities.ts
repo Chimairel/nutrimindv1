@@ -29,11 +29,15 @@ function ingredientRecords(value: Prisma.JsonValue): IngredientRecord[] {
 }
 
 async function main() {
-  const [foods, recipes] = await Promise.all([
+  const [foods, aliases, recipes] = await Promise.all([
     prisma.foodItem.findMany({
       where: { source: 'FNRI' },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
+    }),
+    prisma.foodAlias.findMany({
+      where: { verifiedAt: { not: null }, foodItem: { source: 'FNRI' } },
+      select: { alias: true, foodItemId: true, verifiedAt: true },
     }),
     prisma.rawRecipeCandidate.findMany({
       where: { sourceName: 'PANLASANG_PINOY' },
@@ -41,9 +45,10 @@ async function main() {
       orderBy: { id: 'asc' },
     }),
   ]);
-  const matcher = createSourceIngredientFnriMatcher(foods);
+  const matcher = createSourceIngredientFnriMatcher(foods, aliases);
   const methodCounts: Record<SourceIngredientMatchMethod, number> = {
     CANONICAL_NAME: 0,
+    VERIFIED_ALIAS: 0,
     CURATED_EQUIVALENT: 0,
     UNIQUE_LEXICAL_MATCH: 0,
   };

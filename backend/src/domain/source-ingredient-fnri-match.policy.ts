@@ -1,8 +1,15 @@
 import { normalizeFoodName, scoreStrongFNRIMatch, type FNRIMatchCandidate } from './fnri-match.policy';
 
-export const SOURCE_INGREDIENT_FNRI_MAPPING_VERSION = 'PANLASANG_FNRI_IDENTITY_V1';
+export const SOURCE_INGREDIENT_FNRI_MAPPING_VERSION = 'PANLASANG_FNRI_IDENTITY_V2';
 
-export type SourceIngredientMatchMethod = 'CANONICAL_NAME' | 'CURATED_EQUIVALENT' | 'UNIQUE_LEXICAL_MATCH';
+export type SourceIngredientMatchMethod =
+  'CANONICAL_NAME' | 'VERIFIED_ALIAS' | 'CURATED_EQUIVALENT' | 'UNIQUE_LEXICAL_MATCH';
+
+export interface VerifiedSourceIngredientAlias {
+  alias: string;
+  foodItemId: string;
+  verifiedAt: Date | null;
+}
 
 export interface SourceIngredientFnriMatch<T extends FNRIMatchCandidate> {
   food: T;
@@ -227,10 +234,25 @@ function uniqueLexicalMatch<T extends FNRIMatchCandidate>(lookupName: string, fo
   return scored[0].food;
 }
 
-export function createSourceIngredientFnriMatcher<T extends FNRIMatchCandidate>(
-  foods: readonly T[]
+export function createSourceIngredientFnriMatcher<T extends FNRIMatchCandidate & { id: string }>(
+  foods: readonly T[],
+  aliases: readonly VerifiedSourceIngredientAlias[] = []
 ): SourceIngredientFnriMatcher<T> {
   const byCanonicalName = new Map(foods.map((food) => [normalizeFoodName(food.name), food]));
+  const byId = new Map(foods.map((food) => [food.id, food]));
+  const byVerifiedAlias = new Map<string, T | null>();
+  for (const alias of aliases) {
+    if (!alias.verifiedAt) continue;
+    const food = byId.get(alias.foodItemId);
+    const key = normalizeSourceIngredientName(alias.alias);
+    if (!food || !key || INVALID_SOURCE_LABELS.has(key)) continue;
+    const previous = byVerifiedAlias.get(key);
+    if (byVerifiedAlias.has(key) && (previous === null || previous?.id !== food.id)) {
+      byVerifiedAlias.set(key, null);
+    } else {
+      byVerifiedAlias.set(key, food);
+    }
+  }
   return {
     match(sourceName: string): SourceIngredientFnriMatch<T> | null {
       const normalizedSourceName = normalizeSourceIngredientName(sourceName);
@@ -239,6 +261,16 @@ export function createSourceIngredientFnriMatcher<T extends FNRIMatchCandidate>(
       const exact = byCanonicalName.get(normalizedSourceName);
       if (exact) {
         return { food: exact, method: 'CANONICAL_NAME', normalizedSourceName, lookupName: exact.name };
+      }
+
+      const verifiedAlias = byVerifiedAlias.get(normalizedSourceName);
+      if (verifiedAlias) {
+        return {
+          food: verifiedAlias,
+          method: 'VERIFIED_ALIAS',
+          normalizedSourceName,
+          lookupName: verifiedAlias.name,
+        };
       }
 
       const curatedTargetName = CURATED_TARGETS[normalizedSourceName];
@@ -255,9 +287,10 @@ export function createSourceIngredientFnriMatcher<T extends FNRIMatchCandidate>(
   };
 }
 
-export function matchSourceIngredientToFnri<T extends FNRIMatchCandidate>(
+export function matchSourceIngredientToFnri<T extends FNRIMatchCandidate & { id: string }>(
   sourceName: string,
-  foods: readonly T[]
+  foods: readonly T[],
+  aliases: readonly VerifiedSourceIngredientAlias[] = []
 ): SourceIngredientFnriMatch<T> | null {
-  return createSourceIngredientFnriMatcher(foods).match(sourceName);
+  return createSourceIngredientFnriMatcher(foods, aliases).match(sourceName);
 }

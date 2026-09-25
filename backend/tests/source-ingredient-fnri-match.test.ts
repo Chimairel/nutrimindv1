@@ -53,6 +53,35 @@ test('curated regional and staple names map only to explicit equivalents', () =>
   assert.equal(matchSourceIngredientToFnri('elbow macaroni', foods)?.food.id, 'macaroni');
 });
 
+test('verified admin aliases resolve source ingredients without trusting unverified or conflicting aliases', () => {
+  const aliasFoods = [
+    ...foods,
+    { id: 'okra', name: 'Okra' },
+    { id: 'radish', name: 'Radish' },
+    { id: 'radish-boiled', name: 'Radish, boiled' },
+    { id: 'malunggay-leaves', name: 'Horseradish tree lvs' },
+  ];
+  const verifiedAt = new Date('2026-09-26T00:00:00.000Z');
+  const aliases = [
+    { alias: 'okra pods', foodItemId: 'okra', verifiedAt },
+    { alias: 'daikon radish', foodItemId: 'radish', verifiedAt },
+    { alias: 'malunggay leaves', foodItemId: 'malunggay-leaves', verifiedAt },
+    { alias: 'olive oil', foodItemId: 'coconut-oil', verifiedAt: null },
+  ];
+  assert.equal(matchSourceIngredientToFnri('okra pods (chopped)', aliasFoods, aliases)?.food.id, 'okra');
+  assert.equal(matchSourceIngredientToFnri('daikon radish', aliasFoods, aliases)?.method, 'VERIFIED_ALIAS');
+  assert.equal(matchSourceIngredientToFnri('fresh malunggay leaves', aliasFoods, aliases), null);
+  assert.equal(matchSourceIngredientToFnri('malunggay leaves', aliasFoods, aliases)?.food.id, 'malunggay-leaves');
+  assert.equal(matchSourceIngredientToFnri('olive oil', aliasFoods, aliases), null);
+  assert.equal(
+    matchSourceIngredientToFnri('daikon radish', aliasFoods, [
+      ...aliases,
+      { alias: 'daikon radish', foodItemId: 'radish-boiled', verifiedAt },
+    ]),
+    null
+  );
+});
+
 test('scraper fragments are invalid ingredients rather than foods', () => {
   assert.equal(isInvalidSourceIngredientLabel('(beaten)'), true);
   assert.equal(isInvalidSourceIngredientLabel('Cooking Procedure'), true);

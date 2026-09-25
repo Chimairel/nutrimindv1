@@ -118,7 +118,13 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
                 {food.aliases.map((alias) => (
                   <span
                     key={alias.id}
-                    title={alias.verifiedByAdmin ? `Verified by ${alias.verifiedByAdmin.name}` : 'Legacy alias'}
+                    title={
+                      alias.verifiedByAdmin
+                        ? `Verified by ${alias.verifiedByAdmin.name}`
+                        : alias.verifiedAt
+                          ? 'Curated FNRI alias'
+                          : 'Legacy alias'
+                    }
                     className={`rounded-full border px-2.5 py-1 text-[10px] ${alias.verifiedAt ? 'border-brand-green/25 bg-brand-green/10 text-brand-green' : 'border-brand-border text-brand-muted'}`}
                   >
                     {alias.alias}
