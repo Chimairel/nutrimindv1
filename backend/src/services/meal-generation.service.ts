@@ -21,6 +21,8 @@ import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { getPreparationLeadDays } from '@/domain/upcoming-preparation.policy';
 import { generate7DayPlan } from './meal-plan-composition.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
+import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
+import { MealAiQueueService } from './meal-ai-queue.service';
 
 export class MealGenerationService {
   private static readonly GENERATION_JOB_TTL_MS = 20 * 60 * 1000;
@@ -210,12 +212,18 @@ export class MealGenerationService {
             { status: MealPlanGenerationJobStatus.FAILED },
             { status: MealPlanGenerationJobStatus.COMPLETED },
             { status: MealPlanGenerationJobStatus.GENERATING, updatedAt: { lt: staleCutoff } },
+            ...(replaceExisting ? [
+              { status: MealPlanGenerationJobStatus.WAITING_FOR_AI },
+              { status: MealPlanGenerationJobStatus.PROCESSING_AI },
+            ] : []),
           ],
         },
         data: {
           status: MealPlanGenerationJobStatus.GENERATING,
           attempts: { increment: 1 },
           planGroupId: null,
+          nextAttemptAt: null,
+          processingToken: null,
           lastErrorCode: null,
           progressPct: 5,
           stageCode: 'PROFILE',
@@ -237,18 +245,33 @@ export class MealGenerationService {
         window.startDate,
         job.id
       );
+      const cycle = await prisma.mealPlanCycle.findUniqueOrThrow({
+        where: { id: planGroupId },
+        select: {
+          startDate: true,
+          expectedSlotCount: true,
+          mealPlans: {
+            where: { status: { not: 'CANCELLED' } },
+            select: { scheduledDate: true, mealType: true },
+          },
+        },
+      });
+      const missing = missingMealSlots(cycle.startDate, cycle.expectedSlotCount, cycle.mealPlans);
       await prisma.mealPlanGenerationJob.update({
         where: { id: job.id },
         data: {
-          status: MealPlanGenerationJobStatus.COMPLETED,
+          status: missing.length ? MealPlanGenerationJobStatus.WAITING_FOR_AI : MealPlanGenerationJobStatus.COMPLETED,
           planGroupId,
           lastErrorCode: null,
-          progressPct: 100,
-          stageCode: 'COMPLETED',
-          stageMessage: 'Your plan is ready for review.',
-          completedAt: new Date(),
+          nextAttemptAt: missing.length ? new Date() : null,
+          processingToken: null,
+          progressPct: missing.length ? 90 : 100,
+          stageCode: missing.length ? 'WAITING_FOR_AI' : 'COMPLETED',
+          stageMessage: missing.length ? `${missing.length} meal slot(s) awaiting generation.` : 'Your plan is ready for review.',
+          completedAt: missing.length ? null : new Date(),
         },
       });
+      if (missing.length) MealAiQueueService.triggerNonBlocking();
       return planGroupId;
     } catch (error) {
       await prisma.mealPlanGenerationJob.updateMany({

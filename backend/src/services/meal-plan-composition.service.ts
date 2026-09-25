@@ -2,8 +2,6 @@ import prisma from '@/lib/prisma';
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
-import { generateGenerativeJSON } from '@/lib/gemini';
-import { getFNRISubset } from '@/lib/fnri';
 import { getLocalizedFoodConsumptionContext } from '@/services/food-consumption-context.service';
 import {
   MealType,
@@ -14,7 +12,6 @@ import {
   PlanType,
   MealPlanCycleDeadlineOutcome,
   MealPlanCycleStatus,
-  AiUsageOperation,
   MealCandidateProvenance,
   AssuranceTier,
   RecipeRiceRole,
@@ -23,12 +20,9 @@ import {
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-response.schema';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
-import { runMealGenerationFallbackForUnmatchedSlots } from '@/domain/meal-generation-library-compatibility.adapter';
 import { getMealPlanCycleTiming, getManilaDateKey, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
-import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
@@ -47,11 +41,9 @@ import {
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
 import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
-import { splitCustomRestrictions, validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
 import {
   prepareGeneratedMealIngredients,
   type GeneratedMeal,
-  type GroundedFoodReference,
 } from './meal-generation-ingredient-preparation.service';
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
@@ -63,10 +55,6 @@ import {
   scorePreparationCandidate,
   UPCOMING_PREPARATION_POLICY_VERSION,
 } from '@/domain/upcoming-preparation.policy';
-
-interface GeminiMealPlanResponse {
-  meals: GeneratedMeal[];
-}
 
 export async function generate7DayPlan(
   userId: string,
@@ -145,18 +133,6 @@ export async function generate7DayPlan(
       })
     ).flatMap((meal) => (meal.libraryMealId ? [meal.libraryMealId] : []))
   );
-  const localizedCertifiedMealReference = rankMealsByLocalizedFoodEvidence(
-    [...eligibleLibraryMeals].sort((left, right) => right.usageCount - left.usageCount),
-    localizedFoodIds,
-    localizedFoodGroupScores
-  )
-    .slice(0, 24)
-    .map(
-      (meal) =>
-        `- [MEAL_LIBRARY_ID=${meal.id}] ${meal.mealName} (${meal.mealType}; ${meal.calories} kcal; ingredients: ${meal.ingredients.map((ingredient) => ingredient.ingredientName).join(', ')})`
-    )
-    .join('\n');
-
   const matchedSlots: {
     dayNumber: number;
     mealType: MealType;
@@ -292,124 +268,9 @@ export async function generate7DayPlan(
     ...meal,
     candidateProvenance: MealCandidateProvenance.RAW_RECIPE_CORPUS,
   }));
-  const generationSlots = rawCorpusResult.remainingSlots;
-
-  // --- STEP 3: Bounded from-scratch generation only for still-empty slots. ---
-  const groundedFoodById = new Map<string, GroundedFoodReference>();
-  const generatedFromScratch = await runMealGenerationFallbackForUnmatchedSlots(
-    generationSlots,
-    async (fallbackSlots): Promise<GeneratedMeal[]> => {
-      await updateGenerationProgress(
-        generationJobId,
-        45,
-        'AI_GENERATION',
-        'Preparing safe options for unmatched meal slots.'
-      );
-      const totalMeals = fallbackSlots.length;
-      console.log(`[Meal Generation] ${totalMeals} unmatched slots. Generating via Gemini AI...`);
-
-      // Fetch a balanced FNRI reference across common food categories.
-      const localFoodsContext = await getFNRISubset();
-      const retrievedFoods = [...localizedConsumption.items, ...localFoodsContext].filter((food) => {
-        if (groundedFoodById.has(food.id)) return false;
-        groundedFoodById.set(food.id, food);
-        return true;
-      });
-      const formattedFoodsContext = retrievedFoods
-        .map(
-          (f) =>
-            `- [FNRI_ID=${f.id}] ${f.name} (Cat: ${f.category}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g per 100g)`
-        )
-        .join('\n');
-
-      const compositionForValidation = await prisma.foodItem.findMany({
-        where: { id: { in: retrievedFoods.map((food) => food.id) }, source: 'FNRI' },
-      });
-      const accepted: GeneratedMeal[] = [];
-      let pendingSlots = [...fallbackSlots];
-      const validationFailures: string[] = [];
-      for (let attempt = 1; attempt <= 3 && pendingSlots.length; attempt += 1) {
-        const existingMeals = [
-          ...matchedSlots.map((slot) => ({
-            dayNumber: slot.dayNumber,
-            mealType: slot.mealType,
-            calories: slot.libraryMeal.calories,
-          })),
-          ...rawCorpusMeals.map((meal) => ({
-            dayNumber: meal.dayNumber,
-            mealType: meal.mealType,
-            calories: meal.calories,
-          })),
-          ...accepted.map((meal) => ({
-            dayNumber: meal.dayNumber,
-            mealType: meal.mealType,
-            calories: meal.calories,
-          })),
-        ];
-        const { prompt, systemInstruction } = buildMealGenerationPrompt({
-          slots: pendingSlots,
-          existingMeals,
-          dailyCalorieTarget,
-          goal,
-          dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
-          ricePreference: profile.ricePreference,
-          foodCulture: profile.foodCulture || 'Filipino',
-          planningLocationLabel: formatMealLocalityPreference(profile),
-          conditions: userConditions,
-          allergens: userAllergens,
-          otherConditions,
-          otherAllergies,
-          foodReference: formattedFoodsContext,
-          certifiedMealReference: localizedCertifiedMealReference,
-          popularFoodReference: localizedConsumption.text,
-          consumptionEvidenceScope: localizedConsumption.matchedScope?.label,
-        });
-        const MealResponseSchema = buildMealGenerationResponseSchema(
-          pendingSlots,
-          dailyCalorieTarget,
-          compositionForValidation,
-          existingMeals
-        );
-        let aiResponse: GeminiMealPlanResponse | null = null;
-        try {
-          aiResponse = await generateGenerativeJSON<GeminiMealPlanResponse>(
-            validationFailures.length
-              ? `${prompt}\nPrevious deterministic validation failures: ${validationFailures.join('; ')}`
-              : prompt,
-            systemInstruction,
-            MealResponseSchema,
-            { operation: AiUsageOperation.MEAL_PLAN_GENERATION, purpose: `UNMATCHED_SLOT_ATTEMPT_${attempt}` }
-          );
-        } catch (aiErr) {
-          console.warn(`[Meal Generation] Gemini generation attempt ${attempt} failed:`, aiErr);
-          if (attempt === 3) throw aiErr;
-          continue;
-        }
-
-        const rejectedKeys = new Set<string>();
-        for (const meal of aiResponse.meals) {
-          const validation = validateGeneratedMealCandidate({
-            ingredients: meal.ingredients,
-            dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
-            allergens: userAllergens,
-            customAllergies: splitCustomRestrictions(otherAllergies),
-          });
-          if (!validation.accepted) {
-            rejectedKeys.add(`${meal.dayNumber}:${meal.mealType}`);
-            validationFailures.push(...validation.definiteConflicts);
-            continue;
-          }
-          accepted.push({ ...meal, candidateProvenance: MealCandidateProvenance.AI_FROM_SCRATCH });
-        }
-        pendingSlots = pendingSlots.filter((slot) => rejectedKeys.has(`${slot.dayNumber}:${slot.mealType}`));
-      }
-      if (pendingSlots.length) {
-        throw new Error(`Deterministic validation rejected ${pendingSlots.length} meal slot(s) after 3 attempts.`);
-      }
-      return accepted;
-    }
-  );
-  const aiMeals = [...rawCorpusMeals, ...generatedFromScratch];
+  // Persist the library and real-recipe candidates before any AI request.
+  // Remaining slots are durable gaps handled by the capacity-governed queue.
+  const aiMeals = rawCorpusMeals;
 
   const newPlanGroupId = randomUUID();
   const evidenceCapturedAt = new Date().toISOString();
@@ -452,7 +313,7 @@ export async function generate7DayPlan(
     unmatchedSlots,
     startDate,
     userHasConditions,
-    groundedFoodById,
+    groundedFoodById: new Map(),
   });
   await updateGenerationProgress(
     generationJobId,
@@ -854,7 +715,7 @@ export async function generate7DayPlan(
     });
   }
 
-  if (planType === PlanType.STARTER) {
+  if (planType === PlanType.STARTER && createdPlansList.length > 0) {
     const nextStart = new Date(cycleTiming.endDate.getTime() + 86_400_000);
     const dateStr = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
@@ -866,8 +727,8 @@ export async function generate7DayPlan(
       await prisma.notification.create({
         data: {
           userId,
-          title: 'Starter Meal Plan Active',
-          message: `Your kickoff bridge plan is ready. Your full 7-day weekly cycle begins on ${dateStr}.`,
+          title: 'Starter Meal Plan Preparing',
+          message: `Your kickoff bridge plan has saved candidates. Empty slots and nutritionist reviews may still be pending. Your full 7-day weekly cycle begins on ${dateStr}.`,
           type: NotificationType.ASSIGNMENT,
         },
       });

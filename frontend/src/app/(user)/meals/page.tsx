@@ -51,6 +51,10 @@ export default function WeeklyPlanPage() {
     regenerationProgress,
     error,
     pendingReview,
+    awaitingGeneration,
+    generationStatus,
+    isRetryingMissing,
+    retryMissingGeneration,
     cycles,
     setSelectedPlanDateKey,
     historyLogs,
@@ -90,7 +94,10 @@ export default function WeeklyPlanPage() {
     completedMealCount,
   } = workspace;
 
-  const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && displayedMealCount > 0;
+  const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && (displayedMealCount > 0 || awaitingGeneration.upcoming > 0);
+  const awaitingGenerationCount = upcomingOnly ? awaitingGeneration.upcoming : awaitingGeneration.current;
+  const activeGenerationStatus = upcomingOnly ? generationStatus.upcoming : generationStatus.current;
+  const generationCycleId = upcomingOnly ? cycles?.upcoming?.id : cycles?.current?.id;
   const upcomingStart = cycles?.upcoming?.startDate
     ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cycles.upcoming.startDate)), {
         weekday: 'long', month: 'short', day: 'numeric',
@@ -281,6 +288,20 @@ export default function WeeklyPlanPage() {
           </div>
         )}
 
+        {activeTab === 'plan' && !isLoading && awaitingGenerationCount > 0 && (
+          <div role="status" className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
+            <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
+            <div>
+              <p>{awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'} {activeGenerationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}. {activeGenerationStatus === 'FAILED' ? 'Saved candidates remain available while you retry the missing slots.' : 'KAINARA fills the earliest days first as AI capacity becomes available.'} Empty slots cannot be reviewed, logged, swapped, or added to groceries yet.</p>
+              {activeGenerationStatus === 'FAILED' && generationCycleId && (
+                <Button variant="secondary" className="mt-3" onClick={() => void retryMissingGeneration(generationCycleId)} disabled={isRetryingMissing}>
+                  {isRetryingMissing ? 'Retrying…' : 'Retry missing slots'}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'plan' && !isLoading && displayedMealCount > 0 && (
           <section className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
             {[
@@ -447,6 +468,10 @@ export default function WeeklyPlanPage() {
                     </div>
                   ))}
               </section>
+            ) : awaitingGenerationCount > 0 ? (
+              <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
+                The first meal candidates are being prepared. Refresh this page later to see saved candidates and nutritionist review progress.
+              </div>
             ) : (
               <StateNotice
                 variant="no-meal-plan"

@@ -2357,27 +2357,45 @@ model MealLibraryFlag {
 }
 
 model MealPlanGenerationJob {
-  id             String                      @id @default(cuid())
-  userId         String
-  user           User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planType       PlanType
-  cycleStartDate DateTime
-  status         MealPlanGenerationJobStatus @default(GENERATING)
-  planGroupId    String?
-  cycle          MealPlanCycle?              @relation(fields: [planGroupId], references: [id], onDelete: SetNull)
-  attempts       Int                         @default(1)
-  lastErrorCode  String?                     @db.VarChar(64)
-  progressPct    Int                         @default(0)
-  stageCode      String                      @default("QUEUED") @db.VarChar(64)
-  stageMessage   String?                     @db.VarChar(180)
-  startedAt      DateTime                    @default(now())
-  completedAt    DateTime?
-  createdAt      DateTime                    @default(now())
-  updatedAt      DateTime                    @default(now()) @updatedAt
+  id              String                      @id @default(cuid())
+  userId          String
+  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType        PlanType
+  cycleStartDate  DateTime
+  status          MealPlanGenerationJobStatus @default(GENERATING)
+  planGroupId     String?
+  cycle           MealPlanCycle?              @relation(fields: [planGroupId], references: [id], onDelete: SetNull)
+  attempts        Int                         @default(1)
+  lastErrorCode   String?                     @db.VarChar(64)
+  nextAttemptAt   DateTime?
+  processingToken String?                     @db.VarChar(64)
+  progressPct     Int                         @default(0)
+  stageCode       String                      @default("QUEUED") @db.VarChar(64)
+  stageMessage    String?                     @db.VarChar(180)
+  startedAt       DateTime                    @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @default(now()) @updatedAt
 
   @@unique([userId, planType, cycleStartDate])
   @@unique([planGroupId])
   @@index([status, updatedAt])
+  @@index([status, nextAttemptAt])
+}
+
+/// One durable admission record per provider attempt. Reservations are counted
+/// across app instances before an outbound call, including failed attempts.
+model AiQuotaReservation {
+  id              String           @id @default(cuid())
+  provider        String           @db.VarChar(32)
+  model           String           @db.VarChar(80)
+  estimatedTokens Int
+  operation       AiUsageOperation
+  reservedAt      DateTime         @default(now())
+  completedAt     DateTime?
+
+  @@index([provider, reservedAt])
+  @@index([provider, completedAt, reservedAt])
 }
 
 /// Authoritative dated identity and mutable lifecycle for one meal-plan cycle.
@@ -2426,9 +2444,9 @@ model MealPlanCycle {
   @@index([supersededById])
 }
 
-/// Immutable inputs and targets used to generate one plan cycle. Live profile
-/// edits never rewrite this record, so active and historical adherence retain
-/// the target that was actually in force for that plan.
+/// Immutable profile inputs and calorie target for one plan cycle. The
+/// dailyMacroTargets JSON is a derived candidate-total projection that fills
+/// as queued meal slots are saved; live profile edits never rewrite inputs.
 model MealPlanCycleSnapshot {
   id                       String                    @id @default(cuid())
   planGroupId              String                    @unique
@@ -2506,6 +2524,8 @@ model AiUsageEvent {
 
 enum MealPlanGenerationJobStatus {
   GENERATING
+  WAITING_FOR_AI
+  PROCESSING_AI
   COMPLETED
   FAILED
 }

@@ -31,8 +31,8 @@ Rules:
 | ADR | Architecture/design decision | ADR-030 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-028 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-038 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260925-11 |
-| TEST | Test case or verification procedure | TEST-225 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260925-17 |
+| TEST | Test case or verification procedure | TEST-227 |
 | UNC | Unresolved uncertainty | UNC-019 |
 | DOC | Documentation correction or addition | DOC-071 |
 
@@ -4390,3 +4390,16 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Extended the isolated Chromium journey through every applicant step using a virtual camera feed and mouse-drawn signature. The browser confirmed that an empty photo or signature blocks progression, that the captured JPEG and confirmed PNG appear in the review step, and that submission creates a `SUBMITTED` application. The admin API returned the same complete image data, and the admin review card rendered both images. The fixture database and captured emails were discarded after the run.
 - The camera's Snap control previously had no visible result when clicked before a usable video frame existed. It now reports that the camera is still starting or that capture failed, so the applicant can retry. Field-level validation now preserves the first specific error for each field, exposing the required-photo/signature message instead of overwriting it with a generic format error.
 - Changed the capture badge and description to say the photo was captured for later administrator review. A browser camera snapshot, including a virtual camera feed, does not establish liveness or professional identity; the UI no longer calls it verified. Actual PRC and identity checks remain the administrator's responsibility.
+
+## 138. Capacity-governed meal generation with earliest-day queue (2026-09-25)
+
+**Change ID:** CHG-20260925-16
+
+**Verification IDs:** TEST-225, TEST-226
+
+- The certified-library and real-recipe corpus passes now persist their candidates before any from-scratch Gemini request. Unfilled breakfast/lunch/dinner positions remain explicit gaps in the dated cycle, not fabricated meals or reviewed evidence. A successful generate request may therefore return zero saved candidates and a nonzero awaiting-generation count.
+- An idempotent `MealPlanGenerationJob` records `WAITING_FOR_AI` or `PROCESSING_AI` and its next attempt time. A 30-second server worker claims one job at a time and requests only the earliest still-empty calendar day. It validates exact slots, FNRI references, calorie ranges, dietary compatibility, definite allergen conflicts, and source revisions before atomically creating `PENDING_REVIEW` meals. Existing profile/safety revisions and cycle state are checked again at save time; no generated result grants safety authority.
+- A project-wide PostgreSQL admission gate counts each outbound Gemini attempt against configurable rolling request, estimated-token, daily-request, and in-flight limits. A narrower background-meal RPM/RPD cap reserves some project capacity for foreground report and user-requested AI calls. The gate uses a transaction advisory lock across API instances. A provider 429 opens a five-minute shared cooldown instead of cascading through all models. Capacity deferral keeps the job queued; a definite validation failure stops after three attempts, preserves saved candidates, and exposes a retry action for the remaining slots. The dashboard and Meals page distinguish queued gaps from failed gaps and refresh while work is pending.
+- A frozen shopping list, acknowledged incomplete cycle, superseded cycle, stale profile, or missing clinical evidence cannot receive a queued result. The existing nutritionist review and meal-actionability gates remain unchanged. The cycle snapshot's profile inputs and calorie target remain fixed; its derived per-day candidate macro totals gain each newly saved batch.
+- Additive migration `20260925233000_queued_meal_generation_capacity` (SHA-256 `fd2890e980c2aec1bf61dd446fe36e3fd214fb3822b95e089aae8dfe18cb5962`) was the only pending migration and was applied to the configured shared-development Neon database. `prisma migrate status` reports 69 migrations current. **Process deviation:** the full REQ-032 preflight, disposable rehearsal, and existing-table preservation hash comparison were not performed before application; this deployment does not satisfy TEST-149. The SQL only adds enum values, nullable job columns, one new table, and indexes. A follow-up preservation audit remains necessary.
+- Verification: Prisma schema validation, backend and frontend TypeScript builds, targeted lint, 516 passing backend tests with one existing TODO, and 249 passing frontend tests. A temporary reservation fixture confirmed the configured two-per-minute gate and was deleted (zero reservation rows afterward); an empty-queue scan completed against shared development. Live generation with a real Gemini response, nutritionist approval of a newly queued batch, multi-instance concurrency, and browser interaction with the retry control were not exercised in this change.

@@ -81,10 +81,6 @@ export function buildPendingMealPlanPreview(rows: readonly PendingMealPreviewInp
 }
 
 export function summarizeGeneratedMealPlan(rows: readonly MealGenerationResultRow[]): GeneratedMealPlanSummary {
-  if (rows.length === 0) {
-    throw new Error('Meal generation completed without creating any meal records.');
-  }
-
   return {
     generatedMealCount: rows.length,
     pendingReview: summarizePendingMealPlan(rows),

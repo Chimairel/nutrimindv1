@@ -95,6 +95,8 @@ interface PendingReviewState {
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReviewState | null;
+  awaitingGeneration?: { current: number; upcoming: number };
+  generationStatus?: { current: string | null; upcoming: string | null };
   cycles?: {
     current?: CycleMetaSnapshot | null;
     upcoming?: CycleMetaSnapshot | null;
@@ -131,6 +133,9 @@ export function useMealsWorkspace() {
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
+  const [awaitingGeneration, setAwaitingGeneration] = useState(cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 });
+  const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? { current: null, upcoming: null });
+  const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
   const currentPlanRequestInFlight = useRef(false);
   const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
@@ -200,6 +205,8 @@ export function useMealsWorkspace() {
     (snapshot: CurrentPlanSnapshot) => {
       setMeals(snapshot.meals);
       setPendingReview(snapshot.pendingReview);
+      setAwaitingGeneration(snapshot.awaitingGeneration ?? { current: 0, upcoming: 0 });
+      setGenerationStatus(snapshot.generationStatus ?? { current: null, upcoming: null });
       setCycles(snapshot.cycles ?? null);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
@@ -216,6 +223,8 @@ export function useMealsWorkspace() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          awaitingGeneration: res.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
+          generationStatus: res.data.meta?.generationStatus ?? { current: null, upcoming: null },
           cycles: res.data.meta?.cycles ?? null,
         });
       }
@@ -226,6 +235,14 @@ export function useMealsWorkspace() {
       setIsLoading(false);
     }
   }, [applyCurrentPlan]);
+
+  useEffect(() => {
+    if (awaitingGeneration.current + awaitingGeneration.upcoming === 0) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchMeals();
+    }, 30_000);
+    return () => window.clearInterval(interval);
+  }, [awaitingGeneration, fetchMeals]);
 
   const fetchHistory = useCallback(async () => {
     const resource = historyResource(historySearch, historySource, historyStatus);
@@ -490,6 +507,8 @@ export function useMealsWorkspace() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          awaitingGeneration: res.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
+          generationStatus: res.data.meta?.generationStatus ?? { current: null, upcoming: null },
           cycles: res.data.meta?.cycles ?? null,
         });
       }
@@ -517,10 +536,7 @@ export function useMealsWorkspace() {
         const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
         if (res.data && res.data.success) {
           regenerationProgress.complete('Your replacement plan is ready for review.');
-          applyCurrentPlan({
-            meals: res.data.data.meals,
-            pendingReview: res.data.data.pendingReview ?? null,
-          });
+          await fetchMeals();
           setIsRegenerating(false);
         }
       } catch (err: unknown) {
@@ -529,8 +545,20 @@ export function useMealsWorkspace() {
         setError(msg);
       }
     },
-    [pendingReview, meals.length, regenerationProgress, applyCurrentPlan]
+    [pendingReview, meals.length, regenerationProgress, fetchMeals]
   );
+
+  const retryMissingGeneration = async (cycleId: string) => {
+    setIsRetryingMissing(true);
+    try {
+      await api.post(`/user/meals/cycles/${cycleId}/retry-generation`, {});
+      await fetchMeals();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Could not retry the missing meal slots.'));
+    } finally {
+      setIsRetryingMissing(false);
+    }
+  };
 
   const autoRegeneratedRef = useRef(false);
   useEffect(() => {
@@ -805,6 +833,10 @@ export function useMealsWorkspace() {
     regenerationProgress,
     error,
     pendingReview,
+    awaitingGeneration,
+    generationStatus,
+    isRetryingMissing,
+    retryMissingGeneration,
     cycles,
     selectedPlanDateKey,
     setSelectedPlanDateKey,

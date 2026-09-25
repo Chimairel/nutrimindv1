@@ -26,8 +26,8 @@ test('[TEST-035] no pending rows produce no pending-review summary', () => {
   assert.equal(summarizePendingMealPlan([{ planType: 'WEEKLY', status: 'APPROVED' }]), null);
 });
 
-test('[TEST-035] a zero-meal generation result cannot report false success', () => {
-  assert.throws(() => summarizeGeneratedMealPlan([]), /without creating any meal records/);
+test('[TEST-226] an empty queued cycle reports zero saved candidates without inventing a pending review', () => {
+  assert.deepEqual(summarizeGeneratedMealPlan([]), { generatedMealCount: 0, pendingReview: null });
 });
 
 test('[TEST-035] pending preview exposes every pending meal without internal identifiers', () => {

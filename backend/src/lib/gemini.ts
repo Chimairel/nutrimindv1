@@ -3,6 +3,7 @@ import { ZodType } from 'zod';
 import prisma from '@/lib/prisma';
 import { AiUsageOperation, AiUsageStatus } from '@prisma/client';
 import { buildGeminiGenerationConfig, GEMINI_MODEL_SEQUENCE } from '@/domain/gemini-model.policy';
+import { AiCapacityDeferredError, AiCapacityService } from '@/services/ai-capacity.service';
 
 // Retrieve API Key
 const apiKey = process.env.GEMINI_API_KEY;
@@ -94,9 +95,15 @@ export async function generateGenerativeJSON<T = any>(
 
   // Try each model sequentially in the cascade sequence
   for (const modelName of GEMINI_MODEL_SEQUENCE) {
-    attempts += 1;
     lastModel = modelName;
+    let reservationId: string | null = null;
     try {
+      reservationId = await AiCapacityService.reserve({
+        model: modelName,
+        estimatedTokens: AiCapacityService.estimateTokens(prompt, systemInstruction),
+        operation: (usage.operation as AiUsageOperation | undefined) ?? AiUsageOperation.OTHER,
+      });
+      attempts += 1;
       console.log(`[Gemini AI] Attempting prompt execution on model: ${modelName}`);
 
       const model = genAI.getGenerativeModel({
@@ -157,6 +164,27 @@ export async function generateGenerativeJSON<T = any>(
         throw new Error(`Failed to parse or validate the response from model ${modelName}.`);
       }
     } catch (cause: unknown) {
+      if (cause instanceof AiCapacityDeferredError) throw cause;
+      const quotaFault = cause as { status?: unknown; message?: unknown };
+      if (
+        quotaFault?.status === 429 ||
+        (typeof quotaFault?.message === 'string' && /RESOURCE_EXHAUSTED|quota exceeded|rate limit exceeded/iu.test(quotaFault.message))
+      ) {
+        await recordAiUsage({
+          model: modelName,
+          status: AiUsageStatus.FAILED,
+          attempts,
+          latencyMs: Date.now() - startedAt,
+          errorCode: 'PROVIDER_QUOTA',
+          ...usage,
+        });
+        // A project quota fault is not a reason to spend the same project's
+        // remaining allowance on every model in the fallback cascade.
+        throw new AiCapacityDeferredError(
+          'Gemini quota is temporarily unavailable. Please try again later.',
+          new Date(Date.now() + 60_000)
+        );
+      }
       const err = new Error('The AI service could not generate a valid meal plan. Please try again later.');
       lastError = err;
       const providerError = cause as { status?: unknown; statusText?: unknown; message?: unknown };
@@ -166,6 +194,14 @@ export async function generateGenerativeJSON<T = any>(
         message: typeof providerError?.message === 'string' ? providerError.message.slice(0, 240) : undefined,
       };
       console.warn(`⚠️ [Gemini AI] Call failed for model ${modelName}. Attempting fallback...`, diagnostic);
+    } finally {
+      if (reservationId) {
+        try {
+          await AiCapacityService.finish(reservationId);
+        } catch {
+          console.warn('[Gemini AI] Capacity reservation completion failed; lease will expire.');
+        }
+      }
     }
   }
 

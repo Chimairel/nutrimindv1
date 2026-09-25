@@ -36,6 +36,8 @@ import { useMealGenerationProgress } from '@/features/meals/useMealGenerationPro
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReview | null;
+  awaitingGenerationCount?: number;
+  generationStatus?: string | null;
   planSnapshot: {
     dailyCalorieTarget: number;
     dailyMacroTargets: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }>;
@@ -78,6 +80,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
+  const [awaitingGenerationCount, setAwaitingGenerationCount] = useState(cachedPlan?.awaitingGenerationCount ?? 0);
+  const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? null);
+  const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [planSnapshot, setPlanSnapshot] = useState<CurrentPlanSnapshot['planSnapshot']>(
     cachedPlan?.planSnapshot ?? null
   );
@@ -169,6 +174,8 @@ export default function DashboardPage() {
     (snapshot: CurrentPlanSnapshot) => {
       setCurrentMeals(snapshot.meals);
       setPendingReview(snapshot.pendingReview);
+      setAwaitingGenerationCount(snapshot.awaitingGenerationCount ?? 0);
+      setGenerationStatus(snapshot.generationStatus ?? null);
       setPlanSnapshot(snapshot.planSnapshot);
       setCurrentCycle(snapshot.cycle ?? null);
       setUpcomingCycle(snapshot.upcomingCycle ?? null);
@@ -270,6 +277,8 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
+          generationStatus: res.data.meta?.generationStatus ?? null,
           planSnapshot: res.data.meta?.planSnapshot ?? null,
           cycle: res.data.meta?.cycle ?? null,
           upcomingCycle: nextCycle,
@@ -287,6 +296,14 @@ export default function DashboardPage() {
       setIsLoading(false);
     }
   }, [applyCurrentPlan, user]);
+
+  useEffect(() => {
+    if (awaitingGenerationCount === 0) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchCurrentPlan();
+    }, 30_000);
+    return () => window.clearInterval(interval);
+  }, [awaitingGenerationCount, fetchCurrentPlan]);
 
   const checkCheckinStatus = useCallback(async () => {
     try {
@@ -342,6 +359,8 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
+          awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
+          generationStatus: res.data.meta?.generationStatus ?? null,
           planSnapshot: res.data.meta?.planSnapshot ?? null,
           cycle: res.data.meta?.cycle ?? null,
         });
@@ -367,6 +386,8 @@ export default function DashboardPage() {
         applyCurrentPlan({
           meals: res.data.data.meals,
           pendingReview: res.data.data.pendingReview ?? null,
+          awaitingGenerationCount: res.data.data.awaitingGenerationCount ?? 0,
+          generationStatus: res.data.data.generationStatus ?? null,
           planSnapshot: res.data.data.planSnapshot ?? null,
           cycle: res.data.data.cycle ?? null,
         });
@@ -382,6 +403,19 @@ export default function DashboardPage() {
       failGenerationProgress(msg);
       setError(msg);
       generationRequestInFlight.current = false;
+    }
+  };
+
+  const retryMissingGeneration = async () => {
+    if (!currentCycle?.id) return;
+    setIsRetryingMissing(true);
+    try {
+      await api.post(`/user/meals/cycles/${currentCycle.id}/retry-generation`, {});
+      await fetchCurrentPlan();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Could not retry the missing meal slots.'));
+    } finally {
+      setIsRetryingMissing(false);
     }
   };
 
@@ -537,6 +571,17 @@ export default function DashboardPage() {
           }
         />
 
+        {!isLoading && awaitingGenerationCount > 0 && !isReportPending && (
+          <div role="status" className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 p-4 text-sm text-brand-text">
+            {awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'} {generationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}. {generationStatus === 'FAILED' ? 'Saved candidates remain available.' : 'The earliest days are first in line.'} Empty slots are not available for shopping or logging.
+            {generationStatus === 'FAILED' && currentCycle?.id && (
+              <Button variant="secondary" className="mt-3" onClick={() => void retryMissingGeneration()} disabled={isRetryingMissing}>
+                {isRetryingMissing ? 'Retrying…' : 'Retry missing slots'}
+              </Button>
+            )}
+          </div>
+        )}
+
         {isLoading ? (
           <DashboardSkeleton />
         ) : isReportPending ? (
@@ -550,6 +595,10 @@ export default function DashboardPage() {
           />
         ) : clinicalEvidenceRequired ? (
           <StateNotice variant="action-needed" title="Clinical context needed" description="Review the requested health details and, where required, upload a supporting document for an RND to review before meal planning continues." action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }} />
+        ) : currentMeals.length === 0 && !pendingReview && awaitingGenerationCount > 0 ? (
+          <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
+            Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review progress.
+          </div>
         ) : currentMeals.length === 0 && !pendingReview ? (
           <StateNotice
             variant="no-meal-plan"

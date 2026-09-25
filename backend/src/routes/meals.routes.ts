@@ -55,6 +55,9 @@ router.get('/readiness', async (req, res) => {
  */
 router.post('/generate', requireClinicalEvidenceReady, validateZodRequest({ body: mealGenerationBodySchema }), MealsController.generateMealPlan);
 router.get('/generation-status', MealsController.getGenerationStatus);
+router.post('/cycles/:cycleId/retry-generation', requireClinicalEvidenceReady,
+  validateZodRequest({ params: z.object({ cycleId: z.string().min(1).max(200) }).strict(), body: z.object({}).strict() }),
+  MealsController.retryMissingGeneration);
 
 /**
  * Route: POST /api/user/meals/rollover

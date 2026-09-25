@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { lockUserProfile } from '@/services/profile-revision.service';
 import { AuthenticatedRequest } from '@/types';
 import { MealGenerationService } from '@/services/meal-generation.service';
+import { MealAiQueueService } from '@/services/meal-ai-queue.service';
 import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { MealLogService } from '@/services/meal-log.service';
 import { OutsideMealCaptureService } from '@/services/outside-meal-capture.service';
@@ -12,7 +13,8 @@ import { MealFavoriteService } from '@/services/meal-favorite.service';
 import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
-import { MealLogSource, MealLogDataSource, MealLogStatus, MealType } from '@prisma/client';
+import { MealLogSource, MealLogDataSource, MealLogStatus, MealType, MealPlanStatus } from '@prisma/client';
+import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
   assertUserLoggableMealPlan,
@@ -173,6 +175,14 @@ export class MealsController {
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
       const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } });
+      const cycle = await prisma.mealPlanCycle.findUnique({ where: { id: planGroupId } });
+      const awaitingGenerationCount = cycle ? missingMealSlots(
+        cycle.startDate, cycle.expectedSlotCount,
+        generatedPlanRows.filter((row) => row.status !== MealPlanStatus.CANCELLED)
+      ).length : 0;
+      const generationJob = await prisma.mealPlanGenerationJob.findUnique({
+        where: { planGroupId }, select: { status: true },
+      });
 
       // The grocery checklist is a projection of the actionable plan, not a
       // second user-generated artifact. Build it as part of successful plan
@@ -190,6 +200,9 @@ export class MealsController {
           ...generationSummary,
           pendingReview,
           planSnapshot,
+          cycle,
+          awaitingGenerationCount,
+          generationStatus: generationJob?.status ?? null,
         },
       });
     } catch (error: any) {
@@ -216,6 +229,22 @@ export class MealsController {
     return res.status(200).json({ success: true, data: job });
   }
 
+  static async retryMissingGeneration(req: AuthenticatedRequest, res: Response) {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+    try {
+      const queued = await MealAiQueueService.retryForCycle(userId, req.params.cycleId);
+      return res.status(queued ? 202 : 409).json({
+        success: queued,
+        ...(queued ? { data: { status: 'WAITING_FOR_AI' } } : { error: 'This cycle cannot be retried. Refresh its status or request a new plan.' }),
+      });
+    } catch (error) {
+      return res.status(error instanceof AppError ? error.statusCode : 500).json({
+        success: false, error: sanitizeErrorMessage(error, 'Could not retry meal generation.'),
+      });
+    }
+  }
+
   /**
    * GET /api/user/meals/current
    * Returns current active plan meals grouped by date.
@@ -236,6 +265,8 @@ export class MealsController {
             cycle: null,
             pendingReview: buildPendingMealPlanPreview([]),
             planSnapshot: null,
+            awaitingGenerationCount: 0,
+            generationStatus: null,
           },
         });
       }
@@ -270,6 +301,9 @@ export class MealsController {
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
         where: { planGroupId: cycle.id },
       });
+      const generationJob = await prisma.mealPlanGenerationJob.findUnique({
+        where: { planGroupId: cycle.id }, select: { status: true },
+      });
 
       return res.status(200).json({
         success: true,
@@ -278,6 +312,11 @@ export class MealsController {
           cycle,
           pendingReview: pendingPreviewWithImages(groupMeals, libraryImages),
           planSnapshot,
+          awaitingGenerationCount: missingMealSlots(
+            cycle.startDate, cycle.expectedSlotCount,
+            groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED)
+          ).length,
+          generationStatus: generationJob?.status ?? null,
         },
       });
     } catch (error: any) {
@@ -298,7 +337,8 @@ export class MealsController {
       const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
       const cycleIds = [cycles.current?.id, cycles.upcoming?.id].filter((id): id is string => Boolean(id));
       if (!cycleIds.length) {
-        return res.status(200).json({ success: true, data: [], meta: { cycles, pendingReview: null } });
+        return res.status(200).json({ success: true, data: [], meta: { cycles, pendingReview: null,
+          awaitingGeneration: { current: 0, upcoming: 0 }, generationStatus: { current: null, upcoming: null } } });
       }
       const rows = await prisma.mealPlan.findMany({
         where: { userId, planGroupId: { in: cycleIds } },
@@ -314,6 +354,10 @@ export class MealsController {
       const clearedByCycle = await Promise.all(
         cycleIds.map((cycleId) => MealPlanCycleService.getClearedMealPlanIds(userId, cycleId))
       );
+      const generationJobs = await prisma.mealPlanGenerationJob.findMany({
+        where: { planGroupId: { in: cycleIds } }, select: { planGroupId: true, status: true },
+      });
+      const generationStatusFor = (cycleId?: string | null) => generationJobs.find((job) => job.planGroupId === cycleId)?.status ?? null;
       const clearedIds = new Set(clearedByCycle.flat());
       const libraryImages = await resolveLibraryRecipeImages(
         rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
@@ -327,7 +371,20 @@ export class MealsController {
       return res.status(200).json({
         success: true,
         data: meals,
-        meta: { cycles, pendingReview: pendingPreviewWithImages(rows, libraryImages) },
+        meta: {
+          cycles,
+          pendingReview: pendingPreviewWithImages(rows, libraryImages),
+          awaitingGeneration: {
+            current: cycles.current ? missingMealSlots(cycles.current.startDate, cycles.current.expectedSlotCount,
+              rows.filter((row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED)).length : 0,
+            upcoming: cycles.upcoming ? missingMealSlots(cycles.upcoming.startDate, cycles.upcoming.expectedSlotCount,
+              rows.filter((row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED)).length : 0,
+          },
+          generationStatus: {
+            current: generationStatusFor(cycles.current?.id),
+            upcoming: generationStatusFor(cycles.upcoming?.id),
+          },
+        },
       });
     } catch (error) {
       console.error('[MealsController] getPlanWorkspace error:', error);
