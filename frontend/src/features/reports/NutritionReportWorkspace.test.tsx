@@ -64,6 +64,12 @@ describe('nutrition report lifecycle', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'I Acknowledge Report' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/meals?regenerate=true'));
   });
+  it('continues first-time onboarding to the dashboard only after acknowledgment succeeds', async () => {
+    window.history.replaceState({}, '', '/nutrition-report?next=dashboard');
+    render(<NutritionReportWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: 'I Acknowledge Report' }));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
+  });
   it('does not generate a new report when reading the existing report fails', async () => {
     const get = mocks.get.getMockImplementation()!;
     mocks.get.mockImplementation((path: string) =>

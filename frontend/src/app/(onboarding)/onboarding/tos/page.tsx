@@ -166,13 +166,17 @@ export default function OnboardingTosPage() {
       });
 
       // 2. Complete Onboarding (Backend calculates targets & updates profiles)
-      await api.post('/user/onboarding/complete');
+      const completion = await api.post('/user/onboarding/complete');
 
       // 3. Refresh Auth session context to pull new onboardingDone & tosAccepted parameters
-      await refreshSession();
+      const refreshed = await refreshSession();
 
-      // 4. Redirect to the dashboard
-      router.push('/dashboard');
+      // 4. The first real report must be generated, read, and acknowledged
+      // before the backend permits meal planning or other protected actions.
+      const nextPath = completion.data?.data?.nextPath;
+      router.replace(
+        nextPath === '/dashboard' && refreshed?.reportAcknowledged ? '/dashboard' : '/nutrition-report?next=dashboard'
+      );
     } catch (err) {
       setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
       setIsLoading(false);
@@ -363,7 +367,7 @@ export default function OnboardingTosPage() {
               disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || isHydrating}
               isLoading={isLoading}
             >
-              Complete Onboarding & Go to Dashboard
+              Complete Onboarding & Review Report
             </Button>
           </form>
         </Card>

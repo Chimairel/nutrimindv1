@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 import {
   CURRENT_PRIVACY_VERSION,
@@ -65,6 +67,15 @@ test('complete current-version data is ready to finalize before report access', 
 
   const completed = evaluateOnboardingStatus({ ...completeSnapshot, onboardingDone: true });
   assert.equal(completed.nextPath, '/nutrition-report');
+});
+
+test('onboarding completion cannot fabricate or auto-acknowledge a nutrition report', () => {
+  const source = readFileSync(resolve(process.cwd(), 'src/services/user-profile.service.ts'), 'utf8');
+
+  assert.doesNotMatch(source, /Initial nutritional baseline established/);
+  assert.doesNotMatch(source, /nutritionReportVersion\.upsert/);
+  assert.match(source, /acknowledgedAt:\s*null/);
+  assert.match(source, /nextPath:\s*'\/nutrition-report\?next=dashboard'/);
 });
 
 test('legacy consent is grandfathered only for already-onboarded accounts', () => {

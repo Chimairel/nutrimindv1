@@ -250,6 +250,7 @@ export class UserProfileService {
         userProfile: true,
         healthConditions: { select: { condition: true } },
         allergies: { select: { allergen: true } },
+        nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
       },
     });
 
@@ -283,6 +284,20 @@ export class UserProfileService {
       hasPregnantCondition,
     });
 
+    if (user.onboardingDone) {
+      const reportAcknowledged = Boolean(
+        user.nutritionReport?.acknowledgedAt &&
+        !user.nutritionReport.isStale &&
+        user.nutritionReport.profileRevision === profile.revision
+      );
+      return {
+        dailyCalorieTarget: calculations.dailyCalorieTarget,
+        onboardingDone: true,
+        reportAcknowledged,
+        nextPath: reportAcknowledged ? '/dashboard' : '/nutrition-report?next=dashboard',
+      };
+    }
+
     // 3. Persist targets and flag onboarding as complete
     await prisma.$transaction(
       async (tx) => {
@@ -296,64 +311,12 @@ export class UserProfileService {
         }
         await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
 
-        // Upsert baseline nutrition report with acknowledgedAt so user is immediately ready for dashboard
-        const now = new Date();
-        await tx.nutritionReport.upsert({
+        // A report created against any pre-completion state must be reviewed again.
+        // New accounts normally have no report here; the report workspace creates
+        // the first real version and leaves it unacknowledged for the user to read.
+        await tx.nutritionReport.updateMany({
           where: { userId },
-          create: {
-            userId,
-            profileRevision: reportProfileRevision,
-            isStale: false,
-            version: 1,
-            acknowledgedAt: now,
-            generalSummary: `Initial nutritional baseline established. Daily calorie target: ${calculations.dailyCalorieTarget} kcal based on your biometric profile and health goals.`,
-            foodsToAvoid: [],
-            foodsToLimit: [],
-            foodsRecommended: [],
-            drinksGuidance: ['Stay hydrated with at least 8 glasses (2-2.5L) of water daily.'],
-            basedOnConditions: user.healthConditions.map((c) => c.condition),
-            basedOnAllergies: user.allergies.map((a) => a.allergen),
-          },
-          update: {
-            profileRevision: reportProfileRevision,
-            acknowledgedAt: now,
-            isStale: false,
-          },
-        });
-        await tx.nutritionReportVersion.upsert({
-          where: { userId_version: { userId, version: 1 } },
-          create: {
-            userId,
-            version: 1,
-            profileRevision: reportProfileRevision,
-            generatedAt: now,
-            acknowledgedAt: now,
-            content: {
-              generalSummary: `Initial nutritional baseline established. Daily calorie target: ${calculations.dailyCalorieTarget} kcal based on your biometric profile and health goals.`,
-              foodsToAvoid: [],
-              foodsToLimit: [],
-              foodsRecommended: [],
-              drinksGuidance: ['Stay hydrated with at least 8 glasses (2-2.5L) of water daily.'],
-              basedOnConditions: user.healthConditions.map((condition) => condition.condition),
-              basedOnAllergies: user.allergies.map((allergy) => allergy.allergen),
-            },
-            profileSnapshot: JSON.parse(JSON.stringify(current)),
-          },
-          update: {
-            profileRevision: reportProfileRevision,
-            generatedAt: now,
-            acknowledgedAt: now,
-            content: {
-              generalSummary: `Initial nutritional baseline established. Daily calorie target: ${calculations.dailyCalorieTarget} kcal based on your biometric profile and health goals.`,
-              foodsToAvoid: [],
-              foodsToLimit: [],
-              foodsRecommended: [],
-              drinksGuidance: ['Stay hydrated with at least 8 glasses (2-2.5L) of water daily.'],
-              basedOnConditions: user.healthConditions.map((condition) => condition.condition),
-              basedOnAllergies: user.allergies.map((allergy) => allergy.allergen),
-            },
-            profileSnapshot: JSON.parse(JSON.stringify(current)),
-          },
+          data: { profileRevision: reportProfileRevision, acknowledgedAt: null, isStale: true },
         });
       },
       { maxWait: 10000, timeout: 30000 }
@@ -362,6 +325,8 @@ export class UserProfileService {
     return {
       dailyCalorieTarget: calculations.dailyCalorieTarget,
       onboardingDone: true,
+      reportAcknowledged: false,
+      nextPath: '/nutrition-report?next=dashboard',
     };
   }
 

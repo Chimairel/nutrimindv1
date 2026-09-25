@@ -148,7 +148,7 @@ export default function NutritionReportPage() {
 
       // Only support the explicit internal continuation, never an arbitrary redirect URL.
       const next = new URLSearchParams(window.location.search).get('next');
-      router.push(next === 'regenerate' ? '/meals?regenerate=true' : '/profile');
+      router.push(next === 'regenerate' ? '/meals?regenerate=true' : next === 'dashboard' ? '/dashboard' : '/profile');
     } catch (err) {
       if ((err as { response?: { status?: number } }).response?.status === 409) {
         setReport((current) => (current ? { ...current, isStale: true } : current));
