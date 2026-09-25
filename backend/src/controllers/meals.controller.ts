@@ -36,6 +36,8 @@ import {
   type RawRecipeImageRecord,
 } from '@/domain/meal-image.policy';
 import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
+import { resolveLibraryRecipeCookingLinks } from '@/services/library-recipe-cooking-link.service';
+import { cookingLinkForMeal, type PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import { getPlanHistory } from './meals-history.controller';
 import { AppError } from '@/errors/AppError';
 
@@ -79,25 +81,56 @@ function planImage(
   meal: {
     libraryMeal?: (MealImageRecord & { id: string }) | null;
     sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+    selectionEvidence?: unknown;
   },
   libraryImages?: ReadonlyMap<string, PublicMealImage>
 ) {
+  const rawRecipe = isUserSwappedMeal(meal.selectionEvidence) ? null : meal.sourceRawRecipeCandidate;
   const libraryImage = meal.libraryMeal ? toPublicMealImage(meal.libraryMeal) : null;
   if (libraryImage?.kind === 'EXACT' && meal.libraryMeal?.imagePublicId) return libraryImage;
   return (
-    (meal.sourceRawRecipeCandidate ? toPublicRawRecipeImage(meal.sourceRawRecipeCandidate) : null) ||
+    (rawRecipe ? toPublicRawRecipeImage(rawRecipe) : null) ||
     (meal.libraryMeal ? libraryImages?.get(meal.libraryMeal.id) : null) ||
     libraryImage
   );
+}
+
+function isUserSwappedMeal(selectionEvidence: unknown): boolean {
+  return typeof selectionEvidence === 'object' && selectionEvidence !== null &&
+    'source' in selectionEvidence && selectionEvidence.source === 'USER_SWAP';
+}
+
+function planCookingLink(
+  meal: {
+    libraryMeal?: (MealImageRecord & { id: string }) | null;
+    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+    selectionEvidence?: unknown;
+  },
+  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
+): PublicMealCookingLink | null {
+  const rawRecipe = isUserSwappedMeal(meal.selectionEvidence) ? null : meal.sourceRawRecipeCandidate;
+  const rawLink = cookingLinkForMeal({ sourceRawRecipeCandidate: rawRecipe });
+  if (rawLink?.kind === 'PANLASANG_RECIPE') return rawLink;
+  return (meal.libraryMeal ? libraryCookingLinks?.get(meal.libraryMeal.id) : null) ||
+    cookingLinkForMeal({ libraryDescription: meal.libraryMeal?.description }) || rawLink || null;
 }
 
 function pendingPreviewWithImages<
   T extends PendingMealPreviewInput & {
     libraryMeal?: (MealImageRecord & { id: string }) | null;
     sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+    selectionEvidence?: unknown;
   },
->(rows: readonly T[], libraryImages?: ReadonlyMap<string, PublicMealImage>) {
-  return buildPendingMealPlanPreview(rows.map((row) => ({ ...row, image: planImage(row, libraryImages) })));
+>(
+  rows: readonly T[],
+  libraryImages?: ReadonlyMap<string, PublicMealImage>,
+  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
+) {
+  return buildPendingMealPlanPreview(rows.map((row) => ({
+    ...row,
+    image: planImage(row, libraryImages),
+    cookingLink: planCookingLink(row, libraryCookingLinks),
+  })));
 }
 
 function serializeActionableMeal<
@@ -112,12 +145,17 @@ function serializeActionableMeal<
     calories: number;
     ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
   },
->(meal: T, libraryImages?: ReadonlyMap<string, PublicMealImage>) {
+>(
+  meal: T,
+  libraryImages?: ReadonlyMap<string, PublicMealImage>,
+  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
+) {
   const { nutritionist, selectionEvidence, libraryMeal, sourceRawRecipeCandidate, ...publicMeal } = meal;
   const verifier = toPublicVerifier(nutritionist);
   return {
     ...publicMeal,
-    image: planImage({ libraryMeal, sourceRawRecipeCandidate }, libraryImages),
+    image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
+    cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
     verifier,
     explanation: buildMealExplanation({
       libraryMealId: meal.libraryMealId,
@@ -166,14 +204,18 @@ export class MealsController {
       const libraryImages = await resolveLibraryRecipeImages(
         generatedPlanRows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
       );
+      const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
+        generatedPlanRows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
+      );
       const meals = filterUserActionableMealPlans(generatedPlanRows).map(
         ({ libraryMeal, sourceRawRecipeCandidate, ...meal }) => ({
           ...meal,
-          image: planImage({ libraryMeal, sourceRawRecipeCandidate }, libraryImages),
+          image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence: meal.selectionEvidence }, libraryImages),
+          cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence: meal.selectionEvidence }, libraryCookingLinks),
         })
       );
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
-      const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages);
+      const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages, libraryCookingLinks);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } });
       const cycle = await prisma.mealPlanCycle.findUnique({ where: { id: planGroupId } });
       const awaitingGenerationCount = cycle ? missingMealSlots(
@@ -295,9 +337,12 @@ export class MealsController {
       const libraryImages = await resolveLibraryRecipeImages(
         groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
       );
+      const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
+        groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
+      );
       const meals = groupMeals
         .filter((meal) => clearedIds.has(meal.id))
-        .map((meal) => serializeActionableMeal(meal, libraryImages));
+        .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks));
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
         where: { planGroupId: cycle.id },
       });
@@ -310,7 +355,7 @@ export class MealsController {
         data: meals,
         meta: {
           cycle,
-          pendingReview: pendingPreviewWithImages(groupMeals, libraryImages),
+          pendingReview: pendingPreviewWithImages(groupMeals, libraryImages, libraryCookingLinks),
           planSnapshot,
           awaitingGenerationCount: missingMealSlots(
             cycle.startDate, cycle.expectedSlotCount,
@@ -362,10 +407,13 @@ export class MealsController {
       const libraryImages = await resolveLibraryRecipeImages(
         rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
       );
+      const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
+        rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
+      );
       const meals = rows
         .filter((meal) => clearedIds.has(meal.id))
         .map((meal) => ({
-          ...serializeActionableMeal(meal, libraryImages),
+          ...serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
           cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
         }));
       return res.status(200).json({
@@ -373,7 +421,7 @@ export class MealsController {
         data: meals,
         meta: {
           cycles,
-          pendingReview: pendingPreviewWithImages(rows, libraryImages),
+          pendingReview: pendingPreviewWithImages(rows, libraryImages, libraryCookingLinks),
           awaitingGeneration: {
             current: cycles.current ? missingMealSlots(cycles.current.startDate, cycles.current.expectedSlotCount,
               rows.filter((row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED)).length : 0,
@@ -499,10 +547,11 @@ export class MealsController {
       }
 
       const libraryImages = await resolveLibraryRecipeImages(meal.libraryMeal ? [meal.libraryMeal] : []);
+      const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(meal.libraryMeal ? [meal.libraryMeal] : []);
 
       return res.status(200).json({
         success: true,
-        data: serializeActionableMeal(meal, libraryImages),
+        data: serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
       });
     } catch (error: any) {
       console.error('[MealsController] getMealDetails error:', error);

@@ -564,6 +564,7 @@ export default function WeeklyPlanPage() {
                           verifier={meal.verifier}
                           explanation={meal.explanation}
                           image={meal.image}
+                          cookingLink={meal.cookingLink}
                           nutritionistNote={meal.nutritionistNote}
                           reviewedAt={meal.reviewedAt}
                         />

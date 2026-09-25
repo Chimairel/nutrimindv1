@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
+import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage, MealCookingLink } from '@/types';
+import { cookingAction } from '@/lib/meal-cooking-link';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
 import { getManilaDateKey } from '@/lib/manila-date';
@@ -59,6 +60,7 @@ interface MealCardProps {
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
   image?: PublicMealImage | null;
+  cookingLink?: MealCookingLink | null;
   nutritionistNote?: string | null;
   reviewedAt?: string | Date | null;
 }
@@ -83,6 +85,7 @@ export default function MealCard({
   verifier,
   explanation,
   image,
+  cookingLink,
   nutritionistNote,
   reviewedAt,
 }: MealCardProps) {
@@ -97,6 +100,7 @@ export default function MealCard({
   }, []);
 
   const layoutId = `meal-card-${id || mealName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  const cooking = cookingAction(mealName, cookingLink);
 
   // Keyboard escape listener and body scroll lock when expanded
   useEffect(() => {
@@ -560,24 +564,24 @@ export default function MealCard({
                       </button>
                     )}
 
-                    {/* YouTube Cooking Tutorial Helper */}
+                    {/* Prefer the original recipe source when the meal has one. */}
                     <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl shrink-0">📺</span>
+                        <span className="text-2xl shrink-0">{cookingLink?.kind === 'PANLASANG_RECIPE' ? '📖' : '📺'}</span>
                         <div>
                           <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
                           <p className="text-[10px] text-brand-muted mt-1 leading-snug">
-                            Watch Filipino cooking tutorials for this dish on YouTube.
+                            {cooking.description}
                           </p>
                         </div>
                       </div>
                       <a
-                        href={`https://www.youtube.com/results?search_query=how+to+cook+${encodeURIComponent(mealName)}`}
+                        href={cooking.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none"
+                        className={`px-4 py-2 text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none ${cookingLink?.kind === 'PANLASANG_RECIPE' ? 'bg-brand-green hover:brightness-90' : 'bg-[#ff0000] hover:bg-[#cc0000]'}`}
                       >
-                        Watch Video
+                        {cooking.label}
                       </a>
                     </div>
 

@@ -70,6 +70,16 @@ export default function LibraryMealCard({
           </p>
         </div>
       )}
+      {meal.cookingLink && (
+        <a
+          href={meal.cookingLink.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-brand-green underline"
+        >
+          {meal.cookingLink.kind === 'PANLASANG_RECIPE' ? 'View original Panlasang Pinoy recipe ↗' : 'Watch original cooking video ↗'}
+        </a>
+      )}
       <button
         type="button"
         disabled={!meal.verifier}

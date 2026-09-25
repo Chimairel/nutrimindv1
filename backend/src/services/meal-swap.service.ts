@@ -32,6 +32,8 @@ import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { toPublicMealImage, type PublicMealImage } from '@/domain/meal-image.policy';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
+import { resolveLibraryRecipeCookingLinks } from './library-recipe-cooking-link.service';
+import type { PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
@@ -170,7 +172,8 @@ export { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible };
 
 export function toPublicSwapOption(
   meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean },
-  recipeImage?: PublicMealImage
+  recipeImage?: PublicMealImage,
+  cookingLink?: PublicMealCookingLink
 ) {
   const assignedImage = toPublicMealImage(meal);
   return {
@@ -190,6 +193,7 @@ export function toPublicSwapOption(
     carbsG: meal.carbsG,
     fatG: meal.fatG,
     image: assignedImage?.kind === 'EXACT' && meal.imagePublicId ? assignedImage : recipeImage || assignedImage,
+    cookingLink: cookingLink || null,
     verifiedBy: meal.safetyReviewedByNutritionist?.user.name || 'System',
     prcLicenseNumber: meal.safetyReviewedByNutritionist?.prcLicenseNumber || 'N/A',
     verifier: meal.safetyReviewedByNutritionist
@@ -343,14 +347,17 @@ export class MealSwapService {
         ];
       });
 
-    const recipeImages = await resolveLibraryRecipeImages(eligibleMeals);
+    const [recipeImages, cookingLinks] = await Promise.all([
+      resolveLibraryRecipeImages(eligibleMeals),
+      resolveLibraryRecipeCookingLinks(eligibleMeals),
+    ]);
 
     return {
       swapOptions: rankLibraryMeals(eligibleMeals, dailyTarget, mealPlan.calories, mealPlan.mealType, {
         proteinG: mealPlan.proteinG,
         carbsG: mealPlan.carbsG,
         fatG: mealPlan.fatG,
-      }).map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id))),
+      }).map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id))),
     };
   }
 
@@ -629,6 +636,8 @@ export class MealSwapService {
             carbsG: libraryMeal.carbsG,
             fatG: libraryMeal.fatG,
             libraryMealId: libraryMeal.id,
+            sourceRawRecipeCandidateId: null,
+            candidateProvenance: 'CERTIFIED_LIBRARY',
             status: 'APPROVED',
             requiresSafetyRevalidation: false,
             safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
@@ -820,9 +829,12 @@ export class MealSwapService {
       limit: input.limit,
     });
 
-    const recipeImages = await resolveLibraryRecipeImages(page.items);
+    const [recipeImages, cookingLinks] = await Promise.all([
+      resolveLibraryRecipeImages(page.items),
+      resolveLibraryRecipeCookingLinks(page.items),
+    ]);
     return {
-      items: page.items.map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id))),
+      items: page.items.map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id))),
       nextCursor: page.nextCursor,
       total: page.total,
     };

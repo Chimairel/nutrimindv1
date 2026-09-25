@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { MealType, MealPlanStatus, PublicVerifier, MealExplanation, PublicMealImage } from '@/types';
+import { MealType, MealPlanStatus, PublicVerifier, MealExplanation, PublicMealImage, MealCookingLink } from '@/types';
+import { cookingAction } from '@/lib/meal-cooking-link';
 
 interface Ingredient {
   id: string;
@@ -53,6 +54,7 @@ interface MealDetail {
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
   image?: PublicMealImage | null;
+  cookingLink?: MealCookingLink | null;
   nutritionistNote?: string | null;
   reviewedAt?: string | null;
 }
@@ -162,6 +164,7 @@ export default function MealDetailPage() {
 
   const activeLabel = mealTypeLabels[meal.mealType];
   const Icon = activeLabel.icon;
+  const cooking = cookingAction(meal.mealName, meal.cookingLink);
 
   return (
     <div className="portal-page max-w-3xl select-none text-left text-brand-text animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -386,21 +389,21 @@ export default function MealDetailPage() {
           {/* YouTube Cooking Tutorial Banner */}
           <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl shrink-0">📺</span>
+              <span className="text-2xl shrink-0">{meal.cookingLink?.kind === 'PANLASANG_RECIPE' ? '📖' : '📺'}</span>
               <div>
                 <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
                 <p className="text-[10px] text-brand-muted mt-1 leading-snug">
-                  Watch Filipino cooking tutorials for this dish on YouTube.
+                  {cooking.description}
                 </p>
               </div>
             </div>
             <a
-              href={`https://www.youtube.com/results?search_query=how+to+cook+${encodeURIComponent(meal.mealName)}`}
+              href={cooking.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0"
+              className={`px-4 py-2 text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 ${meal.cookingLink?.kind === 'PANLASANG_RECIPE' ? 'bg-brand-green hover:brightness-90' : 'bg-[#ff0000] hover:bg-[#cc0000]'}`}
             >
-              Watch Video
+              {cooking.label}
             </a>
           </div>
 

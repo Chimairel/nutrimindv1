@@ -71,6 +71,17 @@ describe('MealCard', () => {
     expect(screen.getByRole('button', { name: /mark as eaten/i })).toBeInTheDocument();
   });
 
+  it('opens the original Panlasang article when the meal has a direct source', () => {
+    render(<MealCard {...defaultProps} cookingLink={{
+      kind: 'PANLASANG_RECIPE',
+      url: 'https://panlasangpinoy.com/sinigang-na-hipon/',
+    }} />);
+    fireEvent.click(screen.getByRole('button', { name: /open Sinigang na Hipon details/i }));
+    expect(screen.getByRole('link', { name: 'View Recipe' })).toHaveAttribute(
+      'href', 'https://panlasangpinoy.com/sinigang-na-hipon/'
+    );
+  });
+
   it('renders verifier card with masked PRC license and opens credential modal when clicked', () => {
     const verifier = {
       name: 'Andrea Reyes',

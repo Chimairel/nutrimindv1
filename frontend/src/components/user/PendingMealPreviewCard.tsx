@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
-import type { PublicMealImage } from '@/types';
+import type { PublicMealImage, MealCookingLink } from '@/types';
 
 export interface PendingMealPreview {
   mealName: string;
@@ -21,6 +21,7 @@ export interface PendingMealPreview {
   scheduledDate: string;
   ingredients: { ingredientName: string; category: string }[];
   image?: PublicMealImage | null;
+  cookingLink?: MealCookingLink | null;
   planType?: 'STARTER' | 'WEEKLY';
 }
 
@@ -242,6 +243,18 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
 
                     {meal.description && (
                       <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">{meal.description}</p>
+                    )}
+                    {meal.cookingLink && (
+                      <a
+                        href={meal.cookingLink.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-brand-green underline"
+                      >
+                        {meal.cookingLink.kind === 'PANLASANG_RECIPE'
+                          ? 'View original Panlasang Pinoy recipe ↗'
+                          : 'Watch original cooking video ↗'}
+                      </a>
                     )}
                     {meal.image?.attribution.sourcePageUrl && (
                       <a

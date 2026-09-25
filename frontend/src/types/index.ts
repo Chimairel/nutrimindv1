@@ -185,6 +185,12 @@ export interface MealPlan {
   verifier?: PublicVerifier | null;
   explanation?: MealExplanation;
   image?: PublicMealImage | null;
+  cookingLink?: MealCookingLink | null;
+}
+
+export interface MealCookingLink {
+  url: string;
+  kind: 'PANLASANG_RECIPE' | 'SOURCE_VIDEO';
 }
 
 export interface PublicMealImage {
