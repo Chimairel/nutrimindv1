@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { applicantCredentialSchema, applicantIdentitySchema } from './nutritionist-application.schemas';
+import { applicantCredentialSchema, applicantIdentitySchema, issuesToFields } from './nutritionist-application.schemas';
 
 describe('nutritionist application schema validation', () => {
   describe('applicantIdentitySchema', () => {
-    it('requires live webcam officialHeadshot capture', () => {
+    it('requires a camera photo before the applicant continues', () => {
       const result = applicantIdentitySchema.safeParse({
         fullName: 'Maria Santos',
         email: 'maria.santos@rnd.ph',
@@ -13,11 +13,12 @@ describe('nutritionist application schema validation', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toMatch(/Live photo verification is required/i);
+        expect(result.error.issues[0].message).toMatch(/A camera photo is required/i);
+        expect(issuesToFields(result.error).officialHeadshot).toMatch(/A camera photo is required/i);
       }
     });
 
-    it('passes when valid live officialHeadshot data URL is present', () => {
+    it('passes when a camera photo data URL is present', () => {
       const result = applicantIdentitySchema.safeParse({
         fullName: 'Maria Santos',
         email: 'maria.santos@rnd.ph',
@@ -41,6 +42,7 @@ describe('nutritionist application schema validation', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0].message).toMatch(/Digital handwritten signature is required/i);
+        expect(issuesToFields(result.error).digitalSignature).toMatch(/Digital handwritten signature is required/i);
       }
     });
 

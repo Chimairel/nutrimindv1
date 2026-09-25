@@ -15,6 +15,7 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
   const webcamRef = useRef<Webcam>(null);
   const [hasCamera, setHasCamera] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
@@ -39,6 +40,7 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
 
   const handleUserMedia = useCallback(() => {
     setCameraError(null);
+    setCaptureError(null);
     setHasCamera(true);
   }, []);
 
@@ -82,14 +84,23 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
   );
 
   const takeSnapshot = useCallback(() => {
-    if (!webcamRef.current) return;
-    const screenshot = webcamRef.current.getScreenshot();
+    const video = webcamRef.current?.video;
+    if (!video || video.readyState < 2 || video.videoWidth === 0) {
+      setCaptureError('The camera is still starting. Wait a moment, then try again.');
+      return;
+    }
+    const screenshot = webcamRef.current?.getScreenshot();
     if (screenshot) {
+      setCaptureError(null);
+      setIsCapturing(true);
       processAndCompress(screenshot);
+    } else {
+      setCaptureError('The photo could not be captured. Please try again.');
     }
   }, [processAndCompress]);
 
   const startCountdownAndSnap = useCallback(() => {
+    setCaptureError(null);
     setCountdown(3);
     const interval = setInterval(() => {
       setCountdown((prev) => {
@@ -106,6 +117,7 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
   const retake = useCallback(() => {
     onChange('');
     setCameraError(null);
+    setCaptureError(null);
   }, [onChange]);
 
   const toggleCamera = useCallback(() => {
@@ -192,6 +204,7 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     onChange(dataUrl);
     setCameraError(null);
+    setCaptureError(null);
   }, [onChange]);
 
   // 1. Photo Already Confirmed
@@ -200,10 +213,10 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="block text-xs font-bold uppercase tracking-wider text-brand-text">
-            Official Clinical Headshot <span className="text-status-error-text">*</span>
+            Professional Headshot <span className="text-status-error-text">*</span>
           </label>
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="h-3.5 w-3.5" /> Live Verified
+            <ShieldCheck className="h-3.5 w-3.5" /> Photo Captured
           </span>
         </div>
 
@@ -218,11 +231,11 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
 
           <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
             <h4 className="text-sm font-bold text-brand-text flex items-center justify-center sm:justify-start gap-1.5">
-              Live Photo Captured &amp; Verified
+              Camera Photo Captured
             </h4>
             <p className="text-xs text-brand-muted leading-relaxed">
-              This photo will be displayed on your verified meal credentials. Once your application is approved by
-              Admin, this official verification photo is locked and cannot be changed.
+              This photo will be shown to the administrator during credential and identity review. If your application
+              is approved, it will appear on your professional credentials.
             </p>
             <div className="pt-1">
               <Button type="button" variant="secondary" size="sm" onClick={retake} className="text-xs font-bold">
@@ -240,10 +253,10 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="block text-xs font-bold uppercase tracking-wider text-brand-text">
-          Official Clinical Headshot (Live Webcam) <span className="text-status-error-text">*</span>
+          Professional Headshot (Camera) <span className="text-status-error-text">*</span>
         </label>
         <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-          <Camera className="h-3 w-3" /> Live Capture Only
+          <Camera className="h-3 w-3" /> Camera Capture
         </span>
       </div>
 
@@ -255,8 +268,8 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
             </div>
             <h4 className="text-sm font-bold text-brand-text">Camera Access Required</h4>
             <p className="text-xs text-brand-muted leading-relaxed">
-              KAINARA enforces mandatory live biometric verification for Registered Nutritionist-Dietitians. Photo file
-              uploads are disabled to prevent identity theft and maintain clinical authenticity.
+              Capture a photo with your camera for the administrator to compare during credential and identity review.
+              This form does not offer photo file uploads.
             </p>
             <p className="text-[11px] font-semibold text-amber-500">
               Please enable camera permissions in your browser or switch to a device with a webcam to continue.
@@ -360,9 +373,9 @@ export function LiveWebcamCapture({ value, onChange, error }: LiveWebcamCaptureP
         )}
       </div>
 
-      {error && (
+      {(captureError || error) && (
         <p role="alert" className="text-xs font-semibold text-status-error-text">
-          {error}
+          {captureError || error}
         </p>
       )}
     </div>

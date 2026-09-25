@@ -19,7 +19,7 @@ export const applicantIdentitySchema = z.object({
   phoneNumber: text('Phone number', 30).regex(/^\+?[0-9 ()-]{7,25}$/, 'Enter a valid phone number.'),
   officialHeadshot: z
     .string()
-    .min(1, 'Live photo verification is required. Please capture your photo using your camera.')
+    .min(1, 'A camera photo is required. Please capture it using your camera.')
     .max(1000000, 'Photo is too large. Please capture it again.')
     .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'Capture a PNG or JPEG photo.'),
 });
@@ -88,5 +88,10 @@ export type NutritionistApplicationForm = {
 };
 
 export function issuesToFields(error: z.ZodError) {
-  return Object.fromEntries(error.issues.map((issue) => [String(issue.path[0]), issue.message]));
+  const fields: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const field = String(issue.path[0]);
+    fields[field] ??= issue.message;
+  }
+  return fields;
 }
