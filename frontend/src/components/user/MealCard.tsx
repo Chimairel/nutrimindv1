@@ -368,6 +368,16 @@ export default function MealCard({
                       <span className="text-xs font-bold text-brand-muted mt-1 block">
                         {Math.round(calories)} kcal Total Energy
                       </span>
+                      {image?.attribution.sourcePageUrl && (
+                        <a
+                          href={image.attribution.sourcePageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-block text-xs font-semibold text-brand-green underline"
+                        >
+                          View image source
+                        </a>
+                      )}
                     </div>
 
                     {/* Macro Badges Grid */}

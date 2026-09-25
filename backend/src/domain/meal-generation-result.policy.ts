@@ -1,3 +1,5 @@
+import type { PublicMealImage } from './meal-image.policy';
+
 export interface MealGenerationResultRow {
   planType: string;
   status: string;
@@ -19,6 +21,7 @@ export interface PendingMealPreviewInput extends MealGenerationResultRow {
   fatG: number;
   scheduledDate: Date | string;
   ingredients: readonly { ingredientName: string; category: string | null }[];
+  image?: PublicMealImage | null;
 }
 
 export interface PendingMealPlanPreview extends PendingMealPlanSummary {
@@ -32,6 +35,7 @@ export interface PendingMealPlanPreview extends PendingMealPlanSummary {
     fatG: number;
     scheduledDate: string;
     ingredients: { ingredientName: string; category: string }[];
+    image: PublicMealImage | null;
   }[];
 }
 
@@ -71,6 +75,7 @@ export function buildPendingMealPlanPreview(rows: readonly PendingMealPreviewInp
         ingredientName: ingredient.ingredientName,
         category: ingredient.category ?? 'PANTRY',
       })),
+      image: row.image ?? null,
     })),
   };
 }

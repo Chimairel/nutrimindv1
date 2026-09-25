@@ -243,6 +243,16 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
                     {meal.description && (
                       <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">{meal.description}</p>
                     )}
+                    {meal.image?.attribution.sourcePageUrl && (
+                      <a
+                        href={meal.image.attribution.sourcePageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-brand-green underline"
+                      >
+                        View image source
+                      </a>
+                    )}
 
                     {/* Energy & Macro Breakdown Box */}
                     <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/55 p-4">

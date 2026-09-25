@@ -299,6 +299,8 @@ export default function MealImage({
   // 1. Specific image provided via props or reviewed canonical recipe match
   const primaryImage = image || (allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName) : null);
   const primaryFailed = Boolean(primaryImage && failedUrls[primaryImage.url]);
+  const videoFallback = primaryFailed ? primaryImage?.fallback : null;
+  const videoFallbackFailed = Boolean(videoFallback && failedUrls[videoFallback.url]);
 
   // 2. Real food placeholder image for BREAKFAST, LUNCH, DINNER, SNACK
   const placeholderCandidate = allowMealTypePlaceholder ? resolveMealTypePlaceholder(mealType, mealName) : null;
@@ -308,9 +310,11 @@ export default function MealImage({
   const effectiveImage =
     !primaryFailed && primaryImage
       ? primaryImage
-      : !placeholderFailed && placeholderCandidate
-        ? placeholderCandidate
-        : null;
+      : videoFallback && !videoFallbackFailed
+        ? videoFallback
+        : !placeholderFailed && placeholderCandidate
+          ? placeholderCandidate
+          : null;
   const showFallback = !effectiveImage;
   const isLoaded = Boolean(effectiveImage && loadedUrl === effectiveImage.url);
   const categoryInfo = resolveMealCategory(mealName, mealType, ingredients);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { toPublicMealImage, toPublicYouTubeThumbnail } from '../src/domain/meal-image.policy';
+import { toPublicMealImage, toPublicRawRecipeImage, toPublicYouTubeThumbnail } from '../src/domain/meal-image.policy';
 import { mealImageMetadataSchema } from '../src/validation/meal-image.schemas';
 
 const base = {
@@ -85,6 +85,47 @@ test('[TEST-204] raw-corpus video URLs support watch, short, and embed formats a
     'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg'
   );
   assert.equal(toPublicYouTubeThumbnail({ sourceVideoUrl: 'https://example.com/watch?v=uXi6QDOdhGg' }), null);
+});
+
+test('[TEST-204] Panlasang article photo wins over its video thumbnail without implying safety review', () => {
+  const recipe = {
+    recipeName: 'Corned Beef Sinigang',
+    sourceName: 'PANLASANG_PINOY',
+    sourceUrl: 'https://panlasangpinoy.com/corned-beef-sinigang-recipe/',
+    sourceImageUrl: 'https://panlasangpinoy.com/wp-content/uploads/2018/04/corned-beef-sinigang-recipe.jpg',
+    sourceVideoUrl: 'https://www.youtube.com/watch?v=uXi6QDOdhGg',
+  };
+  assert.deepEqual(toPublicRawRecipeImage(recipe), {
+    url: recipe.sourceImageUrl,
+    altText: 'Panlasang Pinoy recipe photo for Corned Beef Sinigang',
+    kind: 'EXACT',
+    fallback: {
+      url: 'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg',
+      altText: 'Recipe video thumbnail for Corned Beef Sinigang',
+      kind: 'EXACT',
+      attribution: {
+        creator: null,
+        sourcePageUrl: recipe.sourceVideoUrl,
+        licenseCode: null,
+        licenseUrl: null,
+        modifications: null,
+      },
+    },
+    attribution: {
+      creator: 'Panlasang Pinoy',
+      sourcePageUrl: recipe.sourceUrl,
+      licenseCode: null,
+      licenseUrl: null,
+      modifications: null,
+    },
+  });
+  assert.equal(
+    toPublicRawRecipeImage({
+      ...recipe,
+      sourceImageUrl: 'https://panlasangpinoy.com.evil.example/wp-content/uploads/x.jpg',
+    })?.url,
+    'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg'
+  );
 });
 
 test('[TEST-204] third-party delivery discloses display transformations', () => {

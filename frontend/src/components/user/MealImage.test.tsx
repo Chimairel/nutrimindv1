@@ -127,6 +127,22 @@ describe('MealImage', () => {
     expect(screen.getByText('Seafood')).toBeInTheDocument();
   });
 
+  it('uses the recipe video thumbnail if the Panlasang article photo fails to load', () => {
+    const image = {
+      ...mockImage,
+      url: 'https://panlasangpinoy.com/wp-content/uploads/recipe.jpg',
+      kind: 'EXACT' as const,
+      fallback: {
+        ...mockImage,
+        url: 'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg',
+        kind: 'EXACT' as const,
+      },
+    };
+    render(<MealImage mealName="Pancit" image={image} />);
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img')).toHaveAttribute('src', image.fallback.url);
+  });
+
   it('represents Cloudinary modification disclosure in attribution', () => {
     render(<MealImage mealName="Pancit" mealType="DINNER" image={mockImage} />);
     const attributionElement = screen.getByText('Example Creator · CC_BY_4_0 · adapted');

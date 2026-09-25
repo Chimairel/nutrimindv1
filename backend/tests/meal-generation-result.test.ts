@@ -44,12 +44,25 @@ test('[TEST-035] pending preview exposes every pending meal without internal ide
     fatG: 12,
     scheduledDate: '2026-08-20T00:00:00.000Z',
     ingredients: [{ ingredientName: 'Synthetic ingredient', category: 'PANTRY' }],
+    image: {
+      url: 'https://panlasangpinoy.com/wp-content/uploads/example.jpg',
+      altText: 'Recipe photo',
+      kind: 'EXACT' as const,
+      attribution: {
+        creator: 'Panlasang Pinoy',
+        sourcePageUrl: null,
+        licenseCode: null,
+        licenseUrl: null,
+        modifications: null,
+      },
+    },
   };
   const preview = buildPendingMealPlanPreview([rowWithInternalId]);
 
   assert.equal(preview?.mealCount, 1);
   assert.equal(preview?.meals.length, 1);
   assert.equal(preview?.meals[0]?.mealName, 'Synthetic meal');
+  assert.equal(preview?.meals[0]?.image?.url, rowWithInternalId.image.url);
   assert.equal('id' in (preview?.meals[0] ?? {}), false);
   assert.equal('status' in (preview?.meals[0] ?? {}), false);
 });

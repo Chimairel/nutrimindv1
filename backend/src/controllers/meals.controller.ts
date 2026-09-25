@@ -20,9 +20,20 @@ import {
   getOwnedMealPlanWhere,
   isMealPlanNotActionableError,
 } from '@/domain/meal-actionability.policy';
-import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
+import {
+  buildPendingMealPlanPreview,
+  summarizeGeneratedMealPlan,
+  type PendingMealPreviewInput,
+} from '@/domain/meal-generation-result.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
-import { toPublicMealImage, toPublicYouTubeThumbnail, type MealImageRecord } from '@/domain/meal-image.policy';
+import {
+  toPublicMealImage,
+  toPublicRawRecipeImage,
+  type MealImageRecord,
+  type PublicMealImage,
+  type RawRecipeImageRecord,
+} from '@/domain/meal-image.policy';
+import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
 import { getPlanHistory } from './meals-history.controller';
 import { AppError } from '@/errors/AppError';
 
@@ -54,29 +65,57 @@ function toPublicVerifier(
   };
 }
 
+const rawRecipeImageSelect = {
+  recipeName: true,
+  sourceName: true,
+  sourceUrl: true,
+  sourceImageUrl: true,
+  sourceVideoUrl: true,
+} as const;
+
+function planImage(
+  meal: {
+    libraryMeal?: (MealImageRecord & { id: string }) | null;
+    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+  },
+  libraryImages?: ReadonlyMap<string, PublicMealImage>
+) {
+  const libraryImage = meal.libraryMeal ? toPublicMealImage(meal.libraryMeal) : null;
+  if (libraryImage?.kind === 'EXACT' && meal.libraryMeal?.imagePublicId) return libraryImage;
+  return (
+    (meal.sourceRawRecipeCandidate ? toPublicRawRecipeImage(meal.sourceRawRecipeCandidate) : null) ||
+    (meal.libraryMeal ? libraryImages?.get(meal.libraryMeal.id) : null) ||
+    libraryImage
+  );
+}
+
+function pendingPreviewWithImages<
+  T extends PendingMealPreviewInput & {
+    libraryMeal?: (MealImageRecord & { id: string }) | null;
+    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
+  },
+>(rows: readonly T[], libraryImages?: ReadonlyMap<string, PublicMealImage>) {
+  return buildPendingMealPlanPreview(rows.map((row) => ({ ...row, image: planImage(row, libraryImages) })));
+}
+
 function serializeActionableMeal<
   T extends {
     nutritionist: Parameters<typeof toPublicVerifier>[0];
     selectionEvidence: unknown;
     libraryMealId: string | null;
-    libraryMeal?: MealImageRecord | null;
-    sourceRawRecipeCandidate?: {
-      recipeName: string;
-      sourceVideoUrl: string | null;
-    } | null;
+    libraryMeal?: (MealImageRecord & { id: string }) | null;
+    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
     status: string;
     aiConfidenceFlag: string;
     calories: number;
     ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
   },
->(meal: T) {
+>(meal: T, libraryImages?: ReadonlyMap<string, PublicMealImage>) {
   const { nutritionist, selectionEvidence, libraryMeal, sourceRawRecipeCandidate, ...publicMeal } = meal;
   const verifier = toPublicVerifier(nutritionist);
   return {
     ...publicMeal,
-    image:
-      (libraryMeal ? toPublicMealImage(libraryMeal) : null) ||
-      (sourceRawRecipeCandidate ? toPublicYouTubeThumbnail(sourceRawRecipeCandidate) : null),
+    image: planImage({ libraryMeal, sourceRawRecipeCandidate }, libraryImages),
     verifier,
     explanation: buildMealExplanation({
       libraryMealId: meal.libraryMealId,
@@ -115,12 +154,24 @@ export class MealsController {
           planGroupId,
           userId,
         },
-        include: { ingredients: true },
+        include: {
+          ingredients: true,
+          libraryMeal: true,
+          sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
+        },
         orderBy: { scheduledDate: 'asc' },
       });
-      const meals = filterUserActionableMealPlans(generatedPlanRows);
+      const libraryImages = await resolveLibraryRecipeImages(
+        generatedPlanRows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
+      );
+      const meals = filterUserActionableMealPlans(generatedPlanRows).map(
+        ({ libraryMeal, sourceRawRecipeCandidate, ...meal }) => ({
+          ...meal,
+          image: planImage({ libraryMeal, sourceRawRecipeCandidate }, libraryImages),
+        })
+      );
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
-      const pendingReview = buildPendingMealPlanPreview(generatedPlanRows);
+      const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } });
 
       // The grocery checklist is a projection of the actionable plan, not a
@@ -199,9 +250,7 @@ export class MealsController {
         include: {
           ingredients: true,
           libraryMeal: true,
-          sourceRawRecipeCandidate: {
-            select: { recipeName: true, sourceVideoUrl: true },
-          },
+          sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
           mealLogs: {
             where: { userId },
           },
@@ -212,7 +261,12 @@ export class MealsController {
         orderBy: { scheduledDate: 'asc' },
       });
       const clearedIds = new Set(await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id));
-      const meals = groupMeals.filter((meal) => clearedIds.has(meal.id)).map(serializeActionableMeal);
+      const libraryImages = await resolveLibraryRecipeImages(
+        groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
+      );
+      const meals = groupMeals
+        .filter((meal) => clearedIds.has(meal.id))
+        .map((meal) => serializeActionableMeal(meal, libraryImages));
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
         where: { planGroupId: cycle.id },
       });
@@ -222,7 +276,7 @@ export class MealsController {
         data: meals,
         meta: {
           cycle,
-          pendingReview: buildPendingMealPlanPreview(groupMeals),
+          pendingReview: pendingPreviewWithImages(groupMeals, libraryImages),
           planSnapshot,
         },
       });
@@ -251,7 +305,7 @@ export class MealsController {
         include: {
           ingredients: true,
           libraryMeal: true,
-          sourceRawRecipeCandidate: { select: { recipeName: true, sourceVideoUrl: true } },
+          sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
           mealLogs: { where: { userId } },
           nutritionist: { include: { user: { select: { name: true, image: true } } } },
         },
@@ -261,16 +315,19 @@ export class MealsController {
         cycleIds.map((cycleId) => MealPlanCycleService.getClearedMealPlanIds(userId, cycleId))
       );
       const clearedIds = new Set(clearedByCycle.flat());
+      const libraryImages = await resolveLibraryRecipeImages(
+        rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
+      );
       const meals = rows
         .filter((meal) => clearedIds.has(meal.id))
         .map((meal) => ({
-          ...serializeActionableMeal(meal),
+          ...serializeActionableMeal(meal, libraryImages),
           cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
         }));
       return res.status(200).json({
         success: true,
         data: meals,
-        meta: { cycles, pendingReview: buildPendingMealPlanPreview(rows) },
+        meta: { cycles, pendingReview: pendingPreviewWithImages(rows, libraryImages) },
       });
     } catch (error) {
       console.error('[MealsController] getPlanWorkspace error:', error);
@@ -370,9 +427,7 @@ export class MealsController {
         include: {
           ingredients: true,
           libraryMeal: true,
-          sourceRawRecipeCandidate: {
-            select: { recipeName: true, sourceVideoUrl: true },
-          },
+          sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
           mealLogs: {
             where: { userId },
           },
@@ -386,9 +441,11 @@ export class MealsController {
         return res.status(404).json({ success: false, error: 'Meal not found.' });
       }
 
+      const libraryImages = await resolveLibraryRecipeImages(meal.libraryMeal ? [meal.libraryMeal] : []);
+
       return res.status(200).json({
         success: true,
-        data: serializeActionableMeal(meal),
+        data: serializeActionableMeal(meal, libraryImages),
       });
     } catch (error: any) {
       console.error('[MealsController] getMealDetails error:', error);

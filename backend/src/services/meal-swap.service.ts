@@ -30,7 +30,8 @@ import {
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
-import { toPublicMealImage } from '@/domain/meal-image.policy';
+import { toPublicMealImage, type PublicMealImage } from '@/domain/meal-image.policy';
+import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
@@ -168,8 +169,10 @@ function verifySwapPreview(token: string): SwapPreviewTokenPayload {
 export { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible };
 
 export function toPublicSwapOption(
-  meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean }
+  meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean },
+  recipeImage?: PublicMealImage
 ) {
+  const assignedImage = toPublicMealImage(meal);
   return {
     id: meal.id,
     mealName: meal.mealName,
@@ -186,7 +189,7 @@ export function toPublicSwapOption(
     proteinG: meal.proteinG,
     carbsG: meal.carbsG,
     fatG: meal.fatG,
-    image: toPublicMealImage(meal),
+    image: assignedImage?.kind === 'EXACT' && meal.imagePublicId ? assignedImage : recipeImage || assignedImage,
     verifiedBy: meal.safetyReviewedByNutritionist?.user.name || 'System',
     prcLicenseNumber: meal.safetyReviewedByNutritionist?.prcLicenseNumber || 'N/A',
     verifier: meal.safetyReviewedByNutritionist
@@ -340,12 +343,14 @@ export class MealSwapService {
         ];
       });
 
+    const recipeImages = await resolveLibraryRecipeImages(eligibleMeals);
+
     return {
       swapOptions: rankLibraryMeals(eligibleMeals, dailyTarget, mealPlan.calories, mealPlan.mealType, {
         proteinG: mealPlan.proteinG,
         carbsG: mealPlan.carbsG,
         fatG: mealPlan.fatG,
-      }).map(toPublicSwapOption),
+      }).map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id))),
     };
   }
 
@@ -815,8 +820,9 @@ export class MealSwapService {
       limit: input.limit,
     });
 
+    const recipeImages = await resolveLibraryRecipeImages(page.items);
     return {
-      items: page.items.map(toPublicSwapOption),
+      items: page.items.map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id))),
       nextCursor: page.nextCursor,
       total: page.total,
     };

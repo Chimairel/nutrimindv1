@@ -19,6 +19,7 @@ export type PublicMealImage = {
   url: string;
   altText: string;
   kind: MealImageKind;
+  fallback?: PublicMealImage | null;
   attribution: {
     creator: string | null;
     sourcePageUrl: string | null;
@@ -27,6 +28,67 @@ export type PublicMealImage = {
     modifications: string | null;
   };
 };
+
+export type RawRecipeImageRecord = {
+  recipeName: string;
+  sourceName: string;
+  sourceUrl: string;
+  sourceImageUrl: string | null;
+  sourceVideoUrl: string | null;
+};
+
+function approvedPanlasangImageUrl(candidate: string | null): string | null {
+  if (!candidate) return null;
+  try {
+    const url = new URL(candidate);
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname.toLowerCase() !== 'panlasangpinoy.com' ||
+      !url.pathname.startsWith('/wp-content/uploads/') ||
+      !/\.(?:jpe?g|png|webp)$/i.test(url.pathname)
+    )
+      return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function approvedPanlasangSourcePage(candidate: string): string | null {
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' && url.hostname.toLowerCase() === 'panlasangpinoy.com' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Recipe photography is display provenance only; it grants no meal safety clearance. */
+export function toPublicRawRecipeImage(recipe: RawRecipeImageRecord): PublicMealImage | null {
+  const articleImage =
+    recipe.sourceName === 'PANLASANG_PINOY' ? approvedPanlasangImageUrl(recipe.sourceImageUrl) : null;
+  const sourcePage = approvedPanlasangSourcePage(recipe.sourceUrl);
+  if (articleImage && sourcePage) {
+    const videoThumbnail = toPublicYouTubeThumbnail({
+      mealName: recipe.recipeName,
+      sourceVideoUrl: recipe.sourceVideoUrl,
+    });
+    return {
+      url: articleImage,
+      altText: `Panlasang Pinoy recipe photo for ${recipe.recipeName}`,
+      kind: 'EXACT',
+      fallback: videoThumbnail,
+      attribution: {
+        creator: 'Panlasang Pinoy',
+        sourcePageUrl: sourcePage,
+        licenseCode: null,
+        licenseUrl: null,
+        modifications: null,
+      },
+    };
+  }
+  return toPublicYouTubeThumbnail({ mealName: recipe.recipeName, sourceVideoUrl: recipe.sourceVideoUrl });
+}
 
 function parseYouTubeVideoId(candidate: string): string | null {
   try {

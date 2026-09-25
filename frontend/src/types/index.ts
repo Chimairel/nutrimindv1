@@ -191,6 +191,7 @@ export interface PublicMealImage {
   url: string;
   altText: string;
   kind: 'EXACT' | 'REPRESENTATIVE';
+  fallback?: PublicMealImage | null;
   attribution: {
     creator?: string | null;
     sourcePageUrl?: string | null;
