@@ -68,6 +68,72 @@ test('[TEST-204] condition evaluator ignores drafts and evaluates approved rules
   assert.equal(evaluateConditionNutrientRule(approved, {}).decision, 'NOT_EVALUABLE');
 });
 
+test('[TEST-220] condition thresholds resolve from energy and body weight without executable formulas', () => {
+  const approved = {
+    id: 'dynamic-rule',
+    nutrient: 'FIBER_G',
+    operator: 'GREATER_THAN_OR_EQUAL',
+    threshold: 14,
+    basis: 'PER_1000_KCAL',
+    severity: 'FLAG',
+    reviewStatus: 'APPROVED',
+    active: true,
+    approvedByNutritionistId: 'rnd-1',
+  };
+  const fiber = evaluateConditionNutrientRule(approved, {}, { dailyTotals: { calories: 1800, fiberG: 27 } });
+  assert.equal(fiber.threshold, 25.2);
+  assert.equal(fiber.thresholdUnit, 'g/day');
+  assert.equal(fiber.sourceThreshold, 14);
+  assert.equal(fiber.measuredValue, 27);
+  assert.equal(fiber.decision, 'PASS');
+  assert.equal(fiber.calculation.method, 'PER_1000_KCAL');
+
+  const protein = evaluateConditionNutrientRule(
+    {
+      ...approved,
+      nutrient: 'PROTEIN_G',
+      operator: 'LESS_THAN_OR_EQUAL',
+      threshold: 0.8,
+      basis: 'PER_KG_BODY_WEIGHT_DAILY',
+    },
+    {},
+    { dailyTotals: { proteinG: 60 }, bodyWeightKg: 70 }
+  );
+  assert.equal(protein.threshold, 56);
+  assert.equal(protein.thresholdUnit, 'g/day');
+  assert.equal(protein.decision, 'FAIL');
+
+  const saturatedFat = evaluateConditionNutrientRule(
+    {
+      ...approved,
+      nutrient: 'SATURATED_FAT_G',
+      operator: 'LESS_THAN_OR_EQUAL',
+      threshold: 6,
+      basis: 'PERCENT_OF_DAILY_CALORIES',
+    },
+    {},
+    { dailyTotals: { calories: 2000, saturatedFatG: 12 } }
+  );
+  assert.ok(saturatedFat.threshold !== null);
+  assert.ok(Math.abs(saturatedFat.threshold - 13.333333333333334) < Number.EPSILON);
+  assert.equal(saturatedFat.decision, 'PASS');
+  assert.equal(saturatedFat.thresholdUnit, 'g/day');
+
+  const missingContext = evaluateConditionNutrientRule(approved, {}, { dailyTotals: { fiberG: 27 } });
+  assert.equal(missingContext.threshold, null);
+  assert.equal(missingContext.decision, 'NOT_EVALUABLE');
+
+  const invalidContext = evaluateConditionNutrientRule(
+    approved,
+    {},
+    {
+      dailyTotals: { calories: Number.POSITIVE_INFINITY, fiberG: 27 },
+    }
+  );
+  assert.equal(invalidContext.threshold, null);
+  assert.equal(invalidContext.decision, 'NOT_EVALUABLE');
+});
+
 test('[TEST-205] recipe signatures are order-independent and change with recipe evidence', () => {
   const base = {
     mealName: 'Beef and Broccoli',

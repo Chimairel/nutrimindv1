@@ -31,10 +31,10 @@ Rules:
 | ADR | Architecture/design decision | ADR-028 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-028 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-038 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260907-02 |
-| TEST | Test case or verification procedure | TEST-153 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260925-09 |
+| TEST | Test case or verification procedure | TEST-223 |
 | UNC | Unresolved uncertainty | UNC-019 |
-| DOC | Documentation correction or addition | DOC-067 |
+| DOC | Documentation correction or addition | DOC-069 |
 
 ---
 
@@ -4288,3 +4288,16 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Replaced copy that characterized the entire nutrition report as an unreviewed AI estimate. The workspace now names the actual inputs: current profile data, the deterministically calculated nutrition target, structured restrictions, and FNRI food references. It separately discloses that AI assists with drafting the guidance and that the report neither approves meals nor replaces personal advice from a doctor or Registered Nutritionist-Dietitian.
 - The page explicitly explains that planned meals pass a separate eligibility and safety-evidence path and require RND review when reusable clearance is unavailable. The acknowledgment asks the user to confirm the displayed profile context and review the guidance. Matching language is used in the downloaded PDF, profile navigation, and data export.
 - Duplicate display labels across structured allergy, intolerance, and avoided-ingredient entries are consolidated without altering the stored safety profile or the report-context equality gate. The reported dairy allergy plus dairy avoidance now appears once beside lactose. Focused report tests passed **7/7** and the full frontend suite passed **243/243**; frontend lint/build, backend lint/build, and the source architecture check passed.
+
+## 130. Source-backed calculated nutrition references and public evidence register (2026-09-25)
+
+**Documentation ID:** DOC-068
+
+**Change ID:** CHG-20260925-08
+
+- Added [Clinical policy evidence audit](CLINICAL_POLICY_EVIDENCE_AUDIT_2026-09-25.md), mapping active calculations, inactive condition-rule drafts, deterministic safety controls, planning heuristics, and AI prompt facts to their evidence scope. The audit rejects treating a daily guideline as a per-meal clearance rule and records unresolved gaps around the 500 kcal floor, activity/goal coefficients, allergen taxonomy, generated-meal nutrient completeness, and pregnancy/lactation scope.
+- Added a closed, versioned calculation policy for user-relative reference values. Filipino adult PDRI macronutrient ranges are calculated from the current daily-energy target; diabetes-review fiber uses grams per 1,000 kcal; cardiovascular-review saturated fat uses percent of energy with the nutrient's kcal-per-gram conversion; and CKD-review protein uses grams per kilogram of current body weight. Formula provenance and results are persisted in each new nutrition-report profile snapshot. Condition-specific lines are supplied to report drafting only when the corresponding condition is present.
+- Updated the generic condition-rule evaluator so dynamic rule bases resolve their stored source coefficient against explicit current context. Evaluation evidence records the source coefficient, calculation method, formula, inputs, result, and resolved unit. Missing, invalid, or non-finite context remains `NOT_EVALUABLE`. `PER_SERVING` and `DAILY_TOTAL` retain their literal basis, and no daily rule is silently divided into a meal share.
+- Hardened condition-rule lookup to require the parent `ConditionRulePolicyVersion` to be `ACTIVE` as well as the child rule being active, approved, and RND-signed. All seeded condition and pregnancy rules remain inactive drafts. Calculated condition references remain review assistance and grant no clearance.
+- Added a public `/sources` evidence register plus landing/header navigation. It separates integrated Philippine data and calculation methods, inactive clinical-policy drafts awaiting RND governance, and Panlasang Pinoy recipe provenance with explicitly zero safety authority. Copy states that citation does not mean partnership, endorsement, sponsorship, or clinical approval. The school logo was not added because the institution and approved asset/usage wording were not supplied.
+- **TEST-220** verifies the generic evaluator resolves per-1,000-kcal, percent-energy, and body-weight bases and fails closed on missing or non-finite context. **TEST-221** verifies calculated PDRI and condition-review values with provenance. **TEST-222** verifies invalid inputs fail explicitly. Shared-branch verification passed backend and frontend lint, **498 pass / 0 fail / 1 existing TODO** across 499 backend tests, **246/246** frontend tests across 60 files, backend production build, and the 52-route frontend production build. The running shared frontend returned HTTP 200 for `/sources` and rendered all 14 source cards. Source architecture and Git whitespace checks passed. Repository-wide Prettier remains blocked by 14 pre-existing frontend files outside this change set; every changed source file passed Prettier.

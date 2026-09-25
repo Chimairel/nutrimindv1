@@ -1,4 +1,4 @@
-import { ConditionRuleReviewStatus, HealthConditionType } from '@prisma/client';
+import { ConditionRulePolicyState, ConditionRuleReviewStatus, HealthConditionType } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { evaluateConditionNutrientRule, type RuleNutrientEvidence } from '@/domain/condition-rule-evaluation.policy';
 
@@ -14,10 +14,23 @@ export async function evaluateApprovedConditionRules(input: {
   ) as HealthConditionType[];
   if (conditions.length === 0) return { nutrientEvaluations: [], ingredientMatches: [], uncoveredConditions: [] };
 
+  const activePolicies = await prisma.conditionRulePolicyVersion.findMany({
+    where: { condition: { in: conditions }, state: ConditionRulePolicyState.ACTIVE },
+    select: { condition: true, policyVersion: true },
+    take: 100,
+  });
+  const activePolicyScopes = activePolicies.map((policy) => ({
+    condition: policy.condition,
+    policyVersion: policy.policyVersion,
+  }));
+
+  if (activePolicyScopes.length === 0)
+    return { nutrientEvaluations: [], ingredientMatches: [], uncoveredConditions: conditions };
+
   const [nutrientRules, ingredientRules] = await Promise.all([
     prisma.conditionNutrientRule.findMany({
       where: {
-        condition: { in: conditions },
+        OR: activePolicyScopes,
         reviewStatus: ConditionRuleReviewStatus.APPROVED,
         active: true,
         approvedByNutritionistId: { not: null },
@@ -27,7 +40,7 @@ export async function evaluateApprovedConditionRules(input: {
     }),
     prisma.conditionIngredientRule.findMany({
       where: {
-        condition: { in: conditions },
+        OR: activePolicyScopes,
         reviewStatus: ConditionRuleReviewStatus.APPROVED,
         active: true,
         approvedByNutritionistId: { not: null },

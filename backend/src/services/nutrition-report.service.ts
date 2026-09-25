@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
 import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
+import { calculateNutritionReferences } from '@/domain/nutrition-reference-calculation.policy';
 
 const NUTRITION_REPORT_SYSTEM_CONTEXT = `
 You are generating a nutrition report for a system with this
@@ -103,6 +104,29 @@ export class NutritionReportService {
     if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
       throw new Error('Please complete Step 1 (statistics & goals) of onboarding first.');
     }
+    const nutritionReferences = calculateNutritionReferences({
+      dailyCalories: dailyCalorieTarget,
+      bodyWeightKg: weightKg,
+    });
+    const conditionReferenceLines: string[] = [];
+    if (conditions.includes('DIABETES')) {
+      conditionReferenceLines.push(
+        `- Diabetes review-assistance fiber reference: ${nutritionReferences.diabetesReviewFiberG.value} g/day ` +
+          `(${nutritionReferences.diabetesReviewFiberG.coefficientPer1000Kcal} g per 1,000 kcal).`
+      );
+    }
+    if (conditions.includes('HEART_CONDITION')) {
+      conditionReferenceLines.push(
+        `- Cardiovascular review-assistance saturated-fat reference: ${nutritionReferences.cardiovascularReviewSaturatedFatG.value} g/day ` +
+          `(${nutritionReferences.cardiovascularReviewSaturatedFatG.percentOfEnergy}% of energy).`
+      );
+    }
+    if (conditions.includes('KIDNEY_DISEASE')) {
+      conditionReferenceLines.push(
+        `- CKD review-assistance protein reference: ${nutritionReferences.ckdReviewProteinG?.value ?? 'UNEVALUABLE'} g/day ` +
+          `(requires individualized RND review; this value never grants clearance).`
+      );
+    }
 
     // 2. Fetch seeded FNRI subset to inject as local food composition guidelines
     const localFoodsSubset = await getFNRISubset();
@@ -140,6 +164,15 @@ export class NutritionReportService {
       `- Rice Serving Preference: ${profile.ricePreference}\n` +
       `- Regional Cooking Style & Cultural Background: ${profile.foodCulture || 'Filipino'}\n` +
       `- Meal Familiarity Preference: ${formatMealLocalityPreference(profile)}\n` +
+      `\n` +
+      `[DETERMINISTIC REFERENCE CALCULATIONS]\n` +
+      `- Policy Version: ${nutritionReferences.policyVersion}\n` +
+      `- Filipino adult PDRI reference ranges at ${dailyCalorieTarget} kcal: ` +
+      `protein ${nutritionReferences.filipinoAdultAmdr.proteinG.minimum}-${nutritionReferences.filipinoAdultAmdr.proteinG.maximum} g/day; ` +
+      `fat ${nutritionReferences.filipinoAdultAmdr.fatG.minimum}-${nutritionReferences.filipinoAdultAmdr.fatG.maximum} g/day; ` +
+      `carbohydrate ${nutritionReferences.filipinoAdultAmdr.carbohydrateG.minimum}-${nutritionReferences.filipinoAdultAmdr.carbohydrateG.maximum} g/day.\n` +
+      `${conditionReferenceLines.length > 0 ? `${conditionReferenceLines.join('\n')}\n` : ''}` +
+      `- These calculated references support education and review. They do not diagnose, prescribe, or independently certify safety.\n` +
       `\n` +
       `[CLINICAL CONSTRAINTS]\n` +
       `- Diagnosed Medical Conditions (HARD BOUNDS): ${conditions.join(', ') || 'NONE'}${otherConditions ? '; Additional: ' + otherConditions : ''}\n` +
@@ -237,7 +270,14 @@ export class NutritionReportService {
           generatedAt,
           content: savedReport as Prisma.InputJsonObject,
           profileSnapshot: JSON.parse(
-            JSON.stringify({ profile, conditions, allergens, otherConditions, otherAllergies })
+            JSON.stringify({
+              profile,
+              conditions,
+              allergens,
+              otherConditions,
+              otherAllergies,
+              nutritionReferences,
+            })
           ),
         },
       });

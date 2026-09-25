@@ -63,6 +63,12 @@ export default function PublicHeader() {
           >
             Docs
           </Link>
+          <Link
+            href="/sources"
+            className={`text-xs font-semibold transition hover:text-brand-text ${pathname === '/sources' ? 'font-bold text-brand-accent' : 'text-brand-muted'}`}
+          >
+            Sources
+          </Link>
         </nav>
 
         {/* Header Right Actions */}
@@ -178,6 +184,16 @@ export default function PublicHeader() {
               }`}
             >
               <span>Documentation & Guides</span>
+              <BookOpenText className="h-4 w-4 text-brand-muted" />
+            </Link>
+            <Link
+              href="/sources"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition hover:bg-brand-surface/80 ${
+                pathname === '/sources' ? 'font-extrabold text-brand-accent' : 'text-brand-text'
+              }`}
+            >
+              <span>Evidence & data sources</span>
               <BookOpenText className="h-4 w-4 text-brand-muted" />
             </Link>
 

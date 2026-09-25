@@ -5,6 +5,7 @@ export interface ConditionRuleLike {
   nutrient: string;
   operator: string;
   threshold: number;
+  unit?: string;
   basis: string;
   severity: string;
   reviewStatus: string;
@@ -28,9 +29,26 @@ export interface ConditionRuleEvaluation {
   ruleId: string;
   decision: RuleEvaluationDecision;
   measuredValue: number | null;
-  threshold: number;
+  /**
+   * The personalized value used for this evaluation. For a dynamic rule this
+   * is derived from the user's daily energy or body weight.
+   */
+  threshold: number | null;
+  /** The coefficient stored on the reviewed rule version. */
+  sourceThreshold: number;
+  thresholdUnit: string;
+  calculation: RuleThresholdCalculation;
   severity: string;
   reason: string;
+}
+
+export interface RuleThresholdCalculation {
+  method: string;
+  formula: string;
+  inputs: Record<string, number>;
+  coefficient: number;
+  result: number | null;
+  resultUnit: string;
 }
 
 const NUTRIENT_FIELD: Record<string, keyof RuleNutrientEvidence> = {
@@ -61,31 +79,101 @@ function compare(value: number, operator: string, threshold: number): boolean {
   }
 }
 
-function normalizeValue(
+function nutrientCaloriesPerGram(nutrient: string): number | null {
+  if (nutrient === 'SATURATED_FAT_G') return 9;
+  if (nutrient === 'PROTEIN_G' || nutrient === 'CARBOHYDRATE_G' || nutrient === 'SUGAR_G') return 4;
+  return null;
+}
+
+function fixedCalculation(rule: ConditionRuleLike): RuleThresholdCalculation {
+  const result = Number.isFinite(rule.threshold) ? rule.threshold : null;
+  const baseUnit = rule.unit || (rule.nutrient.endsWith('_MG') ? 'mg' : 'g');
+  const resultUnit = rule.basis === 'DAILY_TOTAL' ? `${baseUnit}/day` : `${baseUnit}/serving`;
+  return {
+    method: rule.basis,
+    formula: 'threshold = coefficient',
+    inputs: {},
+    coefficient: rule.threshold,
+    result,
+    resultUnit,
+  };
+}
+
+function positiveFinite(value: number | null | undefined): value is number {
+  return value !== null && value !== undefined && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * Resolve the reviewed rule coefficient into the threshold for this exact
+ * user context. This deliberately supports a closed set of calculation
+ * methods; database content is never executed as code.
+ */
+export function resolveConditionRuleThreshold(
+  rule: ConditionRuleLike,
+  context: { dailyTotals?: RuleNutrientEvidence; bodyWeightKg?: number | null }
+): RuleThresholdCalculation {
+  if (rule.basis === 'PER_SERVING' || rule.basis === 'DAILY_TOTAL') return fixedCalculation(rule);
+  if (rule.basis === 'PER_1000_KCAL') {
+    const dailyCalories = context.dailyTotals?.calories;
+    const result =
+      positiveFinite(dailyCalories) && Number.isFinite(rule.threshold) ? (rule.threshold * dailyCalories) / 1000 : null;
+    return {
+      method: rule.basis,
+      formula: 'threshold = coefficient × dailyCalories ÷ 1000',
+      inputs: positiveFinite(dailyCalories) ? { dailyCalories } : {},
+      coefficient: rule.threshold,
+      result,
+      resultUnit: rule.nutrient.endsWith('_MG') ? 'mg/day' : 'g/day',
+    };
+  }
+  if (rule.basis === 'PERCENT_OF_DAILY_CALORIES') {
+    const dailyCalories = context.dailyTotals?.calories;
+    const kcalPerGram = nutrientCaloriesPerGram(rule.nutrient);
+    const result =
+      positiveFinite(dailyCalories) && kcalPerGram && Number.isFinite(rule.threshold)
+        ? (dailyCalories * (rule.threshold / 100)) / kcalPerGram
+        : null;
+    return {
+      method: rule.basis,
+      formula: 'thresholdGrams = dailyCalories × (coefficientPercent ÷ 100) ÷ nutrientKcalPerGram',
+      inputs: positiveFinite(dailyCalories) && kcalPerGram ? { dailyCalories, nutrientKcalPerGram: kcalPerGram } : {},
+      coefficient: rule.threshold,
+      result,
+      resultUnit: 'g/day',
+    };
+  }
+  if (rule.basis === 'PER_KG_BODY_WEIGHT_DAILY') {
+    const weight = context.bodyWeightKg;
+    const result = positiveFinite(weight) && Number.isFinite(rule.threshold) ? rule.threshold * weight : null;
+    return {
+      method: rule.basis,
+      formula: 'threshold = coefficient × bodyWeightKg',
+      inputs: positiveFinite(weight) ? { bodyWeightKg: weight } : {},
+      coefficient: rule.threshold,
+      result,
+      resultUnit: rule.nutrient.endsWith('_MG') ? 'mg/day' : 'g/day',
+    };
+  }
+  return {
+    method: rule.basis,
+    formula: 'unsupported calculation method',
+    inputs: {},
+    coefficient: rule.threshold,
+    result: null,
+    resultUnit: 'unknown',
+  };
+}
+
+function measuredValueFor(
   rule: ConditionRuleLike,
   evidence: RuleNutrientEvidence,
   context: { dailyTotals?: RuleNutrientEvidence; bodyWeightKg?: number | null }
 ): number | null {
   const field = NUTRIENT_FIELD[rule.nutrient];
   if (!field) return null;
-
-  if (rule.basis === 'DAILY_TOTAL') return context.dailyTotals?.[field] ?? null;
-  const raw = evidence[field];
-  if (raw === null || raw === undefined || !Number.isFinite(raw)) return null;
-  if (rule.basis === 'PER_SERVING') return raw;
-  if (rule.basis === 'PER_1000_KCAL') {
-    return evidence.calories && evidence.calories > 0 ? (raw * 1000) / evidence.calories : null;
-  }
-  if (rule.basis === 'PERCENT_OF_DAILY_CALORIES') {
-    if (rule.nutrient !== 'SATURATED_FAT_G' || !context.dailyTotals?.calories) return null;
-    return ((context.dailyTotals.saturatedFatG ?? 0) * 9 * 100) / context.dailyTotals.calories;
-  }
-  if (rule.basis === 'PER_KG_BODY_WEIGHT_DAILY') {
-    const weight = context.bodyWeightKg;
-    const dailyValue = context.dailyTotals?.[field];
-    return weight && weight > 0 && dailyValue !== null && dailyValue !== undefined ? dailyValue / weight : null;
-  }
-  return null;
+  const source = rule.basis === 'PER_SERVING' ? evidence : context.dailyTotals;
+  const measured = source?.[field];
+  return measured !== null && measured !== undefined && Number.isFinite(measured) ? measured : null;
 }
 
 export function evaluateConditionNutrientRule(
@@ -93,33 +181,43 @@ export function evaluateConditionNutrientRule(
   evidence: RuleNutrientEvidence,
   context: { dailyTotals?: RuleNutrientEvidence; bodyWeightKg?: number | null } = {}
 ): ConditionRuleEvaluation {
+  const calculation = resolveConditionRuleThreshold(rule, context);
   if (rule.reviewStatus !== 'APPROVED' || !rule.active || !rule.approvedByNutritionistId) {
     return {
       ruleId: rule.id,
       decision: 'NOT_EVALUABLE',
       measuredValue: null,
-      threshold: rule.threshold,
+      threshold: calculation.result,
+      sourceThreshold: rule.threshold,
+      thresholdUnit: calculation.resultUnit,
+      calculation,
       severity: rule.severity,
       reason: 'RULE_NOT_ACTIVE_AND_APPROVED',
     };
   }
-  const measuredValue = normalizeValue(rule, evidence, context);
-  if (measuredValue === null) {
+  const measuredValue = measuredValueFor(rule, evidence, context);
+  if (measuredValue === null || calculation.result === null) {
     return {
       ruleId: rule.id,
       decision: 'NOT_EVALUABLE',
       measuredValue,
-      threshold: rule.threshold,
+      threshold: calculation.result,
+      sourceThreshold: rule.threshold,
+      thresholdUnit: calculation.resultUnit,
+      calculation,
       severity: rule.severity,
       reason: 'REQUIRED_NUTRIENT_OR_CONTEXT_MISSING',
     };
   }
-  const passes = compare(measuredValue, rule.operator, rule.threshold);
+  const passes = compare(measuredValue, rule.operator, calculation.result);
   return {
     ruleId: rule.id,
     decision: passes ? 'PASS' : 'FAIL',
     measuredValue,
-    threshold: rule.threshold,
+    threshold: calculation.result,
+    sourceThreshold: rule.threshold,
+    thresholdUnit: calculation.resultUnit,
+    calculation,
     severity: rule.severity,
     reason: passes ? 'THRESHOLD_SATISFIED' : 'THRESHOLD_VIOLATED',
   };

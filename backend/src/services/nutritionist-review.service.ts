@@ -310,7 +310,7 @@ export class NutritionistReviewService {
             result.evaluation.decision === 'FAIL' && result.rule.severity === 'HARD_BLOCK' ? 'CRITICAL' : 'IMPORTANT',
           message:
             result.evaluation.decision === 'FAIL'
-              ? `${result.condition}: approved rule ${result.rule.id} was violated (${result.evaluation.measuredValue} vs ${result.rule.threshold} ${result.rule.unit}).`
+              ? `${result.condition}: approved rule ${result.rule.id} was violated (${result.evaluation.measuredValue} vs calculated threshold ${result.evaluation.threshold} ${result.evaluation.thresholdUnit}; source coefficient ${result.evaluation.sourceThreshold} ${result.rule.unit}).`
               : `${result.condition}: approved rule ${result.rule.id} could not be evaluated because required nutrient or daily context is missing.`,
         });
       }

@@ -22,6 +22,7 @@ import {
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { useAuth } from '@/hooks/useAuth';
+import { EVIDENCE_SOURCES, EVIDENCE_STATUS_LABELS } from '@/data/evidence-sources';
 
 const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   if (role === 'ADMIN') return '/admin/overview';
@@ -383,6 +384,55 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="sources" className="border-y border-brand-border/60 bg-brand-surface/30 py-24">
+          <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+            <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+              <div>
+                <div className="eyebrow inline-flex items-center gap-2">
+                  <BookOpenText className="h-3.5 w-3.5" /> Evidence and data foundations
+                </div>
+                <h2 className="mt-5 max-w-xl font-display text-4xl font-black leading-[1.02] tracking-[-0.045em] text-brand-text sm:text-5xl">
+                  Traceable sources, with their authority kept clear.
+                </h2>
+              </div>
+              <div className="max-w-2xl lg:ml-auto">
+                <p className="text-sm leading-7 text-brand-muted sm:text-base">
+                  KAINARA uses published methods, Philippine nutrition data, safety guidance, and attributed recipe
+                  sources. Citation describes provenance. It does not imply partnership, endorsement, or clinical
+                  approval by any listed organization.
+                </p>
+                <Link
+                  href="/sources"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-green hover:underline"
+                >
+                  Read the complete evidence register <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {EVIDENCE_SOURCES.map((source) => (
+                <a
+                  key={source.id}
+                  href={source.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group rounded-[22px] border border-brand-border/70 bg-brand-bg/70 p-4 transition hover:-translate-y-1 hover:border-brand-green/35"
+                  aria-label={`Open ${source.name} source`}
+                >
+                  <span className="flex h-11 w-fit min-w-11 items-center justify-center rounded-xl bg-brand-green/10 px-2.5 font-mono text-[10px] font-black tracking-wider text-brand-green">
+                    {source.mark}
+                  </span>
+                  <p className="mt-4 text-xs font-extrabold leading-5 text-brand-text">{source.shortName}</p>
+                  <p className="mt-2 font-mono text-[8px] font-bold uppercase leading-4 tracking-[0.08em] text-brand-muted">
+                    {EVIDENCE_STATUS_LABELS[source.status]}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12">
           <div className="grid overflow-hidden rounded-[36px] border border-brand-border/70 bg-brand-surface/70 shadow-card-lg backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]">
             <div className="p-8 sm:p-12 lg:p-16">
@@ -479,6 +529,9 @@ export default function Home() {
           <div className="flex gap-5">
             <Link href="/docs" className="transition hover:text-brand-green">
               Documentation
+            </Link>
+            <Link href="/sources" className="transition hover:text-brand-green">
+              Evidence sources
             </Link>
             <Link href="/login" className="transition hover:text-brand-green">
               Portal login
