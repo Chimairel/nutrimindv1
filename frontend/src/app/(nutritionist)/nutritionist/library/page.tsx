@@ -37,6 +37,8 @@ export default function MealLibraryPage() {
     setStatus,
     verifiedByMe,
     setVerifiedByMe,
+    adminDraftsOnly,
+    setAdminDraftsOnly,
     setActiveModal,
     setSelectedMeal,
     setSelectedVerifier,
@@ -315,6 +317,15 @@ export default function MealLibraryPage() {
             </div>
 
             {/* Owner filter */}
+            <label className="flex items-center gap-2.5 cursor-pointer select-none py-1 text-xs font-bold text-brand-text">
+              <input
+                type="checkbox"
+                checked={adminDraftsOnly}
+                onChange={(event) => { setAdminDraftsOnly(event.target.checked); setPage(1); }}
+                className="h-4 w-4 rounded border-brand-border bg-brand-bg text-brand-green"
+              />
+              Admin drafts awaiting evidence review
+            </label>
             <label
               htmlFor="library-verified-by-me"
               className="flex items-center gap-2.5 cursor-pointer select-none py-1"
@@ -365,6 +376,8 @@ export default function MealLibraryPage() {
                 const owned = isOwner(meal);
                 const isFlagged = meal.status === 'FLAGGED';
                 const isArchived = meal.status === 'ARCHIVED';
+                const isAdminDraft = meal.safetyEvidenceStatus === 'INCOMPLETE' &&
+                  meal.safetyReviews?.some((review) => review.reasonCode === 'ADMIN_AUTHORED_DRAFT');
                 const activeFlag = meal.flags?.[0];
 
                 return (
@@ -389,6 +402,8 @@ export default function MealLibraryPage() {
                             <Badge variant="pending" showIcon>
                               Archived
                             </Badge>
+                          ) : isAdminDraft ? (
+                            <Badge variant="pending" showIcon>Admin draft</Badge>
                           ) : (
                             <Badge variant="verified" showIcon>
                               Approved
@@ -490,7 +505,7 @@ export default function MealLibraryPage() {
                             {meal.verifiedByNutritionist.user.name}
                           </button>
                         ) : (
-                          <span className="italic">System / Unknown</span>
+                          <span className="italic">{isAdminDraft ? 'Awaiting RND certification' : 'System / Unknown'}</span>
                         )}
                         <span className="block mt-0.5">Used {meal.usageCount}x</span>
                       </div>

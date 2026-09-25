@@ -433,13 +433,14 @@ router.post(
  */
 router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, mealType, conditionTag, status, verifiedByMe, page, limit } = req.query;
+    const { search, mealType, conditionTag, status, verifiedByMe, adminDraftsOnly, page, limit } = req.query;
     const library = await NutritionistService.getMealLibraryWithFilters(req.user!.userId, {
       search: search as string,
       mealType: mealType as string,
       conditionTag: conditionTag as string,
       status: status as string,
       verifiedByMe: verifiedByMe === 'true',
+      adminDraftsOnly: adminDraftsOnly === 'true',
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
     });

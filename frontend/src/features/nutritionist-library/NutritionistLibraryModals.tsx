@@ -47,7 +47,7 @@ export function NutritionistLibraryModals({ workspace }: Props) {
           <div className="space-y-4">
             <div>
               <span className="text-xs font-bold text-brand-muted uppercase">Description</span>
-              <p className="text-sm text-brand-text leading-relaxed mt-1">
+              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-brand-text">
                 {selectedMeal.description || 'No description available.'}
               </p>
             </div>
@@ -72,10 +72,16 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                   <span className="text-sm font-bold text-brand-text">{selectedMeal.fatG} g</span>
                 </div>
               </div>
+              {selectedMeal.nutritionServingDescription && <p className="mt-2 text-xs text-brand-muted">Per serving: {selectedMeal.nutritionServingDescription}</p>}
+              {selectedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
+                <p className="mt-2 rounded-xl border border-brand-border/60 p-3 text-xs text-brand-muted">
+                  Admin-entered calculation/source notes: {selectedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}
+                </p>
+              )}
             </div>
 
             <div>
-              <span className="text-xs font-bold text-brand-muted uppercase">Pre-Verified Tags</span>
+              <span className="text-xs font-bold text-brand-muted uppercase">Classification proposals</span>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {normalizeExclusiveNone(selectedMeal.suitableConditions).map((cond) => (
                   <Badge key={cond} variant="verified" className="flex items-center gap-1">
@@ -129,7 +135,10 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                       key={ingredient.id}
                       className="flex items-center justify-between rounded-xl border border-brand-border/50 bg-brand-surface/50 px-3 py-2 text-xs"
                     >
-                      <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
+                      <span className="font-semibold text-brand-text">
+                        {ingredient.ingredientName}
+                        {ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit ?? ''} per serving` : ''}
+                      </span>
                       <span
                         className={
                           ingredient.dataSource === 'FNRI' && ingredient.foodItemId
@@ -199,6 +208,16 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               universally safe. KAINARA will still compare each user&apos;s current restrictions before reuse.
             </div>
 
+            <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-4 text-xs leading-relaxed text-brand-muted">
+              <p className="font-bold text-brand-text">Recipe and nutrition submitted for review</p>
+              <p className="mt-2 whitespace-pre-line">{selectedMeal.description || 'No preparation details recorded.'}</p>
+              <p className="mt-2">{selectedMeal.nutritionServingDescription || 'Serving unspecified'} · {selectedMeal.calories} kcal · P {selectedMeal.proteinG} g · C {selectedMeal.carbsG} g · F {selectedMeal.fatG} g</p>
+              <p className="mt-1">Sodium {selectedMeal.sodiumMg ?? 'unknown'} mg · Sugar {selectedMeal.sugarG ?? 'unknown'} g · Fiber {selectedMeal.fiberG ?? 'unknown'} g · Potassium {selectedMeal.potassiumMg ?? 'unknown'} mg · Phosphorus {selectedMeal.phosphorusMg ?? 'unknown'} mg · Saturated fat {selectedMeal.saturatedFatG ?? 'unknown'} g</p>
+              {selectedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
+                <p className="mt-2">Admin-entered calculation/source notes: {selectedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>
+              )}
+            </div>
+
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-bold uppercase text-brand-muted">Library-owned ingredients</span>
@@ -218,7 +237,10 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                       key={ingredient.id}
                       className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bg/60 px-3 py-2 text-xs"
                     >
-                      <span className="font-semibold text-brand-text">{ingredient.ingredientName}</span>
+                      <span className="font-semibold text-brand-text">
+                        {ingredient.ingredientName}
+                        {ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit ?? ''} per serving` : ''}
+                      </span>
                       <span
                         className={
                           ingredient.dataSource === 'FNRI' && ingredient.foodItemId

@@ -47,6 +47,13 @@ export interface LibraryMeal {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sodiumMg?: number | null;
+  sugarG?: number | null;
+  fiberG?: number | null;
+  potassiumMg?: number | null;
+  phosphorusMg?: number | null;
+  saturatedFatG?: number | null;
+  nutritionServingDescription?: string | null;
   description?: string;
   suitableConditions?: string[];
   allergenFree?: string[];
@@ -63,9 +70,10 @@ export interface LibraryMeal {
   safetyInvalidationReason?: string | null;
   safetyReviewedAt?: string | null;
   addedAt: string;
-  verifiedByNutritionistId: string;
+  verifiedByNutritionistId: string | null;
   verifiedByNutritionist?: Verifier;
   flags?: Flag[];
+  safetyReviews?: Array<{ id: string; reasonCode: string | null; evidenceSnapshot?: { nutritionBasis?: string } | null }>;
   ingredients?: {
     id: string;
     ingredientName: string;
@@ -73,6 +81,8 @@ export interface LibraryMeal {
     foodItemId?: string | null;
     dataSource: 'FNRI' | 'GEMINI_ESTIMATED' | 'SOURCE_RECIPE';
     position: number;
+    quantity?: number | null;
+    unit?: string | null;
   }[];
   safetyReviewedByNutritionist?: { user: { name: string } } | null;
 }
@@ -152,6 +162,7 @@ export function useNutritionistLibrary() {
   const [conditionTag, setConditionTag] = useState('All');
   const [status, setStatus] = useState('All');
   const [verifiedByMe, setVerifiedByMe] = useState(false);
+  const [adminDraftsOnly, setAdminDraftsOnly] = useState(false);
 
   // Modal / Action States
   const [activeModal, setActiveModal] = useState<
@@ -204,6 +215,7 @@ export function useNutritionistLibrary() {
           conditionTag: conditionTag === 'All' ? undefined : conditionTag,
           status: status === 'All' ? undefined : status,
           verifiedByMe: verifiedByMe ? 'true' : undefined,
+          adminDraftsOnly: adminDraftsOnly ? 'true' : undefined,
           page,
           limit: 20,
         },
@@ -233,7 +245,7 @@ export function useNutritionistLibrary() {
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, mealType, conditionTag, status, verifiedByMe, page]);
+  }, [search, mealType, conditionTag, status, verifiedByMe, adminDraftsOnly, page]);
 
   useEffect(() => {
     fetchCoverage();
@@ -463,6 +475,8 @@ export function useNutritionistLibrary() {
     setStatus,
     verifiedByMe,
     setVerifiedByMe,
+    adminDraftsOnly,
+    setAdminDraftsOnly,
     activeModal,
     setActiveModal,
     selectedMeal,

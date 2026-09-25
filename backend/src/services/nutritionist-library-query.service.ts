@@ -8,6 +8,7 @@ export interface NutritionistLibraryFilters {
   conditionTag?: string;
   status?: string;
   verifiedByMe?: boolean;
+  adminDraftsOnly?: boolean;
   page?: number;
   limit?: number;
 }
@@ -38,6 +39,11 @@ export async function getNutritionistMealLibraryWithFilters(
   }
   if (filters.status && filters.status !== 'All') where.status = filters.status as MealLibraryStatus;
   if (filters.verifiedByMe) where.verifiedByNutritionist = { userId: currentUserId };
+  if (filters.adminDraftsOnly) {
+    where.status = MealLibraryStatus.APPROVED;
+    where.safetyEvidenceStatus = 'INCOMPLETE';
+    where.safetyReviews = { some: { reasonCode: 'ADMIN_AUTHORED_DRAFT' } };
+  }
 
   const [total, meals] = await Promise.all([
     prisma.mealLibrary.count({ where }),
@@ -54,6 +60,12 @@ export async function getNutritionistMealLibraryWithFilters(
         },
         ingredients: { orderBy: { position: 'asc' } },
         safetyDeclarations: true,
+        safetyReviews: {
+          where: { reasonCode: 'ADMIN_AUTHORED_DRAFT' },
+          select: { id: true, reasonCode: true, evidenceSnapshot: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
         safetyReviewedByNutritionist: { include: { user: { select: { name: true } } } },
         applicableMealTypes: { orderBy: { mealType: 'asc' } },
       },

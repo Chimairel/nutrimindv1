@@ -212,6 +212,7 @@ export async function certifyLibraryMealSafety(
           certifiedEvidenceRevision: nextRevision,
           safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
           safetyReviewedByNutritionistId: nutritionistProfileId,
+          verifiedByNutritionistId: meal.verifiedByNutritionistId ?? nutritionistProfileId,
           safetyReviewedAt: now,
           safetyInvalidatedAt: null,
           safetyInvalidationReason: null,

@@ -24,6 +24,7 @@ import {
 } from '@/validation/compensation.schemas';
 import adminDataRouter from '@/routes/admin-data.routes';
 import adminMealImagesRouter from '@/routes/admin-meal-images.routes';
+import adminMealsRouter from '@/routes/admin-meals.routes';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.use(authenticate);
 router.use(requireRole('ADMIN'));
 router.use('/data', adminDataRouter);
 router.use('/meal-images', adminMealImagesRouter);
+router.use('/meals', adminMealsRouter);
 
 /**
  * GET /api/admin/analytics
