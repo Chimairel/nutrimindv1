@@ -292,6 +292,14 @@ export default function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [awaitingGenerationCount, fetchCurrentPlan]);
 
+  useEffect(() => {
+    if (isLoading || currentCycle || generationStatus === 'FAILED' || isReportPending || clinicalEvidenceRequired || error) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchCurrentPlan();
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [isLoading, currentCycle, generationStatus, isReportPending, clinicalEvidenceRequired, error, fetchCurrentPlan]);
+
   const checkCheckinStatus = useCallback(async () => {
     try {
       const res = await api.get('/user/checkin/status');
@@ -589,15 +597,16 @@ export default function DashboardPage() {
         ) : currentMeals.length === 0 && !pendingReview ? (
           <StateNotice
             variant="no-meal-plan"
-            title="No Active Meal Plan"
-            description={upcomingCycle?.startDate
-              ? `Your next week is being prepared automatically for ${formatManilaDate(upcomingCycle.startDate, { weekday: 'long', month: 'short', day: 'numeric' })}. Its candidates appear as previews in Meals; they are not an active plan or usable until cleared. Generate a plan if you need meals for the current cycle.`
-              : 'You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices.'}
-            action={{
-              label: isGenerating ? 'Generating Plan...' : upcomingCycle ? 'Generate Current Plan' : 'Generate Meal Plan',
+            imageAlt="Meal plan preparation"
+            title={generationStatus === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'}
+            description={generationStatus === 'FAILED'
+              ? 'Your first plan could not be prepared. Retry when you are ready; no unreviewed meal has been made available.'
+              : 'Your current meal plan is being prepared automatically. New candidates will appear in Meals as previews and cannot be used until their safety review is complete.'}
+            action={generationStatus === 'FAILED' ? {
+              label: isGenerating ? 'Retrying...' : 'Retry Preparation',
               onClick: handleGeneratePlan,
               isLoading: isGenerating,
-            }}
+            } : null}
           />
         ) : (
           <>

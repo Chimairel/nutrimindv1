@@ -246,6 +246,14 @@ export function useMealsWorkspace() {
     return () => window.clearInterval(interval);
   }, [awaitingGeneration, fetchMeals]);
 
+  useEffect(() => {
+    if (!cycles || cycles.current || generationStatus.current === 'FAILED' || error) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchMeals();
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [cycles, generationStatus, error, fetchMeals]);
+
   const fetchHistory = useCallback(async () => {
     const resource = historyResource(historySearch, historySource, historyStatus);
     const cached = readSessionResource<MealHistoryLog[]>(user?.userId, resource);

@@ -11,6 +11,7 @@ import { ObservedMealService } from '@/services/observed-meal.service';
 import { MealSwapService } from '@/services/meal-swap.service';
 import { MealFavoriteService } from '@/services/meal-favorite.service';
 import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
+import { CurrentPlanPreparationService } from '@/services/current-plan-preparation.service';
 import { GroceryService } from '@/services/grocery.service';
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogDataSource, MealLogStatus, MealType, MealPlanStatus } from '@prisma/client';
@@ -298,8 +299,10 @@ export class MealsController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
+      UpcomingPlanPreparationService.triggerNonBlocking(userId);
       const cycle = await MealPlanCycleService.getCurrentCycle(userId);
       if (!cycle) {
+        const generationJob = await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
         return res.status(200).json({
           success: true,
           data: [],
@@ -308,7 +311,7 @@ export class MealsController {
             pendingReview: buildPendingMealPlanPreview([]),
             planSnapshot: null,
             awaitingGenerationCount: 0,
-            generationStatus: null,
+            generationStatus: generationJob?.status ?? 'GENERATING',
           },
         });
       }
@@ -380,10 +383,11 @@ export class MealsController {
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
       UpcomingPlanPreparationService.triggerNonBlocking(userId);
       const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
+      const pendingCurrentJob = cycles.current ? null : await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
       const cycleIds = [cycles.current?.id, cycles.upcoming?.id].filter((id): id is string => Boolean(id));
       if (!cycleIds.length) {
         return res.status(200).json({ success: true, data: [], meta: { cycles, pendingReview: null,
-          awaitingGeneration: { current: 0, upcoming: 0 }, generationStatus: { current: null, upcoming: null } } });
+          awaitingGeneration: { current: 0, upcoming: 0 }, generationStatus: { current: pendingCurrentJob?.status ?? 'GENERATING', upcoming: null } } });
       }
       const rows = await prisma.mealPlan.findMany({
         where: { userId, planGroupId: { in: cycleIds } },
@@ -429,7 +433,7 @@ export class MealsController {
               rows.filter((row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED)).length : 0,
           },
           generationStatus: {
-            current: generationStatusFor(cycles.current?.id),
+            current: cycles.current ? generationStatusFor(cycles.current.id) : pendingCurrentJob?.status ?? 'GENERATING',
             upcoming: generationStatusFor(cycles.upcoming?.id),
           },
         },

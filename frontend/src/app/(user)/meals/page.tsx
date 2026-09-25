@@ -283,8 +283,10 @@ export default function WeeklyPlanPage() {
           <div className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
             <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
             <p>
-              KAINARA prepares the next week ahead of your shopping day. This is an upcoming draft, not an active plan.
-              Meals marked awaiting review are previews and cannot be logged, swapped, or shopped for yet.
+              {generationStatus.current === 'FAILED'
+                ? 'Your first current plan could not be prepared. Its preparation can be retried from your dashboard.'
+                : 'Your first current plan is being prepared automatically. The meals below are next week’s draft, not the active plan.'}
+              {' '}Meals awaiting review are previews and cannot be logged, swapped, or shopped for yet.
             </p>
           </div>
         )}
@@ -471,18 +473,21 @@ export default function WeeklyPlanPage() {
               </section>
             ) : awaitingGenerationCount > 0 ? (
               <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
-                The first meal candidates are being prepared. Refresh this page later to see saved candidates and nutritionist review progress.
+                The first meal candidates are being prepared. Saved candidates and nutritionist review progress will appear here automatically.
               </div>
             ) : (
               <StateNotice
                 variant="no-meal-plan"
-                title="No Active Meal Plan"
-                description="Generate a customized 7-day plan (21 meals) using varied, affordable food choices matched to your nutrition needs and preferences."
-                action={{
-                  label: isRegenerating ? 'Generating Plan...' : 'Generate 7-Day Plan',
+                imageAlt="Meal plan preparation"
+                title={generationStatus.current === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'}
+                description={generationStatus.current === 'FAILED'
+                  ? 'Your first plan could not be prepared. Retry to resume preparation.'
+                  : 'Your current meal plan is being prepared automatically. Candidates will appear here for nutritionist review.'}
+                action={generationStatus.current === 'FAILED' ? {
+                  label: isRegenerating ? 'Retrying...' : 'Retry Preparation',
                   onClick: handleRegeneratePlan,
                   isLoading: isRegenerating,
-                }}
+                } : null}
               />
             )
           ) : (

@@ -5,6 +5,7 @@ import { CertifiedSlotFallbackService } from './certified-slot-fallback.service'
 import { DEADLINE_FALLBACK_CALORIE_TOLERANCE } from '@/domain/upcoming-preparation.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { GroceryService } from './grocery.service';
+import { CurrentPlanPreparationService } from './current-plan-preparation.service';
 
 export class UpcomingPlanPreparationService {
   private static readonly inFlight = new Map<string, Promise<unknown>>();
@@ -25,6 +26,10 @@ export class UpcomingPlanPreparationService {
   }
 
   static async ensureForUser(userId: string, now: Date = new Date()) {
+    // Prepare the first usable window before spending candidate-generation
+    // capacity on a future week. Both windows retain their own idempotent jobs.
+    const current = await CurrentPlanPreparationService.ensureForUser(userId, now);
+    if (current.state === 'NOT_READY') return { state: 'NOT_OPEN' as const, planGroupId: null };
     const result = await MealGenerationService.ensureUpcomingPlanForUser(userId, now);
     if (result.planGroupId) await this.reconcileDeadline(userId, result.planGroupId, now);
     return result;
