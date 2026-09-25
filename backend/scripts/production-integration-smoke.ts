@@ -339,8 +339,8 @@ async function main() {
     },
   });
   const claimResults = await Promise.allSettled([
-    NutritionistService.getReviewCardDetails(reviewer.id, reviewMeal.id),
-    NutritionistService.getReviewCardDetails(secondReviewer.id, reviewMeal.id),
+    NutritionistService.getReviewCardDetails(reviewer.id, reviewMeal.id, true),
+    NutritionistService.getReviewCardDetails(secondReviewer.id, reviewMeal.id, true),
   ]);
   assert.equal(claimResults.filter((result) => result.status === 'fulfilled').length, 1);
   assert.equal(claimResults.filter((result) => result.status === 'rejected').length, 1);
@@ -351,7 +351,7 @@ async function main() {
     where: { id: reviewMeal.id },
     data: { claimedAt: new Date(getReviewClaimCutoff().getTime() - 1) },
   });
-  await NutritionistService.getReviewCardDetails(nextReviewer.id, reviewMeal.id);
+  await NutritionistService.getReviewCardDetails(nextReviewer.id, reviewMeal.id, true);
   assert.equal(
     (await prisma.mealPlan.findUnique({ where: { id: reviewMeal.id } }))?.claimedByNutritionistId,
     nextReviewer.id

@@ -99,7 +99,7 @@ async function main() {
       },
     });
     rejectedPlanId = pending.id;
-    await NutritionistReviewService.getReviewCardDetails(reviewer.id, pending.id);
+    await NutritionistReviewService.getReviewCardDetails(reviewer.id, pending.id, true);
     const usageBefore = new Map(
       (await prisma.mealLibrary.findMany({ select: { id: true, usageCount: true } })).map((meal) => [
         meal.id,
@@ -245,7 +245,7 @@ async function main() {
       },
     });
     unavailablePlanId = unavailable.id;
-    await NutritionistReviewService.getReviewCardDetails(reviewer.id, unavailable.id);
+    await NutritionistReviewService.getReviewCardDetails(reviewer.id, unavailable.id, true);
     const unavailableDecision = await NutritionistReviewService.rejectMealPlan(
       reviewer.id,
       unavailable.id,

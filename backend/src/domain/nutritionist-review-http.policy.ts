@@ -5,6 +5,7 @@ const REVIEW_CONFLICT_FRAGMENTS = [
   'Unable to acquire an active claim',
   'Only PENDING_REVIEW',
   'different nutritionist',
+  'no longer awaiting review',
 ] as const;
 
 export function isNutritionistReviewConflict(message: string): boolean {

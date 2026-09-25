@@ -63,6 +63,8 @@ export default function ReviewsPage() {
     editForm,
     setEditForm,
     handleSelectMeal,
+    handleClaimMeal,
+    handleReleaseMeal,
     handleApprove,
     handleReject,
     startEditing,
@@ -94,7 +96,7 @@ export default function ReviewsPage() {
             <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
               Review queue
               <button
-                onClick={fetchQueue}
+                onClick={() => fetchQueue()}
                 className="rounded-xl p-2 text-brand-green transition hover:bg-brand-green/10"
                 title="Refresh queue"
                 aria-label="Refresh queue"
@@ -107,8 +109,7 @@ export default function ReviewsPage() {
             </Badge>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-            Choose an available meal to claim its review. Check the health profile, ingredient sources, and warnings
-            before deciding.
+            Select a meal to preview its evidence. Claim it when you are ready to review; release your claim if you need to hand it back.
           </p>
         </div>
 
@@ -221,15 +222,14 @@ export default function ReviewsPage() {
             <div className="rounded-2xl border border-brand-border bg-brand-surface p-6">
               <h2 className="font-display text-2xl font-bold text-brand-text">A clear path to every review</h2>
               <p className="mt-3 text-sm leading-relaxed text-brand-muted">
-                Select a meal from the queue to begin. Your review opens here, with the person’s health profile and the
-                meal’s evidence side by side.
+                Select a meal to inspect the person’s health profile and the meal’s evidence side by side. The review lock begins only when you press Claim review.
               </p>
               <ol className="mt-5 space-y-3 text-sm text-brand-text">
                 <li>
-                  <strong className="text-brand-green">01 · Claim</strong> an available review.
+                  <strong className="text-brand-green">01 · Inspect</strong> an available meal.
                 </li>
                 <li>
-                  <strong className="text-brand-green">02 · Inspect</strong> restrictions, ingredients, and estimates.
+                  <strong className="text-brand-green">02 · Claim</strong> when ready to decide.
                 </li>
                 <li>
                   <strong className="text-brand-green">03 · Decide</strong> and record your review notes.
@@ -239,7 +239,7 @@ export default function ReviewsPage() {
           </div>
         ) : detailLoading ? (
           <div className="flex-grow flex items-center justify-center">
-            <span className="text-brand-muted animate-pulse text-sm">Loading details and setting claim lock...</span>
+            <span className="text-brand-muted animate-pulse text-sm">Loading meal preview...</span>
           </div>
         ) : errorMsg && !detailData ? (
           <div className="p-6 bg-red-950/20 border border-red-500/20 rounded-xl space-y-4 max-w-lg mx-auto mt-12 text-center">
@@ -254,16 +254,28 @@ export default function ReviewsPage() {
           </div>
         ) : detailData ? (
           <div className="space-y-6">
+            {errorMsg && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400">{errorMsg}</div>}
+            {!detailData.claimStatus.claimedByMe && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border bg-brand-surface p-4">
+                <p className="text-xs text-brand-muted">Preview only. Claim this meal before submitting a review or downloading its clinical record.</p>
+                <Button onClick={handleClaimMeal} isLoading={actionLoading === selectedMealId} disabled={Boolean(actionLoading)}>
+                  Claim review
+                </Button>
+              </div>
+            )}
             {/* Header Lock Info Banner */}
             {detailData.claimStatus.claimedByMe && (
-              <div className="flex items-center gap-2 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>
+                <span className="flex-1">
                   Claimed by you until{' '}
                   {detailData.claimStatus.claimExpiresAt
                     ? new Date(detailData.claimStatus.claimExpiresAt).toLocaleTimeString()
                     : 'the 30-minute deadline'}. Submit before it expires; afterward, others may claim it and you have a 5-minute cooldown.
                 </span>
+                <Button variant="secondary" onClick={handleReleaseMeal} isLoading={actionLoading === selectedMealId} disabled={Boolean(actionLoading)}>
+                  Release claim
+                </Button>
               </div>
             )}
             {detailData.mealPlan.requiresSafetyRevalidation && (
@@ -371,12 +383,12 @@ export default function ReviewsPage() {
                     {detailData.clinicalEvidence.documents.map((item) => <div key={item.id} className="rounded-lg border border-brand-border p-2">
                       <p>{item.area.replaceAll('_', ' ')} · {item.documentType.replaceAll('_', ' ')}{item.validUntil ? ` · valid until ${new Date(item.validUntil).toLocaleDateString()}` : ''}</p>
                       {item.facts.map((fact, index) => <p key={`${fact.code}-${index}`} className="text-brand-muted">{fact.code.replaceAll('_', ' ')}: {fact.valueText ?? fact.valueNumber} {fact.unit ?? ''}</p>)}
-                      <button type="button" className="mt-1 font-semibold text-brand-green underline" onClick={async () => { try {
+                      {detailData.claimStatus.claimedByMe && <button type="button" className="mt-1 font-semibold text-brand-green underline" onClick={async () => { try {
                         const response = await api.get(`/nutritionist/queue/${detailData.mealPlan.id}/clinical-evidence/${item.id}/file`, { responseType: 'blob' });
                         const url = URL.createObjectURL(response.data);
                         const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'clinical-document'; anchor.click();
                         setTimeout(() => URL.revokeObjectURL(url), 30_000);
-                      } catch { toast.error('The clinical document could not be opened. Refresh your review claim and try again.'); } }}>Download original record</button>
+                      } catch { toast.error('The clinical document could not be opened. Refresh your review claim and try again.'); } }}>Download original record</button>}
                     </div>)}
                   </div>
                 )}
@@ -599,6 +611,7 @@ export default function ReviewsPage() {
               </div>
             )}
 
+            {detailData.claimStatus.claimedByMe && <>
             {/* Note to Patient form input */}
             <div className="bg-brand-surface/30 border border-brand-border rounded-xl p-5 space-y-3">
               <h4 className="text-xs font-bold text-brand-muted uppercase tracking-wider">
@@ -904,6 +917,7 @@ export default function ReviewsPage() {
                 )}
               </div>
             )}
+            </>}
           </div>
         ) : null}
       </div>

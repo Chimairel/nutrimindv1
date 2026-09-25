@@ -180,8 +180,8 @@ export function useNutritionistReviews() {
     ingredients: [],
   });
 
-  const fetchQueue = async () => {
-    setIsLoading(true);
+  const fetchQueue = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await api.get('/nutritionist/queue');
       if (res.data?.success) {
@@ -190,12 +190,16 @@ export function useNutritionistReviews() {
     } catch (err) {
       console.error('Failed to fetch queue:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchQueue();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchQueue(true);
+    }, 15_000);
+    return () => window.clearInterval(interval);
   }, []);
 
   const handleSelectMeal = async (id: string) => {
@@ -220,6 +224,42 @@ export function useNutritionistReviews() {
       setErrorMsg(getApiErrorMessage(err, 'Failed to load meal card details.'));
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const handleClaimMeal = async () => {
+    if (!selectedMealId) return;
+    setActionLoading(selectedMealId);
+    setErrorMsg(null);
+    try {
+      const res = await api.post(`/nutritionist/queue/${selectedMealId}/claim`);
+      if (res.data?.success) setDetailData(res.data.data);
+      await fetchQueue();
+    } catch (err: unknown) {
+      setErrorMsg(getApiErrorMessage(err, 'Could not claim this meal. Refresh the queue and try again.'));
+      await fetchQueue();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReleaseMeal = async () => {
+    if (!selectedMealId) return;
+    setActionLoading(selectedMealId);
+    setErrorMsg(null);
+    try {
+      await api.post(`/nutritionist/queue/${selectedMealId}/release`);
+      setDetailData(null);
+      setSelectedMealId(null);
+      setIsEditing(false);
+      setShowRejectForm(false);
+      setCandidateMeal(null);
+      await fetchQueue();
+    } catch (err: unknown) {
+      setErrorMsg(getApiErrorMessage(err, 'Could not release this meal. Refresh the queue and try again.'));
+      await fetchQueue();
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -453,6 +493,8 @@ export function useNutritionistReviews() {
     editForm,
     setEditForm,
     handleSelectMeal,
+    handleClaimMeal,
+    handleReleaseMeal,
     handleApprove,
     handleReject,
     startEditing,

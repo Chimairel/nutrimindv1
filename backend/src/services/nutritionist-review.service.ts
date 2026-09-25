@@ -205,9 +205,9 @@ export class NutritionistReviewService {
   }
 
   /**
-   * Fetches detailed data for a specific review card and sets a temporary claim lock.
+   * Fetches detailed data for a review card. Claiming is an explicit action.
    */
-  static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string) {
+  static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string, acquireClaim = false) {
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     const [reviewer, reviewTarget] = await Promise.all([
@@ -233,66 +233,68 @@ export class NutritionistReviewService {
 
     // updateMany supplies a compare-and-set claim: only one reviewer can change
     // an unclaimed/expired row from the shared queue at a time.
-    const claimResult = await prisma.mealPlan.updateMany({
-      where: {
-        id: mealPlanId,
-        ...getNutritionistReviewableMealPlanWhere(),
-        NOT: {
-          highRiskReviewRequired: true,
-          reviewApprovalCount: 1,
-          firstApprovedByNutritionistId: nutritionistProfileId,
-        },
-        OR: [
-          { claimedByNutritionistId: null },
-          { claimedAt: null },
-          {
-            claimedAt: { lt: claimCutoff },
-            NOT: {
-              claimedByNutritionistId: nutritionistProfileId,
-              claimedAt: { gte: new Date(claimCutoff.getTime() - REVIEW_CLAIM_COOLDOWN_MS) },
+    if (acquireClaim) {
+      const claimResult = await prisma.mealPlan.updateMany({
+        where: {
+          id: mealPlanId,
+          ...getNutritionistReviewableMealPlanWhere(),
+          NOT: {
+            highRiskReviewRequired: true,
+            reviewApprovalCount: 1,
+            firstApprovedByNutritionistId: nutritionistProfileId,
+          },
+          OR: [
+            { claimedByNutritionistId: null },
+            { claimedAt: null },
+            {
+              claimedAt: { lt: claimCutoff },
+              NOT: {
+                claimedByNutritionistId: nutritionistProfileId,
+                claimedAt: { gte: new Date(claimCutoff.getTime() - REVIEW_CLAIM_COOLDOWN_MS) },
+              },
             },
-          },
-        ],
-      },
-      data: {
-        claimedByNutritionistId: nutritionistProfileId,
-        claimedAt: now,
-      },
-    });
-
-    if (claimResult.count !== 1) {
-      const current = await prisma.mealPlan.findUnique({
-        where: { id: mealPlanId },
-        select: {
-          status: true,
-          claimedByNutritionistId: true,
-          claimedAt: true,
-          claimedByNutritionist: {
-            select: { user: { select: { name: true } } },
-          },
+          ],
+        },
+        data: {
+          claimedByNutritionistId: nutritionistProfileId,
+          claimedAt: now,
         },
       });
 
-      if (!current) throw new Error('Meal plan not found.');
-      if (current.status !== MealPlanStatus.PENDING_REVIEW) {
-        throw new Error('This meal was already reviewed. Please refresh the queue.');
-      }
-      const cooldownUntil = getReviewClaimCooldownUntil(current, nutritionistProfileId, now);
-      if (cooldownUntil) {
-        throw new Error(`Your claim expired. Other nutritionists can review this meal now; you can try again after ${cooldownUntil.toLocaleTimeString()}.`);
-      }
-      if (isReviewClaimActive(current, now) && current.claimedByNutritionistId !== nutritionistProfileId) {
-        throw new Error(
-          `This meal was already claimed by ${current.claimedByNutritionist?.user?.name || 'another nutritionist'}. Please choose another item.`
-        );
-      }
-      if (!isReviewClaimActive(current, now) || current.claimedByNutritionistId !== nutritionistProfileId) {
-        throw new Error('Unable to acquire an active claim for this meal. Please refresh the queue.');
+      if (claimResult.count !== 1) {
+        const current = await prisma.mealPlan.findUnique({
+          where: { id: mealPlanId },
+          select: {
+            status: true,
+            claimedByNutritionistId: true,
+            claimedAt: true,
+            claimedByNutritionist: {
+              select: { user: { select: { name: true } } },
+            },
+          },
+        });
+
+        if (!current) throw new Error('Meal plan not found.');
+        if (current.status !== MealPlanStatus.PENDING_REVIEW) {
+          throw new Error('This meal was already reviewed. Please refresh the queue.');
+        }
+        const cooldownUntil = getReviewClaimCooldownUntil(current, nutritionistProfileId, now);
+        if (cooldownUntil) {
+          throw new Error(`Your claim expired. Other nutritionists can review this meal now; you can try again after ${cooldownUntil.toLocaleTimeString()}.`);
+        }
+        if (isReviewClaimActive(current, now) && current.claimedByNutritionistId !== nutritionistProfileId) {
+          throw new Error(
+            `This meal was already claimed by ${current.claimedByNutritionist?.user?.name || 'another nutritionist'}. Please choose another item.`
+          );
+        }
+        if (!isReviewClaimActive(current, now) || current.claimedByNutritionistId !== nutritionistProfileId) {
+          throw new Error('Unable to acquire an active claim for this meal. Please refresh the queue.');
+        }
       }
     }
 
-    const updatedMealPlan = await prisma.mealPlan.findUnique({
-      where: { id: mealPlanId },
+    const updatedMealPlan = await prisma.mealPlan.findFirst({
+      where: { id: mealPlanId, ...getNutritionistReviewableMealPlanWhere() },
       include: {
         ingredients: {
           include: { foodItem: { select: { id: true, name: true } } },
@@ -308,7 +310,10 @@ export class NutritionistReviewService {
       },
     });
 
-    if (!updatedMealPlan) throw new Error('Meal plan not found.');
+    if (!updatedMealPlan) throw new Error('This meal is no longer awaiting review. Please refresh the queue.');
+    if (!acquireClaim && isReviewClaimActive(updatedMealPlan, now) && updatedMealPlan.claimedByNutritionistId !== nutritionistProfileId) {
+      throw new Error('This meal was already claimed by another nutritionist. Please refresh the queue.');
+    }
 
     const warnings: { severity: 'CRITICAL' | 'IMPORTANT' | 'NOTICE'; message: string }[] = [];
     const user = updatedMealPlan.user;
@@ -482,14 +487,45 @@ export class NutritionistReviewService {
       requiresIndependentSecondReview:
         updatedMealPlan.highRiskReviewRequired && updatedMealPlan.reviewApprovalCount === 1,
       claimStatus: {
-        claimedByMe: true,
+        claimedByMe: isReviewClaimActive(updatedMealPlan, now) && updatedMealPlan.claimedByNutritionistId === nutritionistProfileId,
         claimedByOther: false,
         claimedByName: null,
-        claimExpiresAt: updatedMealPlan.claimedAt
+        claimExpiresAt: isReviewClaimActive(updatedMealPlan, now) && updatedMealPlan.claimedByNutritionistId === nutritionistProfileId && updatedMealPlan.claimedAt
           ? new Date(updatedMealPlan.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS)
           : null,
       },
     };
+  }
+
+  static async releaseReviewClaim(nutritionistProfileId: string, mealPlanId: string) {
+    const reviewer = await prisma.nutritionistProfile.findUnique({
+      where: { id: nutritionistProfileId }, select: { userId: true },
+    });
+    if (!reviewer) throw new Error('Nutritionist profile not found.');
+    return prisma.$transaction(async (tx) => {
+      const released = await tx.mealPlan.updateMany({
+        where: {
+          id: mealPlanId,
+          ...getNutritionistReviewableMealPlanWhere(),
+          claimedByNutritionistId: nutritionistProfileId,
+          claimedAt: { gte: getReviewClaimCutoff() },
+        },
+        data: { claimedByNutritionistId: null, claimedAt: null },
+      });
+      if (released.count !== 1) {
+        throw new Error('You no longer hold an active claim for this meal. Refresh the queue.');
+      }
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: reviewer.userId,
+          action: 'MEAL_PLAN_REVIEW_CLAIM_RELEASED',
+          entityType: 'MealPlan',
+          entityId: mealPlanId,
+          metadata: { nutritionistProfileId },
+        },
+      });
+      return { released: true };
+    });
   }
 
   /**

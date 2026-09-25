@@ -300,7 +300,7 @@ router.post(
 
 /**
  * GET /api/nutritionist/queue/:id
- * Fetches detailed two-panel review card data, setting/extending the claim lock.
+ * Fetches a non-claiming review preview. A separate POST acquires the lock.
  */
 router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -316,6 +316,25 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(409).json({ success: false, error: message });
     }
     return res.status(500).json({ success: false, error: message });
+  }
+});
+
+router.post('/queue/:id/claim', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, req.params.id, true);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: unknown) {
+    const message = sanitizeErrorMessage(error, 'Could not claim this review.');
+    return res.status(isNutritionistReviewConflict(message) ? 409 : 422).json({ success: false, error: message });
+  }
+});
+
+router.post('/queue/:id/release', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await NutritionistService.releaseReviewClaim(req.nutritionistProfileId!, req.params.id);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: unknown) {
+    return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not release this review.') });
   }
 });
 
