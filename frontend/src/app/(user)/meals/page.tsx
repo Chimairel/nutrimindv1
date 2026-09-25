@@ -12,6 +12,7 @@ import MealActivityCalendar from '@/components/user/MealActivityCalendar';
 import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
+import { groupApprovedPlanRecipes } from '@/features/meals/approvedPlanRecipes';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import StateNotice from '@/components/shared/StateNotice';
@@ -95,10 +96,10 @@ export default function WeeklyPlanPage() {
     displayedMealCount,
     completedMealCount,
   } = workspace;
-  const approvedPlanOnlyCount = meals.filter((meal) =>
+  const approvedPlanOnlyCount = groupApprovedPlanRecipes(meals.filter((meal) =>
     meal.status === 'APPROVED' &&
     (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
-  ).length;
+  )).length;
 
   const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && (displayedMealCount > 0 || awaitingGeneration.upcoming > 0);
   const awaitingGenerationCount = upcomingOnly ? awaitingGeneration.upcoming : awaitingGeneration.current;

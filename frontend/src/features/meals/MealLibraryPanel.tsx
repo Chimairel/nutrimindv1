@@ -6,6 +6,7 @@ import MealImage from '@/components/user/MealImage';
 import Link from 'next/link';
 import { AlertTriangle, Heart, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
+import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 
 export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
   const {
@@ -30,14 +31,14 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
   } = workspace;
   const plannedLibraryIds = new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean));
   const search = librarySearch.trim().toLocaleLowerCase();
-  const approvedInPlan = meals.filter((meal) =>
+  const approvedInPlan = groupApprovedPlanRecipes(meals.filter((meal) =>
     meal.status === 'APPROVED' &&
     !libraryFavoriteOnly &&
     libraryRiceRole === 'All' &&
     (libraryMealType === 'All' || meal.mealType === libraryMealType) &&
     (!search || meal.mealName.toLocaleLowerCase().includes(search)) &&
     (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
-  );
+  ));
   return (
     <div className="space-y-6 text-left">
       <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
@@ -100,7 +101,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           </select>
         </label>
         {libraryTotalCount !== null && (
-          <span className="ml-auto text-brand-muted">{libraryTotalCount} reusable recipes · {approvedInPlan.length} approved in plan</span>
+          <span className="ml-auto text-brand-muted">{libraryTotalCount} reusable recipes · {approvedInPlan.length} approved {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan</span>
         )}
       </div>
 
@@ -113,12 +114,12 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {approvedInPlan.map((meal) => (
+            {approvedInPlan.map(({ meal, occurrences }) => (
               <article key={meal.id} className="flex flex-col gap-3 rounded-[22px] border border-brand-border bg-brand-surface p-5 shadow-sm">
                 <MealImage image={meal.image} mealName={meal.mealName} mealType={meal.mealType} className="h-36 w-full" showAttributionLinks />
                 <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
                   <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">Approved for you</span>
-                  <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">In your plan</span>
+                  <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}</span>
                 </div>
                 <div className="flex justify-between gap-2 text-xs font-bold text-brand-green">
                   <span>{meal.mealType}</span><span>{meal.calories} kcal</span>
@@ -126,7 +127,17 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                 <h3 className="text-sm font-bold text-brand-text">{meal.mealName}</h3>
                 {meal.description && <p className="text-xs text-brand-muted">{meal.description}</p>}
                 <p className="text-xs text-brand-muted">Protein {meal.proteinG} g · Carbs {meal.carbsG} g · Fat {meal.fatG} g</p>
-                <Link href={`/dashboard/${meal.id}`} className="text-xs font-semibold text-brand-green underline">View planned meal</Link>
+                {occurrences.length === 1 ? (
+                  <Link href={`/dashboard/${meal.id}`} className="text-xs font-semibold text-brand-green underline">View planned meal</Link>
+                ) : (
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-brand-green">
+                    {occurrences.map((slot) => (
+                      <Link key={slot.id} href={`/dashboard/${slot.id}`} className="underline">
+                        {slot.cycleScope === 'UPCOMING' ? 'Next week' : 'This week'} · {new Date(slot.scheduledDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </article>
             ))}
           </div>

@@ -166,6 +166,8 @@ export interface MealPlan {
   userId: string;
   nutritionistId?: string;
   libraryMealId?: string;
+  baseRecipeSignature?: string | null;
+  composedServingSignature?: string | null;
   status: MealPlanStatus;
   mealType: MealType;
   mealName: string;
