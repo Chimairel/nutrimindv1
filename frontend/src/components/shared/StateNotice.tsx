@@ -56,14 +56,10 @@ const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
   'no-meal-plan': {
     getImageSrc: (theme) =>
       theme === 'dark' ? '/logo/sleeping-dark.svg' : '/logo/sleeping-light.svg',
-    imageAlt: 'No Active Meal Plan',
+    imageAlt: 'Meal plan status',
     eyebrowVariant: 'brand',
-    title: 'No Active Meal Plan',
-    description:
-      'You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices.',
-    action: {
-      label: 'Generate Meal Plan',
-    },
+    title: "Meal planning isn't available yet",
+    description: 'Complete the required account and health steps before your meal plan can be prepared.',
   },
   'action-needed': {
     getImageSrc: () => '/logo/unauthorized.svg',

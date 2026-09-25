@@ -30,7 +30,7 @@ import {
   type OutsideMealWarning,
   type PendingReview,
 } from '@/features/dashboard/model';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 
 interface CurrentPlanSnapshot {
@@ -276,13 +276,17 @@ export default function DashboardPage() {
         setClinicalEvidenceRequired(true);
         setCurrentMeals([]);
         setPendingReview(null);
+        setCurrentCycle(null);
+        setAwaitingGenerationCount(0);
+        setGenerationStatus(null);
+        invalidateSessionResource(ownerId, currentPlanResource);
       }
       setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
     } finally {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan, user]);
+  }, [applyCurrentPlan, user, ownerId]);
 
   useEffect(() => {
     if (awaitingGenerationCount === 0) return;
@@ -566,7 +570,7 @@ export default function DashboardPage() {
           }
         />
 
-        {!isLoading && awaitingGenerationCount > 0 && !isReportPending && (
+        {!isLoading && awaitingGenerationCount > 0 && !isReportPending && !clinicalEvidenceRequired && (
           <div role="status" className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 p-4 text-sm text-brand-text">
             {awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'} {generationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}. {generationStatus === 'FAILED' ? 'Saved candidates remain available.' : 'The earliest days are first in line.'} Empty slots are not available for shopping or logging.
             {generationStatus === 'FAILED' && currentCycle?.id && (
@@ -581,15 +585,25 @@ export default function DashboardPage() {
           <DashboardSkeleton />
         ) : isReportPending ? (
           <StateNotice
-            variant="action-needed"
-            description="Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed."
+            variant="no-meal-plan"
+            eyebrow="Action needed"
+            eyebrowVariant="amber"
+            title="Meal planning isn't available yet"
+            description="Review and acknowledge your current nutrition report first. Your meal plan will begin preparing automatically once you're eligible."
             action={{
               label: 'View Nutrition Report',
               href: '/profile/nutrition-report',
             }}
           />
         ) : clinicalEvidenceRequired ? (
-          <StateNotice variant="action-needed" title="Clinical context needed" description="Review the requested health details and, where required, upload a supporting document for an RND to review before meal planning continues." action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }} />
+          <StateNotice
+            variant="no-meal-plan"
+            eyebrow="Action needed"
+            eyebrowVariant="amber"
+            title="Meal planning isn't available yet"
+            description="Your health details need more review before a meal plan can be prepared. Check the requested clinical information and upload a supporting document if required."
+            action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
+          />
         ) : currentMeals.length === 0 && !pendingReview && awaitingGenerationCount > 0 ? (
           <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
             Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review progress.

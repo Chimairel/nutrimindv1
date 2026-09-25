@@ -17,11 +17,11 @@ describe('StateNotice Component', () => {
       />
     );
 
-    expect(screen.getByText('No Active Meal Plan')).toBeInTheDocument();
+    expect(screen.getByText("Meal planning isn't available yet")).toBeInTheDocument();
     expect(
-      screen.getByText(/You do not have a meal plan scheduled\. Generate an affordable, varied plan/i)
+      screen.getByText(/Complete the required account and health steps before your meal plan can be prepared/i)
     ).toBeInTheDocument();
-    expect(screen.getByAltText('No Active Meal Plan')).toBeInTheDocument();
+    expect(screen.getByAltText('Meal plan status')).toBeInTheDocument();
 
     const button = screen.getByRole('button', { name: /generate meal plan/i });
     fireEvent.click(button);
@@ -122,7 +122,7 @@ describe('StateNotice Component', () => {
   it('omits action button when action is null', () => {
     render(<StateNotice variant="no-meal-plan" action={null} />);
 
-    expect(screen.getByText('No Active Meal Plan')).toBeInTheDocument();
+    expect(screen.getByText("Meal planning isn't available yet")).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -147,7 +147,7 @@ describe('StateNotice Component', () => {
       </ThemeProvider>
     );
 
-    const img = screen.getByAltText('No Active Meal Plan');
+    const img = screen.getByAltText('Meal plan status');
     expect(img).toBeInTheDocument();
     expect(img.getAttribute('src')).toContain('sleeping');
   });

@@ -1,12 +1,13 @@
 import { summarizeMealIntake } from '@/lib/meal-history-summary';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import type { MealPlan, PublicMealImage, PublicVerifier, MealCookingLink } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 
@@ -134,6 +135,7 @@ export function useMealsWorkspace() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
+  const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGeneration, setAwaitingGeneration] = useState(cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 });
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? { current: null, upcoming: null });
@@ -222,6 +224,7 @@ export function useMealsWorkspace() {
     try {
       const res = await api.get('/user/meals/workspace');
       if (res.data && res.data.success) {
+        setClinicalEvidenceRequired(false);
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
@@ -231,12 +234,21 @@ export function useMealsWorkspace() {
         });
       }
     } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
+        setClinicalEvidenceRequired(true);
+        setMeals([]);
+        setPendingReview(null);
+        setCycles(null);
+        setAwaitingGeneration({ current: 0, upcoming: 0 });
+        setGenerationStatus({ current: null, upcoming: null });
+        invalidateSessionResource(ownerId, currentPlanResource);
+      }
       setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
     } finally {
       currentPlanRequestInFlight.current = false;
       setIsLoading(false);
     }
-  }, [applyCurrentPlan]);
+  }, [applyCurrentPlan, ownerId, currentPlanResource]);
 
   useEffect(() => {
     if (awaitingGeneration.current + awaitingGeneration.upcoming === 0) return;
@@ -842,6 +854,7 @@ export function useMealsWorkspace() {
     isRegenerating,
     regenerationProgress,
     error,
+    clinicalEvidenceRequired,
     pendingReview,
     awaitingGeneration,
     generationStatus,

@@ -50,6 +50,7 @@ export default function WeeklyPlanPage() {
     isRegenerating,
     regenerationProgress,
     error,
+    clinicalEvidenceRequired,
     pendingReview,
     awaitingGeneration,
     generationStatus,
@@ -279,7 +280,7 @@ export default function WeeklyPlanPage() {
           ))}
         </nav>
 
-        {activeTab === 'plan' && !isLoading && upcomingOnly && (
+        {activeTab === 'plan' && !isLoading && upcomingOnly && !clinicalEvidenceRequired && !isReportPending && (
           <div className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
             <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
             <p>
@@ -291,7 +292,7 @@ export default function WeeklyPlanPage() {
           </div>
         )}
 
-        {activeTab === 'plan' && !isLoading && awaitingGenerationCount > 0 && (
+        {activeTab === 'plan' && !isLoading && awaitingGenerationCount > 0 && !clinicalEvidenceRequired && !isReportPending && (
           <div role="status" className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
             <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
             <div>
@@ -416,7 +417,7 @@ export default function WeeklyPlanPage() {
           </section>
         )}
 
-        {error && !error.toLowerCase().includes('nutrition report') && (
+        {error && !clinicalEvidenceRequired && !error.toLowerCase().includes('nutrition report') && (
           <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
             <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
             <span>{error}</span>
@@ -429,12 +430,24 @@ export default function WeeklyPlanPage() {
             <MealPlanSkeleton />
           ) : isReportPending ? (
             <StateNotice
-              variant="action-needed"
-              description="Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed."
+              variant="no-meal-plan"
+              eyebrow="Action needed"
+              eyebrowVariant="amber"
+              title="Meal planning isn't available yet"
+              description="Review and acknowledge your current nutrition report first. Your meal plan will begin preparing automatically once you're eligible."
               action={{
                 label: 'View Nutrition Report',
                 href: '/profile/nutrition-report',
               }}
+            />
+          ) : clinicalEvidenceRequired ? (
+            <StateNotice
+              variant="no-meal-plan"
+              eyebrow="Action needed"
+              eyebrowVariant="amber"
+              title="Meal planning isn't available yet"
+              description="Your health details need more review before a meal plan can be prepared. Check the requested clinical information and upload a supporting document if required."
+              action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
             />
           ) : groupedDays.length === 0 ? (
             pendingReview ? (
