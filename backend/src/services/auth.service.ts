@@ -231,6 +231,15 @@ export class AuthService {
 
     if (user) {
       if (user.isSuspended) throw new Error('This account has been suspended.');
+      if (user.role === 'NUTRITIONIST') {
+        const application = await prisma.nutritionistApplication.findUnique({
+          where: { invitedUserId: user.id },
+          select: { status: true },
+        });
+        if (application && application.status !== 'ACTIVATED') {
+          throw new Error('Complete your nutritionist invitation before signing in.');
+        }
+      }
       const existingGoogleAccount = await prisma.account.findFirst({
         where: { userId: user.id, provider: 'google' },
       });
@@ -464,11 +473,19 @@ export class AuthService {
       throw new Error('Invalid email or password credentials.');
     }
     if (user.isSuspended) throw new Error('This account has been suspended.');
-
     // Verify hashed password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new Error('Invalid email or password credentials.');
+    }
+    if (user.role === 'NUTRITIONIST') {
+      const application = await prisma.nutritionistApplication.findUnique({
+        where: { invitedUserId: user.id },
+        select: { status: true },
+      });
+      if (application && application.status !== 'ACTIVATED') {
+        throw new Error('Complete your nutritionist invitation before signing in.');
+      }
     }
 
     // Create token payloads
@@ -509,6 +526,15 @@ export class AuthService {
     // Always return success to prevent email enumeration
     if (!user || !user.passwordLoginEnabled) {
       return { message: 'If an account with that email exists, a reset link has been sent.' };
+    }
+    if (user.role === 'NUTRITIONIST') {
+      const application = await prisma.nutritionistApplication.findUnique({
+        where: { invitedUserId: user.id },
+        select: { status: true },
+      });
+      if (application && application.status !== 'ACTIVATED') {
+        return { message: 'If an account with that email exists, a reset link has been sent.' };
+      }
     }
 
     // Generate reset token
@@ -563,6 +589,15 @@ export class AuthService {
     }
     if (!matchedUser.passwordLoginEnabled) {
       throw new Error('Invalid or expired reset link. Please request a new one.');
+    }
+    if (matchedUser.role === 'NUTRITIONIST') {
+      const application = await prisma.nutritionistApplication.findUnique({
+        where: { invitedUserId: matchedUser.id },
+        select: { status: true },
+      });
+      if (application && application.status !== 'ACTIVATED') {
+        throw new Error('Complete your nutritionist invitation before resetting your password.');
+      }
     }
 
     // Hash the new password and clear reset fields

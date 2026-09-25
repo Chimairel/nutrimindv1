@@ -147,8 +147,8 @@ export class NutritionistApplicationService {
     if (!allowed) throw new Error(`Application cannot move from ${application.status} to ${status}.`);
 
     return prisma.$transaction(async (tx) => {
-      const updated = await tx.nutritionistApplication.update({
-        where: { id: applicationId },
+      const changed = await tx.nutritionistApplication.updateMany({
+        where: { id: applicationId, status: application.status },
         data: {
           status,
           reviewedByAdminId: adminUserId,
@@ -156,6 +156,8 @@ export class NutritionistApplicationService {
           adminNotes: adminNotes?.trim() || application.adminNotes,
         },
       });
+      if (changed.count !== 1) throw new Error('Application status changed. Refresh before continuing.');
+      const updated = await tx.nutritionistApplication.findUniqueOrThrow({ where: { id: applicationId } });
       await tx.auditEvent.create({
         data: {
           actorUserId: adminUserId,
@@ -176,8 +178,8 @@ export class NutritionistApplicationService {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const result = await tx.nutritionistApplication.update({
-        where: { id: applicationId },
+      const changed = await tx.nutritionistApplication.updateMany({
+        where: { id: applicationId, status: 'CALL_REQUIRED' },
         data: {
           status: 'CALL_SCHEDULED',
           reviewedByAdminId: adminUserId,
@@ -187,6 +189,8 @@ export class NutritionistApplicationService {
           reviewedAt: new Date(),
         },
       });
+      if (changed.count !== 1) throw new Error('Application status changed. Refresh before continuing.');
+      const result = await tx.nutritionistApplication.findUniqueOrThrow({ where: { id: applicationId } });
       await tx.auditEvent.create({
         data: {
           actorUserId: adminUserId,
@@ -228,8 +232,8 @@ export class NutritionistApplicationService {
 
     if (input.decision === 'reject') {
       const result = await prisma.$transaction(async (tx) => {
-        const updated = await tx.nutritionistApplication.update({
-          where: { id: applicationId },
+        const changed = await tx.nutritionistApplication.updateMany({
+          where: { id: applicationId, status: application.status },
           data: {
             status: 'REJECTED',
             decisionReason: input.reason.trim(),
@@ -238,6 +242,8 @@ export class NutritionistApplicationService {
             reviewedAt: new Date(),
           },
         });
+        if (changed.count !== 1) throw new Error('Application status changed. Refresh before continuing.');
+        const updated = await tx.nutritionistApplication.findUniqueOrThrow({ where: { id: applicationId } });
         await tx.auditEvent.create({
           data: {
             actorUserId: adminUserId,
@@ -282,6 +288,24 @@ export class NutritionistApplicationService {
     const placeholderPasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
 
     const approved = await prisma.$transaction(async (tx) => {
+      const changed = await tx.nutritionistApplication.updateMany({
+        where: {
+          id: applicationId,
+          status: 'CALL_SCHEDULED',
+          scheduledCallAt: { lte: new Date() },
+          prcLicenseExpiry: { gt: new Date() },
+        },
+        data: {
+          status: 'APPROVED',
+          approvedAt: new Date(),
+          reviewedAt: new Date(),
+          reviewedByAdminId: adminUserId,
+          adminNotes: input.adminNotes?.trim() || application.adminNotes,
+          invitationTokenHash,
+          invitationExpiresAt,
+        },
+      });
+      if (changed.count !== 1) throw new Error('Application status or license changed. Refresh before continuing.');
       const duplicateUser = await tx.user.findUnique({ where: { email: application.email } });
       if (duplicateUser) throw new Error('An account already exists for this applicant email.');
 
@@ -313,13 +337,6 @@ export class NutritionistApplicationService {
       const updated = await tx.nutritionistApplication.update({
         where: { id: applicationId },
         data: {
-          status: 'APPROVED',
-          approvedAt: new Date(),
-          reviewedAt: new Date(),
-          reviewedByAdminId: adminUserId,
-          adminNotes: input.adminNotes?.trim() || application.adminNotes,
-          invitationTokenHash,
-          invitationExpiresAt,
           invitedUserId: user.id,
         },
       });
@@ -346,15 +363,27 @@ export class NutritionistApplicationService {
     }
 
     const invitationToken = crypto.randomBytes(32).toString('base64url');
-    const updated = await prisma.nutritionistApplication.update({
-      where: { id: applicationId },
+    const nextTokenHash = hashToken(invitationToken);
+    const changed = await prisma.nutritionistApplication.updateMany({
+      where: { id: applicationId, status: 'APPROVED', invitationTokenHash: application.invitationTokenHash },
       data: {
-        invitationTokenHash: hashToken(invitationToken),
+        invitationTokenHash: nextTokenHash,
         invitationExpiresAt: new Date(Date.now() + INVITATION_TTL_MS),
         reviewedByAdminId: adminUserId,
       },
     });
+    if (changed.count !== 1) throw new Error('Invitation state changed. Refresh before resending.');
+    const updated = await prisma.nutritionistApplication.findUniqueOrThrow({ where: { id: applicationId } });
     const invitationEmailSent = await this.deliverInvitation(updated, invitationToken);
+    if (!invitationEmailSent) {
+      await prisma.nutritionistApplication.updateMany({
+        where: { id: applicationId, status: 'APPROVED', invitationTokenHash: nextTokenHash },
+        data: {
+          invitationTokenHash: application.invitationTokenHash,
+          invitationExpiresAt: application.invitationExpiresAt,
+        },
+      });
+    }
     return { application: updated, invitationEmailSent };
   }
 
@@ -371,18 +400,24 @@ export class NutritionistApplicationService {
 
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: application.invitedUserId! },
-        data: { passwordHash, emailVerified: true },
-      });
-      await tx.nutritionistApplication.update({
-        where: { id: application.id },
+      const changed = await tx.nutritionistApplication.updateMany({
+        where: {
+          id: application.id,
+          status: 'APPROVED',
+          invitationTokenHash: hashToken(token),
+          invitationExpiresAt: { gt: new Date() },
+        },
         data: {
           status: 'ACTIVATED',
           activatedAt: new Date(),
           invitationTokenHash: null,
           invitationExpiresAt: null,
         },
+      });
+      if (changed.count !== 1) throw new Error('This nutritionist invitation is invalid or has already been used.');
+      await tx.user.update({
+        where: { id: application.invitedUserId! },
+        data: { passwordHash, emailVerified: true },
       });
       await tx.auditEvent.create({
         data: {

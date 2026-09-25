@@ -10,16 +10,22 @@ export async function requireEligibleNutritionist(req: AuthenticatedRequest, res
       return res.status(401).json({ success: false, error: 'Authentication is required.' });
     }
 
-    const profile = await prisma.nutritionistProfile.findUnique({
-      where: { userId: req.user.userId },
-      select: {
-        id: true,
-        isVerified: true,
-        prcLicenseExpiry: true,
-      },
-    });
+    const [profile, user, application] = await Promise.all([
+      prisma.nutritionistProfile.findUnique({
+        where: { userId: req.user.userId },
+        select: { id: true, isVerified: true, prcLicenseExpiry: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { emailVerified: true },
+      }),
+      prisma.nutritionistApplication.findUnique({
+        where: { invitedUserId: req.user.userId },
+        select: { status: true },
+      }),
+    ]);
 
-    if (!profile || !isNutritionistEligibleForReview(profile)) {
+    if (!profile || !user?.emailVerified || (application && application.status !== 'ACTIVATED') || !isNutritionistEligibleForReview(profile)) {
       return res.status(403).json({
         success: false,
         error: 'An active, verified nutritionist credential is required for this workspace.',
