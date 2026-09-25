@@ -13,7 +13,7 @@ import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
-import { toast } from '@/components/ui/Sonner';
+import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import StateNotice from '@/components/shared/StateNotice';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import {
@@ -136,28 +136,24 @@ export default function WeeklyPlanPage() {
   }, [activeTab, setSubTab]);
 
   const activePlanPillRef = useRef<HTMLButtonElement | null>(null);
-  const notifiedPendingReview = useRef(false);
-  const notifiedStarterPlan = useRef(false);
+  useEffect(() => {
+    showPendingReviewNoticeOnce({
+      userId: user?.userId,
+      pending: pendingReview,
+      currentCycle: cycles?.current ?? null,
+      upcomingCycle: cycles?.upcoming ?? null,
+      upcomingOnly,
+    });
+  }, [user?.userId, pendingReview, cycles, upcomingOnly]);
 
   useEffect(() => {
-    if (pendingReview && !notifiedPendingReview.current) {
-      notifiedPendingReview.current = true;
-      toast.info(upcomingOnly
-        ? 'Your upcoming week is being prepared. These are previews until nutritionist review is complete.'
-        : 'Your meal plan is currently in preview while a nutritionist verifies it.', {
-        id: 'meals-clinical-review-preview',
-      });
-    }
-  }, [pendingReview, upcomingOnly]);
-
-  useEffect(() => {
-    if (isStarterPlan && nextCycleDay && !notifiedStarterPlan.current) {
-      notifiedStarterPlan.current = true;
-      toast.info(`You're on a starter plan. Your full 7-day cycle begins on ${nextCycleDay}.`, {
-        id: 'meals-starter-plan-notice',
-      });
-    }
-  }, [isStarterPlan, nextCycleDay]);
+    showStarterPlanNoticeOnce({
+      userId: user?.userId,
+      isStarterPlan,
+      nextCycleDay,
+      currentCycle: cycles?.current ?? null,
+    });
+  }, [user?.userId, isStarterPlan, nextCycleDay, cycles]);
 
   useEffect(() => {
     if (activePlanPillRef.current) {

@@ -8,7 +8,7 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { toast } from '@/components/ui/Sonner';
+import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import StateNotice from '@/components/shared/StateNotice';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
@@ -101,26 +101,13 @@ export default function DashboardPage() {
     return null;
   }, [isStarterPlan, currentCycle?.endDate]);
 
-  const notifiedStarterPlan = useRef(false);
-  const notifiedPendingReview = useRef(false);
+  useEffect(() => {
+    showPendingReviewNoticeOnce({ userId: user?.userId, pending: pendingReview, currentCycle, upcomingCycle });
+  }, [user?.userId, pendingReview, currentCycle, upcomingCycle]);
 
   useEffect(() => {
-    if (pendingReview && !notifiedPendingReview.current) {
-      notifiedPendingReview.current = true;
-      toast.info('Your meal plan is currently in preview while a nutritionist verifies it.', {
-        id: 'dashboard-clinical-review-preview',
-      });
-    }
-  }, [pendingReview]);
-
-  useEffect(() => {
-    if (isStarterPlan && nextCycleDay && !notifiedStarterPlan.current) {
-      notifiedStarterPlan.current = true;
-      toast.info(`You're on a starter plan. Your full 7-day cycle begins on ${nextCycleDay}.`, {
-        id: 'dashboard-starter-plan-notice',
-      });
-    }
-  }, [isStarterPlan, nextCycleDay]);
+    showStarterPlanNoticeOnce({ userId: user?.userId, isStarterPlan, nextCycleDay, currentCycle });
+  }, [user?.userId, isStarterPlan, nextCycleDay, currentCycle]);
 
   // Extract unique scheduledDate values in chronological order, keeping full 7-day cycle with past days visible
   const uniqueDates = React.useMemo(() => {
