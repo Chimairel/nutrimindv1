@@ -4,7 +4,14 @@ import { lockUserProfile } from './profile-revision.service';
 import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma, ClinicalEvidenceArea } from '@prisma/client';
 
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
-import { getReviewClaimCutoff, getReviewPriority, isReviewClaimActive } from '@/domain/nutritionist-review.policy';
+import {
+  getReviewClaimCooldownUntil,
+  getReviewClaimCutoff,
+  getReviewPriority,
+  isReviewClaimActive,
+  REVIEW_CLAIM_COOLDOWN_MS,
+  REVIEW_CLAIM_TTL_MS,
+} from '@/domain/nutritionist-review.policy';
 import { recordCompletedMealPlanReviewCredit } from '@/services/work-credit.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
@@ -33,7 +40,8 @@ export async function assertObservedSourceStillAvailable(tx: Prisma.TransactionC
 
 export class NutritionistReviewService {
   static async getReviewQueue(nutritionistProfileId?: string) {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const now = new Date();
+    const claimCutoff = getReviewClaimCutoff(now);
     // Show the whole shared queue, including items actively claimed by peers.
     const reviewer = nutritionistProfileId
       ? await prisma.nutritionistProfile.findUnique({
@@ -92,6 +100,11 @@ export class NutritionistReviewService {
       return reviewer?.canLeadReview === true && meal.firstApprovedByNutritionistId !== nutritionistProfileId;
     });
     const sorted = visibleMeals.sort((a, b) => {
+      if (nutritionistProfileId) {
+        const aCooling = Boolean(getReviewClaimCooldownUntil(a, nutritionistProfileId, now));
+        const bCooling = Boolean(getReviewClaimCooldownUntil(b, nutritionistProfileId, now));
+        if (aCooling !== bCooling) return aCooling ? 1 : -1;
+      }
       const deadlineOrder = compareDeadlineReviewPriority(
         {
           shoppingDeadlineAt: a.cycle.shoppingDeadlineAt,
@@ -119,10 +132,13 @@ export class NutritionistReviewService {
 
     const result = coalesced.map((meal) => {
       const isBlindSecondReview = meal.highRiskReviewRequired && meal.reviewApprovalCount === 1;
-      const isClaimed = meal.claimedByNutritionistId && meal.claimedAt && meal.claimedAt >= thirtyMinutesAgo;
+      const isClaimed = meal.claimedByNutritionistId && meal.claimedAt && meal.claimedAt >= claimCutoff;
       const claimedByMe = isClaimed && meal.claimedByNutritionistId === nutritionistProfileId;
       const claimedByOther = isClaimed && meal.claimedByNutritionistId !== nutritionistProfileId;
       const claimedByName = claimedByOther ? meal.claimedByNutritionist?.user?.name || 'Another nutritionist' : null;
+      const cooldownUntil = nutritionistProfileId
+        ? getReviewClaimCooldownUntil(meal, nutritionistProfileId, now)
+        : null;
 
       return {
         id: meal.id,
@@ -176,6 +192,11 @@ export class NutritionistReviewService {
           claimedByMe: !!claimedByMe,
           claimedByOther: !!claimedByOther,
           claimedByName,
+          coolingDownForMe: Boolean(cooldownUntil),
+          cooldownUntil,
+          claimExpiresAt: claimedByMe && meal.claimedAt
+            ? new Date(meal.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS)
+            : null,
         },
       };
     });
@@ -224,8 +245,13 @@ export class NutritionistReviewService {
         OR: [
           { claimedByNutritionistId: null },
           { claimedAt: null },
-          { claimedAt: { lt: claimCutoff } },
-          { claimedByNutritionistId: nutritionistProfileId },
+          {
+            claimedAt: { lt: claimCutoff },
+            NOT: {
+              claimedByNutritionistId: nutritionistProfileId,
+              claimedAt: { gte: new Date(claimCutoff.getTime() - REVIEW_CLAIM_COOLDOWN_MS) },
+            },
+          },
         ],
       },
       data: {
@@ -251,12 +277,18 @@ export class NutritionistReviewService {
       if (current.status !== MealPlanStatus.PENDING_REVIEW) {
         throw new Error('This meal was already reviewed. Please refresh the queue.');
       }
+      const cooldownUntil = getReviewClaimCooldownUntil(current, nutritionistProfileId, now);
+      if (cooldownUntil) {
+        throw new Error(`Your claim expired. Other nutritionists can review this meal now; you can try again after ${cooldownUntil.toLocaleTimeString()}.`);
+      }
       if (isReviewClaimActive(current, now) && current.claimedByNutritionistId !== nutritionistProfileId) {
         throw new Error(
           `This meal was already claimed by ${current.claimedByNutritionist?.user?.name || 'another nutritionist'}. Please choose another item.`
         );
       }
-      throw new Error('Unable to acquire an active claim for this meal. Please refresh the queue.');
+      if (!isReviewClaimActive(current, now) || current.claimedByNutritionistId !== nutritionistProfileId) {
+        throw new Error('Unable to acquire an active claim for this meal. Please refresh the queue.');
+      }
     }
 
     const updatedMealPlan = await prisma.mealPlan.findUnique({
@@ -453,6 +485,9 @@ export class NutritionistReviewService {
         claimedByMe: true,
         claimedByOther: false,
         claimedByName: null,
+        claimExpiresAt: updatedMealPlan.claimedAt
+          ? new Date(updatedMealPlan.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS)
+          : null,
       },
     };
   }

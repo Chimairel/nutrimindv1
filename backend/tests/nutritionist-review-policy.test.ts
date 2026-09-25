@@ -3,6 +3,7 @@ import test from 'node:test';
 import { AIConfidenceFlag } from '@prisma/client';
 import {
   canAcquireReviewClaim,
+  getReviewClaimCooldownUntil,
   getReviewPriority,
   isNutritionistEligibleForReview,
   isReviewClaimActive,
@@ -35,6 +36,9 @@ test('[TEST-048][DEF-013] expired and unclaimed reviews can be acquired', () => 
 
   assert.equal(isReviewClaimActive(expiredClaim, now), false);
   assert.equal(canAcquireReviewClaim(expiredClaim, 'nutritionist-b', now), true);
+  assert.equal(canAcquireReviewClaim(expiredClaim, 'nutritionist-a', now), false);
+  assert.equal(getReviewClaimCooldownUntil(expiredClaim, 'nutritionist-a', now)?.toISOString(), '2026-08-30T04:04:00.000Z');
+  assert.equal(canAcquireReviewClaim(expiredClaim, 'nutritionist-a', new Date(now.getTime() + 4 * 60 * 1000)), true);
   assert.equal(canAcquireReviewClaim({ claimedByNutritionistId: null, claimedAt: null }, 'nutritionist-b', now), true);
 });
 

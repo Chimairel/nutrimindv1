@@ -2,6 +2,7 @@ import { AIConfidenceFlag } from '@prisma/client';
 import { getManilaBusinessDateKey } from './meal-actionability.policy';
 
 export const REVIEW_CLAIM_TTL_MS = 30 * 60 * 1000;
+export const REVIEW_CLAIM_COOLDOWN_MS = 5 * 60 * 1000;
 
 type ClaimCandidate = {
   claimedByNutritionistId: string | null;
@@ -22,12 +23,24 @@ export function isReviewClaimActive(claim: ClaimCandidate, now: Date = new Date(
   return Boolean(claim.claimedByNutritionistId && claim.claimedAt && claim.claimedAt >= getReviewClaimCutoff(now));
 }
 
+export function getReviewClaimCooldownUntil(
+  claim: ClaimCandidate,
+  nutritionistProfileId: string,
+  now: Date = new Date()
+): Date | null {
+  if (claim.claimedByNutritionistId !== nutritionistProfileId || !claim.claimedAt) return null;
+  const expiresAt = claim.claimedAt.getTime() + REVIEW_CLAIM_TTL_MS;
+  const cooldownUntil = expiresAt + REVIEW_CLAIM_COOLDOWN_MS;
+  return expiresAt < now.getTime() && cooldownUntil > now.getTime() ? new Date(cooldownUntil) : null;
+}
+
 export function canAcquireReviewClaim(
   claim: ClaimCandidate,
   nutritionistProfileId: string,
   now: Date = new Date()
 ): boolean {
-  return !isReviewClaimActive(claim, now) || claim.claimedByNutritionistId === nutritionistProfileId;
+  return !getReviewClaimCooldownUntil(claim, nutritionistProfileId, now) &&
+    (!isReviewClaimActive(claim, now) || claim.claimedByNutritionistId === nutritionistProfileId);
 }
 
 export function getReviewPriority(flag: AIConfidenceFlag): number {

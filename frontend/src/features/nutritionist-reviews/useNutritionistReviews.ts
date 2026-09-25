@@ -21,6 +21,9 @@ export interface QueueItem {
     claimedByMe: boolean;
     claimedByOther: boolean;
     claimedByName: string | null;
+    coolingDownForMe?: boolean;
+    cooldownUntil?: string | null;
+    claimExpiresAt?: string | null;
   };
   highRiskReviewRequired: boolean;
   reviewApprovalCount: number;
@@ -95,6 +98,7 @@ export interface DetailData {
     claimedByMe: boolean;
     claimedByOther: boolean;
     claimedByName: string | null;
+    claimExpiresAt?: string | null;
   };
   highRiskReviewRequired: boolean;
   reviewApprovalCount: number;

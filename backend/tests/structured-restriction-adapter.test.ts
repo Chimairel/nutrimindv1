@@ -236,6 +236,22 @@ test('[TEST-075] production compatibility intersects each exact structured profi
     false,
     'a restriction-compatible meal with a mismatched diet tag must be denied'
   );
+  const browseProfile = {
+    dietaryPreference: vegetarianProfile.diet,
+    otherConditions: null,
+    otherAllergies: null,
+    safetyEntries: vegetarianProfile.entries,
+  };
+  assert.equal(
+    isCertifiedLibraryMealCompatible(restrictionCompatiblePescatarianMeal, [], [], browseProfile, { safetyOnly: true }),
+    true,
+    'a certified meal with a voluntary diet mismatch can be browsed'
+  );
+  assert.equal(
+    isCertifiedLibraryMealCompatible(certifiedMeal(['PESCATARIAN'], [], []), [], [], browseProfile, { safetyOnly: true }),
+    false,
+    'browse mode must not bypass missing allergen and condition clearance'
+  );
 });
 
 test('[TEST-075] precedence is BLOCK over REVIEW over ALLOW', () => {

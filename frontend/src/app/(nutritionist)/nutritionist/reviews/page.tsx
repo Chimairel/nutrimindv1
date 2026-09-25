@@ -131,13 +131,13 @@ export default function ReviewsPage() {
                 <button
                   type="button"
                   key={meal.id}
-                  disabled={meal.claimStatus.claimedByOther}
+                  disabled={meal.claimStatus.claimedByOther || meal.claimStatus.coolingDownForMe}
                   aria-pressed={isSelected}
                   onClick={() => {
-                    if (!meal.claimStatus.claimedByOther) handleSelectMeal(meal.id);
+                    if (!meal.claimStatus.claimedByOther && !meal.claimStatus.coolingDownForMe) handleSelectMeal(meal.id);
                   }}
                   className={`w-full rounded-2xl border p-4 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/40 ${
-                    meal.claimStatus.claimedByOther ? 'cursor-not-allowed opacity-65' : 'cursor-pointer'
+                    meal.claimStatus.claimedByOther || meal.claimStatus.coolingDownForMe ? 'cursor-not-allowed opacity-65' : 'cursor-pointer'
                   } ${
                     isSelected
                       ? 'border-brand-green/40 bg-brand-green/[0.08] shadow-md'
@@ -156,6 +156,9 @@ export default function ReviewsPage() {
                       {meal.requiresIndependentSecondReview ? 'Independent second review required' : 'Escalated review'}
                     </p>
                   )}
+                  <p className="mb-2 text-[10px] font-bold text-brand-green">
+                    {meal.reviewApprovalCount}/{meal.highRiskReviewRequired ? 2 : 1} reviews complete
+                  </p>
                   <div className="mb-2 flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wide">
                     <span className="rounded-md border border-brand-border px-2 py-1 text-brand-muted">
                       {meal.sourceProvenance.replace(/_/g, ' ')}
@@ -185,6 +188,12 @@ export default function ReviewsPage() {
                       <Eye className="w-3.5 h-3.5" />
                       <span>Being reviewed</span>
                     </div>
+                  )}
+                  {meal.claimStatus.coolingDownForMe && (
+                    <p className="mt-2 text-[10px] font-bold text-amber-500">
+                      Your claim expired. Available to other nutritionists; you can retry after{' '}
+                      {meal.claimStatus.cooldownUntil ? new Date(meal.claimStatus.cooldownUntil).toLocaleTimeString() : 'the cooldown'}.
+                    </p>
                   )}
                 </button>
               );
@@ -250,7 +259,10 @@ export default function ReviewsPage() {
               <div className="flex items-center gap-2 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
                 <span>
-                  This review is locked to you for 30 minutes. Reopen the card if the claim expires before submission.
+                  Claimed by you until{' '}
+                  {detailData.claimStatus.claimExpiresAt
+                    ? new Date(detailData.claimStatus.claimExpiresAt).toLocaleTimeString()
+                    : 'the 30-minute deadline'}. Submit before it expires; afterward, others may claim it and you have a 5-minute cooldown.
                 </span>
               </div>
             )}

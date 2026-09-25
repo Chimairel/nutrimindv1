@@ -2,6 +2,8 @@
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import LibraryMealCard from './LibraryMealCard';
+import MealImage from '@/components/user/MealImage';
+import Link from 'next/link';
 import { AlertTriangle, Heart, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 
@@ -24,7 +26,18 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     loadMoreLibrary,
     toggleLibraryFavorite,
     libraryTotalCount,
+    meals,
   } = workspace;
+  const plannedLibraryIds = new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean));
+  const search = librarySearch.trim().toLocaleLowerCase();
+  const approvedInPlan = meals.filter((meal) =>
+    meal.status === 'APPROVED' &&
+    !libraryFavoriteOnly &&
+    libraryRiceRole === 'All' &&
+    (libraryMealType === 'All' || meal.mealType === libraryMealType) &&
+    (!search || meal.mealName.toLocaleLowerCase().includes(search)) &&
+    (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
+  );
   return (
     <div className="space-y-6 text-left">
       <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
@@ -87,9 +100,40 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           </select>
         </label>
         {libraryTotalCount !== null && (
-          <span className="ml-auto text-brand-muted">{libraryTotalCount} eligible meals</span>
+          <span className="ml-auto text-brand-muted">{libraryTotalCount} reusable recipes · {approvedInPlan.length} approved in plan</span>
         )}
       </div>
+
+      {approvedInPlan.length > 0 && (
+        <section className="space-y-3" aria-label="Meals approved for your plan">
+          <div>
+            <h2 className="text-sm font-bold text-brand-text">Approved for your current or upcoming plan</h2>
+            <p className="text-xs text-brand-muted">
+              These meals were reviewed for your current profile. They are shown here for your plan; reusable library certification is separate.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {approvedInPlan.map((meal) => (
+              <article key={meal.id} className="flex flex-col gap-3 rounded-[22px] border border-brand-border bg-brand-surface p-5 shadow-sm">
+                <MealImage image={meal.image} mealName={meal.mealName} mealType={meal.mealType} className="h-36 w-full" showAttributionLinks />
+                <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+                  <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">Approved for you</span>
+                  <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">In your plan</span>
+                </div>
+                <div className="flex justify-between gap-2 text-xs font-bold text-brand-green">
+                  <span>{meal.mealType}</span><span>{meal.calories} kcal</span>
+                </div>
+                <h3 className="text-sm font-bold text-brand-text">{meal.mealName}</h3>
+                {meal.description && <p className="text-xs text-brand-muted">{meal.description}</p>}
+                <p className="text-xs text-brand-muted">Protein {meal.proteinG} g · Carbs {meal.carbsG} g · Fat {meal.fatG} g</p>
+                <Link href={`/dashboard/${meal.id}`} className="text-xs font-semibold text-brand-green underline">View planned meal</Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {approvedInPlan.length > 0 && <h2 className="text-sm font-bold text-brand-text">Reusable reviewed recipes</h2>}
 
       {isLibraryLoading ? (
         <div className="flex flex-col items-center py-12 gap-2">
@@ -101,7 +145,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
           <span>{libraryError}</span>
         </div>
-      ) : libraryMeals.length === 0 ? (
+      ) : libraryMeals.length === 0 && approvedInPlan.length === 0 ? (
         <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
           <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
           <p className="text-sm text-brand-text font-semibold">No Recipes Found</p>
@@ -109,18 +153,18 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             No verified meals of this type match your health profile right now.
           </p>
         </div>
-      ) : (
+      ) : libraryMeals.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {libraryMeals.map((meal) => (
             <LibraryMealCard
               key={meal.id}
-              meal={meal}
+              meal={{ ...meal, alreadyPlannedInCycle: plannedLibraryIds.has(meal.id) }}
               onVerifier={setSelectedVerifier}
               onFavorite={toggleLibraryFavorite}
             />
           ))}
         </div>
-      )}
+      ) : null}
       {libraryNextCursor && !isLibraryLoading && (
         <div className="flex justify-center">
           <Button type="button" variant="secondary" onClick={loadMoreLibrary}>

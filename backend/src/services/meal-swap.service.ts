@@ -827,6 +827,7 @@ export class MealSwapService {
       riceRole: input.riceRole,
       cursor: input.cursor,
       limit: input.limit,
+      safetyOnly: true,
     });
 
     const [recipeImages, cookingLinks] = await Promise.all([
@@ -834,7 +835,11 @@ export class MealSwapService {
       resolveLibraryRecipeCookingLinks(page.items),
     ]);
     return {
-      items: page.items.map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id))),
+      items: page.items.map((meal) => ({
+        ...toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id)),
+        matchesDietaryPreference: !userProfile.dietaryPreference ||
+          (Array.isArray(meal.dietaryTags) && meal.dietaryTags.includes(userProfile.dietaryPreference)),
+      })),
       nextCursor: page.nextCursor,
       total: page.total,
     };

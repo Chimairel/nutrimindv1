@@ -77,6 +77,7 @@ export default function WeeklyPlanPage() {
     handleObservedConsent,
     handleObservedWithdraw,
     libraryTotalCount,
+    libraryMeals,
     handleSwapClick,
     handleMealStatusToggle,
     handleRegeneratePlan,
@@ -93,6 +94,10 @@ export default function WeeklyPlanPage() {
     displayedMealCount,
     completedMealCount,
   } = workspace;
+  const approvedPlanOnlyCount = meals.filter((meal) =>
+    meal.status === 'APPROVED' &&
+    (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
+  ).length;
 
   const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && (displayedMealCount > 0 || awaitingGeneration.upcoming > 0);
   const awaitingGenerationCount = upcomingOnly ? awaitingGeneration.upcoming : awaitingGeneration.current;
@@ -243,7 +248,7 @@ export default function WeeklyPlanPage() {
             [
               ['plan', 'Plan', Calendar, displayedMealCount],
               ['history', 'History', History, historyTotalCount ?? '…'],
-              ['library', 'Library', BookOpen, libraryTotalCount ?? '…'],
+              ['library', 'Library', BookOpen, libraryTotalCount === null ? '…' : libraryTotalCount + approvedPlanOnlyCount],
             ] as const
           ).map(([value, label, Icon, count]) => (
             <button

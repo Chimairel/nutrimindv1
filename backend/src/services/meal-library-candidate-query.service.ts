@@ -77,7 +77,8 @@ export function isCertifiedLibraryMealCompatible(
   meal: CertifiedLibraryMeal | any,
   userConditions: readonly string[],
   userAllergens: readonly string[],
-  profile: LibraryCandidateProfile
+  profile: LibraryCandidateProfile,
+  options: { safetyOnly?: boolean } = {}
 ): boolean {
   if (!meal.recipeSignature || !/^[a-f0-9]{64}$/u.test(meal.recipeSignature)) return false;
   const safety = evaluateMealLibrarySafetyEvidence({
@@ -145,7 +146,8 @@ export function isCertifiedLibraryMealCompatible(
   if (!compatibility.eligible) return false;
 
   const tags = Array.isArray(meal.dietaryTags) ? meal.dietaryTags : [];
-  return conditionCoverageComplete && (!profile.dietaryPreference || tags.includes(profile.dietaryPreference));
+  return conditionCoverageComplete &&
+    (options.safetyOnly || !profile.dietaryPreference || tags.includes(profile.dietaryPreference));
 }
 
 function positiveValues(values: readonly string[]): string[] {
@@ -265,6 +267,8 @@ export async function queryEligibleLibraryPage(input: {
   riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE';
   cursor?: string;
   limit?: number;
+  /** Browse medically cleared recipes even when they differ from a voluntary diet preference. */
+  safetyOnly?: boolean;
 }): Promise<EligibleLibraryPage> {
   await enforceClearanceCircuitBreakers();
   const pageLimit = Math.max(1, Math.min(input.limit ?? 24, 60));
@@ -306,7 +310,9 @@ export async function queryEligibleLibraryPage(input: {
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
     ...(input.riceRole ? { riceRole: input.riceRole, riceRoleReviewStatus: 'REVIEWED' } : {}),
     ...(input.favoriteOnly ? { favorites: { some: { userId: input.userId } } } : {}),
-    ...(input.profile.dietaryPreference ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } } : {}),
+    ...(!input.safetyOnly && input.profile.dietaryPreference
+      ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } }
+      : {}),
     ...(and.length ? { AND: and } : {}),
   };
 
@@ -340,7 +346,9 @@ export async function queryEligibleLibraryPage(input: {
       take: chunkSize,
     });
     for (const row of rows) {
-      if (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile)) continue;
+      if (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
+        safetyOnly: input.safetyOnly,
+      })) continue;
       total += 1;
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
         items.push({ ...row, isFavorite: row.favorites.length > 0 });

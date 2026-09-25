@@ -22,6 +22,7 @@ export interface SwapOption {
   servingDescription?: string;
   isFavorite: boolean;
   alreadyPlannedInCycle?: boolean;
+  matchesDietaryPreference?: boolean;
   calories: number;
   proteinG: number;
   carbsG: number;

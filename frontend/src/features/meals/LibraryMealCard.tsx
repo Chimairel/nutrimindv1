@@ -28,6 +28,18 @@ export default function LibraryMealCard({
         <span>{applicableMealTypes.join(' · ')}</span>
         <span>{meal.calories} kcal</span>
       </div>
+      {(meal.alreadyPlannedInCycle || meal.matchesDietaryPreference === false) && (
+        <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+          {meal.alreadyPlannedInCycle && (
+            <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">In your plan</span>
+          )}
+          {meal.matchesDietaryPreference === false && (
+            <span className="rounded-full border border-amber-500/40 px-2 py-1 text-amber-500">
+              Outside your dietary preference
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-bold text-brand-text">{meal.mealName}</h3>
         <button
