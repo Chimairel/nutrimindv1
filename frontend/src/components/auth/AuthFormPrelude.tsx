@@ -17,7 +17,7 @@ export default function AuthFormPrelude({
       <GoogleSignInButton label={googleLabel} intent={googleIntent} />
       {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID &&
         process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE' && (
-          <div className={`${compact ? 'my-5' : 'my-6'} flex items-center gap-4`}>
+          <div className={`${compact ? 'my-4' : 'my-6'} flex items-center gap-4`}>
             <div className="h-px flex-1 bg-brand-border/70" />
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-muted">
               or use email

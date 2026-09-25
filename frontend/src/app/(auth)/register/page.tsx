@@ -107,8 +107,8 @@ export default function RegisterPage() {
     >
       <AuthFormPrelude googleLabel="signup_with" googleIntent="register" error={error} compact />
 
-      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        <div className="grid grid-cols-2 gap-3">
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
+        <div className="grid grid-cols-2 gap-2.5">
           <Input
             id="firstName"
             name="firstName"
@@ -124,6 +124,7 @@ export default function RegisterPage() {
             autoComplete="given-name"
             maxLength={80}
             error={fieldErrors.firstName}
+            className="sm:py-2.5"
           />
           <Input
             id="lastName"
@@ -140,6 +141,7 @@ export default function RegisterPage() {
             autoComplete="family-name"
             maxLength={80}
             error={fieldErrors.lastName}
+            className="sm:py-2.5"
           />
         </div>
         <Input
@@ -157,6 +159,7 @@ export default function RegisterPage() {
           autoComplete="email"
           maxLength={254}
           error={fieldErrors.email}
+          className="sm:py-2.5"
         />
         <PasswordInput
           id="password"
@@ -173,6 +176,7 @@ export default function RegisterPage() {
           maxLength={128}
           error={fieldErrors.password}
           helperText="Use at least 8 characters with one uppercase letter and one number. Spaces are allowed in passphrases."
+          className="sm:py-2.5"
         />
         <PasswordInput
           id="confirmPassword"
@@ -189,8 +193,9 @@ export default function RegisterPage() {
           maxLength={128}
           error={fieldErrors.confirmPassword || (passwordsMismatch ? 'Passwords do not match.' : undefined)}
           validationState={passwordsMismatch ? 'error' : passwordsMatch ? 'success' : 'default'}
+          className="sm:py-2.5"
         />
-        <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={isLoading}>
+        <Button type="submit" variant="primary" size="md" className="w-full" isLoading={isLoading}>
           Create account
         </Button>
       </HydratedForm>

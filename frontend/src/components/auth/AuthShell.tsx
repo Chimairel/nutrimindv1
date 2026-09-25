@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
@@ -28,48 +28,15 @@ export default function AuthShell({
   footer,
   wide = false,
 }: AuthShellProps) {
-  const formRef = useRef<HTMLDivElement>(null);
-
-  // Gentle smooth scroll to focus on the form on mobile/stacked layouts
-  useEffect(() => {
-    // Only run on mobile/tablet screens where the form is stacked underneath the hero
-    if (typeof window === 'undefined' || window.innerWidth >= 1024) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    let userInteracted = false;
-    const markInteracted = () => {
-      userInteracted = true;
-    };
-
-    window.addEventListener('touchstart', markInteracted, { passive: true, once: true });
-    window.addEventListener('wheel', markInteracted, { passive: true, once: true });
-
-    // Allow user comfortable time (1200ms) to see and absorb the hero title, then smoothly glide to the form
-    const timer = setTimeout(() => {
-      if (!userInteracted && formRef.current) {
-        formRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }
-    }, 1200);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('touchstart', markInteracted);
-      window.removeEventListener('wheel', markInteracted);
-    };
-  }, []);
-
   return (
-    <main className="relative min-h-[100dvh] bg-brand-bg text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white p-0 sm:p-4 lg:p-6 flex flex-col justify-center overflow-x-hidden">
+    <main className="relative flex min-h-[100dvh] flex-col justify-center overflow-x-clip bg-brand-bg p-0 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:p-4 lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden xl:p-6">
       {/* Background ambient glow */}
       <div className="pointer-events-none absolute left-[50%] top-12 h-80 w-80 rounded-full bg-brand-green/10 blur-[140px] dark:bg-brand-cyan/10 hidden sm:block" />
       <div className="pointer-events-none absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[140px] dark:bg-brand-accent/10" />
 
-      <div className="mx-auto flex min-h-[100dvh] w-full flex-col justify-between overflow-y-auto bg-brand-bg/90 transition-colors duration-300 dark:bg-[#07100d] lg:grid lg:min-h-[calc(100vh-2rem)] lg:max-w-[1500px] lg:grid-cols-[1fr_1fr] lg:rounded-[36px] lg:border lg:border-brand-border/80 lg:bg-brand-surface/70 lg:shadow-card-lg lg:backdrop-blur-xl dark:lg:border-white/10 dark:lg:bg-[#0a130f]/60 dark:lg:shadow-2xl">
+      <div className="mx-auto flex min-h-[100dvh] w-full flex-col justify-between bg-brand-bg/90 transition-colors duration-300 dark:bg-[#07100d] sm:min-h-[calc(100dvh-2rem)] lg:grid lg:h-full lg:min-h-0 lg:max-w-[1500px] lg:grid-cols-[1fr_1fr] lg:overflow-hidden lg:rounded-[36px] lg:border lg:border-brand-border/80 lg:bg-brand-surface/70 lg:shadow-card-lg lg:backdrop-blur-xl dark:lg:border-white/10 dark:lg:bg-[#0a130f]/60 dark:lg:shadow-2xl">
         {/* Left / Hero Section */}
-        <section className="relative flex flex-col justify-between overflow-hidden bg-brand-bg/60 transition-colors duration-300 dark:bg-[#07100d] px-5 pt-6 pb-2 sm:px-8 sm:pt-8 sm:pb-8 lg:p-12 xl:p-16 text-brand-text dark:text-white">
+        <section className="relative flex flex-col justify-between overflow-hidden bg-brand-bg/60 px-5 pb-2 pt-6 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:px-8 sm:pb-8 sm:pt-8 lg:min-h-0 lg:p-8 xl:p-12 2xl:p-16">
           <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand-green/15 blur-[90px] dark:bg-brand-cyan/15" />
 
           {/* Interactive Cyber Grid: enabled on md+ screens, hidden on mobile for a clean uncluttered backdrop */}
@@ -104,12 +71,12 @@ export default function AuthShell({
           </div>
 
           {/* Hero Typography & Pills (pointer-events-none allows grid tiles behind text to hover) */}
-          <div className="pointer-events-none relative z-10 mt-4 mb-2 sm:my-6 lg:my-auto lg:max-w-xl lg:py-8">
+          <div className="pointer-events-none relative z-10 mb-2 mt-4 sm:my-6 lg:my-auto lg:max-w-xl lg:py-4 xl:py-6">
             <div className="eyebrow mb-3 hidden items-center gap-2 rounded-full border border-brand-green/25 bg-brand-green/10 px-3 py-1 text-brand-green dark:border-white/10 dark:bg-white/[0.04] dark:text-brand-accent lg:inline-flex">
               <Sparkles className="h-3.5 w-3.5" />
               Your personal nutrition system
             </div>
-            <h1 className="font-display text-[2.35rem] sm:text-5xl md:text-6xl lg:text-[clamp(3.5rem,5vw,5.8rem)] font-black leading-[1.02] lg:leading-[0.9] tracking-[-0.055em] text-brand-text dark:text-white">
+            <h1 className="font-display text-[2.35rem] font-black leading-[1.02] tracking-[-0.055em] text-brand-text dark:text-white sm:text-5xl md:text-6xl lg:text-[clamp(3rem,4.7vw,5.5rem)] lg:leading-[0.92]">
               {heroTitle}
             </h1>
             <p className="mt-2.5 sm:mt-3 max-w-lg text-xs sm:text-sm lg:text-base leading-relaxed text-brand-muted dark:text-white/60">
@@ -117,7 +84,7 @@ export default function AuthShell({
             </p>
 
             {/* Feature Pills */}
-            <div className="pointer-events-auto mt-3 sm:mt-5 flex flex-wrap gap-2 lg:mt-8 lg:grid lg:grid-cols-3 lg:gap-2.5">
+            <div className="pointer-events-auto mt-3 flex flex-wrap gap-2 sm:mt-5 lg:mt-6 lg:grid lg:grid-cols-3 lg:gap-2.5 xl:mt-8">
               {[
                 ['Culturally familiar', UtensilsCrossed],
                 ['Review-aware', ShieldCheck],
@@ -142,18 +109,23 @@ export default function AuthShell({
         </section>
 
         {/* Right / Form Card Section */}
-        <section
-          ref={formRef}
-          className="relative z-20 flex flex-1 flex-col items-center justify-center scroll-mt-4 px-4 pt-2 pb-8 sm:px-8 sm:py-12 lg:p-12 xl:p-16 bg-brand-bg/40 transition-colors duration-300 dark:bg-[#07100d] lg:bg-transparent"
-        >
+        <section className="relative z-20 flex flex-1 flex-col items-center justify-center bg-brand-bg/40 px-4 pb-8 pt-2 transition-colors duration-300 dark:bg-[#07100d] sm:px-8 sm:py-12 lg:min-h-0 lg:bg-transparent lg:px-8 lg:py-5 xl:px-12 xl:py-8">
           <div className={`w-full ${wide ? 'max-w-[540px]' : 'max-w-[460px]'}`}>
             {/* White floating card matching reference design with dark mode glow */}
-            <div className="auth-card floating-card-shadow relative rounded-[28px] sm:rounded-[32px] bg-white p-6 sm:p-8 border border-neutral-200/80 dark:border-white/20 text-neutral-900">
-              <div className="mb-5 sm:mb-6">
+            <div
+              className={`auth-card floating-card-shadow relative rounded-[28px] border border-neutral-200/80 bg-white text-neutral-900 dark:border-white/20 sm:rounded-[32px] ${
+                wide ? 'p-5 sm:p-6 lg:p-5 xl:p-6' : 'p-6 sm:p-8 lg:p-6 xl:p-8'
+              }`}
+            >
+              <div className={wide ? 'mb-4' : 'mb-5 sm:mb-6'}>
                 <p className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
                   {eyebrow}
                 </p>
-                <h2 className="mt-1 font-display text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-neutral-900">
+                <h2
+                  className={`mt-1 font-display font-black tracking-tight text-neutral-900 ${
+                    wide ? 'text-xl sm:text-2xl lg:text-[1.7rem]' : 'text-xl sm:text-2xl lg:text-3xl'
+                  }`}
+                >
                   {title}
                 </h2>
                 <p className="mt-1 text-xs sm:text-sm text-neutral-500 leading-relaxed">{description}</p>
@@ -162,10 +134,10 @@ export default function AuthShell({
             </div>
 
             {/* Sub-card Links */}
-            {footer && <div className="mt-5 text-center text-xs text-brand-muted dark:text-neutral-400">{footer}</div>}
+            {footer && <div className="mt-3 text-center text-xs text-brand-muted dark:text-neutral-400">{footer}</div>}
             <Link
               href="/"
-              className="mx-auto mt-3 flex w-fit items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted dark:text-neutral-400 transition hover:text-brand-text dark:hover:text-white"
+              className="mx-auto mt-2 flex w-fit items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted transition hover:text-brand-text dark:text-neutral-400 dark:hover:text-white"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to home
