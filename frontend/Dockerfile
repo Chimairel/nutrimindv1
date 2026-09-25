@@ -15,9 +15,9 @@ ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 WORKDIR /app
 
-COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next-production/standalone ./
 COPY --from=build --chown=node:node /app/public ./app/public
-COPY --from=build --chown=node:node /app/.next/static ./app/.next/static
+COPY --from=build --chown=node:node /app/.next-production/static ./app/.next-production/static
 
 USER node
 WORKDIR /app/app

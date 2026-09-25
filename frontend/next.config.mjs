@@ -27,7 +27,8 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const nextConfig = {
-  distDir: process.env.NUTRIMIND_REPAIR_E2E === 'true' ? '.next-repair' : '.next',
+  // Keep production builds separate from a running local dev server.
+  distDir: process.env.NUTRIMIND_REPAIR_E2E === 'true' ? '.next-repair' : isDevelopment ? '.next' : '.next-production',
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },

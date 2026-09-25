@@ -3,6 +3,8 @@
 
 # Next.js build outputs
 **/.next/
+**/.next-production/
+**/.next-corrupt-*/
 **/out/
 
 # Backend build outputs
