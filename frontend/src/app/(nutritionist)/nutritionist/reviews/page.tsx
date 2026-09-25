@@ -25,6 +25,9 @@ import {
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
 import GovernanceQueuePanel, { ReviewTabs, type ReviewWorkspaceTab } from './GovernanceQueuePanel';
+import ClinicalEvidenceReviewPanel from './ClinicalEvidenceReviewPanel';
+import api from '@/lib/axios';
+import { toast } from '@/components/ui/Sonner';
 
 export default function ReviewsPage() {
   const [workspaceTab, setWorkspaceTab] = useState<ReviewWorkspaceTab>('pending');
@@ -73,6 +76,9 @@ export default function ReviewsPage() {
 
   if (workspaceTab === 'audit' || workspaceTab === 'disputed') {
     return <GovernanceQueuePanel tab={workspaceTab} onTabChange={setWorkspaceTab} />;
+  }
+  if (workspaceTab === 'clinical') {
+    return <ClinicalEvidenceReviewPanel onTabChange={setWorkspaceTab} />;
   }
 
   return (
@@ -343,6 +349,23 @@ export default function ReviewsPage() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {detailData.clinicalEvidence && detailData.clinicalEvidence.requirements.length > 0 && (
+                  <div className="space-y-2 border-t border-brand-border pt-3 text-xs">
+                    <h4 className="font-bold text-brand-text">Reviewed clinical context</h4>
+                    {detailData.clinicalEvidence.requirements.map((item) => <p key={item.area} className={item.state === 'READY' ? 'text-brand-green' : 'text-amber-500'}>{item.area.replaceAll('_', ' ')}: {item.message}</p>)}
+                    {detailData.clinicalEvidence.documents.map((item) => <div key={item.id} className="rounded-lg border border-brand-border p-2">
+                      <p>{item.area.replaceAll('_', ' ')} · {item.documentType.replaceAll('_', ' ')}{item.validUntil ? ` · valid until ${new Date(item.validUntil).toLocaleDateString()}` : ''}</p>
+                      {item.facts.map((fact, index) => <p key={`${fact.code}-${index}`} className="text-brand-muted">{fact.code.replaceAll('_', ' ')}: {fact.valueText ?? fact.valueNumber} {fact.unit ?? ''}</p>)}
+                      <button type="button" className="mt-1 font-semibold text-brand-green underline" onClick={async () => { try {
+                        const response = await api.get(`/nutritionist/queue/${detailData.mealPlan.id}/clinical-evidence/${item.id}/file`, { responseType: 'blob' });
+                        const url = URL.createObjectURL(response.data);
+                        const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'clinical-document'; anchor.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 30_000);
+                      } catch { toast.error('The clinical document could not be opened. Refresh your review claim and try again.'); } }}>Download original record</button>
+                    </div>)}
                   </div>
                 )}
 

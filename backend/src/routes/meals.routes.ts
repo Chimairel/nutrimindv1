@@ -5,6 +5,7 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { MealsController } from '@/controllers/meals.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
+import requireClinicalEvidenceReady from '@/middleware/clinicalEvidenceReady';
 import { validateZodRequest } from '@/middleware/validateZod';
 import {
   compatibleLibraryQuerySchema,
@@ -40,34 +41,36 @@ router.use(requireReadyUser);
  * Route: POST /api/user/meals/generate
  * Description: Generates a 7-day, 21-meal plan.
  */
-router.post('/generate', validateZodRequest({ body: mealGenerationBodySchema }), MealsController.generateMealPlan);
+router.post('/generate', requireClinicalEvidenceReady, validateZodRequest({ body: mealGenerationBodySchema }), MealsController.generateMealPlan);
 router.get('/generation-status', MealsController.getGenerationStatus);
 
 /**
  * Route: POST /api/user/meals/rollover
  * Description: Promotes an expired starter bridge into the current full cycle.
  */
-router.post('/rollover', MealsController.ensureCurrentPlanRollover);
+router.post('/rollover', requireClinicalEvidenceReady, MealsController.ensureCurrentPlanRollover);
 
 /**
  * Route: GET /api/user/meals/current
  * Description: Returns current active meal plan items.
  */
-router.get('/current', validateZodRequest({ query: z.object({}).strict() }), MealsController.getCurrentPlan);
-router.get('/workspace', validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanWorkspace);
+router.get('/current', requireClinicalEvidenceReady, validateZodRequest({ query: z.object({}).strict() }), MealsController.getCurrentPlan);
+router.get('/workspace', requireClinicalEvidenceReady, validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanWorkspace);
 
 /**
  * Route: GET /api/user/meals/cycles
  * Description: Returns authoritative current and upcoming cycle identities.
  */
-router.get('/cycles', validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanCycles);
+router.get('/cycles', requireClinicalEvidenceReady, validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanCycles);
 router.post(
   '/cycles/:cycleId/acknowledge-incomplete',
+  requireClinicalEvidenceReady,
   validateZodRequest({ params: z.object({ cycleId: z.string().min(1).max(200) }).strict() }),
   MealsController.acknowledgeIncompleteCycle
 );
 router.post(
   '/cycles/:cycleId/start-shopping',
+  requireClinicalEvidenceReady,
   validateZodRequest({ params: z.object({ cycleId: z.string().min(1).max(200) }).strict() }),
   MealsController.startShopping
 );
@@ -132,6 +135,7 @@ router.get('/logs/:id/image', validateZodRequest({ params: resourceIdParamsSchem
  */
 router.patch(
   '/:id/status',
+  requireClinicalEvidenceReady,
   validateZodRequest({ params: resourceIdParamsSchema, body: mealStatusBodySchema }),
   MealsController.updateMealStatus
 );
@@ -171,13 +175,13 @@ router.delete(
  * Route: GET /api/user/meals/:id
  * Description: Retrieves details of a specific meal plan item.
  */
-router.get('/:id', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getMealDetails);
+router.get('/:id', requireClinicalEvidenceReady, validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getMealDetails);
 
 /**
  * Route: GET /api/user/meals/:id/swap-options
  * Description: Retrieves swap options for a given meal plan slot.
  */
-router.get('/:id/swap-options', validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getSwapOptions);
+router.get('/:id/swap-options', requireClinicalEvidenceReady, validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getSwapOptions);
 
 /**
  * Route: GET /api/user/meals/:id/swap-preview
@@ -185,6 +189,7 @@ router.get('/:id/swap-options', validateZodRequest({ params: resourceIdParamsSch
  */
 router.get(
   '/:id/swap-preview',
+  requireClinicalEvidenceReady,
   validateZodRequest({ params: resourceIdParamsSchema, query: swapPreviewQuerySchema }),
   MealsController.getSwapPreview
 );
@@ -195,6 +200,7 @@ router.get(
  */
 router.post(
   '/:id/swap',
+  requireClinicalEvidenceReady,
   validateZodRequest({ params: resourceIdParamsSchema, body: swapMealBodySchema }),
   MealsController.executeSwap
 );

@@ -10,7 +10,7 @@ import { CheckinService } from '@/services/checkin.service';
 import { body } from 'express-validator';
 import validate from '@/middleware/validate';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
-import validateZodBody from '@/middleware/validateZod';
+import validateZodBody, { validateZodRequest } from '@/middleware/validateZod';
 import { requireReadyUser, requireUserPrerequisites, requireVerifiedUser } from '@/middleware/userPrerequisites';
 import { geminiLimiter } from '@/middleware/rateLimiter';
 import {
@@ -29,6 +29,14 @@ import { z } from 'zod';
 import { WaterService } from '@/services/water.service';
 import { UserPrivacyService } from '@/services/user-privacy.service';
 import { getActivePlanningLocationOptions } from '@/services/food-consumption-context.service';
+import multer from 'multer';
+import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
+import {
+  clinicalDocumentIdParamsSchema,
+  clinicalDocumentMetadataSchema,
+  diabetesContextSchema,
+} from '@/validation/clinical-evidence.schemas';
+import { asyncHandler } from '@/middleware/errorHandler';
 
 const router = Router();
 const accountDeletionSchema = z
@@ -41,6 +49,12 @@ const accountDeletionSchema = z
   .refine((value) => Boolean(value.password || value.googleIdToken), {
     message: 'Reauthenticate with your password or Google account.',
   });
+const clinicalDocumentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { files: 1, fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) =>
+    callback(null, ['application/pdf', 'image/jpeg', 'image/png'].includes(file.mimetype)),
+});
 
 // Apply auth on all /api/user routes
 router.use(authenticate);
@@ -186,6 +200,74 @@ router.put(
   UserController.updateSafetyProfile
 );
 router.put('/profile/settings', requireReportEligible, UserController.updateAccountSettings);
+
+router.get(
+  '/clinical-evidence',
+  requireReportEligible,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.workspace(req.user!.userId) });
+  })
+);
+router.put(
+  '/clinical-evidence/diabetes-context',
+  requireReportEligible,
+  validateZodBody(diabetesContextSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.saveDiabetesContext(req.user!.userId, req.body) });
+  })
+);
+router.post(
+  '/clinical-evidence/documents',
+  requireReportEligible,
+  clinicalDocumentUpload.single('document'),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.file) return res.status(400).json({ success: false, error: 'Choose a PDF, JPEG, or PNG document.' });
+    let facts: unknown = [];
+    try {
+      facts = req.body.facts ? JSON.parse(req.body.facts) : [];
+    } catch {
+      return res.status(400).json({ success: false, error: 'Clinical facts must be valid JSON.' });
+    }
+    const parsed = clinicalDocumentMetadataSchema.safeParse({
+      area: req.body.area,
+      documentType: req.body.documentType,
+      issuedAt: req.body.issuedAt || null,
+      issuerName: req.body.issuerName || null,
+      supersedesDocumentId: req.body.supersedesDocumentId || null,
+      facts,
+      consentAccepted: req.body.consentAccepted === 'true',
+    });
+    if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid document details.' });
+    const metadata = parsed.data;
+    const data = await ClinicalEvidenceService.upload({
+      userId: req.user!.userId,
+      file: req.file,
+      ...metadata,
+    });
+    return res.status(201).json({ success: true, data });
+  })
+);
+router.get(
+  '/clinical-evidence/documents/:id/file',
+  requireReportEligible,
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const file = await ClinicalEvidenceService.fileForUser(req.user!.userId, req.params.id);
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(file.buffer);
+  })
+);
+router.delete(
+  '/clinical-evidence/documents/:id',
+  requireReportEligible,
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.withdraw(req.user!.userId, req.params.id) });
+  })
+);
 
 // Privacy rights remain available to authenticated patient accounts even when
 // onboarding, consent, or report acknowledgement is incomplete.

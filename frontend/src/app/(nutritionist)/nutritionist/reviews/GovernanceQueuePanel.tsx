@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
 
-export type ReviewWorkspaceTab = 'pending' | 'second' | 'audit' | 'disputed';
+export type ReviewWorkspaceTab = 'pending' | 'second' | 'clinical' | 'audit' | 'disputed';
 
 export function ReviewTabs({
   value,
@@ -14,11 +14,12 @@ export function ReviewTabs({
   onChange: (value: ReviewWorkspaceTab) => void;
 }) {
   return (
-    <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-brand-border bg-brand-bg/40 p-1 xl:grid-cols-4">
+    <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-brand-border bg-brand-bg/40 p-1 xl:grid-cols-5">
       {(
         [
           ['pending', 'Pending'],
           ['second', 'Second review'],
+          ['clinical', 'Clinical documents'],
           ['audit', 'Audit'],
           ['disputed', 'Disputed'],
         ] as const

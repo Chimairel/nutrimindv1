@@ -1,7 +1,7 @@
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
 import { lockUserProfile } from './profile-revision.service';
-import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma } from '@prisma/client';
+import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma, ClinicalEvidenceArea } from '@prisma/client';
 
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { getReviewClaimCutoff, getReviewPriority, isReviewClaimActive } from '@/domain/nutritionist-review.policy';
@@ -18,6 +18,8 @@ import { compareDeadlineReviewPriority } from '@/domain/upcoming-preparation.pol
 
 import { rejectMealPlan } from './nutritionist-rejection.service';
 import { resolveMealPlanDispute } from './nutritionist-dispute.service';
+import { ClinicalEvidenceService } from './clinical-evidence.service';
+import { CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION, evaluateClinicalEvidenceRequirements, type DiabetesContext } from '@/domain/clinical-evidence-requirement.policy';
 
 export async function assertObservedSourceStillAvailable(tx: Prisma.TransactionClient, rawCandidateId: string | null) {
   if (!rawCandidateId) return;
@@ -63,12 +65,28 @@ export class NutritionistReviewService {
       orderBy: { createdAt: 'asc' },
     });
 
+    const userIds = [...new Set(pendingMeals.map((meal) => meal.userId))];
+    const [conditions, documents, contexts] = userIds.length ? await Promise.all([
+      prisma.healthCondition.findMany({ where: { userId: { in: userIds } }, select: { userId: true, condition: true } }),
+      prisma.clinicalDocument.findMany({ where: { userId: { in: userIds } }, select: { userId: true, id: true, area: true, status: true, validUntil: true, revision: true, sha256: true, createdAt: true } }),
+      prisma.clinicalContextResponse.findMany({ where: { userId: { in: userIds }, area: ClinicalEvidenceArea.DIABETES }, select: { userId: true, responses: true } }),
+    ]) : [[], [], []];
+    const readinessByUser = new Map(userIds.map((userId) => [
+      userId,
+      evaluateClinicalEvidenceRequirements({
+        conditions: conditions.filter((item) => item.userId === userId).map((item) => item.condition),
+        documents: documents.filter((item) => item.userId === userId),
+        diabetesContext: (contexts.find((item) => item.userId === userId)?.responses as DiabetesContext | undefined) ?? null,
+      }).every((requirement) => requirement.state === 'READY'),
+    ]));
+    const clinicallyReadyMeals = pendingMeals.filter((meal) => readinessByUser.get(meal.userId) !== false);
+
     const workCounts = new Map<string, number>();
-    for (const meal of pendingMeals) {
+    for (const meal of clinicallyReadyMeals) {
       const key = meal.reviewWorkKey ?? `PLAN:${meal.id}`;
       workCounts.set(key, (workCounts.get(key) ?? 0) + 1);
     }
-    const visibleMeals = pendingMeals.filter((meal) => {
+    const visibleMeals = clinicallyReadyMeals.filter((meal) => {
       const secondReview = meal.highRiskReviewRequired && meal.reviewApprovalCount === 1;
       if (!secondReview) return true;
       return reviewer?.canLeadReview === true && meal.firstApprovedByNutritionistId !== nutritionistProfileId;
@@ -182,6 +200,9 @@ export class NutritionistReviewService {
       }),
     ]);
     if (!reviewer || !reviewTarget) throw new Error('Meal plan or nutritionist profile not found.');
+    const targetOwner = await prisma.mealPlan.findUnique({ where: { id: mealPlanId }, select: { userId: true } });
+    if (!targetOwner) throw new Error('Meal plan not found.');
+    const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(targetOwner.userId);
     if (reviewTarget.highRiskReviewRequired && reviewTarget.reviewApprovalCount === 1) {
       if (!reviewer.canLeadReview) throw new Error('Lead review capability is required for this second review.');
       if (reviewTarget.firstApprovedByNutritionistId === nutritionistProfileId) {
@@ -357,6 +378,25 @@ export class NutritionistReviewService {
     warnings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
     const userAge = userProfile?.age || 0;
+    const readyClinicalDocumentIds = [...new Set(clinicalRequirements.flatMap((item) => item.readyDocumentIds))];
+    const clinicalDocuments = readyClinicalDocumentIds.length
+      ? await prisma.clinicalDocument.findMany({
+          where: { id: { in: readyClinicalDocumentIds }, userId: updatedMealPlan.userId },
+          select: {
+            id: true,
+            area: true,
+            documentType: true,
+            issuedAt: true,
+            issuerName: true,
+            validUntil: true,
+            facts: {
+              where: { reviewStatus: 'CONFIRMED' },
+              select: { id: true, code: true, valueText: true, valueNumber: true, unit: true, observedAt: true },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
 
     return {
       mealPlan: {
@@ -400,6 +440,11 @@ export class NutritionistReviewService {
         unit: ing.unit,
       })),
       warnings: warnings,
+      clinicalEvidence: {
+        policyVersion: CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,
+        requirements: clinicalRequirements,
+        documents: clinicalDocuments,
+      },
       highRiskReviewRequired: updatedMealPlan.highRiskReviewRequired,
       reviewApprovalCount: updatedMealPlan.reviewApprovalCount,
       requiresIndependentSecondReview:
@@ -447,6 +492,14 @@ export class NutritionistReviewService {
     });
 
     if (!plan) throw new Error('Meal plan not found.');
+    const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(plan.userId);
+    const clinicalDocumentIds = [...new Set(clinicalRequirements.flatMap((item) => item.readyDocumentIds))];
+    const clinicalDocuments = clinicalDocumentIds.length
+      ? await prisma.clinicalDocument.findMany({
+          where: { id: { in: clinicalDocumentIds }, userId: plan.userId },
+          select: { id: true, revision: true, sha256: true, area: true, documentType: true, validUntil: true },
+        })
+      : [];
     if (plan.status !== MealPlanStatus.PENDING_REVIEW) {
       throw new Error('Only PENDING_REVIEW meals can be approved.');
     }
@@ -555,11 +608,23 @@ export class NutritionistReviewService {
                 carbsG,
                 fatG,
                 policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({ id, revision, sha256, area, documentType, validUntil })),
               },
             },
           });
+          if (clinicalDocuments.length) {
+            await tx.mealPlanClinicalEvidence.createMany({
+              data: clinicalDocuments.map((document) => ({
+                mealPlanId,
+                clinicalDocumentId: document.id,
+                documentRevision: document.revision,
+                documentSha256: document.sha256,
+              })),
+              skipDuplicates: true,
+            });
+          }
 
-          if (plan.reviewWorkKey && !updates) {
+          if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0) {
             const dependents = await tx.mealPlan.findMany({
               where: {
                 id: { not: mealPlanId },
@@ -720,12 +785,24 @@ export class NutritionistReviewService {
               carbsG,
               fatG,
               policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({ id, revision, sha256, area, documentType, validUntil })),
             },
           },
         });
+        if (clinicalDocuments.length) {
+          await tx.mealPlanClinicalEvidence.createMany({
+            data: clinicalDocuments.map((document) => ({
+              mealPlanId,
+              clinicalDocumentId: document.id,
+              documentRevision: document.revision,
+              documentSha256: document.sha256,
+            })),
+            skipDuplicates: true,
+          });
+        }
 
         const coalescedApprovedUsers: string[] = [];
-        if (plan.reviewWorkKey && !updates) {
+        if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0) {
           const dependentWhere: Prisma.MealPlanWhereInput = {
             id: { not: mealPlanId },
             reviewWorkKey: plan.reviewWorkKey,

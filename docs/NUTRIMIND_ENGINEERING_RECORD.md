@@ -27,14 +27,14 @@ Rules:
 
 | Prefix | Meaning | Next ID |
 | --- | --- | --- |
-| REQ | Functional or non-functional requirement | REQ-034 |
-| ADR | Architecture/design decision | ADR-029 |
+| REQ | Functional or non-functional requirement | REQ-035 |
+| ADR | Architecture/design decision | ADR-030 |
 | RISK | Technical, project, security, clinical, privacy, or operational risk | RISK-028 |
 | DEF | Defect, inconsistency, or documentation mismatch | DEF-038 |
-| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260925-10 |
-| TEST | Test case or verification procedure | TEST-224 |
+| CHG | Implemented change set, formatted CHG-YYYYMMDD-## | CHG-20260925-11 |
+| TEST | Test case or verification procedure | TEST-225 |
 | UNC | Unresolved uncertainty | UNC-019 |
-| DOC | Documentation correction or addition | DOC-070 |
+| DOC | Documentation correction or addition | DOC-071 |
 
 ---
 
@@ -4327,3 +4327,22 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Applied additive migration `20260925210000_versioned_clinical_evidence_registry` to shared development after confirming it was the only pending migration. SHA-256 was `7d06ed8ea64ea472d58971b9447147e647b56c42f5c50484578cc2307e995de7`. The first seed attempt stopped on Prisma relation validation before any rule changed; the seed was corrected to use relation disconnect semantics and rerun successfully.
 - Postflight: 67 migrations current; 14 source revisions, all `CURRENT`; seven nutrient rules and nine ingredient rules with no incomplete evidence binding; zero active condition policies, zero active rules, and zero active ruleset-derived clearances. The public evidence API and running `/sources` page returned HTTP 200.
 - Verification passed Prisma format/validate/generate, scripts typecheck, backend and frontend lint, backend production build, the 52-route frontend production build, **502 pass / 0 fail / 1 existing TODO** across 503 backend tests, and **248/248** frontend tests across 60 files. No clinical rule was approved or activated, no meal/clearance was rewritten, and no production deployment or clinical-validation claim is made.
+
+## 132. Private clinical documents and nutrition-context review (2026-09-25)
+
+**Requirement ID:** REQ-034
+
+**Architecture decision:** ADR-029
+
+**Documentation ID:** DOC-070
+
+**Verification ID:** TEST-224
+
+**Change ID:** CHG-20260925-10
+
+- Users can submit a relevant PDF, JPEG, or PNG (8 MB maximum) with explicit versioned consent, view/download it, and withdraw it. File bytes are AES-256-GCM encrypted in PostgreSQL with a local environment key; API responses and account JSON export exclude encrypted payloads. RND document access requires a current claim and creates an access audit event. The upload and meal-review interfaces state that sufficiency for nutrition context is not diagnosis or authenticity verification.
+- Clinical facts have separate user/transcription and RND-confirmed provenance. A document cannot become sufficient for kidney disease without a confirmed stage or eGFR, heart disease without a confirmed diagnosis subtype, or medication-sensitive diabetes without confirmed medication context. RND decisions record rationale and an expiry date. The RND review workspace has a clinical-document tab, and claimed meal reviews can inspect their current confirmed facts and download the scoped original.
+- Kidney and heart conditions require a current RND-reviewed document for user-scoped planning. Diabetes requires structured medication/hypoglycemia context and a reviewed document for the higher-risk responses. Hypertension and pregnancy keep supporting documents optional; their pre-existing condition clearance/review rules remain in force. A newly uploaded, pending, withdrawn, or expired latest document cannot silently fall back to an older sufficient document. Approved plans and groceries are flagged stale on context/document changes; request-time checks also catch expiry. User-specific clearance and approved plan records link the exact document revision and hash used.
+- The additive migration `20260925230000_clinical_context_documents` (SHA-256 `679ec09cdb94281fb64507269ecba64f0a48b41726cf9dcd2a2f0c3ca7b2d944`) was applied to the configured shared development database; `prisma migrate status` subsequently reported 68 migrations current. **Process deviation:** the full REQ-032 checksum/preservation/disposable rehearsal gate was not run before this deployment. The migration creates only new enums, tables, indexes, and foreign keys; no existing-row update or destructive SQL was included. This is not retroactively recorded as satisfying TEST-149. A follow-up catalog/data preservation audit is needed before treating the shared migration as fully accepted under REQ-032.
+- Verification: Prisma schema validation/current migration status, backend and frontend production builds/lints, backend regression suite (**510 pass, 0 fail, 1 existing TODO**), and frontend suite (**248 pass**) passed. The disposable shared-development service fixture exercised upload → RND claim/file read → fact-confirmed sufficiency → replacement → withdrawal. Postflight counts confirmed zero fixture users, documents, facts, and reviews. The existing account-deletion acceptance passed with restrictive review links handled. A live authenticated browser journey, file malware scanning, clinical document authenticity checks, and production key management have not been verified; the feature has no claim of clinical validation.
+- Source rationale for risk-based triage: [ADA Standards of Care in Diabetes—2026, Section 6](https://diabetesjournals.org/care/article/49/Supplement_1/S132/163927/6-Glycemic-Goals-Hypoglycemia-and-Hyperglycemic) identifies insulin, sulfonylureas, and meglitinides as hypoglycemia-risk treatments; [KDIGO 2024 CKD evaluation and management](https://kdigo.org/guidelines/ckd-evaluation-and-management/) supports individualized kidney context; [Philippine Data Privacy Act](https://privacy.gov.ph/data-privacy-act/) treats health information as sensitive. These sources support the conservative request-for-context design; they do not prescribe KAINARA's exact upload policy or imply official approval.

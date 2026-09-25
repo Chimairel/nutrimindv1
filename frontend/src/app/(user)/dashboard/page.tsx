@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -74,6 +75,7 @@ export default function DashboardPage() {
     fail: failGenerationProgress,
   } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
+  const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const [planSnapshot, setPlanSnapshot] = useState<CurrentPlanSnapshot['planSnapshot']>(
     cachedPlan?.planSnapshot ?? null
@@ -252,6 +254,7 @@ export default function DashboardPage() {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
         setError(null);
+        setClinicalEvidenceRequired(false);
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
           pendingReview: res.data.meta?.pendingReview ?? null,
@@ -260,6 +263,11 @@ export default function DashboardPage() {
         });
       }
     } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
+        setClinicalEvidenceRequired(true);
+        setCurrentMeals([]);
+        setPendingReview(null);
+      }
       setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
     } finally {
       currentPlanRequestInFlight.current = false;
@@ -354,6 +362,10 @@ export default function DashboardPage() {
       }
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Gemini failed to generate standard plan.');
+      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
+        setClinicalEvidenceRequired(true);
+        setIsGenerating(false);
+      }
       failGenerationProgress(msg);
       setError(msg);
       generationRequestInFlight.current = false;
@@ -487,7 +499,7 @@ export default function DashboardPage() {
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        {error && !error.toLowerCase().includes('nutrition report') ? (
+        {error && !clinicalEvidenceRequired && !error.toLowerCase().includes('nutrition report') ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-left text-sm font-semibold text-status-error-text">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -523,6 +535,8 @@ export default function DashboardPage() {
               href: '/profile/nutrition-report',
             }}
           />
+        ) : clinicalEvidenceRequired ? (
+          <StateNotice variant="action-needed" title="Clinical context needed" description="Review the requested health details and, where required, upload a supporting document for an RND to review before meal planning continues." action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }} />
         ) : currentMeals.length === 0 && !pendingReview ? (
           <StateNotice
             variant="no-meal-plan"

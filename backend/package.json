@@ -22,6 +22,7 @@
     "test:acceptance:checkpoint3": "tsx scripts/checkpoint3-governance-acceptance.ts",
     "test:acceptance:checkpoint3-generation": "tsx scripts/checkpoint3-generation-acceptance.ts",
     "test:acceptance:account-deletion": "tsx scripts/account-deletion-acceptance.ts",
+    "test:acceptance:clinical-documents": "tsx scripts/clinical-document-acceptance.ts",
     "test:acceptance:google-auth-intent": "tsx scripts/google-auth-intent-acceptance.ts",
     "test:acceptance:enns-locality": "tsx scripts/enns-locality-acceptance.ts",
     "test:acceptance:plan-cycles": "tsx scripts/plan-cycle-acceptance.ts",

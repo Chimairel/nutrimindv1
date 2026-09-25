@@ -40,6 +40,11 @@ export interface QueueItem {
 }
 
 export interface DetailData {
+  clinicalEvidence?: {
+    policyVersion: string;
+    requirements: Array<{ area: string; state: string; message: string }>;
+    documents: Array<{ id: string; area: string; documentType: string; validUntil: string | null; facts: Array<{ code: string; valueText: string | null; valueNumber: number | null; unit: string | null }> }>;
+  };
   mealPlan: {
     id: string;
     planGroupId: string;

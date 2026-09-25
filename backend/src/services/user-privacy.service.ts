@@ -41,6 +41,30 @@ export class UserPrivacyService {
         notifications: true,
         weeklyCheckins: true,
         healthProfileRevisions: true,
+        clinicalContextResponses: true,
+        clinicalFacts: true,
+        clinicalDocuments: {
+          select: {
+            id: true,
+            area: true,
+            documentType: true,
+            status: true,
+            revision: true,
+            originalFileName: true,
+            mimeType: true,
+            byteSize: true,
+            sha256: true,
+            issuedAt: true,
+            issuerName: true,
+            consentVersion: true,
+            validUntil: true,
+            supersedesDocumentId: true,
+            withdrawnAt: true,
+            createdAt: true,
+            updatedAt: true,
+            reviews: true,
+          },
+        },
       },
     });
     if (!user) throw new Error('Account not found.');
@@ -101,6 +125,8 @@ export class UserPrivacyService {
     // transaction lease can expire between these dependent statements. Prisma
     // sends this ordered batch as one atomic database transaction.
     await prisma.$transaction([
+      prisma.mealPlanClinicalEvidence.deleteMany({ where: { mealPlanId: { in: mealPlanIds } } }),
+      prisma.clearanceClinicalEvidence.deleteMany({ where: { clearanceId: { in: clearanceIds } } }),
       prisma.mealPlanClearanceUsage.deleteMany({ where: { clearanceId: { in: clearanceIds } } }),
       prisma.mealConditionClearanceDecision.deleteMany({ where: { clearanceId: { in: clearanceIds } } }),
       prisma.mealConditionClearance.deleteMany({ where: { id: { in: clearanceIds } } }),

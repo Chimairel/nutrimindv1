@@ -28,6 +28,11 @@ import {
 import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
+import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
+import {
+  clinicalDocumentIdParamsSchema,
+  clinicalDocumentReviewSchema,
+} from '@/validation/clinical-evidence.schemas';
 
 const router = Router();
 
@@ -103,6 +108,51 @@ router.get('/queue', async (req: AuthenticatedRequest, res: Response) => {
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve review queue.') });
   }
 });
+
+router.get(
+  '/clinical-evidence',
+  asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.queue() });
+  })
+);
+router.get(
+  '/clinical-evidence/:id',
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.claimDetail(req.nutritionistProfileId!, req.params.id) });
+  })
+);
+router.get(
+  '/clinical-evidence/:id/file',
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const file = await ClinicalEvidenceService.fileForClaimedReview(
+      req.nutritionistProfileId!,
+      req.user!.userId,
+      req.params.id
+    );
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(file.buffer);
+  })
+);
+router.patch(
+  '/clinical-evidence/:id',
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema, body: clinicalDocumentReviewSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      data: await ClinicalEvidenceService.review({
+        nutritionistProfileId: req.nutritionistProfileId!,
+        actorUserId: req.user!.userId,
+        documentId: req.params.id,
+        ...req.body,
+      }),
+    });
+  })
+);
 
 router.get('/governance/queue', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -268,6 +318,26 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
     return res.status(500).json({ success: false, error: message });
   }
 });
+
+router.get(
+  '/queue/:id/clinical-evidence/:documentId/file',
+  validateZodRequest({
+    params: z.object({ id: z.string().min(1).max(200), documentId: z.string().min(1).max(200) }).strict(),
+  }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const file = await ClinicalEvidenceService.fileForClaimedMealReview(
+      req.nutritionistProfileId!,
+      req.user!.userId,
+      req.params.id,
+      req.params.documentId
+    );
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(file.buffer);
+  })
+);
 
 /**
  * PATCH /api/nutritionist/review/:id

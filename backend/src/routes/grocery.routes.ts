@@ -7,6 +7,7 @@ import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { GroceryController } from '@/controllers/grocery.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
+import requireClinicalEvidenceReady from '@/middleware/clinicalEvidenceReady';
 import { validateZodRequest } from '@/middleware/validateZod';
 import { resourceIdParamsSchema } from '@/validation/user-action.schemas';
 
@@ -16,6 +17,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('USER'));
 router.use(requireReadyUser);
+router.use(requireClinicalEvidenceReady);
 
 /**
  * Route: POST /api/user/grocery/generate

@@ -22,6 +22,7 @@ import {
 } from '@/domain/assurance-tier.policy';
 import { evaluateConditionNutrientRule } from '@/domain/condition-rule-evaluation.policy';
 import { assertConditionPolicyEvidenceComplete } from '@/domain/condition-policy-evidence.policy';
+import { ClinicalEvidenceService } from './clinical-evidence.service';
 
 const STANDARD_AUDIT_MS = 365 * 24 * 60 * 60 * 1000;
 const ENHANCED_AUDIT_MS = 180 * 24 * 60 * 60 * 1000;
@@ -88,6 +89,12 @@ export class ConditionClearanceService {
         `${input.condition} clearance requires an explicit user scope until structured clinical detail exists.`
       );
     }
+    const clinicalDocuments = input.userScopeId
+      ? await ClinicalEvidenceService.getReadyDocumentsForCondition(input.userScopeId, input.condition)
+      : [];
+    if (conditionRequiresUserScopedClearance(input.condition) && clinicalDocuments.length === 0) {
+      throw new Error('A current RND-reviewed clinical document is required for this user-scoped clearance.');
+    }
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: input.mealLibraryId },
       include: {
@@ -145,10 +152,21 @@ export class ConditionClearanceService {
               assuranceTier: tier,
               provenance: ConditionClearanceProvenance.MANUAL_REVIEW,
               state: ConditionClearanceState.REVIEW_DUE,
-              evidenceSnapshot: evidenceSnapshot(meal),
+              evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments },
             },
             include: { decisions: true },
           }));
+        if (!existing && clinicalDocuments.length) {
+          await tx.clearanceClinicalEvidence.createMany({
+            data: clinicalDocuments.map((document) => ({
+              clearanceId: clearance.id,
+              clinicalDocumentId: document.id,
+              documentRevision: document.revision,
+              documentSha256: document.sha256,
+            })),
+            skipDuplicates: true,
+          });
+        }
         const stage = clearance.decisions.length ? ClearanceDecisionStage.SECONDARY : ClearanceDecisionStage.PRIMARY;
         await tx.mealConditionClearanceDecision.create({
           data: {
@@ -157,7 +175,7 @@ export class ConditionClearanceService {
             stage,
             decision: input.decision,
             rationale: input.rationale?.trim() || null,
-            evidenceSnapshot: evidenceSnapshot(meal),
+            evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments },
           },
         });
 

@@ -16,6 +16,12 @@ const sections = [
     icon: HeartPulse,
   },
   {
+    href: '/profile/clinical-evidence',
+    title: 'Clinical documents',
+    description: 'Share medical context privately for nutritionist review',
+    icon: ClipboardList,
+  },
+  {
     href: '/profile/planning',
     title: 'Food & planning',
     description: 'Diet, location, meal preferences and shopping day',

@@ -207,6 +207,75 @@ enum ClearanceDecisionStage {
   DISPUTE_RESOLUTION
 }
 
+enum ClinicalEvidenceArea {
+  DIABETES
+  HYPERTENSION
+  KIDNEY_DISEASE
+  HEART_CONDITION
+  PREGNANCY
+  FOOD_ALLERGY
+  OTHER
+}
+
+enum ClinicalDocumentType {
+  MEDICAL_ABSTRACT
+  LABORATORY_REPORT
+  MEDICATION_LIST
+  DIET_ORDER
+  DISCHARGE_INSTRUCTIONS
+  ALLERGY_ACTION_PLAN
+  PRENATAL_SUMMARY
+  OTHER
+}
+
+enum ClinicalDocumentStatus {
+  UPLOADED
+  NEEDS_CLARIFICATION
+  SUFFICIENT_FOR_NUTRITION_REVIEW
+  UNUSABLE
+  SUPERSEDED
+  WITHDRAWN
+}
+
+enum ClinicalDocumentReviewDecision {
+  SUFFICIENT
+  NEEDS_CLARIFICATION
+  UNUSABLE
+}
+
+enum ClinicalFactCode {
+  CKD_STAGE
+  EGFR
+  SERUM_POTASSIUM
+  SERUM_PHOSPHORUS
+  DIALYSIS_STATUS
+  HEART_DIAGNOSIS
+  SODIUM_LIMIT
+  FLUID_LIMIT
+  A1C
+  DIABETES_MEDICATION
+  RECURRENT_HYPOGLYCEMIA
+  GESTATIONAL_AGE_WEEKS
+  MEDICATION_SUMMARY
+  CLINICIAN_INSTRUCTION
+  ALLERGY_SEVERITY
+  CROSS_CONTACT_REQUIRED
+  OTHER
+}
+
+enum ClinicalFactProvenance {
+  USER_ENTERED
+  DOCUMENT_TRANSCRIBED
+  NUTRITIONIST_CONFIRMED
+}
+
+enum ClinicalFactReviewStatus {
+  UNREVIEWED
+  CONFIRMED
+  UNCLEAR
+  REJECTED
+}
+
 enum MealPlanReviewDecisionValue {
   APPROVE
   REJECT
@@ -736,6 +805,9 @@ model User {
   scopedConditionClearances        MealConditionClearance[]         @relation("ConditionClearanceUserScope")
   mealFavorites                    MealFavorite[]
   clinicalProfileReviews           ClinicalProfileReview[]
+  clinicalDocuments                ClinicalDocument[]
+  clinicalContextResponses         ClinicalContextResponse[]
+  clinicalFacts                    ClinicalFact[]
 }
 
 // Historical profile-review evidence remains in the database. Current flows
@@ -915,24 +987,27 @@ model NutritionistProfile {
   canLeadReview       Boolean   @default(false)
 
   // Relations
-  mealPlansReviewed       MealPlan[]
-  verifiedMeals           MealLibrary[]
-  safetyReviewedMeals     MealLibrary[]                    @relation("MealLibrarySafetyReviewer")
-  safetyReviewEvents      MealLibrarySafetyReview[]        @relation("MealLibrarySafetyReviewActor")
-  submittedFlags          MealLibraryFlag[]                @relation("SubmittedFlags")
-  claimedPlans            MealPlan[]                       @relation("ClaimedPlans")
-  firstApprovedPlans      MealPlan[]                       @relation("FirstMealPlanApproval")
-  workCredits             NutritionistWorkCredit[]
-  compensationStatements  CompensationStatement[]
-  outsideMealReviews      OutsideMealReview[]              @relation("OutsideMealReviewAssignee")
-  outsideMealRevisions    OutsideMealItemRevision[]        @relation("OutsideMealRevisionReviewer")
-  approvedNutrientRules   ConditionNutrientRule[]          @relation("ConditionNutrientRuleApprover")
-  approvedIngredientRules ConditionIngredientRule[]        @relation("ConditionIngredientRuleApprover")
-  clearanceDecisions      MealConditionClearanceDecision[]
-  mealPlanReviewDecisions MealPlanReviewDecision[]
-  conditionRuleApprovals  ConditionRulePolicyApproval[]
-  resolvedClearances      MealConditionClearance[]         @relation("ConditionClearanceResolver")
-  clinicalProfileReviews  ClinicalProfileReview[]
+  mealPlansReviewed        MealPlan[]
+  verifiedMeals            MealLibrary[]
+  safetyReviewedMeals      MealLibrary[]                    @relation("MealLibrarySafetyReviewer")
+  safetyReviewEvents       MealLibrarySafetyReview[]        @relation("MealLibrarySafetyReviewActor")
+  submittedFlags           MealLibraryFlag[]                @relation("SubmittedFlags")
+  claimedPlans             MealPlan[]                       @relation("ClaimedPlans")
+  firstApprovedPlans       MealPlan[]                       @relation("FirstMealPlanApproval")
+  workCredits              NutritionistWorkCredit[]
+  compensationStatements   CompensationStatement[]
+  outsideMealReviews       OutsideMealReview[]              @relation("OutsideMealReviewAssignee")
+  outsideMealRevisions     OutsideMealItemRevision[]        @relation("OutsideMealRevisionReviewer")
+  approvedNutrientRules    ConditionNutrientRule[]          @relation("ConditionNutrientRuleApprover")
+  approvedIngredientRules  ConditionIngredientRule[]        @relation("ConditionIngredientRuleApprover")
+  clearanceDecisions       MealConditionClearanceDecision[]
+  mealPlanReviewDecisions  MealPlanReviewDecision[]
+  conditionRuleApprovals   ConditionRulePolicyApproval[]
+  resolvedClearances       MealConditionClearance[]         @relation("ConditionClearanceResolver")
+  clinicalProfileReviews   ClinicalProfileReview[]
+  clinicalDocumentReviews  ClinicalDocumentReview[]
+  claimedClinicalDocuments ClinicalDocument[]               @relation("ClaimedClinicalDocuments")
+  reviewedClinicalFacts    ClinicalFact[]                   @relation("ClinicalFactReviewer")
 }
 
 model NutritionistApplication {
@@ -1196,6 +1271,7 @@ model MealPlan {
   clearanceUsages   MealPlanClearanceUsage[]
   reviewDecisions   MealPlanReviewDecision[]
   servingComponents MealPlanServingComponent[]
+  clinicalEvidence  MealPlanClinicalEvidence[]
 
   @@index([requiresSafetyRevalidation, status], map: "MealPlan_revalidation_status_idx")
   @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
@@ -1428,12 +1504,134 @@ model MealConditionClearance {
   updatedAt                DateTime                         @updatedAt
   decisions                MealConditionClearanceDecision[]
   planUsages               MealPlanClearanceUsage[]
+  clinicalEvidence         ClearanceClinicalEvidence[]
 
   @@index([mealLibraryId, condition, state])
   @@index([condition, state, auditDueAt])
   @@index([userScopeId, condition, state])
   @@index([policyVersion, state])
   @@index([rulePolicyVersionId, state])
+}
+
+model ClinicalContextResponse {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  area      ClinicalEvidenceArea
+  responses Json
+  revision  Int                  @default(1)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@unique([userId, area])
+  @@index([area, updatedAt])
+}
+
+model ClinicalDocument {
+  id                      String                      @id @default(cuid())
+  userId                  String
+  user                    User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  area                    ClinicalEvidenceArea
+  documentType            ClinicalDocumentType
+  status                  ClinicalDocumentStatus      @default(UPLOADED)
+  revision                Int                         @default(1)
+  originalFileName        String                      @db.VarChar(180)
+  mimeType                String                      @db.VarChar(80)
+  byteSize                Int
+  sha256                  String                      @db.VarChar(64)
+  encryptedPayload        Bytes
+  encryptionIv            Bytes
+  encryptionAuthTag       Bytes
+  issuedAt                DateTime?                   @db.Date
+  issuerName              String?                     @db.VarChar(180)
+  consentVersion          String                      @db.VarChar(80)
+  validUntil              DateTime?                   @db.Date
+  supersedesDocumentId    String?                     @unique
+  supersedesDocument      ClinicalDocument?           @relation("ClinicalDocumentSupersession", fields: [supersedesDocumentId], references: [id], onDelete: SetNull)
+  supersededByDocument    ClinicalDocument?           @relation("ClinicalDocumentSupersession")
+  claimedByNutritionistId String?
+  claimedByNutritionist   NutritionistProfile?        @relation("ClaimedClinicalDocuments", fields: [claimedByNutritionistId], references: [id], onDelete: SetNull)
+  claimedAt               DateTime?
+  withdrawnAt             DateTime?
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+  facts                   ClinicalFact[]
+  reviews                 ClinicalDocumentReview[]
+  clearanceEvidence       ClearanceClinicalEvidence[]
+  mealPlanEvidence        MealPlanClinicalEvidence[]
+
+  @@index([userId, area, status])
+  @@index([status, createdAt])
+  @@index([claimedByNutritionistId, claimedAt])
+}
+
+model ClinicalFact {
+  id                       String                   @id @default(cuid())
+  userId                   String
+  user                     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId               String?
+  document                 ClinicalDocument?        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  area                     ClinicalEvidenceArea
+  code                     ClinicalFactCode
+  valueText                String?                  @db.VarChar(500)
+  valueNumber              Float?
+  unit                     String?                  @db.VarChar(40)
+  observedAt               DateTime?                @db.Date
+  pageNumber               Int?
+  provenance               ClinicalFactProvenance   @default(USER_ENTERED)
+  reviewStatus             ClinicalFactReviewStatus @default(UNREVIEWED)
+  reviewedByNutritionistId String?
+  reviewedByNutritionist   NutritionistProfile?     @relation("ClinicalFactReviewer", fields: [reviewedByNutritionistId], references: [id], onDelete: Restrict)
+  reviewedAt               DateTime?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+
+  @@index([userId, area, code])
+  @@index([documentId, reviewStatus])
+}
+
+model ClinicalDocumentReview {
+  id                    String                         @id @default(cuid())
+  documentId            String
+  document              ClinicalDocument               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile            @relation(fields: [nutritionistProfileId], references: [id], onDelete: Restrict)
+  decision              ClinicalDocumentReviewDecision
+  rationale             String                         @db.VarChar(1500)
+  validUntil            DateTime?                      @db.Date
+  factsSnapshot         Json
+  createdAt             DateTime                       @default(now())
+
+  @@index([documentId, createdAt])
+  @@index([nutritionistProfileId, createdAt])
+}
+
+model ClearanceClinicalEvidence {
+  id                 String                 @id @default(cuid())
+  clearanceId        String
+  clearance          MealConditionClearance @relation(fields: [clearanceId], references: [id], onDelete: Cascade)
+  clinicalDocumentId String
+  clinicalDocument   ClinicalDocument       @relation(fields: [clinicalDocumentId], references: [id], onDelete: Restrict)
+  documentRevision   Int
+  documentSha256     String                 @db.VarChar(64)
+  createdAt          DateTime               @default(now())
+
+  @@unique([clearanceId, clinicalDocumentId])
+  @@index([clinicalDocumentId, clearanceId])
+}
+
+model MealPlanClinicalEvidence {
+  id                 String           @id @default(cuid())
+  mealPlanId         String
+  mealPlan           MealPlan         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  clinicalDocumentId String
+  clinicalDocument   ClinicalDocument @relation(fields: [clinicalDocumentId], references: [id], onDelete: Restrict)
+  documentRevision   Int
+  documentSha256     String           @db.VarChar(64)
+  createdAt          DateTime         @default(now())
+
+  @@unique([mealPlanId, clinicalDocumentId])
+  @@index([clinicalDocumentId, mealPlanId])
 }
 
 model MealConditionClearanceDecision {

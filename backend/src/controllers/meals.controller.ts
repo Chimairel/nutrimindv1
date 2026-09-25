@@ -24,6 +24,7 @@ import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domai
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
 import { toPublicMealImage, toPublicYouTubeThumbnail, type MealImageRecord } from '@/domain/meal-image.policy';
 import { getPlanHistory } from './meals-history.controller';
+import { AppError } from '@/errors/AppError';
 
 function toPublicVerifier(
   nutritionist: {
@@ -145,9 +146,11 @@ export class MealsController {
         '[MealsController] Meal plan generation failed:',
         sanitizeErrorMessage(error, 'Internal meal generation failure.')
       );
-      return res.status(500).json({
+      return res.status(error instanceof AppError ? error.statusCode : 500).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to generate your personalized meal plan.'),
+        code: error instanceof AppError ? error.errorCode : undefined,
+        details: error instanceof AppError ? error.details : undefined,
       });
     }
   }
