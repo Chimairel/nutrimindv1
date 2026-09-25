@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EVIDENCE_SOURCES } from './evidence-sources';
+import { CLINICAL_POLICY_SUMMARIES, EVIDENCE_SOURCES } from './evidence-sources';
 
 describe('public evidence register', () => {
   it('separates recipe provenance from clinical and nutrition authority', () => {
@@ -19,5 +19,22 @@ describe('public evidence register', () => {
     );
     expect(conditionSources.length).toBeGreaterThan(0);
     expect(conditionSources.every((source) => source.status === 'DRAFT_REVIEW')).toBe(true);
+  });
+
+  it('maps each published condition explanation to known evidence sources', () => {
+    const sourceIds = new Set(EVIDENCE_SOURCES.map((source) => source.id));
+    expect(CLINICAL_POLICY_SUMMARIES).toHaveLength(6);
+    for (const policy of CLINICAL_POLICY_SUMMARIES) {
+      expect(policy.evidenceSourceIds.length).toBeGreaterThan(0);
+      expect(policy.evidenceSourceIds.every((sourceId) => sourceIds.has(sourceId))).toBe(true);
+      expect(policy.reviewBoundary.length).toBeGreaterThan(20);
+    }
+  });
+
+  it('does not present diabetes or kidney calculations as automatic clearance', () => {
+    const manualPolicies = CLINICAL_POLICY_SUMMARIES.filter((policy) =>
+      ['DIABETES', 'KIDNEY_DISEASE'].includes(policy.id)
+    );
+    expect(manualPolicies.every((policy) => /review|RND/i.test(policy.reviewBoundary))).toBe(true);
   });
 });

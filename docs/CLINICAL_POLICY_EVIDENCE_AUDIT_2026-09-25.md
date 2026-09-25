@@ -127,7 +127,9 @@ The intake code maps pregnancy, lactation, and breastfeeding to one `PREGNANT` v
 
 ### 6.1 Store source evidence as data
 
-The rule tables currently store a title and citation string. Add a normalized, immutable source record when implementation resumes:
+Implementation update (September 25, 2026): this source record is now implemented as `ClinicalEvidenceSource`, and condition rules carry exact per-claim application metadata. Policy impact analysis and activation fail closed when the source or required metadata is absent or no longer current. All seeded policies remain inactive drafts; the registry does not constitute clinical approval.
+
+The implemented normalized record contains the following evidence fields in addition to the retained compatibility title and URL:
 
 | Field | Purpose |
 | --- | --- |

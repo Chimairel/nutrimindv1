@@ -283,6 +283,47 @@ enum ConditionRuleNutrient {
   CARBOHYDRATE_G
 }
 
+enum ClinicalEvidenceDomain {
+  GENERAL_NUTRITION
+  ENERGY_ESTIMATION
+  HYPERTENSION
+  DIABETES
+  KIDNEY_DISEASE
+  CARDIOVASCULAR
+  PREGNANCY
+  ALLERGEN_LABELING
+}
+
+enum ClinicalEvidenceDocumentType {
+  GUIDELINE
+  REGULATION
+  PEER_REVIEWED_STUDY
+  GOVERNMENT_GUIDANCE
+  CONSENSUS_REPORT
+}
+
+enum ClinicalEvidenceSourceState {
+  CURRENT
+  SUPERSEDED
+  WITHDRAWN
+}
+
+enum ConditionRuleEvaluationScope {
+  INGREDIENT
+  PREPARATION
+  SERVING
+  MEAL
+  DAY
+  PLAN
+}
+
+enum ConditionRuleAuthority {
+  INFORMATIONAL
+  REVIEW_REQUIRED
+  HARD_BLOCK
+  CLEARANCE_ELIGIBLE
+}
+
 enum MealLogStatus {
   DONE
   PENDING
@@ -671,7 +712,7 @@ model User {
   auditEvents                      AuditEvent[]
   outsideMealPreviews              OutsideMealPreview[]
   outsideMealAiUsage               OutsideMealAiUsage[]
-  observedMealSubmissions           ObservedMealSubmission[]
+  observedMealSubmissions          ObservedMealSubmission[]
   waterLogs                        WaterLog[]
   nutritionistApplicationsReviewed NutritionistApplication[]        @relation("NutritionistApplicationReviewer")
   nutritionistApplicationInvite    NutritionistApplication?         @relation("NutritionistApplicationInvitee")
@@ -716,7 +757,7 @@ model ClinicalProfileReview {
   reasonCodes     Json
   profileSnapshot Json
   reviewerId      String?
-  reviewer        NutritionistProfile?       @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewer        NutritionistProfile?        @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
   reviewNotes     String?                     @db.VarChar(2000)
   createdAt       DateTime                    @default(now())
   reviewedAt      DateTime?
@@ -1501,48 +1542,93 @@ model MealLibrarySafetyDeclaration {
 }
 
 model ConditionNutrientRule {
-  id                       String                    @id @default(cuid())
+  id                       String                        @id @default(cuid())
   condition                HealthConditionType
   nutrient                 ConditionRuleNutrient
   operator                 ConditionRuleOperator
   threshold                Float
-  unit                     String                    @db.VarChar(32)
+  unit                     String                        @db.VarChar(32)
   basis                    ConditionRuleBasis
   severity                 ConditionRuleSeverity
-  rationale                String                    @db.Text
-  sourceTitle              String                    @db.VarChar(240)
-  sourceCitation           String                    @db.VarChar(1000)
+  rationale                String                        @db.Text
+  sourceTitle              String                        @db.VarChar(240)
+  sourceCitation           String                        @db.VarChar(1000)
+  evidenceSourceId         String?
+  evidenceSource           ClinicalEvidenceSource?       @relation(fields: [evidenceSourceId], references: [id], onDelete: Restrict)
+  evidenceLocator          String?                       @db.VarChar(500)
+  applicablePopulation     String?                       @db.Text
+  requiredInputs           Json?
+  exclusionsAndCaveats     String?                       @db.Text
+  evaluationScope          ConditionRuleEvaluationScope?
+  authorityOutcome         ConditionRuleAuthority        @default(REVIEW_REQUIRED)
+  formulaCode              String?                       @db.VarChar(80)
   approvedByNutritionistId String?
-  approvedByNutritionist   NutritionistProfile?      @relation("ConditionNutrientRuleApprover", fields: [approvedByNutritionistId], references: [id], onDelete: Restrict)
-  reviewStatus             ConditionRuleReviewStatus @default(DRAFT)
-  policyVersion            String                    @db.VarChar(64)
-  active                   Boolean                   @default(false)
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
+  approvedByNutritionist   NutritionistProfile?          @relation("ConditionNutrientRuleApprover", fields: [approvedByNutritionistId], references: [id], onDelete: Restrict)
+  reviewStatus             ConditionRuleReviewStatus     @default(DRAFT)
+  policyVersion            String                        @db.VarChar(64)
+  active                   Boolean                       @default(false)
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
 
   @@unique([condition, nutrient, operator, threshold, basis, policyVersion], map: "ConditionNutrientRule_unique_policy_rule")
   @@index([condition, reviewStatus, active])
+  @@index([evidenceSourceId])
 }
 
 model ConditionIngredientRule {
-  id                       String                    @id @default(cuid())
+  id                       String                        @id @default(cuid())
   condition                HealthConditionType
-  ingredientCategory       String                    @db.VarChar(80)
+  ingredientCategory       String                        @db.VarChar(80)
   matchingTerms            Json
   severity                 ConditionRuleSeverity
-  rationale                String                    @db.Text
-  sourceTitle              String                    @db.VarChar(240)
-  sourceCitation           String                    @db.VarChar(1000)
+  rationale                String                        @db.Text
+  sourceTitle              String                        @db.VarChar(240)
+  sourceCitation           String                        @db.VarChar(1000)
+  evidenceSourceId         String?
+  evidenceSource           ClinicalEvidenceSource?       @relation(fields: [evidenceSourceId], references: [id], onDelete: Restrict)
+  evidenceLocator          String?                       @db.VarChar(500)
+  applicablePopulation     String?                       @db.Text
+  requiredInputs           Json?
+  exclusionsAndCaveats     String?                       @db.Text
+  evaluationScope          ConditionRuleEvaluationScope?
+  authorityOutcome         ConditionRuleAuthority        @default(REVIEW_REQUIRED)
   approvedByNutritionistId String?
-  approvedByNutritionist   NutritionistProfile?      @relation("ConditionIngredientRuleApprover", fields: [approvedByNutritionistId], references: [id], onDelete: Restrict)
-  reviewStatus             ConditionRuleReviewStatus @default(DRAFT)
-  policyVersion            String                    @db.VarChar(64)
-  active                   Boolean                   @default(false)
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
+  approvedByNutritionist   NutritionistProfile?          @relation("ConditionIngredientRuleApprover", fields: [approvedByNutritionistId], references: [id], onDelete: Restrict)
+  reviewStatus             ConditionRuleReviewStatus     @default(DRAFT)
+  policyVersion            String                        @db.VarChar(64)
+  active                   Boolean                       @default(false)
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
 
   @@unique([condition, ingredientCategory, policyVersion], map: "ConditionIngredientRule_unique_policy_rule")
   @@index([condition, reviewStatus, active])
+  @@index([evidenceSourceId])
+}
+
+model ClinicalEvidenceSource {
+  id                   String                       @id @default(cuid())
+  code                 String                       @unique @db.VarChar(100)
+  issuingOrganization  String                       @db.VarChar(240)
+  title                String                       @db.VarChar(500)
+  documentType         ClinicalEvidenceDocumentType
+  domain               ClinicalEvidenceDomain
+  canonicalUrl         String                       @db.VarChar(1000)
+  archivedUrl          String?                      @db.VarChar(1000)
+  sourceVersion        String                       @db.VarChar(160)
+  publicationDate      DateTime?                    @db.Date
+  retrievedAt          DateTime
+  sectionLocator       String?                      @db.VarChar(500)
+  population           String                       @db.Text
+  jurisdiction         String                       @db.VarChar(160)
+  exclusionsAndCaveats String                       @db.Text
+  artifactChecksum     String?                      @db.VarChar(64)
+  state                ClinicalEvidenceSourceState  @default(CURRENT)
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  nutrientRules        ConditionNutrientRule[]
+  ingredientRules      ConditionIngredientRule[]
+
+  @@index([domain, state])
 }
 
 model MealLibrarySafetyReview {
@@ -1642,39 +1728,39 @@ model OutsideMealLogItem {
 }
 
 model ObservedFoodReference {
-  id          String @id @default(cuid())
-  signature   String @unique @db.VarChar(64)
-  name        String @db.VarChar(180)
-  normalizedName String @db.VarChar(180)
-  servingGrams Float
-  calories    Float
-  proteinG    Float
-  carbsG      Float
-  fatG        Float
-  createdAt   DateTime @default(now())
-  submissions ObservedMealSubmission[]
+  id             String                   @id @default(cuid())
+  signature      String                   @unique @db.VarChar(64)
+  name           String                   @db.VarChar(180)
+  normalizedName String                   @db.VarChar(180)
+  servingGrams   Float
+  calories       Float
+  proteinG       Float
+  carbsG         Float
+  fatG           Float
+  createdAt      DateTime                 @default(now())
+  submissions    ObservedMealSubmission[]
 
   @@index([normalizedName])
 }
 
 model ObservedMealSubmission {
-  id                       String @id @default(cuid())
-  sourceUserId             String?
-  sourceUser               User? @relation(fields: [sourceUserId], references: [id], onDelete: SetNull)
-  sourceOutsideMealItemId  String?
-  sourceOutsideMealItem    OutsideMealLogItem? @relation(fields: [sourceOutsideMealItemId], references: [id], onDelete: SetNull)
-  sourceRevision           Int
-  detailsConsentedAt       DateTime
-  imageReuseConsentedAt    DateTime?
-  status                   ObservedMealSubmissionStatus @default(SUBMITTED)
-  foodReferenceId          String?
-  foodReference            ObservedFoodReference? @relation(fields: [foodReferenceId], references: [id], onDelete: SetNull)
-  rawRecipeCandidateId     String?
-  rawRecipeCandidate       RawRecipeCandidate? @relation(fields: [rawRecipeCandidateId], references: [id], onDelete: SetNull)
+  id                         String                       @id @default(cuid())
+  sourceUserId               String?
+  sourceUser                 User?                        @relation(fields: [sourceUserId], references: [id], onDelete: SetNull)
+  sourceOutsideMealItemId    String?
+  sourceOutsideMealItem      OutsideMealLogItem?          @relation(fields: [sourceOutsideMealItemId], references: [id], onDelete: SetNull)
+  sourceRevision             Int
+  detailsConsentedAt         DateTime
+  imageReuseConsentedAt      DateTime?
+  status                     ObservedMealSubmissionStatus @default(SUBMITTED)
+  foodReferenceId            String?
+  foodReference              ObservedFoodReference?       @relation(fields: [foodReferenceId], references: [id], onDelete: SetNull)
+  rawRecipeCandidateId       String?
+  rawRecipeCandidate         RawRecipeCandidate?          @relation(fields: [rawRecipeCandidateId], references: [id], onDelete: SetNull)
   classifiedByNutritionistId String?
-  classifiedAt             DateTime?
-  withdrawnAt              DateTime?
-  createdAt                DateTime @default(now())
+  classifiedAt               DateTime?
+  withdrawnAt                DateTime?
+  createdAt                  DateTime                     @default(now())
 
   @@unique([sourceOutsideMealItemId, sourceRevision], map: "ObservedMealSubmission_sourceOutsideMealItemId_sourceRevision_k")
   @@index([status, createdAt])
@@ -1707,21 +1793,21 @@ model OutsideMealItemRevision {
 }
 
 model OutsideMealReview {
-  id                      String                  @id @default(cuid())
-  outsideMealLogItemId    String                  @unique
-  outsideMealLogItem      OutsideMealLogItem      @relation(fields: [outsideMealLogItemId], references: [id], onDelete: Cascade)
-  status                  OutsideMealReviewStatus @default(PENDING)
-  priority                Int                     @default(10)
+  id                      String                     @id @default(cuid())
+  outsideMealLogItemId    String                     @unique
+  outsideMealLogItem      OutsideMealLogItem         @relation(fields: [outsideMealLogItemId], references: [id], onDelete: Cascade)
+  status                  OutsideMealReviewStatus    @default(PENDING)
+  priority                Int                        @default(10)
   claimedByNutritionistId String?
-  claimedByNutritionist   NutritionistProfile?    @relation("OutsideMealReviewAssignee", fields: [claimedByNutritionistId], references: [id], onDelete: Restrict)
+  claimedByNutritionist   NutritionistProfile?       @relation("OutsideMealReviewAssignee", fields: [claimedByNutritionistId], references: [id], onDelete: Restrict)
   claimedAt               DateTime?
   reviewedAt              DateTime?
-  claimedRevision          Int?
-  reviewedRevision         Int?
-  requestedByUserAt        DateTime?
-  queueReason              String?                 @db.VarChar(60)
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
+  claimedRevision         Int?
+  reviewedRevision        Int?
+  requestedByUserAt       DateTime?
+  queueReason             String?                    @db.VarChar(60)
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
   messages                OutsideMealReviewMessage[]
 
   @@index([status, priority, createdAt])
@@ -1729,14 +1815,14 @@ model OutsideMealReview {
 }
 
 model OutsideMealReviewMessage {
-  id                 String                   @id @default(cuid())
+  id                  String                   @id @default(cuid())
   outsideMealReviewId String
-  review             OutsideMealReview        @relation(fields: [outsideMealReviewId], references: [id], onDelete: Cascade)
-  sender             OutsideMealMessageSender
-  authorUserId       String
-  itemRevision       Int
-  content            String                   @db.VarChar(1000)
-  createdAt          DateTime                 @default(now())
+  review              OutsideMealReview        @relation(fields: [outsideMealReviewId], references: [id], onDelete: Cascade)
+  sender              OutsideMealMessageSender
+  authorUserId        String
+  itemRevision        Int
+  content             String                   @db.VarChar(1000)
+  createdAt           DateTime                 @default(now())
 
   @@index([outsideMealReviewId, createdAt])
 }
@@ -2261,24 +2347,24 @@ model AuditEvent {
 }
 
 model OutsideMealPreview {
-  id         String    @id @default(cuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mealName   String    @db.VarChar(1000)
-  mealType   MealType
-  estimate   Json
-  warnings   Json
-  reasons    Json
-  notes      String?   @db.Text
-  estimationContext String? @db.Text
-  loggedForAt DateTime?
-  requestPayloadHash String? @db.Char(64)
-  items      Json?
-  requestKey String?   @unique @db.VarChar(128)
-  usedAi     Boolean   @default(false)
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealName           String    @db.VarChar(1000)
+  mealType           MealType
+  estimate           Json
+  warnings           Json
+  reasons            Json
+  notes              String?   @db.Text
+  estimationContext  String?   @db.Text
+  loggedForAt        DateTime?
+  requestPayloadHash String?   @db.Char(64)
+  items              Json?
+  requestKey         String?   @unique @db.VarChar(128)
+  usedAi             Boolean   @default(false)
+  expiresAt          DateTime
+  consumedAt         DateTime?
+  createdAt          DateTime  @default(now())
 
   @@index([userId, expiresAt])
 }
@@ -2294,20 +2380,20 @@ model WaterLog {
 }
 
 model SwapLog {
-  newLibraryMealId    String?
-  requestKey          String?  @unique
-  id                  String   @id @default(cuid())
-  mealPlanId          String
-  mealPlan            MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  originalMealName    String
-  originalCalories    Float
-  newMealName         String
-  newCalories         Float
-  calorieDelta        Float
-  warningShown        Boolean  @default(false)
-  warningAcknowledged Boolean  @default(false)
-  groceryDeltaAcknowledged Boolean @default(false)
-  swappedAt           DateTime @default(now())
+  newLibraryMealId         String?
+  requestKey               String?  @unique
+  id                       String   @id @default(cuid())
+  mealPlanId               String
+  mealPlan                 MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  originalMealName         String
+  originalCalories         Float
+  newMealName              String
+  newCalories              Float
+  calorieDelta             Float
+  warningShown             Boolean  @default(false)
+  warningAcknowledged      Boolean  @default(false)
+  groceryDeltaAcknowledged Boolean  @default(false)
+  swappedAt                DateTime @default(now())
 }
 
 model NutritionistWorkCredit {

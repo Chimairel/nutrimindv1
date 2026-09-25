@@ -1,4 +1,9 @@
-import { ConditionRulePolicyState, ConditionRuleReviewStatus, HealthConditionType } from '@prisma/client';
+import {
+  ClinicalEvidenceSourceState,
+  ConditionRulePolicyState,
+  ConditionRuleReviewStatus,
+  HealthConditionType,
+} from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { evaluateConditionNutrientRule, type RuleNutrientEvidence } from '@/domain/condition-rule-evaluation.policy';
 
@@ -34,7 +39,9 @@ export async function evaluateApprovedConditionRules(input: {
         reviewStatus: ConditionRuleReviewStatus.APPROVED,
         active: true,
         approvedByNutritionistId: { not: null },
+        evidenceSource: { is: { state: ClinicalEvidenceSourceState.CURRENT } },
       },
+      include: { evidenceSource: true },
       orderBy: [{ condition: 'asc' }, { nutrient: 'asc' }, { id: 'asc' }],
       take: 100,
     }),
@@ -44,7 +51,9 @@ export async function evaluateApprovedConditionRules(input: {
         reviewStatus: ConditionRuleReviewStatus.APPROVED,
         active: true,
         approvedByNutritionistId: { not: null },
+        evidenceSource: { is: { state: ClinicalEvidenceSourceState.CURRENT } },
       },
+      include: { evidenceSource: true },
       orderBy: [{ condition: 'asc' }, { ingredientCategory: 'asc' }, { id: 'asc' }],
       take: 100,
     }),

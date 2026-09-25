@@ -165,7 +165,7 @@ test('[TEST-206] checkpoint-2 migration and draft-rule seed preserve review gove
   assert.match(migration, /ConditionNutrientRule_approval_integrity/u);
   assert.match(migration, /"recipeSignature"/u);
   assert.match(seed, /reviewStatus:\s*ConditionRuleReviewStatus\.DRAFT/gu);
-  assert.match(seed, /approvedByNutritionistId:\s*null/gu);
+  assert.match(seed, /approvedByNutritionist:\s*\{\s*disconnect:\s*true\s*\}/gu);
   assert.match(seed, /active:\s*false/gu);
   assert.doesNotMatch(seed, /potassium-[0-9]/u);
   assert.doesNotMatch(seed, /phosphorus-[0-9]/u);

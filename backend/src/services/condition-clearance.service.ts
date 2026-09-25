@@ -1,10 +1,12 @@
 import {
   AssuranceTier,
+  ClinicalEvidenceSourceState,
   ClearanceDecisionStage,
   ClearanceDecisionValue,
   ConditionClearanceProvenance,
   ConditionClearanceState,
   ConditionRulePolicyState,
+  ConditionRuleAuthority,
   HealthConditionType,
   Prisma,
   RuleApprovalDecision,
@@ -19,6 +21,7 @@ import {
   getConditionAssuranceTier,
 } from '@/domain/assurance-tier.policy';
 import { evaluateConditionNutrientRule } from '@/domain/condition-rule-evaluation.policy';
+import { assertConditionPolicyEvidenceComplete } from '@/domain/condition-policy-evidence.policy';
 
 const STANDARD_AUDIT_MS = 365 * 24 * 60 * 60 * 1000;
 const ENHANCED_AUDIT_MS = 180 * 24 * 60 * 60 * 1000;
@@ -381,9 +384,11 @@ export class ConditionClearanceService {
     const [nutrientRules, ingredientRules, meals] = await Promise.all([
       prisma.conditionNutrientRule.findMany({
         where: { condition: policy.condition, policyVersion: policy.policyVersion },
+        include: { evidenceSource: true },
       }),
       prisma.conditionIngredientRule.findMany({
         where: { condition: policy.condition, policyVersion: policy.policyVersion },
+        include: { evidenceSource: true },
       }),
       prisma.mealLibrary.findMany({
         where: { status: 'APPROVED', safetyEvidenceStatus: 'COMPLETE' },
@@ -403,6 +408,7 @@ export class ConditionClearanceService {
         take: 5000,
       }),
     ]);
+    assertConditionPolicyEvidenceComplete([...nutrientRules, ...ingredientRules]);
     let cleared = 0;
     let blocked = 0;
     let unevaluable = 0;
@@ -454,6 +460,17 @@ export class ConditionClearanceService {
     if (policy.approvals.some((approval) => approval.nutritionistProfileId === input.nutritionistProfileId)) {
       throw new Error('The same nutritionist cannot approve a ruleset version twice.');
     }
+    const governedRules = await Promise.all([
+      prisma.conditionNutrientRule.findMany({
+        where: { condition: policy.condition, policyVersion: policy.policyVersion },
+        include: { evidenceSource: true },
+      }),
+      prisma.conditionIngredientRule.findMany({
+        where: { condition: policy.condition, policyVersion: policy.policyVersion },
+        include: { evidenceSource: true },
+      }),
+    ]);
+    assertConditionPolicyEvidenceComplete([...governedRules[0], ...governedRules[1]]);
 
     return prisma.$transaction(async (tx) => {
       await tx.conditionRulePolicyApproval.create({
@@ -513,7 +530,14 @@ export class ConditionClearanceService {
       if (policy.automationAllowed && conditionAllowsRulesetAutomation(policy.condition)) {
         const [rules, meals] = await Promise.all([
           tx.conditionNutrientRule.findMany({
-            where: { condition: policy.condition, policyVersion: policy.policyVersion, active: true },
+            where: {
+              condition: policy.condition,
+              policyVersion: policy.policyVersion,
+              active: true,
+              authorityOutcome: ConditionRuleAuthority.CLEARANCE_ELIGIBLE,
+              evidenceSource: { is: { state: ClinicalEvidenceSourceState.CURRENT } },
+            },
+            include: { evidenceSource: true },
           }),
           tx.mealLibrary.findMany({
             where: {

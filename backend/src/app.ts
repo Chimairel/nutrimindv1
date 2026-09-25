@@ -24,6 +24,7 @@ import groceryRouter from '@/routes/grocery.routes';
 import progressRouter from '@/routes/progress.routes';
 import cronRouter from '@/routes/cron.routes';
 import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
+import evidenceRouter from '@/routes/evidence.routes';
 
 // Initialize Express app
 const app = express();
@@ -70,6 +71,7 @@ if (env.SMTP_VERIFY_ON_STARTUP) {
 
 // Mount API Routers
 app.use('/api/auth', authRouter);
+app.use('/api/evidence', evidenceRouter);
 // Specific progress routes own their read/write prerequisites; mount before the broader user router.
 app.use('/api/user/progress', progressRouter);
 app.use('/api/user', userRouter);

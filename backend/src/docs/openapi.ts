@@ -16,6 +16,13 @@ interface RouteDocumentation {
 const routes: RouteDocumentation[] = [
   { method: 'get', path: '/health', tag: 'Operations', summary: 'Liveness probe', public: true },
   { method: 'get', path: '/ready', tag: 'Operations', summary: 'Database readiness probe', public: true },
+  {
+    method: 'get',
+    path: '/api/evidence/sources',
+    tag: 'Evidence',
+    summary: 'List current versioned clinical evidence sources',
+    public: true,
+  },
   { method: 'post', path: '/api/auth/register', tag: 'Authentication', summary: 'Register a user', public: true },
   {
     method: 'post',
