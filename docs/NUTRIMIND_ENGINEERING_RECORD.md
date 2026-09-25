@@ -4354,3 +4354,11 @@ Reproduced the reported generic 500 response by sending an application POST thro
 - Report acknowledgment now returns a server-calculated planning status, shows an immediate Sonner message, and records one bell notification per newly acknowledged report version. A blocked user goes to the clinical-context page. The bell's planner card rechecks current status from `/api/user/meals/readiness` when opened, so a later document review changes the displayed status without treating an old notification as current authority.
 - The status distinguishes required clinical context that prevents a plan request from restrictions that allow candidate sourcing but may require individual RND meal review. Intake already rejects `INVALID` and `NEEDS_CLARIFICATION` entries before saving; `PENDING_REVIEW` and recognized unsupported entries remain in the safety intersection and are not treated as cleared. This change does not add a generic profile-review gate or approve a meal on report acknowledgment.
 - Verification: backend build, frontend TypeScript check, targeted backend and frontend lint, and 15 focused safety-intake/planning-readiness tests passed. No shared database migration was needed. Live browser behavior and persisted notification delivery were not exercised in this change.
+
+## 134. Explain automatically prepared upcoming meal previews (2026-09-25)
+
+**Change ID:** CHG-20260925-12
+
+- The upcoming-week preparation job can run after report acknowledgment and when the meal workspace is opened, even before a user presses Generate. It creates a dated future cycle within the preparation window; pending meals remain previews and are not actionable. The dashboard's current-cycle query can therefore correctly return no active plan while the Meals workspace shows an upcoming cycle.
+- The Meals workspace now labels an upcoming-only cycle as an automatically prepared preview, names its counters as upcoming candidates/days, and states that pending meals cannot be logged, swapped, or shopped for. The dashboard fetches the upcoming cycle identity when no current cycle exists and explains the distinction in its empty state. Generation and safety gates were not changed.
+- Verification: frontend TypeScript check and targeted ESLint passed. No database mutation, schema change, or browser acceptance run was involved.

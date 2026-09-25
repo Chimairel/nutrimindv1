@@ -41,6 +41,7 @@ interface CurrentPlanSnapshot {
     dailyMacroTargets: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }>;
   } | null;
   cycle?: CycleMetaSnapshot;
+  upcomingCycle?: CycleMetaSnapshot;
 }
 
 interface CheckinSnapshot {
@@ -81,6 +82,7 @@ export default function DashboardPage() {
     cachedPlan?.planSnapshot ?? null
   );
   const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.cycle ?? null);
+  const [upcomingCycle, setUpcomingCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.upcomingCycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
   const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
@@ -169,6 +171,7 @@ export default function DashboardPage() {
       setPendingReview(snapshot.pendingReview);
       setPlanSnapshot(snapshot.planSnapshot);
       setCurrentCycle(snapshot.cycle ?? null);
+      setUpcomingCycle(snapshot.upcomingCycle ?? null);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
     [ownerId]
@@ -253,6 +256,15 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
+        let nextCycle: CycleMetaSnapshot | null = null;
+        if (!res.data.meta?.cycle) {
+          try {
+            const cyclesResponse = await api.get('/user/meals/cycles');
+            nextCycle = cyclesResponse.data?.data?.upcoming ?? null;
+          } catch {
+            // Current-plan rendering still works if upcoming-cycle status is unavailable.
+          }
+        }
         setError(null);
         setClinicalEvidenceRequired(false);
         applyCurrentPlan({
@@ -260,6 +272,7 @@ export default function DashboardPage() {
           pendingReview: res.data.meta?.pendingReview ?? null,
           planSnapshot: res.data.meta?.planSnapshot ?? null,
           cycle: res.data.meta?.cycle ?? null,
+          upcomingCycle: nextCycle,
         });
       }
     } catch (err: unknown) {
@@ -541,9 +554,11 @@ export default function DashboardPage() {
           <StateNotice
             variant="no-meal-plan"
             title="No Active Meal Plan"
-            description="You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices."
+            description={upcomingCycle?.startDate
+              ? `Your next week is being prepared automatically for ${formatManilaDate(upcomingCycle.startDate, { weekday: 'long', month: 'short', day: 'numeric' })}. Its candidates appear as previews in Meals; they are not an active plan or usable until cleared. Generate a plan if you need meals for the current cycle.`
+              : 'You do not have a meal plan scheduled. Generate an affordable, varied plan shaped by your nutrition needs, preferences, and locally available food choices.'}
             action={{
-              label: isGenerating ? 'Generating Plan...' : 'Generate Meal Plan',
+              label: isGenerating ? 'Generating Plan...' : upcomingCycle ? 'Generate Current Plan' : 'Generate Meal Plan',
               onClick: handleGeneratePlan,
               isLoading: isGenerating,
             }}

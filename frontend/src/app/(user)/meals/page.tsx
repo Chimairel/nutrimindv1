@@ -51,6 +51,7 @@ export default function WeeklyPlanPage() {
     regenerationProgress,
     error,
     pendingReview,
+    cycles,
     setSelectedPlanDateKey,
     historyLogs,
     isHistoryLoading,
@@ -89,6 +90,13 @@ export default function WeeklyPlanPage() {
     completedMealCount,
   } = workspace;
 
+  const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && displayedMealCount > 0;
+  const upcomingStart = cycles?.upcoming?.startDate
+    ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cycles.upcoming.startDate)), {
+        weekday: 'long', month: 'short', day: 'numeric',
+      })
+    : null;
+
   const { setSubTab } = useBreadcrumb();
 
   // Read initial tab from URL if present
@@ -122,11 +130,13 @@ export default function WeeklyPlanPage() {
   useEffect(() => {
     if (pendingReview && !notifiedPendingReview.current) {
       notifiedPendingReview.current = true;
-      toast.info('Your meal plan is currently in preview while a nutritionist verifies it.', {
+      toast.info(upcomingOnly
+        ? 'Your upcoming week is being prepared. These are previews until nutritionist review is complete.'
+        : 'Your meal plan is currently in preview while a nutritionist verifies it.', {
         id: 'meals-clinical-review-preview',
       });
     }
-  }, [pendingReview]);
+  }, [pendingReview, upcomingOnly]);
 
   useEffect(() => {
     if (isStarterPlan && nextCycleDay && !notifiedStarterPlan.current) {
@@ -171,7 +181,9 @@ export default function WeeklyPlanPage() {
         <PortalPageHeader
           title={
             activeTab === 'plan'
-              ? isStarterPlan
+              ? upcomingOnly
+                ? 'Upcoming meal plan preview'
+                : isStarterPlan
                 ? 'Starter meal plan'
                 : 'Weekly meal plan'
               : activeTab === 'history'
@@ -180,7 +192,9 @@ export default function WeeklyPlanPage() {
           }
           description={
             activeTab === 'plan'
-              ? isStarterPlan && nextCycleDay
+              ? upcomingOnly
+                ? `Automatically prepared ahead of ${upcomingStart ?? 'your next week'}. These meals are not your active plan.`
+                : isStarterPlan && nextCycleDay
                 ? `Starter kickoff plan. Your full weekly cycle starts ${nextCycleDay}.`
                 : 'Your complete scheduled breakdown, macro targets, and meal review states.'
               : activeTab === 'history'
@@ -257,15 +271,25 @@ export default function WeeklyPlanPage() {
           ))}
         </nav>
 
+        {activeTab === 'plan' && !isLoading && upcomingOnly && (
+          <div className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
+            <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
+            <p>
+              KAINARA prepares the next week ahead of your shopping day. This is an upcoming draft, not an active plan.
+              Meals marked awaiting review are previews and cannot be logged, swapped, or shopped for yet.
+            </p>
+          </div>
+        )}
+
         {activeTab === 'plan' && !isLoading && displayedMealCount > 0 && (
           <section className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
             {[
-              { label: 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
-              { label: 'Plan days', value: displayedPlanDays.length, icon: Calendar },
+              { label: upcomingOnly ? 'Upcoming candidates' : 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
+              { label: upcomingOnly ? 'Upcoming days' : 'Plan days', value: displayedPlanDays.length, icon: Calendar },
               {
-                label: pendingReview ? 'Awaiting review' : 'Completed',
-                value: pendingReview ? pendingReview.mealCount : completedMealCount,
-                icon: pendingReview ? ShieldCheck : CircleCheckBig,
+                label: pendingReview ? 'Awaiting review' : upcomingOnly ? 'Cleared' : 'Completed',
+                value: pendingReview ? pendingReview.mealCount : upcomingOnly ? meals.length : completedMealCount,
+                icon: pendingReview || upcomingOnly ? ShieldCheck : CircleCheckBig,
               },
             ].map((metric) => {
               const MetricIcon = metric.icon;

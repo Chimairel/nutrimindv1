@@ -805,6 +805,7 @@ export function useMealsWorkspace() {
     regenerationProgress,
     error,
     pendingReview,
+    cycles,
     selectedPlanDateKey,
     setSelectedPlanDateKey,
     activeSwapMeal,
