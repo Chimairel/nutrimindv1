@@ -92,6 +92,7 @@ const CURATED_TARGETS: Readonly<Record<string, string>> = Object.freeze({
   'cooked white rice': 'Rice, well-milled, boiled',
   'steamed rice': 'Rice, well-milled, boiled',
   'leftover rice': 'Rice, well-milled, boiled',
+  'cold leftover rice': 'Rice, well-milled, boiled',
   'white rice cooked': 'Rice, well-milled, boiled',
   egg: 'Egg, chicken, whole',
   eggs: 'Egg, chicken, whole',

@@ -34,6 +34,7 @@ test('source ingredient cleanup removes quantities and preparation-only text', (
 
 test('curated equivalents resolve cooking-state and Filipino recipe language', () => {
   assert.equal(matchSourceIngredientToFnri('leftover rice', foods)?.food.id, 'rice');
+  assert.equal(matchSourceIngredientToFnri('cold leftover rice', foods)?.food.id, 'rice');
   assert.equal(matchSourceIngredientToFnri('raw eggs (beaten)', foods)?.food.id, 'egg');
   assert.equal(matchSourceIngredientToFnri('hard boiled eggs', foods)?.food.id, 'egg-boiled');
   assert.equal(matchSourceIngredientToFnri('green onions (chopped)', foods)?.food.id, 'spring-onion');
