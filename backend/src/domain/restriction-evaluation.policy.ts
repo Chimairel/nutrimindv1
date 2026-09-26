@@ -516,6 +516,9 @@ export function evaluateRestrictions(input: RestrictionEvaluationInput): Restric
       } else if (ingredient.dataSource === 'USDA_FDC') {
         reasons.add('USDA_COMPOSITION_REQUIRES_REVIEW');
         ingredientsComplete = false;
+      } else if (ingredient.dataSource === 'USDA_FDC_REVIEWED') {
+        // A distinct internal marker from current reusable-library certification.
+        // Unreviewed USDA records retain the review-required branch above.
       } else if (ingredient.dataSource !== 'FNRI') {
         reasons.add('UNKNOWN_METADATA_KEY');
         ingredientsComplete = false;

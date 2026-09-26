@@ -210,11 +210,17 @@ function adaptIngredientEvidence(candidate: UnknownRecord): unknown {
   if (!hasOwn(candidate, 'ingredients')) return undefined;
   if (!Array.isArray(candidate.ingredients)) return candidate.ingredients;
 
+  // The library service supplies this flag only after its current recipe
+  // revision passes the reusable certification policy. Raw USDA identity
+  // matches never acquire this reviewed evidence marker.
+  const reviewedLibraryEvidence = isRecord(candidate.safetyEvidence) && candidate.safetyEvidence.baseComplete === true;
+
   return candidate.ingredients.map((ingredient) => {
     if (!isRecord(ingredient)) return ingredient;
     const linked = typeof ingredient.foodItemId === 'string' && ingredient.foodItemId.length > 0;
     return {
-      dataSource: ingredient.dataSource,
+      dataSource:
+        ingredient.dataSource === 'USDA_FDC' && reviewedLibraryEvidence ? 'USDA_FDC_REVIEWED' : ingredient.dataSource,
       resolved: linked,
       linked,
     };

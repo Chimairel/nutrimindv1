@@ -92,6 +92,34 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
   })),
 });
 
+test('certified USDA fallback can be reused, while an ordinary USDA name match still waits for review', () => {
+  const meal = {
+    ...certifiedMeal(['OMNIVORE'], [], []),
+    ingredients: [{ dataSource: 'USDA_FDC', foodItemId: 'usda-1', quantity: 100, unit: 'g' }],
+    nutritionEvidenceSource: 'NUTRITIONIST_EDITED',
+  };
+  assert.equal(
+    isCertifiedLibraryMealCompatible(meal, [], [], {
+      dietaryPreference: 'OMNIVORE',
+      goal: 'MAINTAIN',
+      otherConditions: null,
+      otherAllergies: null,
+    }),
+    true
+  );
+  const pending = completeCandidate();
+  const unreviewed = evaluateMealGenerationLibraryCompatibility({
+    candidate: {
+      ...pending,
+      ingredients: [{ dataSource: 'USDA_FDC', foodItemId: 'usda-1' }],
+      safetyEvidence: { ...pending.safetyEvidence, complete: false, baseComplete: false },
+    },
+    userRestrictions: { conditions: [], allergies: [] },
+  });
+  assert.equal(unreviewed.eligible, false);
+  assert.ok(unreviewed.reasonCodes.includes('USDA_COMPOSITION_REQUIRES_REVIEW'));
+});
+
 test('[TEST-074] structured entries are authoritative and aliases dedupe across entry paths', () => {
   const adapted = adaptUserSafetyRestrictions({
     safetyEntries: [entry('CONDITION', 'DIABETES'), entry('ALLERGY', 'EGGS'), entry('AVOIDED_INGREDIENT', 'EGGS')],
