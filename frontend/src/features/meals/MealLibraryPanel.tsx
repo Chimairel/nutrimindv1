@@ -101,7 +101,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           </select>
         </label>
         {libraryTotalCount !== null && (
-          <span className="ml-auto text-brand-muted">{libraryTotalCount} reusable recipes · {approvedInPlan.length} approved {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan</span>
+          <span className="ml-auto text-brand-muted">{libraryTotalCount} reviewed recipes · {approvedInPlan.length} approved {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan</span>
         )}
       </div>
 
@@ -144,7 +144,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </section>
       )}
 
-      {approvedInPlan.length > 0 && <h2 className="text-sm font-bold text-brand-text">Reusable reviewed recipes</h2>}
+      {approvedInPlan.length > 0 && <h2 className="text-sm font-bold text-brand-text">Reviewed recipes for your profile</h2>}
 
       {isLibraryLoading ? (
         <div className="flex flex-col items-center py-12 gap-2">

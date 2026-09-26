@@ -23,6 +23,8 @@ import { recordCompletedMealPlanReviewCredit } from '@/services/work-credit.serv
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import { publishProfileMatchedMealApproval } from './meal-profile-approval-publication.service';
 import { NutritionistReplacementService } from './nutritionist-replacement.service';
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 import { evaluateApprovedConditionRules } from './condition-rule.service';
@@ -38,6 +40,37 @@ import {
   evaluateClinicalEvidenceRequirements,
   type DiabetesContext,
 } from '@/domain/clinical-evidence-requirement.policy';
+
+async function findScopeMatchedPendingPlans(
+  tx: Prisma.TransactionClient,
+  where: Prisma.MealPlanWhereInput,
+  safetyScopeKey: string
+) {
+  const candidates = await tx.mealPlan.findMany({
+    where,
+    include: {
+      clinicalEvidence: { select: { id: true } },
+      cycle: { select: { snapshot: { select: { profileRevision: true, safetyRevision: true } } } },
+      user: {
+        include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
+      },
+    },
+  });
+  return candidates.filter((candidate) => {
+    const profile = candidate.user.userProfile;
+    if (!profile || candidate.clinicalEvidence.length ||
+      candidate.cycle.snapshot?.profileRevision !== profile.revision ||
+      candidate.cycle.snapshot?.safetyRevision !== profile.safetyRevision) return false;
+    const scope = mealApprovalSafetyScope({
+      conditions: candidate.user.healthConditions.map((item) => item.condition),
+      allergens: candidate.user.allergies.map((item) => item.allergen),
+      otherConditions: profile.otherConditions,
+      otherAllergies: profile.otherAllergies,
+      safetyEntries: candidate.user.safetyProfileEntries,
+    });
+    return scope.supported && scope.key === safetyScopeKey;
+  }).map(({ id, userId, mealName }) => ({ id, userId, mealName }));
+}
 
 export async function assertObservedSourceStillAvailable(tx: Prisma.TransactionClient, rawCandidateId: string | null) {
   if (!rawCandidateId) return;
@@ -612,12 +645,20 @@ export class NutritionistReviewService {
             healthConditions: true,
             allergies: true,
             userProfile: true,
+            safetyProfileEntries: true,
           },
         },
       },
     });
 
     if (!plan) throw new Error('Meal plan not found.');
+    const approvedScope = mealApprovalSafetyScope({
+      conditions: plan.user.healthConditions.map((item) => item.condition),
+      allergens: plan.user.allergies.map((item) => item.allergen),
+      otherConditions: plan.user.userProfile?.otherConditions,
+      otherAllergies: plan.user.userProfile?.otherAllergies,
+      safetyEntries: plan.user.safetyProfileEntries,
+    });
     const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(plan.userId);
     const clinicalDocumentIds = [...new Set(clinicalRequirements.flatMap((item) => item.readyDocumentIds))];
     const clinicalDocuments = clinicalDocumentIds.length
@@ -759,18 +800,15 @@ export class NutritionistReviewService {
             });
           }
 
-          if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0) {
-            const dependents = await tx.mealPlan.findMany({
-              where: {
+          if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0 && approvedScope.supported) {
+            const dependents = await findScopeMatchedPendingPlans(tx, {
                 id: { not: mealPlanId },
                 reviewWorkKey: plan.reviewWorkKey,
                 status: MealPlanStatus.PENDING_REVIEW,
                 reviewApprovalCount: 0,
                 claimedByNutritionistId: null,
                 cycle: { profileAdaptationState: 'CURRENT' },
-              },
-              select: { id: true, userId: true, mealName: true },
-            });
+              }, approvedScope.key);
             if (dependents.length) {
               await tx.mealPlan.updateMany({
                 where: { id: { in: dependents.map((item) => item.id) } },
@@ -944,7 +982,7 @@ export class NutritionistReviewService {
         }
 
         const coalescedApprovedUsers: string[] = [];
-        if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0) {
+        if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0 && approvedScope.supported) {
           const dependentWhere: Prisma.MealPlanWhereInput = {
             id: { not: mealPlanId },
             reviewWorkKey: plan.reviewWorkKey,
@@ -956,10 +994,7 @@ export class NutritionistReviewService {
           if (plan.highRiskReviewRequired) {
             dependentWhere.firstApprovedByNutritionistId = { not: nutritionistProfileId };
           }
-          const dependents = await tx.mealPlan.findMany({
-            where: dependentWhere,
-            select: { id: true, userId: true, mealName: true },
-          });
+          const dependents = await findScopeMatchedPendingPlans(tx, dependentWhere, approvedScope.key);
 
           if (dependents.length) {
             const dependentIds = dependents.map((item) => item.id);
@@ -1070,6 +1105,21 @@ export class NutritionistReviewService {
       }
     } catch (error) {
       console.error('[NutritionistService] Grocery projection refresh failed after approval:', error);
+    }
+
+    // Profile-matched reuse is a separate projection of this finalized RND
+    // decision. Failure leaves the patient's approval intact and the recipe
+    // unavailable to other users until a later retry or certification.
+    if (approvedScope.supported && plan.user.userProfile) {
+      try {
+        await publishProfileMatchedMealApproval({
+          mealPlanId,
+          nutritionistProfileId,
+          approvedProfileRevision: plan.user.userProfile.revision,
+        });
+      } catch (error) {
+        console.error('[NutritionistService] Profile-matched meal publication failed:', error);
+      }
     }
 
     return { success: true };

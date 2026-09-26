@@ -13,6 +13,7 @@ import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
 import { AiCapacityDeferredError } from './ai-capacity.service';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
 import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-response.schema';
@@ -233,6 +234,8 @@ export class MealAiQueueService {
                 highRiskReviewRequired: enhanced,
                 reviewWorkKey: buildReviewWorkKey({ recipeSignature: serving.baseRecipeSignature, evidenceRevision: 1,
                   conditions: conditionsForReview, allergens, policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                  safetyScopeKey: mealApprovalSafetyScope({ conditions, allergens, otherConditions,
+                    otherAllergies, safetyEntries: context.user.safetyProfileEntries }).key,
                   requiredReviewerCount: enhanced ? 2 : 1 }),
                 candidateRank: 1, fallbackAvailable: false,
                 selectionEvidence: {

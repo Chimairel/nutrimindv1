@@ -30,6 +30,7 @@ import {
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { toPublicMealImage, type PublicMealImage } from '@/domain/meal-image.policy';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 import { resolveLibraryRecipeCookingLinks } from './library-recipe-cooking-link.service';
@@ -173,9 +174,14 @@ export { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible };
 export function toPublicSwapOption(
   meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean },
   recipeImage?: PublicMealImage,
-  cookingLink?: PublicMealCookingLink
+  cookingLink?: PublicMealCookingLink,
+  reuseBasis: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' = 'CERTIFIED_RECIPE',
+  profileScopeKey?: string
 ) {
   const assignedImage = toPublicMealImage(meal);
+  const reviewer = reuseBasis === 'PROFILE_MATCHED_APPROVAL'
+    ? meal.profileApprovals.find((entry) => entry.safetyScopeKey === profileScopeKey)?.reviewerNutritionist
+    : meal.safetyReviewedByNutritionist;
   return {
     id: meal.id,
     mealName: meal.mealName,
@@ -194,18 +200,19 @@ export function toPublicSwapOption(
     fatG: meal.fatG,
     image: assignedImage?.kind === 'EXACT' && meal.imagePublicId ? assignedImage : recipeImage || assignedImage,
     cookingLink: cookingLink || null,
-    verifiedBy: meal.safetyReviewedByNutritionist?.user.name || 'System',
-    prcLicenseNumber: meal.safetyReviewedByNutritionist?.prcLicenseNumber || 'N/A',
-    verifier: meal.safetyReviewedByNutritionist
+    reuseBasis,
+    verifiedBy: reviewer?.user.name || 'System',
+    prcLicenseNumber: reviewer?.prcLicenseNumber || 'N/A',
+    verifier: reviewer
       ? {
-          name: meal.safetyReviewedByNutritionist.user.name,
-          image: meal.safetyReviewedByNutritionist.user.image || null,
-          prcLicenseNumber: meal.safetyReviewedByNutritionist.prcLicenseNumber,
-          prcLicenseExpiry: meal.safetyReviewedByNutritionist.prcLicenseExpiry,
-          specialization: meal.safetyReviewedByNutritionist.specialization,
-          yearsOfExperience: meal.safetyReviewedByNutritionist.yearsOfExperience,
-          university: meal.safetyReviewedByNutritionist.university,
-          bio: meal.safetyReviewedByNutritionist.bio,
+          name: reviewer.user.name,
+          image: reviewer.user.image || null,
+          prcLicenseNumber: reviewer.prcLicenseNumber,
+          prcLicenseExpiry: reviewer.prcLicenseExpiry,
+          specialization: reviewer.specialization,
+          yearsOfExperience: reviewer.yearsOfExperience,
+          university: reviewer.university,
+          bio: reviewer.bio,
         }
       : null,
   };
@@ -828,6 +835,7 @@ export class MealSwapService {
       cursor: input.cursor,
       limit: input.limit,
       safetyOnly: true,
+      includeProfileApproved: true,
     });
 
     const [recipeImages, cookingLinks] = await Promise.all([
@@ -836,7 +844,21 @@ export class MealSwapService {
     ]);
     return {
       items: page.items.map((meal) => ({
-        ...toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id)),
+        ...toPublicSwapOption(
+          meal,
+          recipeImages.get(meal.id),
+          cookingLinks.get(meal.id),
+          isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+            ...userProfile, safetyEntries: user.safetyProfileEntries,
+          }, { safetyOnly: true }) ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
+          mealApprovalSafetyScope({
+            conditions: userConditions,
+            allergens: userAllergens,
+            otherConditions: userProfile.otherConditions,
+            otherAllergies: userProfile.otherAllergies,
+            safetyEntries: user.safetyProfileEntries,
+          }).key
+        ),
         matchesDietaryPreference: !userProfile.dietaryPreference ||
           (Array.isArray(meal.dietaryTags) && meal.dietaryTags.includes(userProfile.dietaryPreference)),
       })),

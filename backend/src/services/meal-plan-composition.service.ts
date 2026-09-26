@@ -28,6 +28,7 @@ import {
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import {
   getMealSlotCalorieRange,
   isPrimaryMealType,
@@ -661,6 +662,13 @@ export async function generate7DayPlan(
               evidenceRevision: 1,
               conditions: planConditions,
               allergens: userAllergens,
+              safetyScopeKey: mealApprovalSafetyScope({
+                conditions: userConditions,
+                allergens: userAllergens,
+                otherConditions,
+                otherAllergies,
+                safetyEntries: user.safetyProfileEntries,
+              }).key,
               policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
             }),

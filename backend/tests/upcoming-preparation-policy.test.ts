@@ -52,6 +52,7 @@ test('review-work identity is stable across restriction ordering and changes whe
     evidenceRevision: 2,
     policyVersion: 'POLICY_V3',
     requiredReviewerCount: 2,
+    safetyScopeKey: 'scope-a',
   };
   const first = buildReviewWorkKey({
     ...shared,
@@ -71,6 +72,12 @@ test('review-work identity is stable across restriction ordering and changes whe
 
   assert.equal(first, reordered);
   assert.notEqual(first, changed);
+  assert.notEqual(first, buildReviewWorkKey({
+    ...shared,
+    safetyScopeKey: 'scope-b',
+    conditions: ['KIDNEY_DISEASE', 'PREGNANT'],
+    allergens: ['DAIRY', 'PEANUTS'],
+  }));
   assert.match(first, /^[a-f0-9]{64}$/);
 });
 

@@ -992,6 +992,7 @@ model NutritionistProfile {
   verifiedMeals            MealLibrary[]
   safetyReviewedMeals      MealLibrary[]                    @relation("MealLibrarySafetyReviewer")
   safetyReviewEvents       MealLibrarySafetyReview[]        @relation("MealLibrarySafetyReviewActor")
+  profileMatchedApprovals  MealLibraryProfileApproval[]     @relation("MealLibraryProfileApprovalReviewer")
   submittedFlags           MealLibraryFlag[]                @relation("SubmittedFlags")
   claimedPlans             MealPlan[]                       @relation("ClaimedPlans")
   firstApprovedPlans       MealPlan[]                       @relation("FirstMealPlanApproval")
@@ -1376,6 +1377,7 @@ model MealLibrary {
   ingredients         MealLibraryIngredient[]
   safetyDeclarations  MealLibrarySafetyDeclaration[]
   safetyReviews       MealLibrarySafetyReview[]
+  profileApprovals    MealLibraryProfileApproval[]
   outsideMealItems    OutsideMealLogItem[]
   conditionClearances MealConditionClearance[]
   applicableMealTypes MealLibraryApplicableType[]
@@ -1383,6 +1385,26 @@ model MealLibrary {
 
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
+}
+
+/// One qualified RND's approval of an unchanged recipe for an exact recorded
+/// safety profile. This is narrower than general recipe certification and
+/// stores no patient identifier in the scope row.
+model MealLibraryProfileApproval {
+  id                       String             @id @default(cuid())
+  mealLibraryId            String
+  mealLibrary              MealLibrary        @relation(fields: [mealLibraryId], references: [id], onDelete: Restrict)
+  safetyScopeKey           String             @db.VarChar(64)
+  recipeSignature          String             @db.VarChar(64)
+  evidenceRevision         Int
+  reviewerNutritionistId  String
+  reviewerNutritionist    NutritionistProfile @relation("MealLibraryProfileApprovalReviewer", fields: [reviewerNutritionistId], references: [id], onDelete: Restrict)
+  reviewPolicyVersion      String             @db.VarChar(64)
+  sourceProvenance         MealCandidateProvenance
+  approvedAt               DateTime           @default(now())
+
+  @@unique([mealLibraryId, safetyScopeKey, evidenceRevision], map: "MealLibraryProfileApproval_scope_revision_key")
+  @@index([safetyScopeKey, approvedAt])
 }
 
 model RawRecipeCandidate {

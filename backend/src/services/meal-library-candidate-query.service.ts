@@ -19,6 +19,9 @@ import {
 } from '@/domain/structured-restriction.adapter';
 import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance } from '@/domain/assurance-tier.policy';
 import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
+import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 
 export const certifiedLibraryMealInclude = {
   applicableMealTypes: { orderBy: { mealType: 'asc' as const } },
@@ -50,6 +53,13 @@ export const certifiedLibraryMealInclude = {
         },
       },
       rulePolicyVersion: { select: { state: true, automationAllowed: true, policyVersion: true } },
+    },
+  },
+  profileApprovals: {
+    include: {
+      reviewerNutritionist: {
+        include: { user: { select: { role: true, isSuspended: true, name: true, image: true } } },
+      },
     },
   },
 } as const;
@@ -148,6 +158,50 @@ export function isCertifiedLibraryMealCompatible(
   const tags = Array.isArray(meal.dietaryTags) ? meal.dietaryTags : [];
   return conditionCoverageComplete &&
     (options.safetyOnly || !profile.dietaryPreference || tags.includes(profile.dietaryPreference));
+}
+
+export function isProfileApprovedLibraryMealCompatible(
+  meal: CertifiedLibraryMeal,
+  userConditions: readonly string[],
+  userAllergens: readonly string[],
+  profile: LibraryCandidateProfile
+): boolean {
+  if (meal.status !== 'APPROVED' || !meal.recipeSignature || !/^[a-f0-9]{64}$/u.test(meal.recipeSignature))
+    return false;
+  const scope = mealApprovalSafetyScope({
+    conditions: userConditions,
+    allergens: userAllergens,
+    otherConditions: profile.otherConditions,
+    otherAllergies: profile.otherAllergies,
+    safetyEntries: profile.safetyEntries,
+  });
+  if (!scope.supported) return false;
+  // Condition labels alone do not encode medication, laboratory results or
+  // individually reviewed nutrient limits. Those users retain the existing
+  // condition-clearance path rather than inheriting another patient's review.
+  const restrictions = adaptUserSafetyRestrictions({
+    safetyEntries: profile.safetyEntries,
+    healthConditions: userConditions,
+    allergies: userAllergens,
+    otherConditions: profile.otherConditions,
+    otherAllergies: profile.otherAllergies,
+  });
+  if (restrictions.conditions.some((condition) => condition !== 'NONE')) return false;
+  if (!meal.ingredients.length) return false;
+  const approved = meal.profileApprovals.some((entry) =>
+    entry.safetyScopeKey === scope.key &&
+    entry.recipeSignature === meal.recipeSignature &&
+    entry.evidenceRevision === meal.safetyEvidenceRevision &&
+    entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
+    isNutritionistEligibleForReview(entry.reviewerNutritionist)
+  );
+  if (!approved) return false;
+  const classification = classifyMealIngredients(meal.ingredients.flatMap((ingredient) => [
+    { name: ingredient.ingredientName, category: ingredient.category },
+    ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
+  ]));
+  if (restrictions.allergies.length && classification.status !== 'COMPLETE') return false;
+  return !classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen));
 }
 
 function positiveValues(values: readonly string[]): string[] {
@@ -269,12 +323,23 @@ export async function queryEligibleLibraryPage(input: {
   limit?: number;
   /** Browse medically cleared recipes even when they differ from a voluntary diet preference. */
   safetyOnly?: boolean;
+  /** Include patient-reviewed recipes with the same recorded safety context. */
+  includeProfileApproved?: boolean;
 }): Promise<EligibleLibraryPage> {
   await enforceClearanceCircuitBreakers();
   const pageLimit = Math.max(1, Math.min(input.limit ?? 24, 60));
   const requestedCursor = decodeLibraryCursor(input.cursor);
   const conditions = positiveValues(input.userConditions);
   const allergens = positiveValues(input.userAllergens);
+  const profileScope = input.includeProfileApproved
+    ? mealApprovalSafetyScope({
+        conditions: input.userConditions,
+        allergens: input.userAllergens,
+        otherConditions: input.profile.otherConditions,
+        otherAllergies: input.profile.otherAllergies,
+        safetyEntries: input.profile.safetyEntries,
+      })
+    : null;
   const and: Prisma.MealLibraryWhereInput[] = [];
   for (const condition of conditions) {
     and.push({
@@ -303,9 +368,17 @@ export async function queryEligibleLibraryPage(input: {
   }
   const where: Prisma.MealLibraryWhereInput = {
     ...getApprovedMealLibraryWhere(),
-    verifiedByNutritionistId: { not: null },
-    safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
     recipeSignature: { not: null },
+    OR: [
+      {
+        verifiedByNutritionistId: { not: null },
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+        ...(and.length ? { AND: and } : {}),
+      },
+      ...(profileScope?.supported && conditions.length === 0
+        ? [{ profileApprovals: { some: { safetyScopeKey: profileScope.key } } }]
+        : []),
+    ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
     ...(input.riceRole ? { riceRole: input.riceRole, riceRoleReviewStatus: 'REVIEWED' } : {}),
@@ -313,7 +386,6 @@ export async function queryEligibleLibraryPage(input: {
     ...(!input.safetyOnly && input.profile.dietaryPreference
       ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } }
       : {}),
-    ...(and.length ? { AND: and } : {}),
   };
 
   const items: EligibleLibraryMeal[] = [];
@@ -327,7 +399,6 @@ export async function queryEligibleLibraryPage(input: {
         ...(scanCursor
           ? {
               AND: [
-                ...(and.length ? and : []),
                 {
                   OR: [
                     { mealName: { gt: scanCursor.mealName } },
@@ -346,9 +417,13 @@ export async function queryEligibleLibraryPage(input: {
       take: chunkSize,
     });
     for (const row of rows) {
-      if (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
-        safetyOnly: input.safetyOnly,
-      })) continue;
+      if (
+        !isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
+          safetyOnly: input.safetyOnly,
+        }) &&
+        !(input.includeProfileApproved &&
+          isProfileApprovedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile))
+      ) continue;
       total += 1;
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
         items.push({ ...row, isFavorite: row.favorites.length > 0 });

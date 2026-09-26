@@ -457,6 +457,9 @@ export class NutritionistLibraryService {
           where: { id: mealId },
           data: {
             status: MealLibraryStatus.FLAGGED,
+            // Invalidate narrow profile approvals too; dismissing a flag must
+            // never silently restore the earlier patient's review scope.
+            safetyEvidenceRevision: { increment: 1 },
             ...(wasComplete
               ? {
                   safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.STALE,

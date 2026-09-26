@@ -93,15 +93,17 @@ export function buildReviewWorkKey(input: {
   evidenceRevision: number;
   conditions: readonly string[];
   allergens: readonly string[];
+  safetyScopeKey: string;
   policyVersion: string;
   requiredReviewerCount: number;
 }): string {
   const canonical = JSON.stringify({
-    version: 'REVIEW_WORK_KEY_V1',
+    version: 'REVIEW_WORK_KEY_V2',
     recipeSignature: input.recipeSignature,
     evidenceRevision: input.evidenceRevision,
     conditions: [...new Set(input.conditions.filter((value) => value !== 'NONE'))].sort(),
     allergens: [...new Set(input.allergens.filter((value) => value !== 'NONE'))].sort(),
+    safetyScopeKey: input.safetyScopeKey,
     policyVersion: input.policyVersion,
     requiredReviewerCount: input.requiredReviewerCount,
   });

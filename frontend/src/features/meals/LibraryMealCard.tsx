@@ -28,6 +28,11 @@ export default function LibraryMealCard({
         <span>{applicableMealTypes.join(' · ')}</span>
         <span>{meal.calories} kcal</span>
       </div>
+      {meal.reuseBasis === 'PROFILE_MATCHED_APPROVAL' && (
+        <span className="w-fit rounded-full border border-brand-green/40 px-2 py-1 text-[11px] font-semibold text-brand-green">
+          Reviewed for a matching health profile
+        </span>
+      )}
       {(meal.alreadyPlannedInCycle || meal.matchesDietaryPreference === false) && (
         <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
           {meal.alreadyPlannedInCycle && (
@@ -75,6 +80,9 @@ export default function LibraryMealCard({
       </button>
       {showDetails && (
         <div className="rounded-xl border border-brand-border bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">
+          {meal.reuseBasis === 'PROFILE_MATCHED_APPROVAL' && (
+            <p>This recipe was approved by a dietitian for the same recorded safety restrictions. Its portion and nutrition targets still need checking before it can enter your plan.</p>
+          )}
           <p>Serving: {meal.servingDescription || 'One recipe serving'}</p>
           <p>Suitable slots: {applicableMealTypes.join(', ').toLowerCase()}</p>
           <p>
@@ -98,7 +106,7 @@ export default function LibraryMealCard({
         onClick={() => meal.verifier && onVerifier(meal.verifier)}
         className="text-left text-xs text-brand-green underline"
       >
-        Verified by {meal.verifiedBy} · PRC {meal.prcLicenseNumber}
+        Reviewed by {meal.verifiedBy} · PRC {meal.prcLicenseNumber}
       </button>
     </article>
   );

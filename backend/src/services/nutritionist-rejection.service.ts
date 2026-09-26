@@ -16,6 +16,7 @@ import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
 import { prepareGeneratedMealIngredients } from './meal-generation-ingredient-preparation.service';
 import { splitCustomRestrictions, validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
 import { buildReviewWorkKey } from '@/domain/upcoming-preparation.policy';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 
@@ -217,6 +218,13 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
                 evidenceRevision: 1,
                 conditions,
                 allergens,
+                safetyScopeKey: mealApprovalSafetyScope({
+                  conditions: safetyRestrictions.conditions,
+                  allergens: safetyRestrictions.allergies,
+                  otherConditions: profile?.otherConditions,
+                  otherAllergies: profile?.otherAllergies,
+                  safetyEntries: plan.user.safetyProfileEntries,
+                }).key,
                 policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
                 requiredReviewerCount: plan.highRiskReviewRequired ? 2 : 1,
               }),
@@ -323,6 +331,13 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
             evidenceRevision: 1,
             conditions,
             allergens,
+            safetyScopeKey: mealApprovalSafetyScope({
+              conditions: safetyRestrictions.conditions,
+              allergens: safetyRestrictions.allergies,
+              otherConditions: profile?.otherConditions,
+              otherAllergies: profile?.otherAllergies,
+              safetyEntries: plan.user.safetyProfileEntries,
+            }).key,
             policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
             requiredReviewerCount: plan.highRiskReviewRequired ? 2 : 1,
           }),

@@ -13,6 +13,7 @@ import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 
 export interface SwapOption {
   id: string;
+  reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL';
   mealName: string;
   description?: string;
   mealType: string;
