@@ -23,7 +23,8 @@ const completeCandidate = (
     conditionRuleMatches: conditions,
     conditionDomainReviewed: true,
   },
-  ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
+  ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
+  nutritionEvidenceSource: 'FNRI_RECONCILED',
 });
 
 const entry = (
@@ -52,11 +53,12 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
   certifiedEvidenceRevision: 1,
   safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
   safetyInvalidatedAt: null,
+  nutritionEvidenceSource: 'FNRI_RECONCILED',
   safetyReviewedByNutritionist: {
     isVerified: true,
     prcLicenseExpiry: new Date('2999-12-31T00:00:00.000Z'),
   },
-  ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
+  ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
   safetyDeclarations: [
     ...allergenFree.map((canonicalKey) => ({
       declarationType: 'ALLERGEN_REVIEWED_ABSENT',
@@ -248,7 +250,9 @@ test('[TEST-075] production compatibility intersects each exact structured profi
     'a certified meal with a voluntary diet mismatch can be browsed'
   );
   assert.equal(
-    isCertifiedLibraryMealCompatible(certifiedMeal(['PESCATARIAN'], [], []), [], [], browseProfile, { safetyOnly: true }),
+    isCertifiedLibraryMealCompatible(certifiedMeal(['PESCATARIAN'], [], []), [], [], browseProfile, {
+      safetyOnly: true,
+    }),
     false,
     'browse mode must not bypass missing allergen and condition clearance'
   );

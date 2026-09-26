@@ -19,7 +19,8 @@ function certifiedCandidate(overrides: Partial<MealLibrarySafetyCandidate> = {})
     safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
     safetyInvalidatedAt: null,
     reviewerEligible: true,
-    ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
+    ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
+    nutritionEvidenceSource: 'FNRI_RECONCILED',
     safetyDeclarations: [],
     ...overrides,
   };
@@ -83,7 +84,7 @@ test('[TEST-050] a complete data shape without eligible review provenance is not
   assert.ok(result.reasons.includes('REVIEWER_NOT_ELIGIBLE'));
 });
 
-test('[TEST-050] first-class ingredients must all be linked FNRI evidence', () => {
+test('[TEST-050] first-class ingredients require supported composition evidence', () => {
   const estimated = evaluateMealLibrarySafetyEvidence(
     certifiedCandidate({
       ingredients: [{ dataSource: 'GEMINI_ESTIMATED', foodItemId: null }],
@@ -93,6 +94,37 @@ test('[TEST-050] first-class ingredients must all be linked FNRI evidence', () =
   assert.equal(estimated.complete, false);
   assert.ok(estimated.reasons.includes('NON_FNRI_LIBRARY_INGREDIENT'));
   assert.ok(estimated.reasons.includes('UNRESOLVED_LIBRARY_INGREDIENT'));
+});
+
+test('[TEST-050] V2 accepts measured USDA fallback while V1 certification stays FNRI-only', () => {
+  const usda = [{ dataSource: 'USDA_FDC', foodItemId: 'usda-1', quantity: 80, unit: 'g' }];
+  assert.equal(
+    evaluateMealLibrarySafetyEvidence(
+      certifiedCandidate({ ingredients: usda, nutritionEvidenceSource: 'NUTRITIONIST_EDITED' })
+    ).complete,
+    true
+  );
+  assert.equal(
+    evaluateMealLibrarySafetyEvidence(
+      certifiedCandidate({ ingredients: usda, safetyPolicyVersion: 'NUTRIMIND_LIBRARY_SAFETY_V1' })
+    ).complete,
+    false
+  );
+  const unmeasured = [{ dataSource: 'USDA_FDC', foodItemId: 'usda-1', quantity: null, unit: null }];
+  assert.ok(
+    evaluateMealLibrarySafetyEvidence(
+      certifiedCandidate({ ingredients: unmeasured, nutritionEvidenceSource: 'NUTRITIONIST_EDITED' })
+    ).reasons.includes('UNMEASURED_LIBRARY_INGREDIENT')
+  );
+  assert.equal(
+    evaluateMealLibrarySafetyEvidence(
+      certifiedCandidate({
+        safetyPolicyVersion: 'NUTRIMIND_LIBRARY_SAFETY_V1',
+        ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1' }],
+      })
+    ).complete,
+    true
+  );
 });
 
 test('[TEST-050] exact declarations map without inferring custom or contradictory evidence', () => {

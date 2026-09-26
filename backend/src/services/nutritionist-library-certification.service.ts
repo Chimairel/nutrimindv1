@@ -24,6 +24,7 @@ import {
 } from '@/domain/meal-ingredient-classification.policy';
 
 import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
+import { calculateLibraryNutritionEvidence } from './nutritionist-library-nutrition-evidence.service';
 
 const INDEPENDENT_CONDITION_REVIEW_KEYS = new Set(['KIDNEY_DISEASE', 'PREGNANT']);
 const REQUIRED_ALLERGEN_FACT_KEYS = ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS'] as const;
@@ -36,6 +37,8 @@ function certificationProposalKey(input: CertifyMealLibrarySafetyInput): string 
     suitableConditions: [...input.suitableConditions].sort(),
     allergensPresent: [...input.allergensPresent].sort(),
     allergensReviewedAbsent: [...input.allergensReviewedAbsent].sort(),
+    usdaUseAccepted: input.usdaUseAccepted,
+    usdaRationale: input.usdaRationale ?? null,
   });
 }
 
@@ -76,10 +79,83 @@ export async function certifyLibraryMealSafety(
       }
       if (
         meal.ingredients.some(
-          (ingredient) => ingredient.dataSource !== MealIngredientDataSource.FNRI || !ingredient.foodItemId
+          (ingredient) =>
+            !ingredient.foodItemId ||
+            (ingredient.dataSource !== MealIngredientDataSource.FNRI &&
+              ingredient.dataSource !== MealIngredientDataSource.USDA_FDC) ||
+            ingredient.unit !== 'g' ||
+            !ingredient.quantity ||
+            !Number.isFinite(ingredient.quantity) ||
+            ingredient.quantity <= 0
         )
-      ) {
-        throw new Error('Every library ingredient must be resolved and linked to FNRI before certification.');
+      )
+        throw new Error(
+          'Every recipe ingredient requires a specific FNRI or USDA food record and edible grams per serving.'
+        );
+      const hasUsda = meal.ingredients.some(
+        (ingredient) => ingredient.dataSource === MealIngredientDataSource.USDA_FDC
+      );
+      if (hasUsda && (!input.usdaUseAccepted || (input.usdaRationale?.trim().length ?? 0) < 20)) {
+        throw new Error(
+          'USDA fallback requires explicit nutritionist acceptance and a rationale of at least 20 characters.'
+        );
+      }
+      const prepared = await tx.auditEvent.findFirst({
+        where: { entityType: 'MealLibrary', entityId: mealId, action: 'NUTRITION_EVIDENCE_PREPARED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      const preparedSnapshot = prepared?.metadata as Record<string, any> | null;
+      if (!preparedSnapshot || preparedSnapshot.revision !== input.expectedRevision) {
+        throw new Error(
+          'Prepare ingredient amounts and nutrition totals for this exact recipe revision before certification.'
+        );
+      }
+      const preparedIngredients = Array.isArray(preparedSnapshot.ingredients) ? preparedSnapshot.ingredients : [];
+      if (
+        preparedIngredients.length !== meal.ingredients.length ||
+        meal.ingredients.some((ingredient) => {
+          const saved = preparedIngredients.find((item: any) => item.ingredientId === ingredient.id);
+          return !saved || saved.foodItemId !== ingredient.foodItemId || saved.gramsPerServing !== ingredient.quantity;
+        })
+      )
+        throw new Error('Prepared nutrition evidence no longer matches these ingredients. Prepare it again.');
+      const foodIds = meal.ingredients.map((ingredient) => ingredient.foodItemId!);
+      const foods = await tx.foodItem.findMany({
+        where: { id: { in: foodIds }, source: { in: ['FNRI', 'USDA_FDC'] } },
+        select: {
+          id: true,
+          name: true,
+          source: true,
+          sourceRecordId: true,
+          sourceReferenceUrl: true,
+          compositionRevision: true,
+          calories: true,
+          proteinG: true,
+          carbsG: true,
+          fatG: true,
+          fiber: true,
+          sodium: true,
+          potassium: true,
+        },
+      });
+      if (
+        foods.length !== new Set(foodIds).size ||
+        foods.some((food) => {
+          const saved = preparedIngredients.find((item: any) => item.foodItemId === food.id);
+          return !saved || saved.compositionRevision !== food.compositionRevision || saved.source !== food.source;
+        })
+      )
+        throw new Error('A selected composition record changed. Prepare nutrition evidence again.');
+      const calculated = calculateLibraryNutritionEvidence(
+        meal.ingredients.map((ingredient) => ({
+          foodItemId: ingredient.foodItemId!,
+          gramsPerServing: ingredient.quantity!,
+        })),
+        foods
+      );
+      const nutrientKeys = ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG', 'sodiumMg', 'potassiumMg'] as const;
+      if (nutrientKeys.some((key) => meal[key] !== calculated[key])) {
+        throw new Error('Saved recipe nutrition differs from the source calculations. Prepare evidence again.');
       }
       const recipeSignature = buildMealLibraryRecipeSignature({
         mealName: meal.mealName,
@@ -91,11 +167,12 @@ export async function certifyLibraryMealSafety(
         ingredients: meal.ingredients,
       });
 
+      const foodNames = new Map(foods.map((food) => [food.id, food.name]));
       const classification = classifyMealIngredients(
-        meal.ingredients.map((ingredient) => ({
-          name: ingredient.ingredientName,
-          category: ingredient.category,
-        }))
+        meal.ingredients.flatMap((ingredient) => [
+          { name: ingredient.ingredientName, category: ingredient.category },
+          { name: foodNames.get(ingredient.foodItemId!) ?? '', category: ingredient.category },
+        ])
       );
       const declaredPresent = new Set(input.allergensPresent);
       const declaredAbsent = new Set(input.allergensReviewedAbsent);
@@ -254,6 +331,13 @@ export async function certifyLibraryMealSafety(
           allergensPresent: input.allergensPresent,
           allergensReviewedAbsent: input.allergensReviewedAbsent,
           crossContactAssessment: input.crossContactAssessment,
+          usdaUseAccepted: input.usdaUseAccepted,
+          usdaRationale: input.usdaRationale ?? null,
+        },
+        nutritionCalculation: {
+          preparedAuditId: prepared!.id,
+          portionBasis: preparedSnapshot.portionBasis,
+          calculated,
         },
         deterministicClassification: classification,
         independentConditionReview: pendingIndependentReview

@@ -7,6 +7,8 @@ import { Stethoscope, ShieldAlert, Salad } from 'lucide-react';
 import { useState } from 'react';
 import api from '@/lib/axios';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
+import { libraryEvidenceStatus } from './libraryEvidenceStatus';
+import { PrepareLibraryNutritionEvidence } from './PrepareLibraryNutritionEvidence';
 import {
   AVAILABLE_ALLERGENS,
   AVAILABLE_CONDITIONS,
@@ -30,6 +32,7 @@ export function NutritionistLibraryModals({ workspace }: Props) {
     setEvidenceForm,
     actionLoading,
     actionError,
+    fetchLibrary,
     handleCertificationSubmit,
     handleEditSubmit,
     handleDeleteSubmit,
@@ -83,8 +86,10 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               )}
             </div>
 
-            <div>
-              <span className="text-xs font-bold text-brand-muted uppercase">Classification proposals</span>
+            <details>
+              <summary className="cursor-pointer text-xs font-bold text-brand-muted uppercase">
+                Proposed classifications
+              </summary>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {normalizeExclusiveNone(selectedMeal.suitableConditions).map((cond) => (
                   <Badge key={cond} variant="verified" className="flex items-center gap-1">
@@ -104,28 +109,24 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                     </Badge>
                   ))}
               </div>
-            </div>
+            </details>
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase text-brand-muted">Base recipe evidence</span>
-                <span className="text-xs font-bold text-brand-text">
-                  {selectedMeal.safetyEvidenceStatus} · revision {selectedMeal.safetyEvidenceRevision}
-                </span>
+                <span className="text-xs font-bold uppercase text-brand-muted">Recipe status</span>
+                <span className="text-xs font-bold text-brand-text">{libraryEvidenceStatus(selectedMeal).label}</span>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                {selectedMeal.safetyEvidenceStatus === 'COMPLETE'
-                  ? 'Ingredient and nutrition provenance is complete for this revision. Condition and allergen coverage are checked independently for each user.'
-                  : selectedMeal.safetyEvidenceStatus === 'STALE'
-                    ? `Base evidence must be refreshed${selectedMeal.safetyInvalidationReason ? `: ${selectedMeal.safetyInvalidationReason.replaceAll('_', ' ').toLowerCase()}` : ''}.`
-                    : 'This meal does not yet have complete base ingredient and nutrition evidence.'}
+                {libraryEvidenceStatus(selectedMeal).next}
               </p>
             </div>
 
             {selectedMeal.safetyEvidenceStatus === 'COMPLETE' && <ConditionClearancePanel mealId={selectedMeal.id} />}
 
-            <div>
-              <span className="text-xs font-bold text-brand-muted uppercase">Stable ingredient evidence</span>
+            <details>
+              <summary className="cursor-pointer text-xs font-bold text-brand-muted uppercase">
+                Ingredient evidence details
+              </summary>
               <div className="mt-2 space-y-2">
                 {(selectedMeal.ingredients || []).length === 0 ? (
                   <p className="rounded-xl border border-amber-800/40 bg-amber-950/15 p-3 text-xs text-amber-300">
@@ -151,19 +152,26 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                             : 'text-amber-300'
                         }
                       >
-                        {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
-                          ? 'FNRI linked'
-                          : ingredient.dataSource === 'USDA_FDC' && ingredient.foodItemId
-                            ? 'USDA composition linked; certification pending'
-                            : ingredient.foodItemId
-                              ? `${ingredient.foodItemId.startsWith('USDA_FDC_') ? 'USDA' : 'FNRI'} name matched; nutrition evidence pending`
-                              : 'Composition identity unresolved'}
+                        {ingredient.foodItemId
+                          ? `${ingredient.foodItem?.name ?? 'Food record selected'} · ${ingredient.foodItem?.source ?? ingredient.dataSource}`
+                          : 'Choose a food record'}
+                        {ingredient.foodItem?.sourceRecordId ? ` · ${ingredient.foodItem.sourceRecordId}` : ''}
+                        {ingredient.foodItem?.sourceReferenceUrl && (
+                          <a
+                            href={ingredient.foodItem.sourceReferenceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-1 underline"
+                          >
+                            Source ↗
+                          </a>
+                        )}
                       </span>
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            </details>
 
             {selectedMeal.verifiedByNutritionist && (
               <div className="p-3 bg-brand-bg rounded-xl border border-brand-border/60">
@@ -178,6 +186,14 @@ export function NutritionistLibraryModals({ workspace }: Props) {
             )}
           </div>
         </Modal>
+      )}
+
+      {selectedMeal && activeModal === 'prepare' && (
+        <PrepareLibraryNutritionEvidence
+          meal={selectedMeal}
+          close={() => setActiveModal(null)}
+          refresh={fetchLibrary}
+        />
       )}
 
       {/* Verifier Profile Modal */}
@@ -231,6 +247,10 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                 {selectedMeal.fiberG ?? 'unknown'} g · Potassium {selectedMeal.potassiumMg ?? 'unknown'} mg · Phosphorus{' '}
                 {selectedMeal.phosphorusMg ?? 'unknown'} mg · Saturated fat {selectedMeal.saturatedFatG ?? 'unknown'} g
               </p>
+              {selectedMeal.preparedNutritionRevision === selectedMeal.safetyEvidenceRevision &&
+                selectedMeal.preparedNutritionBasis && (
+                  <p className="mt-2">Serving and measurement basis: {selectedMeal.preparedNutritionBasis}</p>
+                )}
               {selectedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
                 <p className="mt-2">
                   Admin-entered calculation/source notes:{' '}
@@ -239,13 +259,10 @@ export function NutritionistLibraryModals({ workspace }: Props) {
               )}
             </div>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="text-xs font-bold uppercase text-brand-muted">Library-owned ingredients</span>
-                <span className="text-[10px] font-bold uppercase text-brand-muted">
-                  {(selectedMeal.ingredients || []).length} recorded
-                </span>
-              </div>
+            <details>
+              <summary className="mb-2 cursor-pointer text-xs font-bold uppercase text-brand-muted">
+                Ingredient evidence details · {(selectedMeal.ingredients || []).length} recorded
+              </summary>
               <div className="space-y-2">
                 {(selectedMeal.ingredients || []).length === 0 ? (
                   <div className="rounded-xl border border-amber-800/50 bg-amber-950/20 p-3 text-xs text-amber-300">
@@ -271,19 +288,57 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                             : 'text-amber-300'
                         }
                       >
-                        {ingredient.dataSource === 'FNRI' && ingredient.foodItemId
-                          ? 'FNRI linked'
-                          : ingredient.dataSource === 'USDA_FDC' && ingredient.foodItemId
-                            ? 'USDA composition linked; certification pending'
-                            : ingredient.foodItemId
-                              ? `${ingredient.foodItemId.startsWith('USDA_FDC_') ? 'USDA' : 'FNRI'} name matched; nutrition evidence pending`
-                              : 'Composition identity unresolved'}
+                        {ingredient.foodItemId
+                          ? `${ingredient.foodItem?.name ?? 'Food record selected'} · ${ingredient.foodItem?.source ?? ingredient.dataSource}`
+                          : 'Choose a food record'}
+                        {ingredient.foodItem?.sourceRecordId ? ` · ${ingredient.foodItem.sourceRecordId}` : ''}
+                        {ingredient.foodItem?.sourceReferenceUrl && (
+                          <a
+                            href={ingredient.foodItem.sourceReferenceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-1 underline"
+                          >
+                            Source ↗
+                          </a>
+                        )}
                       </span>
                     </div>
                   ))
                 )}
               </div>
+            </details>
+
+            <div className="rounded-xl border border-brand-border p-3 text-xs">
+              <strong>{libraryEvidenceStatus(selectedMeal).label}</strong>
+              <p className="mt-1 text-brand-muted">{libraryEvidenceStatus(selectedMeal).next}</p>
             </div>
+
+            {selectedMeal.ingredients?.some((ingredient) => ingredient.dataSource === 'USDA_FDC') && (
+              <div className="space-y-2 rounded-xl border border-brand-border p-3 text-xs">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={evidenceForm.usdaUseAccepted}
+                    onChange={(event) =>
+                      setEvidenceForm((current) => ({ ...current, usdaUseAccepted: event.target.checked }))
+                    }
+                  />{' '}
+                  I reviewed the exact USDA food records and accept their use as fallback composition evidence for this
+                  serving.
+                </label>
+                <textarea
+                  value={evidenceForm.usdaRationale}
+                  onChange={(event) =>
+                    setEvidenceForm((current) => ({ ...current, usdaRationale: event.target.value }))
+                  }
+                  minLength={20}
+                  maxLength={1000}
+                  placeholder="Explain why the USDA record fits this ingredient and preparation (at least 20 characters)."
+                  className="w-full min-h-20 rounded-lg border border-brand-border bg-brand-surface p-2 text-brand-text"
+                />
+              </div>
+            )}
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bg/60 p-4 text-xs leading-relaxed text-brand-muted">
               Condition clearance is reviewed separately after base evidence certification. Each clearance is scoped to
@@ -355,9 +410,16 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                   evidenceForm.allergensPresent.length + evidenceForm.allergensReviewedAbsent.length !==
                     AVAILABLE_ALLERGENS.length ||
                   (selectedMeal.ingredients || []).length === 0 ||
+                  selectedMeal.preparedNutritionRevision !== selectedMeal.safetyEvidenceRevision ||
                   (selectedMeal.ingredients || []).some(
-                    (ingredient) => ingredient.dataSource !== 'FNRI' || !ingredient.foodItemId
-                  )
+                    (ingredient) =>
+                      !ingredient.foodItemId ||
+                      !['FNRI', 'USDA_FDC'].includes(ingredient.dataSource) ||
+                      ingredient.unit !== 'g' ||
+                      !ingredient.quantity
+                  ) ||
+                  ((selectedMeal.ingredients || []).some((ingredient) => ingredient.dataSource === 'USDA_FDC') &&
+                    (!evidenceForm.usdaUseAccepted || evidenceForm.usdaRationale.trim().length < 20))
                 }
               >
                 {actionLoading ? 'Certifying...' : 'Certify this revision'}

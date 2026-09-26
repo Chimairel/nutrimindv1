@@ -7,6 +7,11 @@ import { NutritionistService } from '@/services/nutritionist.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import requireEligibleNutritionist from '@/middleware/nutritionistEligibility';
 import { certifyMealLibrarySafetySchema } from '@/domain/meal-library-safety-review.schema';
+import { prepareLibraryNutritionEvidenceSchema } from '@/domain/library-nutrition-evidence.schema';
+import {
+  prepareLibraryNutritionEvidence,
+  searchLibraryCompositionFoods,
+} from '@/services/nutritionist-library-nutrition-evidence.service';
 import validateZodBody, { validateZodRequest } from '@/middleware/validateZod';
 import {
   libraryFlagResolutionSchema,
@@ -29,10 +34,7 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
-import {
-  clinicalDocumentIdParamsSchema,
-  clinicalDocumentReviewSchema,
-} from '@/validation/clinical-evidence.schemas';
+import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
 
 const router = Router();
 
@@ -119,7 +121,10 @@ router.get(
   '/clinical-evidence/:id',
   validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await ClinicalEvidenceService.claimDetail(req.nutritionistProfileId!, req.params.id) });
+    res.json({
+      success: true,
+      data: await ClinicalEvidenceService.claimDetail(req.nutritionistProfileId!, req.params.id),
+    });
   })
 );
 router.get(
@@ -334,7 +339,9 @@ router.post('/queue/:id/release', async (req: AuthenticatedRequest, res: Respons
     const result = await NutritionistService.releaseReviewClaim(req.nutritionistProfileId!, req.params.id);
     return res.status(200).json({ success: true, data: result });
   } catch (error: unknown) {
-    return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not release this review.') });
+    return res
+      .status(409)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Could not release this review.') });
   }
 });
 
@@ -481,6 +488,40 @@ router.get('/library-coverage', async (_req: AuthenticatedRequest, res: Response
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal-library coverage.') });
   }
 });
+
+router.get('/library/composition-foods', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const source = req.query.source === 'USDA_FDC' ? 'USDA_FDC' : 'FNRI';
+    const foods = await searchLibraryCompositionFoods(String(req.query.search ?? ''), source);
+    return res.status(200).json({ success: true, data: foods });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to search food records.') });
+  }
+});
+
+router.post(
+  '/library/:id/nutrition-evidence/prepare',
+  validateZodBody(prepareLibraryNutritionEvidenceSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await prepareLibraryNutritionEvidence(req.nutritionistProfileId!, req.params.id, req.body);
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      const message = sanitizeErrorMessage(error, 'Failed to prepare nutrition evidence.');
+      const status =
+        message.includes('conflict') || message.includes('Flagged or archived')
+          ? 409
+          : message.includes('Only a currently verified')
+            ? 403
+            : message.includes('not found')
+              ? 404
+              : 422;
+      return res.status(status).json({ success: false, error: message });
+    }
+  }
+);
 
 /**
  * POST /api/nutritionist/library/:id/safety-evidence/certify

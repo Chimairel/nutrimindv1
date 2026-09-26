@@ -14,6 +14,7 @@ import {
   useNutritionistLibrary,
 } from '@/features/nutritionist-library/useNutritionistLibrary';
 import { NutritionistLibraryModals } from '@/features/nutritionist-library/NutritionistLibraryModals';
+import { libraryEvidenceStatus } from '@/features/nutritionist-library/libraryEvidenceStatus';
 
 export default function MealLibraryPage() {
   const [section, setSection] = useState<'recipes' | 'coverage'>('recipes');
@@ -321,7 +322,10 @@ export default function MealLibraryPage() {
               <input
                 type="checkbox"
                 checked={adminDraftsOnly}
-                onChange={(event) => { setAdminDraftsOnly(event.target.checked); setPage(1); }}
+                onChange={(event) => {
+                  setAdminDraftsOnly(event.target.checked);
+                  setPage(1);
+                }}
                 className="h-4 w-4 rounded border-brand-border bg-brand-bg text-brand-green"
               />
               Admin drafts awaiting evidence review
@@ -376,9 +380,14 @@ export default function MealLibraryPage() {
                 const owned = isOwner(meal);
                 const isFlagged = meal.status === 'FLAGGED';
                 const isArchived = meal.status === 'ARCHIVED';
-                const isAdminDraft = meal.safetyEvidenceStatus === 'INCOMPLETE' &&
+                const isAdminDraft =
+                  meal.safetyEvidenceStatus === 'INCOMPLETE' &&
                   meal.safetyReviews?.some((review) => review.reasonCode === 'ADMIN_AUTHORED_DRAFT');
                 const activeFlag = meal.flags?.[0];
+                const evidenceStatus = libraryEvidenceStatus(meal);
+                const readyToReview =
+                  meal.preparedNutritionRevision === meal.safetyEvidenceRevision &&
+                  meal.safetyEvidenceStatus !== 'COMPLETE';
 
                 return (
                   <Card
@@ -394,41 +403,23 @@ export default function MealLibraryPage() {
                           {meal.mealType}
                         </span>
                         <div className="flex gap-1.5">
-                          {isFlagged ? (
-                            <Badge variant="pending" showIcon>
-                              Flagged
-                            </Badge>
-                          ) : isArchived ? (
-                            <Badge variant="pending" showIcon>
-                              Archived
-                            </Badge>
-                          ) : isAdminDraft ? (
-                            <Badge variant="pending" showIcon>Admin draft</Badge>
-                          ) : (
-                            <Badge variant="verified" showIcon>
-                              Approved
-                            </Badge>
-                          )}
                           <span
                             className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${
-                              meal.safetyEvidenceStatus === 'COMPLETE'
+                              evidenceStatus.label === 'Verified for reuse'
                                 ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
                                 : meal.safetyEvidenceStatus === 'STALE'
                                   ? 'border-amber-700/50 bg-amber-950/20 text-amber-300'
                                   : 'border-brand-border/60 bg-brand-bg/60 text-brand-muted'
                             }`}
                           >
-                            {meal.safetyEvidenceStatus === 'COMPLETE'
-                              ? 'Evidence certified'
-                              : meal.safetyEvidenceStatus === 'STALE'
-                                ? 'Evidence stale'
-                                : 'Evidence incomplete'}
+                            {evidenceStatus.label}
                           </span>
                         </div>
                       </div>
 
                       {/* Meal details */}
                       <h3 className="text-base font-bold text-brand-text leading-snug">{meal.mealName}</h3>
+                      <p className="mt-1 text-xs text-brand-muted">{evidenceStatus.next}</p>
                       {meal.description && (
                         <p className="text-xs text-brand-muted line-clamp-2 mt-1.5 leading-relaxed">
                           {meal.description}
@@ -505,7 +496,9 @@ export default function MealLibraryPage() {
                             {meal.verifiedByNutritionist.user.name}
                           </button>
                         ) : (
-                          <span className="italic">{isAdminDraft ? 'Awaiting RND certification' : 'System / Unknown'}</span>
+                          <span className="italic">
+                            {isAdminDraft ? 'Awaiting RND certification' : 'System / Unknown'}
+                          </span>
                         )}
                         <span className="block mt-0.5">Used {meal.usageCount}x</span>
                       </div>
@@ -526,10 +519,20 @@ export default function MealLibraryPage() {
                         {!isFlagged && !isArchived && (
                           <Button
                             variant="secondary"
-                            onClick={() => handleOpenCertification(meal)}
+                            onClick={() => {
+                              if (readyToReview) handleOpenCertification(meal);
+                              else {
+                                setSelectedMeal(meal);
+                                setActiveModal('prepare');
+                              }
+                            }}
                             className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-brand-green"
                           >
-                            {meal.safetyEvidenceStatus === 'COMPLETE' ? 'Re-certify' : 'Review evidence'}
+                            {readyToReview
+                              ? 'Sign off recipe'
+                              : meal.safetyEvidenceStatus === 'COMPLETE'
+                                ? 'Recheck recipe'
+                                : 'Prepare recipe'}
                           </Button>
                         )}
 

@@ -4,7 +4,11 @@ import {
   normalizeRestrictionComparisonToken,
 } from './restriction-evaluation.policy';
 
-export const MEAL_LIBRARY_SAFETY_POLICY_VERSION = 'NUTRIMIND_LIBRARY_SAFETY_V1';
+export const MEAL_LIBRARY_SAFETY_POLICY_VERSION = 'NUTRIMIND_LIBRARY_SAFETY_V2';
+export const SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS = [
+  'NUTRIMIND_LIBRARY_SAFETY_V1',
+  MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+] as const;
 
 export const MEAL_LIBRARY_SAFETY_REASON_ORDER = Object.freeze([
   'LIBRARY_NOT_APPROVED',
@@ -20,6 +24,7 @@ export const MEAL_LIBRARY_SAFETY_REASON_ORDER = Object.freeze([
   'MISSING_LIBRARY_INGREDIENTS',
   'NON_FNRI_LIBRARY_INGREDIENT',
   'UNRESOLVED_LIBRARY_INGREDIENT',
+  'UNMEASURED_LIBRARY_INGREDIENT',
   'MALFORMED_DECLARATION',
   'UNSUPPORTED_DECLARATION_KEY',
   'DECLARATION_STATE_MISMATCH',
@@ -42,6 +47,7 @@ export interface MealLibrarySafetyCandidate {
   safetyInvalidatedAt?: unknown;
   reviewerEligible?: unknown;
   ingredients?: unknown;
+  nutritionEvidenceSource?: unknown;
   safetyDeclarations?: unknown;
 }
 
@@ -127,7 +133,11 @@ export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCa
   ) {
     baseReasons.add('REVISION_NOT_CERTIFIED');
   }
-  if (candidate.safetyPolicyVersion !== MEAL_LIBRARY_SAFETY_POLICY_VERSION) {
+  if (
+    !SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS.includes(
+      candidate.safetyPolicyVersion as (typeof SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS)[number]
+    )
+  ) {
     baseReasons.add('POLICY_VERSION_UNSUPPORTED');
   }
   if (candidate.safetyInvalidatedAt !== null && candidate.safetyInvalidatedAt !== undefined) {
@@ -152,11 +162,33 @@ export function evaluateMealLibrarySafetyEvidence(candidate: MealLibrarySafetyCa
         dataSource: ingredient.dataSource,
         foodItemId: ingredient.foodItemId,
       });
-      if (ingredient.dataSource !== 'FNRI') baseReasons.add('NON_FNRI_LIBRARY_INGREDIENT');
+      const v2 = candidate.safetyPolicyVersion === MEAL_LIBRARY_SAFETY_POLICY_VERSION;
+      if (ingredient.dataSource !== 'FNRI' && !(v2 && ingredient.dataSource === 'USDA_FDC'))
+        baseReasons.add('NON_FNRI_LIBRARY_INGREDIENT');
       if (typeof ingredient.foodItemId !== 'string' || ingredient.foodItemId.length === 0) {
         baseReasons.add('UNRESOLVED_LIBRARY_INGREDIENT');
       }
+      if (
+        v2 &&
+        (!Number.isFinite(ingredient.quantity) || Number(ingredient.quantity) <= 0 || ingredient.unit !== 'g')
+      ) {
+        baseReasons.add('UNMEASURED_LIBRARY_INGREDIENT');
+      }
     }
+  }
+  if (
+    candidate.safetyPolicyVersion === MEAL_LIBRARY_SAFETY_POLICY_VERSION &&
+    candidate.nutritionEvidenceSource !== 'FNRI_RECONCILED' &&
+    candidate.nutritionEvidenceSource !== 'NUTRITIONIST_EDITED'
+  ) {
+    baseReasons.add('EVIDENCE_NOT_COMPLETE');
+  }
+  if (
+    candidate.safetyPolicyVersion === MEAL_LIBRARY_SAFETY_POLICY_VERSION &&
+    ingredients.some((ingredient) => ingredient.dataSource === 'USDA_FDC') &&
+    candidate.nutritionEvidenceSource !== 'NUTRITIONIST_EDITED'
+  ) {
+    baseReasons.add('EVIDENCE_NOT_COMPLETE');
   }
 
   const suitableConditions = new Set<string>();

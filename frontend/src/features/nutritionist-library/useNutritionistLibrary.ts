@@ -64,6 +64,9 @@ export interface LibraryMeal {
   safetyEvidenceRevision: number;
   certifiedEvidenceRevision?: number | null;
   safetyPolicyVersion?: string | null;
+  preparedNutritionRevision?: number | null;
+  preparedNutritionBasis?: string | null;
+  nutritionEvidenceSource?: string;
   conditionDeclarationState: 'NOT_REVIEWED' | 'REVIEWED_NONE_DECLARED' | 'REVIEWED_WITH_DECLARATIONS';
   allergenDeclarationState: 'NOT_REVIEWED' | 'REVIEWED_NONE_DECLARED' | 'REVIEWED_WITH_DECLARATIONS';
   crossContactAssessment: 'NOT_ASSESSED' | 'ASSESSED_NO_KNOWN_RISK' | 'RISK_IDENTIFIED';
@@ -87,6 +90,12 @@ export interface LibraryMeal {
     position: number;
     quantity?: number | null;
     unit?: string | null;
+    foodItem?: {
+      name: string;
+      source: string;
+      sourceRecordId?: string | null;
+      sourceReferenceUrl?: string | null;
+    } | null;
   }[];
   safetyReviewedByNutritionist?: { user: { name: string } } | null;
 }
@@ -170,7 +179,7 @@ export function useNutritionistLibrary() {
 
   // Modal / Action States
   const [activeModal, setActiveModal] = useState<
-    'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | null
+    'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | 'prepare' | null
   >(null);
   const [selectedMeal, setSelectedMeal] = useState<LibraryMeal | null>(null);
   const [selectedVerifier, setSelectedVerifier] = useState<Verifier | null>(null);
@@ -195,6 +204,8 @@ export function useNutritionistLibrary() {
     allergensPresent: [] as string[],
     allergensReviewedAbsent: [] as string[],
     crossContactAcknowledged: false,
+    usdaUseAccepted: false,
+    usdaRationale: '',
   });
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -288,6 +299,8 @@ export function useNutritionistLibrary() {
       allergensPresent: [],
       allergensReviewedAbsent: normalizeExclusiveNone(meal.allergenFree),
       crossContactAcknowledged: meal.crossContactAssessment === 'ASSESSED_NO_KNOWN_RISK',
+      usdaUseAccepted: false,
+      usdaRationale: '',
     });
     setActionError(null);
     setActiveModal('certify');
@@ -309,6 +322,8 @@ export function useNutritionistLibrary() {
         suitableConditions: [],
         allergensPresent: evidenceForm.allergensPresent,
         allergensReviewedAbsent: evidenceForm.allergensReviewedAbsent,
+        usdaUseAccepted: evidenceForm.usdaUseAccepted,
+        usdaRationale: evidenceForm.usdaRationale || undefined,
       });
       if (res.data?.success) {
         if (res.data.data?.certificationAwaitingSecondReview) {

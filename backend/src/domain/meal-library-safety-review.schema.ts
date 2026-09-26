@@ -14,6 +14,8 @@ export const certifyMealLibrarySafetySchema = z
     suitableConditions: z.array(z.never()).max(0),
     allergensPresent: z.array(allergyKeySchema).max(allergyKeys.length),
     allergensReviewedAbsent: z.array(allergyKeySchema).max(allergyKeys.length),
+    usdaUseAccepted: z.boolean(),
+    usdaRationale: z.string().trim().max(1000).optional(),
   })
   .strict()
   .superRefine((value, context) => {

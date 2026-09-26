@@ -58,7 +58,12 @@ export async function getNutritionistMealLibraryWithFilters(
           where: { status: 'PENDING' },
           include: { flaggedByNutritionist: { include: { user: { select: { name: true } } } } },
         },
-        ingredients: { orderBy: { position: 'asc' } },
+        ingredients: {
+          orderBy: { position: 'asc' },
+          include: {
+            foodItem: { select: { name: true, source: true, sourceRecordId: true, sourceReferenceUrl: true } },
+          },
+        },
         safetyDeclarations: true,
         safetyReviews: {
           where: { reasonCode: 'ADMIN_AUTHORED_DRAFT' },
@@ -72,5 +77,36 @@ export async function getNutritionistMealLibraryWithFilters(
     }),
   ]);
 
-  return { total, page, limit, meals };
+  const preparedEvents = meals.length
+    ? await prisma.auditEvent.findMany({
+        where: {
+          action: 'NUTRITION_EVIDENCE_PREPARED',
+          entityType: 'MealLibrary',
+          entityId: { in: meals.map((meal) => meal.id) },
+        },
+        select: { entityId: true, metadata: true },
+        orderBy: { createdAt: 'desc' },
+      })
+    : [];
+  const preparedRevision = new Map<string, { revision: number; portionBasis: string | null }>();
+  for (const event of preparedEvents) {
+    const metadata = event.metadata as Record<string, unknown> | null;
+    const revision = metadata?.revision;
+    if (event.entityId && typeof revision === 'number' && !preparedRevision.has(event.entityId)) {
+      preparedRevision.set(event.entityId, {
+        revision,
+        portionBasis: typeof metadata?.portionBasis === 'string' ? metadata.portionBasis : null,
+      });
+    }
+  }
+  return {
+    total,
+    page,
+    limit,
+    meals: meals.map((meal) => ({
+      ...meal,
+      preparedNutritionRevision: preparedRevision.get(meal.id)?.revision ?? null,
+      preparedNutritionBasis: preparedRevision.get(meal.id)?.portionBasis ?? null,
+    })),
+  };
 }

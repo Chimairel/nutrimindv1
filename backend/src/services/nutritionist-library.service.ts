@@ -15,7 +15,7 @@ import {
   MealType,
 } from '@prisma/client';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
-import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '@/domain/meal-library-safety-evidence.policy';
+import { SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS } from '@/domain/meal-library-safety-evidence.policy';
 
 import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '@/services/meal-swap.service';
 import {
@@ -83,7 +83,7 @@ export class NutritionistLibraryService {
       where: {
         status: MealLibraryStatus.APPROVED,
         safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-        safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+        safetyPolicyVersion: { in: [...SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS] },
         flags: { none: { status: FlagStatus.PENDING } },
       },
       include: certifiedLibraryMealInclude,

@@ -188,6 +188,7 @@ function projectCertifiedMeal(meal: CommonMealDefinition, foods: ReadonlyMap<str
     safetyEvidenceRevision: 1,
     certifiedEvidenceRevision: 1,
     safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+    nutritionEvidenceSource: 'FNRI_RECONCILED',
     safetyInvalidatedAt: null,
     safetyReviewedByNutritionist: {
       isVerified: true,
