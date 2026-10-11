@@ -70,6 +70,49 @@ export default function CaseReviewWorkspace({
           >
             {selectedMealId && detailData && !detailLoading ? (
               <CaseReviewDocument model={model} />
+            ) : selectedMealId === null ? (
+              <section
+                aria-labelledby="review-guide-title"
+                className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+              >
+                <ShieldCheck aria-hidden="true" className="mb-5 h-7 w-7 text-brand-accent" />
+                <h2
+                  id="review-guide-title"
+                  className="max-w-[20ch] font-display text-3xl font-semibold leading-tight tracking-[-0.025em] text-brand-text [text-wrap:balance]"
+                >
+                  A clear path to every review
+                </h2>
+                <p className="mt-4 max-w-[65ch] text-sm leading-7 text-brand-muted">
+                  Select a meal to inspect the person’s health profile and the meal’s evidence side by side. The review
+                  lock begins only when you press Claim review.
+                </p>
+                <ol className="mt-9 space-y-7">
+                  {[
+                    {
+                      title: 'Inspect an available meal',
+                      desc: 'Preview the patient’s clinical conditions, allergen profile, and meal candidate evidence.',
+                    },
+                    {
+                      title: 'Claim when ready to decide',
+                      desc: 'Secure a 30-minute exclusive review lock when you are ready to evaluate.',
+                    },
+                    {
+                      title: 'Decide and record your review notes',
+                      desc: 'Approve the recorded meal, reject with a reason, or swap to an eligible recipe. Add guidance in your review notes.',
+                    },
+                  ].map((item, index) => (
+                    <li key={item.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-baseline gap-x-4">
+                      <span aria-hidden="true" className="text-base font-medium tabular-nums text-brand-muted">
+                        {index + 1}.
+                      </span>
+                      <div>
+                        <h3 className="font-display text-lg font-semibold leading-6 text-brand-text">{item.title}</h3>
+                        <p className="mt-2 text-sm leading-6 text-brand-muted">{item.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
             ) : (
               <ExpandableCasePanel
                 expanded={expanded && selectedMealId !== null}
@@ -79,56 +122,7 @@ export default function CaseReviewWorkspace({
                 onBack={() => setSelectedMealId(null)}
                 className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
               >
-                {selectedMealId === null ? (
-                  <div className="space-y-6 py-2">
-                    <div className="rounded-3xl border border-brand-border/80 bg-brand-surface/90 p-6 sm:p-8 shadow-sm space-y-6">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-accent/15 text-brand-accent">
-                        <ShieldCheck className="h-6 w-6 stroke-[2.2]" />
-                      </div>
-                      <div>
-                        <h2 className="font-display text-2xl font-black tracking-tight text-brand-text">
-                          A clear path to every review
-                        </h2>
-                        <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                          Select a meal to inspect the person’s health profile and the meal’s evidence side by side. The
-                          review lock begins only when you press Claim review.
-                        </p>
-                      </div>
-                      <div className="grid gap-3 pt-2">
-                        {[
-                          {
-                            step: '01',
-                            title: 'Inspect an available meal',
-                            desc: 'Preview the patient’s clinical conditions, allergen profile, and meal candidate evidence.',
-                          },
-                          {
-                            step: '02',
-                            title: 'Claim when ready to decide',
-                            desc: 'Secure a 30-minute exclusive review lock when you are ready to evaluate.',
-                          },
-                          {
-                            step: '03',
-                            title: 'Decide and record your review notes',
-                            desc: 'Approve the recorded meal, reject with a reason, or swap to an eligible recipe. Add guidance in your review notes.',
-                          },
-                        ].map((item) => (
-                          <div
-                            key={item.step}
-                            className="flex items-start gap-3.5 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 p-4 transition-colors hover:border-brand-accent/30"
-                          >
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent/15 font-mono text-xs font-black text-brand-accent">
-                              {item.step}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-display text-sm font-bold text-brand-text">{item.title}</p>
-                              <p className="mt-0.5 text-xs leading-relaxed text-brand-muted">{item.desc}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : detailLoading ? (
+                {detailLoading ? (
                   <div className="flex-1">
                     <ReviewDetailSkeleton />
                   </div>
