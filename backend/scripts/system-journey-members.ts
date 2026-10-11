@@ -115,6 +115,21 @@ async function main() {
           f.token
         );
         assert.equal(profile.status, 200, JSON.stringify(profile.body));
+        const schedule = await h.request(
+          '/api/user/meal-reminders',
+          'PUT',
+          {
+            breakfastTime: '07:00',
+            lunchTime: '12:00',
+            dinnerTime: '18:00',
+            timeZone: 'Asia/Manila',
+            remindersEnabled: false,
+            prepareEnabled: false,
+            logEnabled: false,
+          },
+          f.token
+        );
+        assert.equal(schedule.status, 200, JSON.stringify(schedule.body));
         const safety = await h.request(
           '/api/user/onboarding/safety',
           'POST',

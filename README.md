@@ -8,6 +8,8 @@ Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODU
 
 Capstone rehearsal, aggregate evaluation, bounded synthetic read benchmarks and isolated restore/concurrency drills use [`docs/CAPSTONE_REHEARSAL_RUNBOOK.md`](docs/CAPSTONE_REHEARSAL_RUNBOOK.md). [Current follow-up evidence](docs/CAPSTONE_RELIABILITY_FOLLOWUP_2026-10-10.md) separates verified results from remaining deployment/provider gates.
 
+The [October 11 synthetic user-flow report](docs/SYNTHETIC_USER_FLOW_TEST_REPORT_2026-10-11.md) records actual member/RND/admin browser checks and isolated database acceptance. Study the current implementation using the [backend guide](docs/study/BACKEND_STUDY_GUIDE.md) and [frontend guide](docs/study/FRONTEND_STUDY_GUIDE.md).
+
 The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and the existing release-mode startup gates. Public interface wording follows the current engineering-record entry. It keeps production security enabled and does not constitute clinical approval.
 
 Administrator-managed nutrition sources, aggregate consumption releases, FNRI mappings, publication, and rollback use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md).
