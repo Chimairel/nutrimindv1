@@ -15,7 +15,15 @@ import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedi
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
-  const { login, logout, user, profileLoadError, refreshSession, isLoading: isAuthLoading } = useAuth();
+  const {
+    login,
+    logout,
+    user,
+    profileLoadError,
+    profileLoadFailure,
+    refreshSession,
+    isLoading: isAuthLoading,
+  } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +81,7 @@ export default function LoginPage() {
             logout={logout}
             isResolving={isAuthLoading}
             profileLoadError={profileLoadError}
+            profileLoadFailure={profileLoadFailure}
             retryProfile={() => refreshSession({ showLoader: true })}
             inline
           />

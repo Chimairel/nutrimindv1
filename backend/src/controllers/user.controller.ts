@@ -1,3 +1,6 @@
+import { databaseAvailabilityFailure } from '@/lib/database-availability';
+import { sendApiError } from '@/lib/http-response';
+import { logger } from '@/lib/logger';
 import { Response } from 'express';
 import { updateAccountSettings } from '@/services/account-settings.service';
 import { clearRefreshCookie } from '@/controllers/auth.controller';
@@ -86,8 +89,15 @@ export class UserController {
         data: profileDetails,
       });
     } catch (error: any) {
-      console.error('[UserController] getProfile error:', error);
-      return res.status(500).json({ success: false, error: 'Internal server error resolving profile details.' });
+      const unavailable = databaseAvailabilityFailure(error);
+      const errorCode = unavailable?.errorCode ?? 'PROFILE_UNAVAILABLE';
+      logger.error('account_profile_unavailable', { requestId: res.locals.requestId, errorCode });
+      return sendApiError(
+        res,
+        unavailable ? 503 : 500,
+        unavailable?.message ?? 'Internal server error resolving profile details.',
+        errorCode
+      );
     }
   }
 

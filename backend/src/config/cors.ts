@@ -17,6 +17,6 @@ export function createCorsOptions(allowedOrigins: readonly string[]): CorsOption
       );
     },
     credentials: true,
-    exposedHeaders: ['Retry-After'],
+    exposedHeaders: ['Retry-After', 'X-Request-Id'],
   };
 }

@@ -90,3 +90,19 @@ it('never resets the overall deadline when a slow first attempt fails', async ()
   expect(mocks.get).toHaveBeenCalledTimes(2);
   expect(mocks.get.mock.calls[1][1].timeout).toBe(1_000);
 });
+
+it('rejects a successful HTTP response with missing profile data without retrying it', async () => {
+  mocks.get.mockResolvedValue({ data: { success: true, data: null } });
+  await expect(refreshUserProfile('member')).rejects.toMatchObject({ code: 'PROFILE_INVALID' });
+  expect(mocks.get).toHaveBeenCalledOnce();
+});
+
+it('reports a confirmed database quota block immediately instead of repeating hopeless requests', async () => {
+  mocks.get.mockRejectedValue({
+    response: { status: 503, data: { errorCode: 'DATABASE_QUOTA_EXCEEDED', requestId: 'quota-request' } },
+  });
+  await expect(refreshUserProfile('member')).rejects.toMatchObject({
+    response: { data: { errorCode: 'DATABASE_QUOTA_EXCEEDED' } },
+  });
+  expect(mocks.get).toHaveBeenCalledOnce();
+});

@@ -40,11 +40,18 @@ describe('AuthenticatedEntryRedirect', () => {
     const retryProfile = vi.fn().mockResolvedValue(null);
     const logout = vi.fn().mockResolvedValue(undefined);
     const { rerender } = render(
-      <AuthenticatedEntryRedirect user={unresolvedUser} logout={logout} profileLoadError retryProfile={retryProfile} />
+      <AuthenticatedEntryRedirect
+        user={unresolvedUser}
+        logout={logout}
+        profileLoadError
+        profileLoadFailure={{ kind: 'connection' }}
+        retryProfile={retryProfile}
+      />
     );
 
     expect(replace).not.toHaveBeenCalled();
     expect(screen.getByText('Could not load your account')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('received no response from the server');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(retryProfile).toHaveBeenCalledOnce();
     expect(replace).not.toHaveBeenCalled();

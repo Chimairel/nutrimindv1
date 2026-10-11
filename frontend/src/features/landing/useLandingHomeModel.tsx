@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 import { getRoleHome } from './LandingHome.shared';
 export function useLandingHomeModel({ initialMedia }: { initialMedia: LandingMedia | null }) {
-  const { user, isLoading, profileLoadError, logout, refreshSession } = useAuth();
+  const { user, isLoading, profileLoadError, profileLoadFailure, logout, refreshSession } = useAuth();
 
   const isPendingVerification = Boolean(user && !user.emailVerified);
   const workspaceHref = user ? (isPendingVerification ? '/verify-email' : getRoleHome(user.role)) : '/register';
@@ -26,6 +26,7 @@ export function useLandingHomeModel({ initialMedia }: { initialMedia: LandingMed
         user,
         isResolving: isLoading,
         profileLoadError,
+        profileLoadFailure,
         logout,
         retryProfile: () => refreshSession({ showLoader: true }),
       },

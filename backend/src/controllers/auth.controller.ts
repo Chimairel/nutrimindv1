@@ -1,3 +1,5 @@
+import { databaseAvailabilityFailure } from '@/lib/database-availability';
+import { sendApiError } from '@/lib/http-response';
 import { Request, Response } from 'express';
 import AuthService, { GoogleAuthFlowError } from '@/services/auth.service';
 import { accountCreationLimiter } from '@/middleware/rateLimiter';
@@ -96,6 +98,8 @@ export class AuthController {
         },
       });
     } catch (error: any) {
+      const unavailable = databaseAvailabilityFailure(error);
+      if (unavailable) return sendApiError(res, 503, unavailable.message, unavailable.errorCode);
       return res.status(400).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to authenticate session.'),
@@ -292,11 +296,15 @@ export class AuthController {
       });
     } catch (error: any) {
       // Database outages are not evidence that the refresh session is invalid.
+      const unavailable = databaseAvailabilityFailure(error);
+      if (unavailable) return sendApiError(res, 503, unavailable.message, unavailable.errorCode);
       if (error instanceof Error && error.name.startsWith('PrismaClient')) {
-        return res.status(503).json({
-          success: false,
-          error: 'Session refresh is temporarily unavailable. Please try again.',
-        });
+        return sendApiError(
+          res,
+          503,
+          'Session refresh is temporarily unavailable. Please try again.',
+          'SESSION_REFRESH_UNAVAILABLE'
+        );
       }
       // Clear the cookie only when the refresh session is rejected.
       clearRefreshCookie(res);

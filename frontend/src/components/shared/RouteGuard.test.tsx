@@ -1,11 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ProfileLoadFailure } from '@/lib/profile-load-failure';
 import RouteGuard from './RouteGuard';
 
 const state = vi.hoisted(() => ({
   path: '/profile',
   replace: vi.fn(),
   profileLoadError: false,
+  profileLoadFailure: null as ProfileLoadFailure | null,
   isLoading: false,
   refreshSession: vi.fn(),
   logout: vi.fn(),
@@ -17,6 +19,7 @@ vi.mock('@/hooks/useAuth', () => ({
     user: state.user,
     isLoading: state.isLoading,
     profileLoadError: state.profileLoadError,
+    profileLoadFailure: state.profileLoadFailure,
     refreshSession: state.refreshSession,
     logout: state.logout,
   }),
@@ -41,6 +44,7 @@ describe('report access within the profile', () => {
   beforeEach(() => {
     state.replace.mockClear();
     state.profileLoadError = false;
+    state.profileLoadFailure = null;
     state.isLoading = false;
     state.user = {
       role: 'USER',
@@ -113,12 +117,15 @@ describe('report access within the profile', () => {
     state.path = '/meals';
     state.user.emailVerified = false;
     state.profileLoadError = true;
+    state.profileLoadFailure = { kind: 'server', status: 503, requestId: 'safe-profile-request' };
     render(
       <RouteGuard>
         <p>Workspace</p>
       </RouteGuard>
     );
     expect(screen.getByRole('alert')).toHaveTextContent('Could not load your account profile');
+    expect(screen.getByRole('alert')).toHaveTextContent('HTTP 503');
+    expect(screen.getByRole('alert')).toHaveTextContent('Request ID: safe-profile-request');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(state.replace).not.toHaveBeenCalled();
   });

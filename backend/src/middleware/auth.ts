@@ -1,6 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { verifyAccessToken } from '@/lib/jwt';
 import { AuthenticatedRequest } from '@/types';
+import { databaseAvailabilityFailure } from '@/lib/database-availability';
+import { sendApiError } from '@/lib/http-response';
+import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { UserProfileService } from '@/services/user-profile.service';
 
@@ -78,11 +81,16 @@ const authenticateRequest = async (
     }
 
     next();
-  } catch {
-    return res.status(503).json({
-      success: false,
-      error: 'Session verification is temporarily unavailable. Please try again.',
-    });
+  } catch (error) {
+    const failure = databaseAvailabilityFailure(error);
+    const errorCode = failure?.errorCode ?? 'SESSION_VERIFICATION_UNAVAILABLE';
+    logger.warn('session_verification_unavailable', { requestId: res.locals.requestId, errorCode });
+    return sendApiError(
+      res,
+      503,
+      failure?.message ?? 'Session verification is temporarily unavailable. Please try again.',
+      errorCode
+    );
   }
 };
 

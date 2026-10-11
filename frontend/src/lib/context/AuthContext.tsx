@@ -6,6 +6,7 @@ import { Role } from '@/types';
 import { decodeToken, cookieHelper } from '@/lib/auth';
 import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
+import { classifyProfileLoadFailure, profileCheckError, type ProfileLoadFailure } from '@/lib/profile-load-failure';
 import { refreshUserProfile } from '@/lib/user-profile-resource';
 import { refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { disableDeviceNotifications } from '@/lib/device-notifications';
@@ -32,6 +33,7 @@ export interface AuthContextType {
   user: UserSession | null;
   isLoading: boolean;
   profileLoadError: boolean;
+  profileLoadFailure: ProfileLoadFailure | null;
   login: (token: string) => Promise<UserSession | null>;
   logout: () => Promise<void>;
   completeAccountDeletion: () => void;
@@ -45,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserSession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [profileLoadError, setProfileLoadError] = useState(false);
+  const [profileLoadFailure, setProfileLoadFailure] = useState<ProfileLoadFailure | null>(null);
   const sessionRequestId = useRef(0);
   const confirmedProfileOwner = useRef<string | null>(null);
   const sessionRefresh = useRef<{
@@ -63,15 +66,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
     }
     setProfileLoadError(false);
+    setProfileLoadFailure(null);
 
     try {
       const profile = await refreshUserProfile(ownerId);
       if (profile) {
         // Missing verification metadata is an unresolved check, not an OTP requirement.
-        if (typeof profile.emailVerified !== 'boolean') throw new Error('Profile verification status is missing.');
-        if (!ownerId || profile.id !== ownerId) throw new Error('Profile does not match the current session.');
+        if (typeof profile.emailVerified !== 'boolean') throw profileCheckError('PROFILE_INVALID');
+        if (!ownerId || profile.id !== ownerId) throw profileCheckError('PROFILE_INVALID');
         if (decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId !== ownerId) {
-          throw new Error('The account changed while its profile was loading.');
+          throw profileCheckError('PROFILE_ACCOUNT_CHANGED');
         }
         const {
           id,
@@ -119,24 +123,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         confirmedProfileOwner.current = id;
         setUser((previous) => (JSON.stringify(previous) === JSON.stringify(refreshedUser) ? previous : refreshedUser));
         setProfileLoadError(false);
+        setProfileLoadFailure(null);
         if (role === 'USER' && onboardingDone && tosAccepted && isReportAcknowledged) {
           void refreshClinicalProfileStatus(id, profile).catch(() => undefined);
         }
         return refreshedUser;
       }
-      if (requestId === sessionRequestId.current) setProfileLoadError(true);
-      return null;
+      throw profileCheckError('PROFILE_INVALID');
     } catch (error) {
       if (requestId !== sessionRequestId.current) return null;
 
-      console.warn('[AuthContext] Could not confirm live profile status.', error);
+      const failure = classifyProfileLoadFailure(error, typeof navigator !== 'undefined' && !navigator.onLine);
+      console.warn('[AuthContext] Could not confirm live profile status.', failure);
       // If we fail because we are unauthenticated, clear session
       if ((error as { response?: { status?: number } }).response?.status === 401) {
         clearSessionResourceCache();
         confirmedProfileOwner.current = null;
         setUser(null);
         setProfileLoadError(false);
+        setProfileLoadFailure(null);
       } else {
+        setProfileLoadFailure(failure);
         setProfileLoadError(true);
       }
       return null;
@@ -209,6 +216,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async (token: string) => {
       sessionRequestId.current += 1;
       confirmedProfileOwner.current = null;
+      setProfileLoadError(false);
+      setProfileLoadFailure(null);
       setSessionRefreshSuppressed(false);
       clearSessionResourceCache();
       // Save access token in cookie for the client middleware & interceptor
@@ -249,6 +258,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     confirmedProfileOwner.current = null;
     setIsLoading(true);
     setProfileLoadError(false);
+    setProfileLoadFailure(null);
     setSessionRefreshSuppressed(true);
     try {
       await disableDeviceNotifications().catch(() => undefined);
@@ -271,6 +281,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     confirmedProfileOwner.current = null;
     setSessionRefreshSuppressed(true);
     setProfileLoadError(false);
+    setProfileLoadFailure(null);
     cookieHelper.clear('nutrimind_session');
     clearSessionResourceCache();
     setUser(null);
@@ -289,13 +300,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       isLoading,
       profileLoadError,
+      profileLoadFailure,
       login,
       logout,
       completeAccountDeletion,
       refreshSession,
       updateUserSession,
     }),
-    [user, isLoading, profileLoadError, login, logout, completeAccountDeletion, refreshSession, updateUserSession]
+    [
+      user,
+      isLoading,
+      profileLoadError,
+      profileLoadFailure,
+      login,
+      logout,
+      completeAccountDeletion,
+      refreshSession,
+      updateUserSession,
+    ]
   );
 
   return <AuthContext.Provider value={context}>{children}</AuthContext.Provider>;

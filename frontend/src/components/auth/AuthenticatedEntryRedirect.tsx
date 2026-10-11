@@ -1,5 +1,7 @@
 'use client';
 
+import AccountProfileFailureDetails from '@/components/shared/AccountProfileFailureDetails';
+import type { ProfileLoadFailure } from '@/lib/profile-load-failure';
 import { AlertTriangle } from 'lucide-react';
 import { useWorkspaceRedirect } from '@/hooks/useWorkspaceRedirect';
 import type { UserSession } from '@/lib/context/AuthContext';
@@ -16,6 +18,7 @@ export default function AuthenticatedEntryRedirect({
   user,
   logout,
   profileLoadError = false,
+  profileLoadFailure,
   retryProfile,
   recoveryDelayMs = REDIRECT_RECOVERY_MS,
   isResolving = false,
@@ -25,6 +28,7 @@ export default function AuthenticatedEntryRedirect({
   user: UserSession | null;
   logout: () => Promise<void>;
   profileLoadError?: boolean;
+  profileLoadFailure?: ProfileLoadFailure | null;
   retryProfile?: () => Promise<unknown>;
   recoveryDelayMs?: number;
   isResolving?: boolean;
@@ -71,13 +75,15 @@ export default function AuthenticatedEntryRedirect({
         <h1 className="mt-4 font-display text-2xl font-extrabold">
           {profileLoadError ? 'Could not load your account' : 'Your workspace took too long to open'}
         </h1>
-        <p className="mt-3 text-sm leading-6 text-brand-muted">
-          {profileLoadError
-            ? 'Your account is signed in. Try loading your account again to continue.'
-            : user
-              ? 'Your account is signed in. Retry the destination, or sign out and return to account access.'
+        {profileLoadError ? (
+          <AccountProfileFailureDetails failure={profileLoadFailure} />
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-brand-muted">
+            {user
+              ? 'Your account was checked, but the workspace page did not finish opening. Try opening it again.'
               : 'Try opening account access again.'}
-        </p>
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-3">
           <Button
             type="button"

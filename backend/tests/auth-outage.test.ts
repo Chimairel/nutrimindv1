@@ -22,12 +22,15 @@ test('database failures do not invalidate a signed access session', async (t) =>
   const { authenticate } = await import('../src/middleware/auth');
   const { signAccessToken } = await import('../src/lib/jwt');
   let status = 0;
+  let payload: { errorCode?: string; requestId?: string } = {};
   const res = {
+    locals: { requestId: 'outage-request' },
     status(value: number) {
       status = value;
       return this;
     },
-    json() {
+    json(value: typeof payload) {
+      payload = value;
       return this;
     },
   } as unknown as Response;
@@ -38,6 +41,8 @@ test('database failures do not invalidate a signed access session', async (t) =>
   } as AuthenticatedRequest;
   await authenticate(req, res, () => assert.fail('must not authorize during outage'));
   assert.equal(status, 503);
+  assert.equal(payload.errorCode, 'SESSION_VERIFICATION_UNAVAILABLE');
+  assert.equal(payload.requestId, 'outage-request');
   req.headers.authorization = 'Bearer invalid';
   await authenticate(req, res, () => assert.fail('must not authorize invalid token'));
   assert.equal(status, 401);

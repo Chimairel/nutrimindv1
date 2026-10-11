@@ -11,10 +11,16 @@ test('profile bootstrap checks current account status and returns the profile wi
   const previous = globals.prisma;
   let reads = 0;
   let suspended = false;
+  let unavailable = false;
   globals.prisma = {
     user: {
       findUnique: async ({ select }: { select: Record<string, unknown> }) => {
         reads += 1;
+        if (unavailable)
+          throw {
+            name: 'PrismaClientInitializationError',
+            message: 'Your account or project has exceeded the quota. private connection string',
+          };
         assert.equal(select.isSuspended, true);
         return {
           id: 'bootstrap-user',
@@ -52,10 +58,15 @@ test('profile bootstrap checks current account status and returns the profile wi
   const { signAccessToken } = await import('../src/lib/jwt');
   const token = signAccessToken({ userId: 'bootstrap-user', email: 'admin@example.test', role: 'ADMIN' });
   const makeRequest = () => ({ headers: { authorization: `Bearer ${token}` } }) as AuthenticatedRequest;
+  let clearedCookies = 0;
   let status = 200;
-  let body: { success?: boolean; data?: Record<string, unknown> } = {};
+  let body: { success?: boolean; data?: Record<string, unknown>; errorCode?: string; requestId?: string } = {};
   const res = {
-    locals: {},
+    locals: { requestId: 'bootstrap-request' },
+    clearCookie() {
+      clearedCookies++;
+      return this;
+    },
     set() {
       return this;
     },
@@ -89,4 +100,52 @@ test('profile bootstrap checks current account status and returns the profile wi
   assert.equal(authorized, false);
   assert.equal(status, 401);
   assert.equal(reads, 2);
+  suspended = false;
+  unavailable = true;
+  authorized = false;
+  await authenticateProfile(makeRequest(), res, () => {
+    authorized = true;
+  });
+  assert.equal(authorized, false);
+  assert.equal(status, 503);
+  assert.equal(body.errorCode, 'DATABASE_QUOTA_EXCEEDED');
+  assert.equal(body.requestId, 'bootstrap-request');
+  assert.doesNotMatch(JSON.stringify(body), /private connection/);
+
+  const { default: AuthService } = await import('../src/services/auth.service');
+  const { default: AuthController } = await import('../src/controllers/auth.controller');
+  const previousLogin = AuthService.login;
+  t.after(() => {
+    AuthService.login = previousLogin;
+  });
+  AuthService.login = async () => {
+    throw { name: 'PrismaClientInitializationError', message: 'Your account or project has exceeded the quota.' };
+  };
+  await AuthController.login({ body: { email: 'fixture@example.test', password: 'synthetic-only' } } as never, res);
+  assert.equal(status, 503);
+  assert.equal(body.errorCode, 'DATABASE_QUOTA_EXCEEDED');
+  AuthService.login = async () => {
+    throw new Error('Invalid email or password.');
+  };
+  await AuthController.login({ body: { email: 'fixture@example.test', password: 'synthetic-only' } } as never, res);
+  assert.equal(status, 400);
+  const previousRefresh = AuthService.refreshToken;
+  t.after(() => {
+    AuthService.refreshToken = previousRefresh;
+  });
+  AuthService.refreshToken = async () => {
+    throw Object.assign(new Error('Your account or project has exceeded the quota.'), {
+      name: 'PrismaClientInitializationError',
+    });
+  };
+  await AuthController.refresh({ cookies: { nutrimind_refresh: 'synthetic-refresh' }, body: {} } as never, res);
+  assert.equal(status, 503);
+  assert.equal(body.errorCode, 'DATABASE_QUOTA_EXCEEDED');
+  assert.equal(clearedCookies, 0);
+  AuthService.refreshToken = async () => {
+    throw new Error('Invalid session refresh.');
+  };
+  await AuthController.refresh({ cookies: { nutrimind_refresh: 'synthetic-refresh' }, body: {} } as never, res);
+  assert.equal(status, 401);
+  assert.equal(clearedCookies, 1);
 });

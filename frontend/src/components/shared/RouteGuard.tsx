@@ -3,6 +3,8 @@
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import Button from '@/components/ui/Button';
+import AccountProfileFailureDetails from '@/components/shared/AccountProfileFailureDetails';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { getPostAuthDestination } from '@/lib/post-auth-destination';
 import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
@@ -25,7 +27,7 @@ interface RouteGuardProps {
  * Report acknowledgment gates meal actions on the server, not access to profile/history.
  */
 export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
-  const { user, isLoading, profileLoadError, refreshSession, logout } = useAuth();
+  const { user, isLoading, profileLoadError, profileLoadFailure, refreshSession, logout } = useAuth();
   const pathname = usePathname();
 
   const publicRoutes = [
@@ -114,22 +116,14 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-brand-text">
         <div role="alert" className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-6">
           <h1 className="font-display text-xl font-bold">Could not load your account profile</h1>
-          <p className="mt-2 text-sm text-brand-muted">Your account status could not be checked. Please try again.</p>
+          <AccountProfileFailureDetails failure={profileLoadFailure} />
           <div className="mt-5 flex gap-3">
-            <button
-              type="button"
-              onClick={() => void refreshSession({ showLoader: true })}
-              className="rounded-xl bg-brand-green px-4 py-2 font-bold text-brand-bg"
-            >
+            <Button type="button" onClick={() => void refreshSession({ showLoader: true })}>
               Try again
-            </button>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="rounded-xl border border-brand-border px-4 py-2"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => void logout()}>
               Sign out
-            </button>
+            </Button>
           </div>
         </div>
       </div>

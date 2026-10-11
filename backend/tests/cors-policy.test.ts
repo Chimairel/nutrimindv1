@@ -26,6 +26,7 @@ test('tunnel POSTs require an exact origin and return an actionable error throug
       assert.equal(response.status, 204);
       assert.equal(response.headers.get('access-control-allow-origin'), origin);
       assert.equal(response.headers.get('access-control-allow-credentials'), 'true');
+      assert.equal(response.headers.get('access-control-expose-headers'), 'Retry-After,X-Request-Id');
     }
     assert.equal((await fetch(url, { method: 'POST' })).status, 204);
   } finally {

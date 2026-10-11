@@ -1,6 +1,7 @@
 import api, { type ApiRequestConfig } from '@/lib/axios';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { readSessionResource, refreshSessionResource } from '@/lib/session-resource-cache';
+import { profileCheckError } from '@/lib/profile-load-failure';
 import { cookieHelper, decodeToken } from '@/lib/auth';
 
 export const userProfileResource = 'user-profile';
@@ -25,7 +26,7 @@ export function refreshUserProfile(ownerId: string | undefined): Promise<Session
     const expired = new Promise<never>((_, reject) => {
       deadlineTimer = setTimeout(() => {
         controller.abort();
-        reject(Object.assign(new Error('Account check timed out.'), { code: 'ETIMEDOUT' }));
+        reject(Object.assign(new Error('Account check timed out.'), { code: 'ETIMEDOUT', deadlineSeconds: 60 }));
       }, 60_000);
     });
     const read = async () => {
@@ -37,10 +38,16 @@ export function refreshUserProfile(ownerId: string | undefined): Promise<Session
             skipTransientRetry: true,
           };
           const response = await api.get('/user/profile', config);
-          if (!response.data?.success) throw new Error('Profile response was unsuccessful.');
+          if (!response.data?.success || !response.data.data || typeof response.data.data !== 'object') {
+            throw profileCheckError('PROFILE_INVALID');
+          }
           return response.data.data as SessionProfileData;
         } catch (error) {
-          const failure = error as { code?: string; response?: { status?: number } } | null;
+          const failure = error as {
+            code?: string;
+            response?: { status?: number; data?: { errorCode?: string } };
+          } | null;
+          if (failure?.response?.data?.errorCode === 'DATABASE_QUOTA_EXCEEDED') throw error;
           const transient =
             ['ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK'].includes(failure?.code ?? '') ||
             [500, 502, 503, 504].includes(failure?.response?.status ?? 0);

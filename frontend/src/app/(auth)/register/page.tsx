@@ -19,7 +19,15 @@ import {
 } from '@/validation/auth.schemas';
 
 export default function RegisterPage() {
-  const { login, logout, user, profileLoadError, refreshSession, isLoading: isAuthLoading } = useAuth();
+  const {
+    login,
+    logout,
+    user,
+    profileLoadError,
+    profileLoadFailure,
+    refreshSession,
+    isLoading: isAuthLoading,
+  } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -83,6 +91,7 @@ export default function RegisterPage() {
             logout={logout}
             isResolving={isAuthLoading}
             profileLoadError={profileLoadError}
+            profileLoadFailure={profileLoadFailure}
             retryProfile={() => refreshSession({ showLoader: true })}
             inline
           />

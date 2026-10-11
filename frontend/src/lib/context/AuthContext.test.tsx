@@ -99,12 +99,13 @@ describe('authoritative session refresh coordination', () => {
     });
     await act(async () => finish({ id: 'fixture-owner', role: 'USER', email: 'fixture@preview.invalid' }));
     expect(await pending).toBeNull();
+    expect(auth.profileLoadFailure).toBeNull();
     expect(auth.user).toBeNull();
     expect(mocks.replace).toHaveBeenCalledWith('/login');
   });
   it('reports a failed post-login profile read as unresolved instead of a confirmed OTP requirement', async () => {
     mocks.cookie = '';
-    mocks.read.mockRejectedValue(new Error('Synthetic profile timeout'));
+    mocks.read.mockRejectedValue({ code: 'ETIMEDOUT', deadlineSeconds: 60 });
     let auth!: AuthContextType;
     const Consumer = () => {
       auth = useContext(AuthContext)!;
@@ -119,6 +120,7 @@ describe('authoritative session refresh coordination', () => {
       expect(await auth.login('fixture-token')).toBeNull();
     });
     expect(auth.profileLoadError).toBe(true);
+    expect(auth.profileLoadFailure).toEqual({ kind: 'timeout', deadlineSeconds: 60 });
     expect(auth.isLoading).toBe(false);
     expect(auth.user?.emailVerified).toBe(false);
     mocks.read.mockResolvedValue({
@@ -131,6 +133,7 @@ describe('authoritative session refresh coordination', () => {
       await auth.refreshSession({ showLoader: true });
     });
     expect(auth.profileLoadError).toBe(false);
+    expect(auth.profileLoadFailure).toBeNull();
     expect(auth.user?.emailVerified).toBe(true);
   });
   it('treats omitted verification metadata as a failed check', async () => {
@@ -151,6 +154,7 @@ describe('authoritative session refresh coordination', () => {
     });
     expect(auth.profileLoadError).toBe(true);
     expect(auth.isLoading).toBe(false);
+    expect(auth.profileLoadFailure).toEqual({ kind: 'response' });
   });
 
   it('keeps quiet recovery blocked until the temporary token session has a confirmed profile', async () => {
@@ -188,6 +192,7 @@ describe('authoritative session refresh coordination', () => {
     await recovery;
     expect(auth.isLoading).toBe(false);
     expect(auth.profileLoadError).toBe(false);
+    expect(auth.profileLoadFailure).toBeNull();
     expect(auth.user?.emailVerified).toBe(true);
   });
 
@@ -237,5 +242,6 @@ describe('authoritative session refresh coordination', () => {
     await act(async () => finish({ id: 'fixture-owner', role: 'USER', emailVerified: true }));
     expect(auth.user?.emailVerified).toBe(false);
     expect(auth.profileLoadError).toBe(true);
+    expect(auth.profileLoadFailure).toEqual({ kind: 'account-changed' });
   });
 });
