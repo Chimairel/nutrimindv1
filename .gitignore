@@ -54,3 +54,6 @@ codex/toothless.jpg
 
 # Task-local meal audit verification artifacts.
 /backend/.local/meal-log-audit-*
+
+# Local development database credentials and target-switch rollback configuration.
+/backend/.local/local-development/

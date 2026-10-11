@@ -1,0 +1,22 @@
+# Persistent local development database. Never connects to Neon.
+name: kainara-local-development
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: kainara-local-postgres
+    environment:
+      POSTGRES_DB: kainara_local_development
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_PASSWORD:?Run npm run local-db:up first}
+    ports:
+      - '127.0.0.1:55432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d kainara_local_development']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  postgres-data:

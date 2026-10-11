@@ -9,12 +9,10 @@ import { triggerMealRemindersInBackground, waitForMealReminders } from '@/servic
 
 const server = app.listen(env.PORT, () => {
   logger.info('server_started', { port: env.PORT, environment: env.NODE_ENV });
-  MealAiQueueService.triggerNonBlocking();
+  MealAiQueueService.startWorker();
   triggerMealRemindersInBackground();
 });
 
-const mealAiQueueTimer = setInterval(() => MealAiQueueService.triggerNonBlocking(), 30_000);
-mealAiQueueTimer.unref();
 const mealReminderTimer = setInterval(triggerMealRemindersInBackground, 30_000);
 mealReminderTimer.unref();
 
@@ -30,7 +28,6 @@ function shutdown(signal: 'SIGINT' | 'SIGTERM'): Promise<void> {
   if (shutdownPromise) return shutdownPromise;
   shutdownPromise = (async () => {
     logger.info('server_shutdown', { signal, outcome: 'STARTED' });
-    clearInterval(mealAiQueueTimer);
     clearInterval(mealReminderTimer);
     // Stop new turns before draining HTTP; release only this process's owned job.
     const workerShutdown = MealAiQueueService.shutdown();

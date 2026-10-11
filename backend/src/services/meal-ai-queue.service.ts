@@ -1,3 +1,7 @@
+import { BackgroundTaskLoop } from '@/lib/background-task-loop';
+import { databaseAvailabilityFailure } from '@/lib/database-availability';
+import { logger } from '@/lib/logger';
+import { mealWorkerDelay, MEAL_WORKER_IDLE_DELAY_MS } from '@/domain/meal-worker-scheduling.policy';
 import { cycleMacroTargets, dailyTargetMap } from './meal-macro-context.service';
 import { newMealJobToken, recoverExpiredMealJobLeases, startMealJobHeartbeat } from './meal-job-lease.service';
 import {
@@ -94,6 +98,7 @@ function terminalReason(cycle: Cycle, now: Date): string | null {
 
 /** DB-backed, shared across app instances. A turn generates at most one day. */
 export class MealAiQueueService {
+  private static worker: BackgroundTaskLoop | null = null;
   private static running = false;
   private static recoveryAt = 0;
   private static stopping = false;
@@ -103,6 +108,7 @@ export class MealAiQueueService {
   static async shutdown(): Promise<void> {
     this.stopping = true;
     this.activeController?.abort();
+    await this.worker?.stop();
     await this.activeRun;
   }
 
@@ -141,11 +147,42 @@ export class MealAiQueueService {
     return updated.count > 0;
   }
 
+  private static reportWorkerFailure(error: unknown): void {
+    logger.warn('meal_worker_unavailable', {
+      errorCode: databaseAvailabilityFailure(error)?.errorCode ?? 'WORKER_FAILED',
+    });
+  }
+
+  static startWorker(): void {
+    if (this.stopping || this.worker) return;
+    this.worker = new BackgroundTaskLoop(
+      async () => {
+        const worked = await this.runOne();
+        if (worked || this.stopping) return mealWorkerDelay(worked, null);
+        const next = await prisma.mealPlanGenerationJob.findFirst({
+          where: {
+            status: MealPlanGenerationJobStatus.WAITING_FOR_AI,
+            planGroupId: { not: null },
+            nextAttemptAt: { not: null },
+          },
+          orderBy: { nextAttemptAt: 'asc' },
+          select: { nextAttemptAt: true },
+        });
+        return mealWorkerDelay(false, next?.nextAttemptAt ?? null);
+      },
+      MEAL_WORKER_IDLE_DELAY_MS,
+      (error) => this.reportWorkerFailure(error)
+    );
+    this.worker.wake();
+  }
+
   static triggerNonBlocking(): void {
     if (this.stopping) return;
-    setImmediate(() => {
-      void this.runOne().catch((error) => console.error('[MealAiQueue] Trigger failed:', error));
-    });
+    if (this.worker) this.worker.wake();
+    else
+      setImmediate(() => {
+        void this.runOne().catch((error) => this.reportWorkerFailure(error));
+      });
   }
 
   static runOne(now: Date = new Date()): Promise<boolean> {

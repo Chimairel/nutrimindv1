@@ -24,7 +24,14 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "npm --prefix backend test",
     "test:e2e": "npm --prefix frontend run test:e2e",
-    "test:frontend": "npm --prefix frontend test"
+    "test:frontend": "npm --prefix frontend test",
+    "local-db:up": "node scripts/local-database.mjs up",
+    "local-db:stop": "node scripts/local-database.mjs stop",
+    "local-db:status": "node scripts/local-database.mjs status",
+    "local-db:restore": "node scripts/local-database.mjs restore",
+    "local-db:migrate": "node scripts/local-database.mjs migrate",
+    "local-db:use": "node scripts/local-database.mjs use",
+    "local-db:backup": "node scripts/local-database.mjs backup"
   },
   "devDependencies": {
     "prettier": "^3.8.3"
