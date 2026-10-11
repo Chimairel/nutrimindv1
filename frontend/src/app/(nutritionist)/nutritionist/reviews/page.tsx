@@ -13,6 +13,7 @@ import GovernanceQueuePanel from './GovernanceQueuePanel';
 import MealVerificationPanel from './MealVerificationPanel';
 import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
+import SharedWorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import DesktopReviewGate from '@/features/nutritionist-reviews/DesktopReviewGate';
 
 export default function ReviewsPage() {
@@ -42,35 +43,21 @@ function ReviewsWorkspace() {
   );
 
   const caseFilters = (
-    <div
-      className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-brand-border/70 bg-brand-surface/75 p-1.5 shadow-sm backdrop-blur-md"
-      aria-label="Case approval filters"
-    >
-      {(
-        [
-          ['pending', 'Pending'],
-          ['outside', 'Outside food logs'],
-          ['disputed', 'Needs resolution'],
-        ] as const
-      ).map(([key, label]) => (
-        <button
-          key={key}
-          type="button"
-          aria-pressed={caseFilter === key}
-          onClick={() => {
-            setCaseFilter(key);
-            setExpanded(false);
-          }}
-          className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
-            caseFilter === key
-              ? 'bg-brand-green text-white dark:bg-emerald-500 dark:text-[#07100d] font-bold shadow-sm'
-              : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <SharedWorkspaceTabs
+      value={caseFilter}
+      onChange={(next) => {
+        setCaseFilter(next);
+        setExpanded(false);
+      }}
+      label="Case approval filters"
+      tone="accentSoft"
+      size="sm"
+      items={[
+        { value: 'pending', label: 'Pending' },
+        { value: 'outside', label: 'Outside food logs' },
+        { value: 'disputed', label: 'Needs resolution' },
+      ]}
+    />
   );
 
   if (workspace === 'meal') {

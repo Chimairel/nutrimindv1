@@ -25,7 +25,6 @@ export default function WorkspaceTabs({
       value={value}
       onChange={onChange}
       label="RND review queues"
-      tone="green"
       stackOnMobile
       items={WORKSPACE_TABS.map(({ key, label, icon: Icon }) => ({
         value: key,
