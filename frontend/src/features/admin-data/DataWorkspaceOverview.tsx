@@ -1,11 +1,28 @@
 'use client';
 
-import { CalendarClock, CheckCircle2, CircleDashed, Database, FileInput, FilePlus2, RadioTower } from 'lucide-react';
+import { CalendarClock, ChevronDown, ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import DataSummary from './DataSummary';
-import type { AdminDataSection, DataRelease, WorkspaceSummary } from './types';
+import PublishingChecklist from './PublishingChecklist';
+import type { AdminDataSection, DataRelease, ReferenceDataDomain, WorkspaceSummary } from './types';
+
+const domainLabels: Record<ReferenceDataDomain, string> = {
+  FOOD_COMPOSITION: 'Food composition',
+  FOOD_CONSUMPTION: 'Food consumption',
+  INGREDIENT_PRICE: 'Ingredient prices',
+  MEAL_CATALOGUE: 'Meal catalogue',
+  MEAL_MEDIA: 'Meal media',
+};
+
+function retrievedLabel(date: string) {
+  const time = new Date(date).getTime();
+  if (!Number.isFinite(time)) return 'Not recorded';
+  const days = Math.floor((Date.now() - time) / 86_400_000);
+  if (days < 0) return new Date(date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' });
+  if (days === 0) return 'Today';
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+}
 
 interface DataWorkspaceOverviewProps {
   summary: WorkspaceSummary;
@@ -21,158 +38,84 @@ export default function DataWorkspaceOverview({
   onNavigate,
 }: DataWorkspaceOverviewProps) {
   const activeReleases = releases.filter((release) => release.status === 'ACTIVE');
-  const steps = [
-    {
-      title: 'Register a source',
-      description: 'Record the official agency, ownership, terms, and update schedule.',
-      complete: summary.dataSources > 0,
-      icon: Database,
-    },
-    {
-      title: 'Create a release',
-      description: 'Give every official file a traceable version before importing it.',
-      complete: releaseCount > 0,
-      icon: FilePlus2,
-    },
-    {
-      title: 'Import and reconcile',
-      description: 'Load aggregate CSV rows and deliberately resolve unmatched FNRI labels.',
-      complete: summary.consumptionStats > 0,
-      icon: FileInput,
-    },
-    {
-      title: 'Publish an active version',
-      description: 'Stage the reviewed release, then publish a traceable version.',
-      complete: summary.activeReleases > 0,
-      icon: RadioTower,
-    },
-  ];
-  const completedSteps = steps.filter((step) => step.complete).length;
-  const nextSection: AdminDataSection =
-    summary.dataSources === 0 || releaseCount === 0
-      ? 'sources'
-      : summary.activeReleases === 0
-        ? 'imports'
-        : 'catalogue';
-  const nextLabel =
-    summary.dataSources === 0
-      ? 'Register the first source'
-      : releaseCount === 0
-        ? 'Create the first release'
-        : summary.activeReleases === 0
-          ? 'Continue import and review'
-          : 'Browse the FNRI catalogue';
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <DataSummary summary={summary} />
-      <Card className="p-5">
-        <div className="flex items-center gap-2">
-          <CalendarClock className="h-5 w-5 text-brand-green" />
-          <div>
-            <h2 className="font-display text-base font-black text-brand-text">Active evidence freshness</h2>
-            <p className="text-xs text-brand-muted">
-              Operational age and the source-defined review cadence; this is not a clinical-validity claim.
-            </p>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section aria-labelledby="active-evidence-title" className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="active-evidence-title"
+              className="flex items-center gap-2 font-display text-lg font-bold text-brand-text"
+            >
+              <CalendarClock className="h-5 w-5 text-brand-green" aria-hidden="true" /> Active evidence freshness
+            </h2>
+            <Button variant="secondary" size="sm" onClick={() => onNavigate('sources')}>
+              View releases
+            </Button>
           </div>
-        </div>
-        {activeReleases.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
-            No active reference-data release is recorded in this workspace.
+          <p className="text-xs leading-relaxed text-brand-muted">
+            Operational age and the source-defined review cadence; this is not a clinical-validity claim.
           </p>
-        ) : (
-          <div className="mt-4">
-            <WorkspaceTable
-              label="Active evidence freshness"
-              rows={activeReleases}
-              rowKey={(release) => release.id}
-              columns={[
-                { key: 'domain', header: 'Domain', cell: (release) => release.source.domain },
-                {
-                  key: 'release',
-                  header: 'Release',
-                  cell: (release) => (
-                    <strong>
+          <WorkspaceTable
+            label="Active evidence freshness"
+            rows={activeReleases}
+            rowKey={(release) => release.id}
+            emptyMessage="No active reference-data release is recorded in this workspace."
+            columns={[
+              {
+                key: 'release',
+                header: 'Release',
+                cellClassName: 'min-w-[220px] max-w-sm',
+                cell: (release) => (
+                  <div className="space-y-1">
+                    <strong className="block text-sm">{release.source.name}</strong>
+                    <span className="block text-brand-muted">
+                      {domainLabels[release.source.domain] ?? release.source.domain}
+                    </span>
+                    <span className="block [overflow-wrap:anywhere]">
                       {release.source.code} · {release.versionLabel}
-                    </strong>
-                  ),
-                },
-                {
-                  key: 'age',
-                  header: 'Retrieved',
-                  cell: (release) => {
-                    const days = Math.max(
-                      0,
-                      Math.floor((Date.now() - new Date(release.retrievedAt).getTime()) / 86_400_000)
-                    );
-                    return 'Retrieved ' + days + (days === 1 ? ' day ago' : ' days ago');
-                  },
-                },
-                {
-                  key: 'cadence',
-                  header: 'Review cadence',
-                  cell: (release) => release.source.updateCadence || 'not recorded',
-                },
-              ]}
-            />
-          </div>
-        )}
-      </Card>
-      <div className="grid gap-5 xl:grid-cols-[1.4fr_0.6fr]">
-        <Card
-          header={
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-lg font-black">Four-step publishing workflow</h2>
-                <p className="text-xs text-brand-muted">Work from verified provenance to one active release.</p>
-              </div>
-              <span className="rounded-full border border-brand-green/20 bg-brand-green/10 px-3 py-1 font-mono text-[10px] font-bold text-brand-green">
-                {completedSteps}/4 complete
-              </span>
-            </div>
-          }
-        >
-          <ol className="grid gap-3 sm:grid-cols-2">
-            {steps.map(({ title, description, complete, icon: Icon }, index) => (
-              <li key={title} className="rounded-2xl border border-brand-border/55 bg-brand-bgAlt/40 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
-                        Step {index + 1}
-                      </span>
-                      {complete ? (
-                        <CheckCircle2 aria-label="Complete" className="h-4 w-4 text-brand-green" />
-                      ) : (
-                        <CircleDashed aria-label="Not complete" className="h-4 w-4 text-brand-muted" />
-                      )}
-                    </div>
-                    <p className="mt-1 text-sm font-black text-brand-text">{title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-brand-muted">{description}</p>
+                    </span>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <Button className="mt-5 w-full sm:w-auto" onClick={() => onNavigate(nextSection)}>
-            {nextLabel}
-          </Button>
-        </Card>
-
-        <Card className="border-amber-500/20 bg-amber-500/10 p-5">
-          <p className="font-display text-sm font-black text-amber-900 dark:text-amber-100">Who controls what?</p>
-          <p className="mt-3 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
-            Admins govern sources, aggregate survey releases, and FNRI aliases. RNDs remain the only role that can
-            clinically approve meals.
-          </p>
-          <p className="mt-3 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                ),
+              },
+              {
+                key: 'age',
+                header: 'Retrieved',
+                cellClassName: 'min-w-[100px]',
+                cell: (release) => retrievedLabel(release.retrievedAt),
+              },
+              {
+                key: 'cadence',
+                header: 'Review cadence',
+                cellClassName: 'min-w-[150px]',
+                cell: (release) => release.source.updateCadence || 'Not recorded',
+              },
+            ]}
+          />
+        </section>
+        <PublishingChecklist
+          summary={summary}
+          releaseCount={releaseCount}
+          releases={releases}
+          onNavigate={onNavigate}
+        />
+      </div>
+      <div className="border-t border-brand-border pt-4">
+        <p className="flex items-start gap-2 text-xs leading-relaxed text-brand-muted">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" aria-hidden="true" />
+          Admins govern sources, aggregate survey releases, and FNRI aliases. RNDs remain the only role that can
+          clinically approve meals.
+        </p>
+        <details className="group mt-2">
+          <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg text-xs font-semibold text-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green">
+            Who controls what? <ChevronDown className="h-4 w-4 group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <p className="mt-2 max-w-prose text-xs leading-relaxed text-brand-muted">
             Food composition corrections require a source and reason and retain a revision history. Publishing a
             reference release retains its audit history; meal approval remains a separate RND decision.
           </p>
-        </Card>
+        </details>
       </div>
     </div>
   );

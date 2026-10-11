@@ -8,32 +8,34 @@ Follow imports from the Next.js route and layout entry points before removing a 
 
 The October 10 cleanup removed the superseded dashboard summary/schedule, grocery cards, recipe catalog presentation, location fields and unused downloaded widgets. Current member surfaces use `DashboardWorkspace` / `CockpitDashboard`, `GroceryWorkspace` and `MealLibraryPanel`. Case decisions use `CaseDecisionSection` and the shared decision/swap dialogs. `useNutritionistReviews` retains claims, context checks, approval, rejection and notes; ingredient editing and the old generate-and-approve client flow have been removed. Data imports, operational scripts, migrations and historical illustrations are independent of UI reachability and require their own checks.
 
-| Presentation | Component | Existing examples |
-| --- | --- | --- |
-| Default surface | `ui/Card` | Membership statistics/calendar, progress, settings |
-| Curved stripes and logo | `ui/CardDecoration` or Card decoration props | Membership, dashboard, reports, grocery |
-| Expandable staff audit | `shared/AuditHistoryList` | Admin and nutritionist Audit |
-| Grocery-style record table | `shared/WorkspaceTable` | Grocery, audit, meal logs/popularity, analytics, accounts, reference data, RND governance/coverage, subscription and progress history |
-| Document surface | `shared/RecordPaper` | Immutable recipe review history and admin case records |
-| Paper document reader | `shared/DocumentViewer` | Nutrition guidance through `features/reports/NutritionPdfViewer` |
-| Desktop review canvas | `features/nutritionist-reviews/ReviewCanvas` | Member case approval, base-meal verification and Profile queue through `RndQueueDocument` |
-| Queue/history with detail pane | `shared/SplitWorkspace`, `WorkspaceListPane` | Nutritionist cases and admin case details |
-| Controlled dropdown | `ui/Select`, `ui/Dropdown` | Progress period, meal/report/review filters |
-| Required or uncontrolled form select | `ui/NativeSelect` | Admin authoring and reference-data forms |
-| Plan/library meal tile | `user/PlanMealCardSurface`, `user/MealMacros` | MealCard, PendingMealPreviewCard, RecipeLibraryCard |
-| Compact meal presentation | `user/DashboardMealCardSurface`, `DashboardMealPlate`, `MealMacros` | Dashboard rows, food history, swap comparison |
-| Meal library grid | `shared/MealLibraryLayout` | Member, nutritionist and admin libraries |
-| Tabs or section links | `ui/WorkspaceTabs` | Meals, progress, reviews, settings, admin audit |
-| Password field | `ui/PasswordInput` | Authentication and profile security |
-| Profile clarification form | `features/clinical-clarification/ClarificationFormCard` | RND claimed profile work and member Health Details; callers own mutations and claim gates |
-| Boolean setting | `ui/Switch` | Meal reminders; controlled state, switch semantics and a 44px touch target |
-| Meal times and device alerts | `features/meal-reminders/MealTimesFields`, `MealReminderSettingsPanel`, `DeviceNotificationsPanel` | Onboarding preferences, Food & planning and notification-bell settings |
-| Food log and plan/grocery actions | `user/MemberMealActions` | Dashboard and Meals headers; callers retain report eligibility and logging handlers |
-| Authentication split layout | `ui/sign-in` through `auth/AuthShell` | Login, registration, recovery, verification and invitation activation |
-| Pagination | `ui/Pagination` | All three role libraries |
-| Hover, focus or tap explanation | `ui/InfoHint` | Lifestyle and Health planning benefits |
+| Presentation                         | Component                                                                                          | Existing examples                                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Default surface                      | `ui/Card`                                                                                          | Membership statistics/calendar, progress, settings                                                                                    |
+| Curved stripes and logo              | `ui/CardDecoration` or Card decoration props                                                       | Membership, dashboard, reports, grocery                                                                                               |
+| Expandable staff audit               | `shared/AuditHistoryList`                                                                          | Admin and nutritionist Audit                                                                                                          |
+| Grocery-style record table           | `shared/WorkspaceTable`                                                                            | Grocery, audit, meal logs/popularity, analytics, accounts, reference data, RND governance/coverage, subscription and progress history |
+| Document surface                     | `shared/RecordPaper`                                                                               | Immutable recipe review history and admin case records                                                                                |
+| Paper document reader                | `shared/DocumentViewer`                                                                            | Nutrition guidance through `features/reports/NutritionPdfViewer`                                                                      |
+| Desktop review canvas                | `features/nutritionist-reviews/ReviewCanvas`                                                       | Member case approval, base-meal verification and Profile queue through `RndQueueDocument`                                             |
+| Queue/history with detail pane       | `shared/SplitWorkspace`, `WorkspaceListPane`                                                       | Nutritionist cases and admin case details                                                                                             |
+| Controlled dropdown                  | `ui/Select`, `ui/Dropdown`                                                                         | Progress period, meal/report/review filters                                                                                           |
+| Required or uncontrolled form select | `ui/NativeSelect`                                                                                  | Admin authoring and reference-data forms                                                                                              |
+| Plan/library meal tile               | `user/PlanMealCardSurface`, `user/MealMacros`                                                      | MealCard, PendingMealPreviewCard, RecipeLibraryCard                                                                                   |
+| Compact meal presentation            | `user/DashboardMealCardSurface`, `DashboardMealPlate`, `MealMacros`                                | Dashboard rows, food history, swap comparison                                                                                         |
+| Meal library grid                    | `shared/MealLibraryLayout`                                                                         | Member, nutritionist and admin libraries                                                                                              |
+| Tabs or section links                | `ui/WorkspaceTabs`                                                                                 | Meals, progress, reviews, settings, admin audit                                                                                       |
+| Password field                       | `ui/PasswordInput`                                                                                 | Authentication and profile security                                                                                                   |
+| Profile clarification form           | `features/clinical-clarification/ClarificationFormCard`                                            | RND claimed profile work and member Health Details; callers own mutations and claim gates                                             |
+| Boolean setting                      | `ui/Switch`                                                                                        | Meal reminders; controlled state, switch semantics and a 44px touch target                                                            |
+| Meal times and device alerts         | `features/meal-reminders/MealTimesFields`, `MealReminderSettingsPanel`, `DeviceNotificationsPanel` | Onboarding preferences, Food & planning and notification-bell settings                                                                |
+| Food log and plan/grocery actions    | `user/MemberMealActions`                                                                           | Dashboard and Meals headers; callers retain report eligibility and logging handlers                                                   |
+| Authentication split layout          | `ui/sign-in` through `auth/AuthShell`                                                              | Login, registration, recovery, verification and invitation activation                                                                 |
+| Pagination                           | `ui/Pagination`                                                                                    | All three role libraries                                                                                                              |
+| Hover, focus or tap explanation      | `ui/InfoHint`                                                                                      | Lifestyle and Health planning benefits                                                                                                |
 
 ## Record lists
+
+`shared/WorkspaceMetricStrip` consolidates comparable secondary totals into one themed Card with a definition list. It uses two columns on narrow screens and four/five on wide screens; an odd final metric spans the narrow row. Supply explicit labels, units, descriptions and optional destinations. Nutrition data and Admin Overview reuse it; primary operational signals may retain their separate metric cards. Counts and their meanings remain owned by the caller.
 
 `shared/WorkspaceTable` owns the grocery-style rounded surface, column dividers, alternating rows, themed header, bounded keyboard-accessible scrolling, empty state, optional footer and expanded detail row. Supply a unique accessible `label`, stable `rowKey`, columns and cell renderers; the optional `cells` callback computes an existing row once. Keep requests, sorting, pagination, selection, filters and guarded actions in the caller. Expanded content stays within the visible table width when a narrow screen scrolls horizontally to its action column.
 
@@ -130,7 +132,6 @@ LandingMealGallery pairs the hero heading with five tilted, alternating vertical
 ## Profile clarification forms
 
 `ClarificationFormCard` renders the same published questions for member submission and read-only RND inspection. Questions use stable IDs and text or single-choice input. It preserves prior submitted response versions, requires resolution notes and disables mutations for superseded/resolved forms or absent claims. `RndClarifications` owns publication and resolution API calls; `MemberClarifications` owns member submissions. Retry keys stay stable for the same payload after uncertain failures. Updating clarification responses must not reset unrelated health-detail drafts. ProfileWorkCanvas renders published forms on separate movable sheets and owns composer/proposal draft state outside the fullscreen portal. ProfileProposalCard shares recorded before/after values, RND rationale and member response across both roles. RndProfileProposals and MemberProfileProposals retain their role endpoints; acceptance is separate from clinical certification. Both additive migrations must be applied before enabling the common clarification flag. Live meal-case withdrawal remains a later batch.
-
 
 Meal case context updates: `useNutritionistReviews` owns the expected review context and session-only unfinished notes. `CaseReviewWorkspace` displays invalidation notices and the saved-notes modal outside the fullscreen canvas. Reuse the shared canvas/decision and swap components; do not reload the browser or replace live case evidence when its context changes.
 

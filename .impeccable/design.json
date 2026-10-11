@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T01:10:42.307Z",
+  "title": "Design System: KAINARA",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 2px rgba(5, 18, 14, 0.05), 0 12px 32px rgba(5, 18, 14, 0.07)",
+        "purpose": "Existing default Card elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control",
+        "value": "200ms",
+        "purpose": "Existing Button hover/focus feedback; honor reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Existing orange action style.",
+      "html": "<button class=\"ds-primary\">Save changes</button>",
+      "css": ".ds-primary{min-height:44px;padding:10px 20px;border:1px solid #d95d2c;border-radius:20px;color:white;background:linear-gradient(to right,#eb6a38,#ed7847,#f09e6c);font-family:Outfit,sans-serif;font-weight:800;transition:filter .2s,transform .2s}.ds-primary:hover{filter:brightness(1.05)}.ds-primary:active{transform:scale(.98)}.ds-primary:focus-visible{outline:2px solid var(--brand-accent,#eb6a38);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "description": "Existing supporting action.",
+      "html": "<button class=\"ds-secondary\">View records</button>",
+      "css": ".ds-secondary{min-height:44px;padding:10px 20px;border:1px solid var(--brand-border,#dce4e0);border-radius:20px;background:var(--brand-surface,#fff);color:var(--brand-text,#0d2820);font-family:Outfit,sans-serif;font-weight:800}.ds-secondary:hover{border-color:var(--brand-accent-soft,#f09e6c)}.ds-secondary:focus-visible{outline:2px solid var(--brand-accent,#eb6a38);outline-offset:2px}"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "description": "Existing rounded field.",
+      "html": "<label class=\"ds-field\">Source name<input placeholder=\"Name\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:var(--brand-text,#0d2820);font-family:\"DM Sans\",sans-serif;font-size:12px;font-weight:700}.ds-field input{padding:12px 16px;border:1px solid var(--brand-border,#dce4e0);border-radius:20px;background:var(--brand-surface,#fff);color:var(--brand-text,#0d2820)}.ds-field input:hover{border-color:var(--brand-green,#08705b)}.ds-field input:focus-visible{outline:2px solid var(--brand-green,#08705b);outline-offset:2px}"
+    },
+    {
+      "name": "Section navigation",
+      "kind": "nav",
+      "description": "Existing orange selected section on the shared rail.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Sections\"><button aria-pressed=\"true\">Overview</button><button>Sources</button></nav>",
+      "css": ".ds-nav{display:flex;gap:4px;padding:6px;border:1px solid var(--brand-border,#dce4e0);border-radius:24px;background:var(--brand-surface,#fff)}.ds-nav button{min-height:44px;padding:10px 20px;border:0;border-radius:20px;background:transparent;color:var(--brand-muted,#5a746a);font-family:Outfit,sans-serif;font-weight:700}.ds-nav button[aria-pressed=true]{background:var(--brand-accent,#eb6a38);color:#07100d}.ds-nav button:hover{color:var(--brand-text,#0d2820)}.ds-nav button:focus-visible{outline:2px solid var(--brand-green,#08705b);outline-offset:2px}"
+    },
+    {
+      "name": "Status chip",
+      "kind": "chip",
+      "description": "Existing green completed-state label; its text supplies meaning.",
+      "html": "<span class=\"ds-chip\">Active</span>",
+      "css": ".ds-chip{display:inline-flex;padding:4px 12px;border:1px solid var(--brand-green,#08705b);border-radius:999px;background:var(--brand-green-light,#dff6ed);color:var(--brand-green,#08705b);font-family:\"DM Sans\",sans-serif;font-size:12px;font-weight:600}"
+    },
+    {
+      "name": "Default Card",
+      "kind": "card",
+      "description": "Existing rounded surface; shared metrics use one instead of repeated nested cards.",
+      "html": "<section class=\"ds-card\"><h2>Publishing workspace</h2><p>Work from verified provenance to one active release.</p></section>",
+      "css": ".ds-card{padding:24px;border:1px solid var(--brand-border,#dce4e0);border-radius:36px;background:var(--brand-surface,#fff);color:var(--brand-text,#0d2820);box-shadow:0 1px 2px rgba(5,18,14,.05),0 12px 32px rgba(5,18,14,.07);font-family:\"DM Sans\",sans-serif}.ds-card h2{font-family:Outfit,sans-serif;font-size:18px;font-weight:700;margin:0}.ds-card p{font-size:12px;line-height:1.6;color:var(--brand-muted,#5a746a)}"
+    }
+  ]
+}
