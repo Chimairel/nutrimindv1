@@ -94,6 +94,7 @@ export interface MealHistoryLog {
       id: string;
       status: string;
       queueReason?: string | null;
+      requestedByUserAt?: string | null;
       reviewedRevision?: number | null;
       reviewedAt?: string | null;
       messages: Array<{

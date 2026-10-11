@@ -14,7 +14,7 @@ import { AppError } from '@/errors/AppError';
 import { summarizeOutsideMealNutrition } from '@/domain/outside-meal.policy';
 import { MealSwapService } from './meal-swap.service';
 import { ObservedMealService } from './observed-meal.service';
-import { MembershipService } from './membership.service';
+import { requestOutsideMealReview } from './outside-meal-review-admission.service';
 
 const CLAIM_MINUTES = 30;
 
@@ -45,6 +45,7 @@ export class OutsideMealReviewService {
     const cutoff = new Date(Date.now() - CLAIM_MINUTES * 60 * 1000);
     const rows = await prisma.outsideMealReview.findMany({
       where: {
+        requestedByUserAt: { not: null },
         status: { in: [OutsideMealReviewStatus.PENDING, OutsideMealReviewStatus.CLAIMED] },
         outsideMealLogItem: { mealLog: { status: 'DONE' } },
       },
@@ -94,6 +95,7 @@ export class OutsideMealReviewService {
         const review = await tx.outsideMealReview.findFirst({
           where: {
             id: reviewId,
+            requestedByUserAt: { not: null },
             status: { in: [OutsideMealReviewStatus.PENDING, OutsideMealReviewStatus.CLAIMED] },
             outsideMealLogItem: { mealLog: { status: 'DONE' } },
           },
@@ -103,6 +105,7 @@ export class OutsideMealReviewService {
         const claimed = await tx.outsideMealReview.updateMany({
           where: {
             id: reviewId,
+            requestedByUserAt: { not: null },
             status: { in: [OutsideMealReviewStatus.PENDING, OutsideMealReviewStatus.CLAIMED] },
             OR: [
               { claimedByNutritionistId: null },
@@ -147,100 +150,7 @@ export class OutsideMealReviewService {
   }
 
   static async requestByUser(userId: string, logId: string, itemId: string) {
-    return prisma.$transaction(
-      async (tx) => {
-        const item = await tx.outsideMealLogItem.findFirst({
-          where: { id: itemId, mealLogId: logId, mealLog: { userId, source: 'USER_LOGGED', status: 'DONE' } },
-          include: { review: true },
-        });
-        if (!item) throw new AppError('Outside-meal item not found.', 404, 'OUTSIDE_ITEM_NOT_FOUND');
-        if (item.review?.status === OutsideMealReviewStatus.NEEDS_MORE_INFO)
-          throw new AppError(
-            'Reply to the nutritionist question to resume review.',
-            409,
-            'CLARIFICATION_REPLY_REQUIRED'
-          );
-        const now = new Date();
-        if (
-          item.review &&
-          (item.review.status === OutsideMealReviewStatus.PENDING ||
-            item.review.status === OutsideMealReviewStatus.CLAIMED)
-        ) {
-          const review = await tx.outsideMealReview.update({
-            where: { id: item.review.id },
-            data: {
-              requestedByUserAt: item.review.requestedByUserAt ?? now,
-              queueReason: 'USER_REQUEST',
-              priority: Math.max(item.review.priority, 60),
-            },
-          });
-          if (!item.review.requestedByUserAt)
-            await NotificationService.notifyReviewers(
-              'Outside-meal review requested',
-              'An outside-meal item has been requested for review.',
-              tx
-            );
-          await tx.auditEvent.create({
-            data: {
-              actorUserId: userId,
-              action: 'OUTSIDE_MEAL_REVIEW_REQUESTED',
-              entityType: 'OutsideMealLogItem',
-              entityId: item.id,
-              metadata: { reviewId: review.id, revision: item.currentRevision },
-            },
-          });
-          return review;
-        }
-        if (item.review) await ObservedMealService.invalidateSource(tx, item.id);
-        // Items in the first meal submission share an episode. A new review after a final
-        // decision is another episode; clarification of a still-open review uses the path above.
-        const episodeKey = item.review
-          ? `outside-log:${logId}:reopen:${item.review.id}:${item.currentRevision}`
-          : `outside-log:${logId}`;
-        const allowance = await MembershipService.reserve(userId, 'OUTSIDE_REVIEW', episodeKey, episodeKey, tx);
-        const review = item.review
-          ? await tx.outsideMealReview.update({
-              where: { id: item.review.id },
-              data: {
-                status: OutsideMealReviewStatus.PENDING,
-                requestedByUserAt: now,
-                queueReason: 'USER_REQUEST',
-                priority: 60,
-                claimedByNutritionistId: null,
-                claimedAt: null,
-                claimedRevision: null,
-                reviewedAt: null,
-                reviewedRevision: null,
-              },
-            })
-          : await tx.outsideMealReview.create({
-              data: {
-                outsideMealLogItemId: item.id,
-                status: OutsideMealReviewStatus.PENDING,
-                requestedByUserAt: now,
-                queueReason: 'USER_REQUEST',
-                priority: 60,
-              },
-            });
-        if (allowance && !allowance.replayed) await MembershipService.complete(allowance.id, tx);
-        await NotificationService.notifyReviewers(
-          'Outside-meal review requested',
-          'A new or reopened outside-meal review is ready in the review queue.',
-          tx
-        );
-        await tx.auditEvent.create({
-          data: {
-            actorUserId: userId,
-            action: 'OUTSIDE_MEAL_REVIEW_REQUESTED',
-            entityType: 'OutsideMealLogItem',
-            entityId: item.id,
-            metadata: { reviewId: review.id, revision: item.currentRevision },
-          },
-        });
-        return review;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 60_000, maxWait: 15_000 }
-    );
+    return requestOutsideMealReview(userId, logId, itemId);
   }
 
   static async replyByUser(userId: string, logId: string, itemId: string, content: string) {
@@ -249,6 +159,7 @@ export class OutsideMealReviewService {
         const review = await tx.outsideMealReview.findFirst({
           where: {
             outsideMealLogItemId: itemId,
+            requestedByUserAt: { not: null },
             status: OutsideMealReviewStatus.NEEDS_MORE_INFO,
             outsideMealLogItem: { mealLogId: logId, mealLog: { userId, status: 'DONE' } },
           },
@@ -342,6 +253,7 @@ export class OutsideMealReviewService {
     const review = await prisma.outsideMealReview.findFirst({
       where: {
         id: reviewId,
+        requestedByUserAt: { not: null },
         status: OutsideMealReviewStatus.CLAIMED,
         claimedByNutritionistId: nutritionistProfileId,
         claimedAt: { gte: cutoff },
@@ -365,6 +277,7 @@ export class OutsideMealReviewService {
         const review = await tx.outsideMealReview.findFirst({
           where: {
             id: reviewId,
+            requestedByUserAt: { not: null },
             status: OutsideMealReviewStatus.CLAIMED,
             claimedByNutritionistId: nutritionistProfileId,
             claimedAt: { gte: cutoff },
@@ -422,8 +335,9 @@ export class OutsideMealReviewService {
             source: needsInfo || unverifiable ? item.source : OutsideMealItemSource.NUTRITIONIST_REVIEWED,
             nutritionStatus,
             ...values,
-            calorieLow: needsInfo || unverifiable ? item.calorieLow : values.calories,
-            calorieHigh: needsInfo || unverifiable ? item.calorieHigh : values.calories,
+            // A clinician's point estimate is not a measured exact range.
+            calorieLow: correction ? null : item.calorieLow,
+            calorieHigh: correction ? null : item.calorieHigh,
             reason: action.reason,
             reviewedByNutritionistId: nutritionistProfileId,
             snapshot: {
@@ -445,8 +359,9 @@ export class OutsideMealReviewService {
             nutritionStatus,
             includedInTotals: needsInfo || unverifiable ? item.includedInTotals : true,
             ...values,
-            calorieLow: needsInfo || unverifiable ? item.calorieLow : values.calories,
-            calorieHigh: needsInfo || unverifiable ? item.calorieHigh : values.calories,
+            // A clinician's point estimate is not a measured exact range.
+            calorieLow: correction ? null : item.calorieLow,
+            calorieHigh: correction ? null : item.calorieHigh,
           },
         });
         if (itemChange.count !== 1) throw new AppError('The claimed revision changed.', 409, 'STALE_REVIEW_REVISION');
@@ -514,7 +429,7 @@ export class OutsideMealReviewService {
               ? `A nutritionist needs more information about “${item.name}”. ${action.reason}`
               : unverifiable
                 ? `The estimate for “${item.name}” could not be confirmed. It remains marked as estimated in your tracker. ${action.reason}`
-                : `A nutritionist ${correction ? 'corrected and confirmed' : 'confirmed'} the nutrition estimate for “${item.name}”. Your daily totals were updated automatically.`,
+                : `A nutritionist ${correction ? 'adjusted' : 'reviewed'} the nutrition estimate for “${item.name}”. Your daily totals were updated automatically. These values remain estimates.`,
             type: needsInfo ? NotificationType.OUTSIDE_MEAL_MORE_INFO : NotificationType.OUTSIDE_MEAL_REVIEWED,
           },
         });

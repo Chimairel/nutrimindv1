@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import { Search, Tags } from 'lucide-react';
@@ -15,11 +15,12 @@ import { getApiError } from './types';
 
 interface FoodCatalogueProps {
   source: FoodSource;
-  onChanged: (message: string) => Promise<void>;
-  onError: (message: string) => void;
+  readOnly?: boolean;
+  onChanged?: (message: string) => Promise<void>;
+  onError?: (message: string) => void;
 }
 
-export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalogueProps) {
+export default function FoodCatalogue({ source, readOnly = false, onChanged, onError }: FoodCatalogueProps) {
   const ownerId = useAuth().user?.userId;
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState({ search: '', page: 1 });
@@ -28,11 +29,14 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
   const label = source === 'FNRI' ? 'FNRI' : 'USDA';
   const query = useSessionQuery<FoodPage>({
     ownerId,
-    resource: JSON.stringify(['admin-food-catalogue', source, filter]),
+    resource: JSON.stringify([readOnly ? 'rnd-food-catalogue' : 'admin-food-catalogue', source, filter]),
     fetcher: async () => {
-      const response = await api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', {
-        params: { source, page: filter.page, limit: 12, search: filter.search || undefined },
-      });
+      const response = await api.get<ApiEnvelope<FoodPage>>(
+        readOnly ? '/nutritionist/food-catalogue' : '/admin/data/foods',
+        {
+          params: { source, page: filter.page, limit: 12, search: filter.search || undefined },
+        }
+      );
       return response.data.data;
     },
     errorMessage: `Could not load the ${label} catalogue.`,
@@ -49,7 +53,7 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
 
   async function addAlias(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selected) return;
+    if (readOnly || !selected) return;
     const form = new FormData(event.currentTarget);
     const formElement = event.currentTarget;
     try {
@@ -57,35 +61,40 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
       formElement.reset();
       setSelected(null);
       await query.refetch();
-      await onChanged('Verified alias saved. New imports and food lookup can use it.');
+      await onChanged?.('Verified alias saved. New imports and food lookup can use it.');
     } catch (error) {
-      onError(getApiError(error, 'Could not save the alias.'));
+      onError?.(getApiError(error, 'Could not save the alias.'));
     }
   }
 
   return (
     <section>
-      {compositionFood && (
+      {!readOnly && compositionFood && (
         <CompositionEditor
           key={compositionFood}
           foodId={compositionFood}
           onClose={() => setCompositionFood(null)}
           onChanged={async () => {
             await query.refetch();
-            await onChanged('Composition correction published; affected meals require review.');
+            await onChanged?.('Composition correction published; affected meals require review.');
           }}
         />
       )}
-      <Card
+      <CatalogueFrame
+        readOnly={readOnly}
         header={
           <div className="flex items-center gap-3">
             <Tags className="h-5 w-5 text-brand-green" />
             <div>
-              <h2 className="font-display text-lg font-black">{label} catalogue and aliases</h2>
+              <h2 className="font-display text-lg font-black">
+                {label} {readOnly ? 'food references' : 'catalogue and aliases'}
+              </h2>
               <p className="text-xs text-brand-muted">
-                {source === 'USDA_FDC'
-                  ? 'Imported FoodData Central snapshot. Nutrient values are read-only; admins may add audited aliases.'
-                  : 'Philippine food-composition records. Admins may review composition and add audited aliases.'}
+                {readOnly
+                  ? 'Values per 100 g. Match the cooked or raw food and its portion; unrecorded values remain unknown.'
+                  : source === 'USDA_FDC'
+                    ? 'Imported FoodData Central snapshot. Nutrient values are read-only; admins may add audited aliases.'
+                    : 'Philippine food-composition records. Admins may review composition and add audited aliases.'}
               </p>
             </div>
           </div>
@@ -122,13 +131,13 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
                   key: 'food',
                   header: 'Food',
                   headerClassName: 'min-w-[180px]',
-                  cell: (food) => <p className="font-bold">{food.name}</p>,
+                  cell: (food: FoodItem) => <p className="font-bold">{food.name}</p>,
                 },
                 {
                   key: 'source',
                   header: 'Source',
                   headerClassName: 'min-w-[160px]',
-                  cell: (food) => (
+                  cell: (food: FoodItem) => (
                     <>
                       <p>
                         {food.source === 'USDA_FDC' ? 'USDA FoodData Central' : food.source}
@@ -152,7 +161,7 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
                   key: 'nutrition',
                   header: 'Nutrition / 100 g',
                   headerClassName: 'min-w-[170px]',
-                  cell: (food) => (
+                  cell: (food: FoodItem) => (
                     <span className="text-brand-muted">
                       {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g
                     </span>
@@ -162,7 +171,7 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
                   key: 'aliases',
                   header: 'Aliases',
                   headerClassName: 'min-w-[160px]',
-                  cell: (food) => (
+                  cell: (food: FoodItem) => (
                     <div className="flex flex-wrap gap-1.5">
                       {food.aliases.map((alias) => (
                         <span
@@ -190,10 +199,36 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
                   ),
                 },
                 {
+                  key: 'nutrients',
+                  header: 'Additional nutrients / 100 g',
+                  headerClassName: 'min-w-[190px]',
+                  cell: (food: FoodItem) => (
+                    <dl className="space-y-1 text-xs text-brand-muted">
+                      {(
+                        [
+                          ['Sodium', food.sodium, 'mg'],
+                          ['Sugar', food.sugar, 'g'],
+                          ['Fiber', food.fiber, 'g'],
+                          ['Potassium', food.potassium, 'mg'],
+                          ['Phosphorus', food.phosphorus, 'mg'],
+                          ['Saturated fat', food.saturatedFat, 'g'],
+                        ] as const
+                      ).map(([label, value, unit]) => (
+                        <div key={label} className="flex justify-between gap-3">
+                          <dt>{label}</dt>
+                          <dd className="tabular-nums text-brand-text">
+                            {value == null ? 'Not recorded' : `${value} ${unit}`}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ),
+                },
+                {
                   key: 'actions',
                   header: 'Actions',
                   headerClassName: 'min-w-[150px]',
-                  cell: (food) => (
+                  cell: (food: FoodItem) => (
                     <div className="flex flex-wrap gap-2">
                       {food.source !== 'USDA_FDC' && (
                         <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
@@ -206,7 +241,7 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
                     </div>
                   ),
                 },
-              ]}
+              ].filter((column) => (readOnly ? column.key !== 'actions' : column.key !== 'nutrients'))}
             />
           </div>
         )}
@@ -235,7 +270,7 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
             </Button>
           </nav>
         )}
-        {selected && (
+        {!readOnly && selected && (
           <form
             role="region"
             aria-labelledby="verified-alias-heading"
@@ -265,7 +300,18 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
             </div>
           </form>
         )}
-      </Card>
+      </CatalogueFrame>
     </section>
+  );
+}
+
+function CatalogueFrame({ readOnly, header, children }: { readOnly: boolean; header: ReactNode; children: ReactNode }) {
+  return readOnly ? (
+    <div className="space-y-4">
+      {header}
+      {children}
+    </div>
+  ) : (
+    <Card header={header}>{children}</Card>
   );
 }

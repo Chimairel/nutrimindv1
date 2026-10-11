@@ -244,7 +244,7 @@ const routes: RouteDocumentation[] = [
     method: 'get',
     path: '/api/nutritionist/outside-meal-reviews',
     tag: 'Nutritionist',
-    summary: 'List provisional outside-meal estimates',
+    summary: 'List member-requested outside-meal estimate reviews',
   },
   {
     method: 'post',
@@ -257,6 +257,12 @@ const routes: RouteDocumentation[] = [
     path: '/api/nutritionist/outside-meal-reviews/{id}',
     tag: 'Nutritionist',
     summary: 'Review or correct an outside-meal estimate',
+  },
+  {
+    method: 'get',
+    path: '/api/nutritionist/food-catalogue',
+    tag: 'Nutritionist',
+    summary: 'Read bounded FNRI/USDA food references; no catalogue mutations',
   },
   { method: 'get', path: '/api/nutritionist/library', tag: 'Nutritionist', summary: 'List verified meal library' },
   { method: 'get', path: '/api/nutritionist/library-coverage', tag: 'Nutritionist', summary: 'Read library coverage' },

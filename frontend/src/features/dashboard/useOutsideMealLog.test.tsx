@@ -241,3 +241,33 @@ describe('outside food submission', () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 });
+
+it('keeps the preview after a rejected RND admission, then saves without requesting review', async () => {
+  vi.mocked(api.post).mockResolvedValueOnce(response(preview));
+  const onSaved = vi.fn();
+  const { result } = renderHook(() => useOutsideMealLog(onSaved));
+  await act(async () => {
+    await result.current.onSubmit(false, options);
+  });
+  vi.mocked(api.post).mockRejectedValueOnce({
+    response: { status: 429, data: { code: 'MEMBERSHIP_USAGE_LIMIT', error: 'Review allowance used' } },
+  });
+  await act(async () => {
+    await result.current.onSubmit(true, undefined, true);
+  });
+  expect(api.post).toHaveBeenLastCalledWith(
+    '/user/meals/log-outside',
+    expect.objectContaining({ requestRndReview: true })
+  );
+  expect(onSaved).not.toHaveBeenCalled();
+  expect(result.current.warning?.confirmationId).toBe('preview');
+  vi.mocked(api.post).mockResolvedValueOnce(response(saved));
+  await act(async () => {
+    await result.current.onSubmit(true);
+  });
+  expect(api.post).toHaveBeenLastCalledWith(
+    '/user/meals/log-outside',
+    expect.not.objectContaining({ requestRndReview: true })
+  );
+  expect(onSaved).toHaveBeenCalledOnce();
+});

@@ -47,6 +47,8 @@ test('recovery queues completed partial jobs once and leaves blocked or complete
   ];
   const queued: string[] = [];
   shared.prisma = {
+    // Recovery now checks retained meal history before queuing a missing slot.
+    mealPlan: { findMany: async () => [] },
     mealPlanCycle: { findMany: async () => rows.filter((row) => !queued.includes(row.generationJob.id)) },
     user: {
       findUnique: async () => ({ userProfile: profile, healthConditions: [], allergies: [], safetyProfileEntries: [] }),

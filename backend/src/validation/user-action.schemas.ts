@@ -55,6 +55,7 @@ export const outsideMealBodySchema = z
     useAiEstimate: z.boolean().optional(),
     requestKey: z.string().trim().min(8).max(128).optional(),
     warningAcknowledged: z.boolean().optional(),
+    requestRndReview: z.boolean().optional(),
     confirmationId: z.string().trim().min(1).max(128).optional(),
     notes: z.string().trim().max(1_000).optional(),
     estimationContext: z.string().trim().max(1_000).optional(),
@@ -62,6 +63,13 @@ export const outsideMealBodySchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.requestRndReview && !value.warningAcknowledged) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Confirm an estimate before requesting RND review.',
+        path: ['requestRndReview'],
+      });
+    }
     if (!value.warningAcknowledged && !value.mealName && !value.items) {
       ctx.addIssue({ code: 'custom', message: 'Provide mealName or items.', path: ['mealName'] });
     }
@@ -156,6 +164,7 @@ export const swapMealBodySchema = z
     requestKey: z.string().uuid(),
     warningShown: z.boolean().optional(),
     warningAcknowledged: z.boolean().optional(),
+    requestRndReview: z.boolean().optional(),
     groceryDeltaAcknowledged: z.boolean().optional(),
   })
   .strict();

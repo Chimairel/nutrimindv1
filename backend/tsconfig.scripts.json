@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/outside-review-quota-local-acceptance.ts",
     "scripts/capstone-evaluation.ts",
     "scripts/capstone-restored-api-smoke.ts",
     "scripts/capstone-read-benchmark.ts",

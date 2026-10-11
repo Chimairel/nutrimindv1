@@ -1,5 +1,6 @@
 'use client';
 
+import ReadOnlyFoodReferences from './ReadOnlyFoodReferences';
 import { CheckCircle2, ClipboardCheck, Eye } from 'lucide-react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -45,7 +46,7 @@ export default function OutsideMealReviewDetail({ model }: SectionProps) {
                 {
                   step: '03',
                   title: 'Calibrate or clarify',
-                  desc: 'Confirm accurate values, save calibrated macro corrections, or request more information.',
+                  desc: 'Assess the estimate, adjust it against food references, or ask for more detail.',
                 },
               ].map((item) => (
                 <div
@@ -87,6 +88,14 @@ export default function OutsideMealReviewDetail({ model }: SectionProps) {
                   {new Date(selected.outsideMealLogItem.mealLog.loggedAt).toLocaleString()}
                 </p>
               </div>
+              <p className="text-xs leading-relaxed text-brand-muted">
+                Portion:{' '}
+                {selected.outsideMealLogItem.portionGrams != null
+                  ? `${selected.outsideMealLogItem.portionGrams} g`
+                  : 'Not recorded'}
+                . Source: {selected.outsideMealLogItem.source?.replaceAll('_', ' ').toLowerCase() ?? 'Not recorded'}.{' '}
+                This review assesses an estimate and does not approve a recipe.
+              </p>
               {(selected.outsideMealLogItem.calorieLow !== null ||
                 selected.outsideMealLogItem.calorieHigh !== null) && (
                 <div className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 px-3 py-1.5 text-xs text-brand-muted">
@@ -212,14 +221,16 @@ export default function OutsideMealReviewDetail({ model }: SectionProps) {
               </div>
             </div>
 
+            <ReadOnlyFoodReferences />
+
             {/* Review Reason */}
             <label className="block text-xs font-bold text-brand-text">
-              <span className="block mb-1">Review reason & clinical rationale (required)</span>
+              <span className="block mb-1">Reference and review notes (required)</span>
               <textarea
                 value={correction.reason}
                 onChange={(e) => setCorrection((v) => ({ ...v, reason: e.target.value }))}
                 className="w-full rounded-xl border border-brand-border bg-brand-surface p-3 text-xs leading-relaxed text-brand-text placeholder:text-brand-muted focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green min-h-24"
-                placeholder="e.g. Verified with standard food composition database for 1 serving"
+                placeholder="e.g. Compared with the cooked-food reference and the reported portion"
               />
             </label>
 
@@ -233,7 +244,7 @@ export default function OutsideMealReviewDetail({ model }: SectionProps) {
                 className="flex-1 sm:flex-initial"
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                Confirm estimate
+                Keep estimate
               </Button>
               <Button
                 variant="secondary"

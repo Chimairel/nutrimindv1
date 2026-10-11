@@ -12,6 +12,7 @@ export class NutritionistWorkCountsService {
       NutritionistProfileWorkService.queue(nutritionistProfileId),
       prisma.outsideMealReview.count({
         where: {
+          requestedByUserAt: { not: null },
           status: { in: ['PENDING', 'CLAIMED'] },
           outsideMealLogItem: { mealLog: { status: 'DONE' } },
         },

@@ -1,7 +1,6 @@
 import { OutsideMealCompatibilityStatus, OutsideMealItemSource } from '@prisma/client';
 
-export type OutsideReviewQueueReason =
-  'USER_REQUEST' | 'SAFETY_CONFLICT' | 'LOW_CONFIDENCE' | 'IMPLAUSIBLE_VALUES' | 'DEMO_AI_ESTIMATE';
+export type OutsideReviewQueueReason = 'USER_REQUEST' | 'SAFETY_CONFLICT' | 'LOW_CONFIDENCE' | 'IMPLAUSIBLE_VALUES';
 
 export function outsideReviewQueueReason(
   item: {
@@ -15,7 +14,7 @@ export function outsideReviewQueueReason(
     calorieLow: number | null;
     calorieHigh: number | null;
   },
-  demoAllAi = process.env.NODE_ENV !== 'production'
+  _demoAllAi = false
 ): OutsideReviewQueueReason | null {
   if (item.compatibilityStatus === OutsideMealCompatibilityStatus.CONFLICT_DETECTED) return 'SAFETY_CONFLICT';
   if (
@@ -39,6 +38,5 @@ export function outsideReviewQueueReason(
     )
       return 'LOW_CONFIDENCE';
   }
-  if (demoAllAi && item.source === OutsideMealItemSource.GEMINI_ESTIMATED) return 'DEMO_AI_ESTIMATE';
   return null;
 }

@@ -19,7 +19,7 @@ export type OutsideMealModalProps = {
   onMealNameChange: (value: string) => void;
   onMealTypeChange: (value: MealType) => void;
   onNotesChange: (value: string) => void;
-  onSubmit: (acknowledgePreview: boolean, options?: SubmitOptions) => void;
+  onSubmit: (acknowledgePreview: boolean, options?: SubmitOptions, requestRndReview?: boolean) => void;
   onWarningCancel: () => void;
   warning: OutsideMealWarning | null;
 };

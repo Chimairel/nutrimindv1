@@ -100,3 +100,17 @@ describe('separate food catalogues', () => {
     expect(screen.queryByText(food.name)).not.toBeInTheDocument();
   });
 });
+
+it('gives RNDs a read-only catalogue, preserving zero and unknown nutrients', async () => {
+  mocks.get.mockResolvedValue(response({ ...pageData, foods: [{ ...food, sodium: 0, sugar: null }] }));
+  render(<FoodCatalogue source="FNRI" readOnly />);
+  await screen.findByText(/130 kcal/);
+  expect(mocks.get).toHaveBeenCalledWith('/nutritionist/food-catalogue', {
+    params: { source: 'FNRI', page: 1, limit: 12, search: undefined },
+  });
+  expect(screen.getByText('0 mg')).toBeInTheDocument();
+  expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
+  expect(screen.queryByRole('button', { name: 'Composition' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Add alias' })).not.toBeInTheDocument();
+  expect(mocks.post).not.toHaveBeenCalled();
+});

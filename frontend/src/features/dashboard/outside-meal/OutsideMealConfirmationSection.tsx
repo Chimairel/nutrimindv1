@@ -23,7 +23,7 @@ export default function OutsideMealConfirmationSection({ model }: SectionProps) 
               Grams and notes are optional. AI calculates provisional macros from food names.
               {estimates && (
                 <span className="ml-1 text-brand-green font-semibold">
-                  ({estimates.remaining}/{estimates.cap} left ·{' '}
+                  ({estimates.remaining}/{estimates.cap} AI estimates left ·{' '}
                   <Link href="/membership" className="underline hover:text-brand-green/80">
                     Plan
                   </Link>
@@ -40,7 +40,7 @@ export default function OutsideMealConfirmationSection({ model }: SectionProps) 
           className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 rounded-lg border border-brand-green/40 bg-brand-green/15 hover:bg-brand-green/25 px-3 py-1.5 text-xs font-bold text-brand-green transition disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          HELP ME FIND VALUES WITH AI
+          Get AI estimate
         </button>
       </div>
     </>

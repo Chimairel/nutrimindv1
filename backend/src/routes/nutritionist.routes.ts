@@ -1,3 +1,5 @@
+import { AdminDataService } from '@/services/admin-data.service';
+import { adminDataListQuerySchema } from '@/validation/admin-data.schemas';
 import { clinicalClarificationRouter } from './clinical-clarification.routes';
 import { mealReviewRouter } from './meal-review.routes';
 import { Router, Response } from 'express';
@@ -53,6 +55,31 @@ router.use(requireEligibleNutritionist);
 router.use(clinicalClarificationRouter('rnd'));
 router.use(reviewSwapRouter);
 router.use('/meal-review-cases', mealReviewRouter('rnd'));
+
+// Reference reads only. Admin catalogue mutations retain their separate ADMIN guard.
+router.get(
+  '/food-catalogue',
+  validateZodRequest({ query: adminDataListQuerySchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { page, limit, search, source } = req.query as unknown as {
+      page: number;
+      limit: number;
+      search?: string;
+      source?: 'FNRI' | 'USDA_FDC';
+    };
+    const result = await AdminDataService.listFoods(page, limit, search, source);
+    res.json({
+      success: true,
+      data: {
+        ...result,
+        foods: result.foods.map((food) => ({
+          ...food,
+          aliases: food.aliases.map(({ verifiedByAdmin: _admin, ...alias }) => alias),
+        })),
+      },
+    });
+  })
+);
 
 const mealVerificationParams = z
   .object({

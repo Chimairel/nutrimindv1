@@ -74,6 +74,12 @@ export interface FoodItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sodium?: number | null;
+  sugar?: number | null;
+  fiber?: number | null;
+  potassium?: number | null;
+  phosphorus?: number | null;
+  saturatedFat?: number | null;
   aliases: FoodAlias[];
 }
 

@@ -1,5 +1,10 @@
 'use client';
 
+import OutsideReviewRequestButton from '@/features/membership/OutsideReviewRequestButton';
+import { useMembership } from '@/features/membership/MembershipProvider';
+import { getApiErrorMessage } from '@/lib/api-error';
+import type { MealHistoryLog } from '@/features/meals/meals-workspace.types';
+
 import type { useMealHistoryCardModel } from './useMealHistoryCardModel';
 type Model = Extract<ReturnType<typeof useMealHistoryCardModel>, { kind: 'ready' }>;
 type SectionProps = {
@@ -55,6 +60,12 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
     setConsentItemId,
   } = model;
 
+  const { refresh } = useMembership();
+  const items = log.outsideItems ?? [];
+  const open = items.some(
+    (item) => item.review?.requestedByUserAt && ['PENDING', 'CLAIMED', 'NEEDS_MORE_INFO'].includes(item.review.status)
+  );
+  const completed = items.length > 0 && items.every(isCurrentReviewedEstimate);
   return (
     <>
       {log.outsideItems && log.outsideItems.length > 0 && (
@@ -66,6 +77,26 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
           {log.provisionalCalories ? (
             <p className="mb-2 text-amber-300">{Math.round(log.provisionalCalories)} kcal remains estimated.</p>
           ) : null}
+          {!isVoided && log.source === 'USER_LOGGED' && onRequestOutsideReview && !open && !completed && (
+            <div className="mb-4">
+              <OutsideReviewRequestButton
+                inverse
+                busy={isChanging}
+                onRequest={async () => {
+                  setIsChanging(true);
+                  setSaveError(null);
+                  try {
+                    await onRequestOutsideReview(log.id, items[0].id);
+                    refresh();
+                  } catch (error) {
+                    setSaveError(getApiErrorMessage(error, 'Could not request estimate review. Please retry.'));
+                  } finally {
+                    setIsChanging(false);
+                  }
+                }}
+              />
+            </div>
+          )}
           <div className="space-y-2">
             {log.outsideItems.map((item, idx) => (
               <div
@@ -200,19 +231,24 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                 {log.source === 'USER_LOGGED' && (
                   <div className="mt-2 space-y-2 border-t border-white/10 pt-2 text-white/90">
                     <p className="font-semibold text-white/80">
-                      {item.review?.status === 'PENDING'
-                        ? 'Queued for nutrition estimate review'
-                        : item.review?.status === 'CLAIMED'
-                          ? 'Nutrition estimate under review'
-                          : item.review?.status === 'VERIFIED'
-                            ? 'Nutrition estimate confirmed'
-                            : item.review?.status === 'CORRECTED'
-                              ? 'Corrected and confirmed nutrition estimate'
-                              : item.review?.status === 'NEEDS_MORE_INFO'
-                                ? 'RND needs more information'
-                                : item.review?.status === 'UNVERIFIABLE'
-                                  ? 'Estimate could not be confirmed; it remains estimated'
-                                  : 'No RND review requested'}
+                      {!item.review?.requestedByUserAt
+                        ? 'No RND review requested'
+                        : ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
+                            !isCurrentReviewedEstimate(item)
+                          ? 'Previous review: this item has changed'
+                          : item.review.status === 'PENDING'
+                            ? 'Queued for nutrition estimate review'
+                            : item.review?.status === 'CLAIMED'
+                              ? 'Nutrition estimate under review'
+                              : item.review?.status === 'VERIFIED'
+                                ? 'RND-reviewed estimate'
+                                : item.review?.status === 'CORRECTED'
+                                  ? 'RND-adjusted estimate'
+                                  : item.review?.status === 'NEEDS_MORE_INFO'
+                                    ? 'RND needs more information'
+                                    : item.review?.status === 'UNVERIFIABLE'
+                                      ? 'RND could not assess this estimate'
+                                      : 'No RND review requested'}
                     </p>
                     {item.review &&
                       ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
@@ -228,63 +264,45 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                         <span className="ml-2 text-[10px] text-white/60">Revision {message.itemRevision}</span>
                       </p>
                     ))}
-                    {!isVoided && item.review?.status === 'NEEDS_MORE_INFO' && onReplyToOutsideReview && (
-                      <form
-                        className="space-y-2"
-                        onSubmit={async (event) => {
-                          event.preventDefault();
-                          setIsChanging(true);
-                          setSaveError(null);
-                          try {
-                            await onReplyToOutsideReview(log.id, item.id, clarification.trim());
-                            setClarification('');
-                          } catch {
-                            setSaveError('Could not send your clarification.');
-                          } finally {
-                            setIsChanging(false);
-                          }
-                        }}
-                      >
-                        <textarea
-                          className="w-full rounded border border-gray-300 bg-white p-2 text-xs text-gray-900"
-                          maxLength={1000}
-                          value={clarification}
-                          onChange={(event) => setClarification(event.target.value)}
-                          placeholder="Answer the specific RND question"
-                          aria-label="Clarification reply"
-                        />
-                        <button
-                          type="submit"
-                          disabled={isChanging || clarification.trim().length < 3}
-                          className="rounded bg-emerald-500 px-3 py-1 font-bold text-black text-xs disabled:opacity-50"
-                        >
-                          Send clarification
-                        </button>
-                      </form>
-                    )}
                     {!isVoided &&
-                      onRequestOutsideReview &&
-                      (!item.review || ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status)) && (
-                        <button
-                          type="button"
-                          disabled={isChanging}
-                          className="text-emerald-300 underline font-medium hover:text-emerald-200"
-                          onClick={async () => {
+                      item.review?.requestedByUserAt &&
+                      item.review.status === 'NEEDS_MORE_INFO' &&
+                      onReplyToOutsideReview && (
+                        <form
+                          className="space-y-2"
+                          onSubmit={async (event) => {
+                            event.preventDefault();
                             setIsChanging(true);
                             setSaveError(null);
                             try {
-                              await onRequestOutsideReview(log.id, item.id);
+                              await onReplyToOutsideReview(log.id, item.id, clarification.trim());
+                              setClarification('');
                             } catch {
-                              setSaveError('Could not request estimate review.');
+                              setSaveError('Could not send your clarification.');
                             } finally {
                               setIsChanging(false);
                             }
                           }}
                         >
-                          {item.review ? 'Request another estimate review' : 'Request nutrition estimate review'}
-                        </button>
+                          <textarea
+                            className="w-full rounded border border-gray-300 bg-white p-2 text-xs text-gray-900"
+                            maxLength={1000}
+                            value={clarification}
+                            onChange={(event) => setClarification(event.target.value)}
+                            placeholder="Answer the specific RND question"
+                            aria-label="Clarification reply"
+                          />
+                          <button
+                            type="submit"
+                            disabled={isChanging || clarification.trim().length < 3}
+                            className="rounded bg-emerald-500 px-3 py-1 font-bold text-black text-xs disabled:opacity-50"
+                          >
+                            Send clarification
+                          </button>
+                        </form>
                       )}
                     {!isVoided &&
+                      isCurrentReviewedEstimate(item) &&
                       ['VERIFIED', 'CORRECTED'].includes(item.review?.status ?? '') &&
                       item.portionGrams &&
                       item.portionGrams > 0 &&
@@ -322,7 +340,7 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                         ) : consentItemId === item.id ? (
                           <div className="space-y-2 rounded-lg border border-white/20 bg-black/20 p-3 text-xs text-white">
                             <p>
-                              Allow an RND to turn this confirmed estimate into a deidentified food reference or recipe
+                              Allow an RND to turn this reviewed estimate into a deidentified food reference or recipe
                               candidate. Your identity and private notes will not be shared. This is optional.
                             </p>
                             {log.hasImage && (
@@ -389,5 +407,14 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
         </div>
       )}
     </>
+  );
+}
+
+function isCurrentReviewedEstimate(item: NonNullable<MealHistoryLog['outsideItems']>[number]) {
+  return (
+    !!item.review?.requestedByUserAt &&
+    ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
+    item.review.reviewedRevision != null &&
+    item.review.reviewedRevision + 1 === item.currentRevision
   );
 }

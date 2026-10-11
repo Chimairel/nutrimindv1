@@ -27,6 +27,8 @@ export type QueueRow = {
     nutritionStatus: string;
     includedInTotals: boolean;
     currentRevision: number;
+    portionGrams?: number | null;
+    source?: string;
     ingredients: string[] | null;
     mealLog: {
       mealName: string;

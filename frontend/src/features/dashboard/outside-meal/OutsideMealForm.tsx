@@ -101,7 +101,7 @@ export default function OutsideMealForm(props: Props) {
         {/* 5. AI Assistant Fallback */}
         <OutsideMealConfirmationSection model={model} />
 
-        {/* 6. Primary Action: LOG THIS MEAL (Sticky Bottom on Mobile & Small Screens) */}
+        {/* 6. Primary action: preview recorded values (Sticky Bottom on Mobile & Small Screens) */}
         <div className="sticky bottom-0 -mx-6 -mb-6 bg-brand-surface/95 backdrop-blur-md px-6 py-3 border-t border-brand-border/60 z-20 flex flex-col gap-2">
           <Button
             type="submit"
@@ -114,7 +114,7 @@ export default function OutsideMealForm(props: Props) {
               (selectedSuggestion?.kind === 'FNRI_FOOD' && !(Number(portionGrams) > 0))
             }
           >
-            LOG THIS FOOD
+            Preview nutrition
           </Button>
         </div>
       </fieldset>

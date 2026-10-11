@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { OutsideMealCompatibilityStatus, OutsideMealItemSource } from '@prisma/client';
 import { outsideReviewQueueReason } from '../src/domain/outside-meal-review.policy';
-import { outsideMealReplySchema, outsideMealReviewBodySchema } from '../src/validation/user-action.schemas';
+import {
+  outsideMealBodySchema,
+  outsideMealReplySchema,
+  outsideMealReviewBodySchema,
+} from '../src/validation/user-action.schemas';
 
 const ordinary = {
   source: OutsideMealItemSource.USER_REPORTED,
@@ -16,16 +20,13 @@ const ordinary = {
   calorieHigh: null,
 };
 
-test('[BATCH-8] ordinary estimates stay out of the queue until requested or flagged', () => {
+test('[BATCH-8] ordinary estimates stay out of the queue without automatic admission, including development AI estimates', () => {
   assert.equal(outsideReviewQueueReason(ordinary, false), null);
   assert.equal(outsideReviewQueueReason({ ...ordinary, source: OutsideMealItemSource.GEMINI_ESTIMATED }, false), null);
-  assert.equal(
-    outsideReviewQueueReason({ ...ordinary, source: OutsideMealItemSource.GEMINI_ESTIMATED }, true),
-    'DEMO_AI_ESTIMATE'
-  );
+  assert.equal(outsideReviewQueueReason({ ...ordinary, source: OutsideMealItemSource.GEMINI_ESTIMATED }, true), null);
 });
 
-test('[BATCH-8] conflicts, broad uncertainty, and implausible macros trigger bounded review', () => {
+test('[BATCH-8] conflicts, broad uncertainty, and implausible macros classify an explicitly requested review', () => {
   assert.equal(
     outsideReviewQueueReason(
       { ...ordinary, compatibilityStatus: OutsideMealCompatibilityStatus.CONFLICT_DETECTED },
@@ -75,4 +76,20 @@ test('[BATCH-8] clarification replies are bounded and cannot be blank', () => {
 test('zero calorie records with nonzero macro energy require review', () => {
   assert.equal(outsideReviewQueueReason({ ...ordinary, calories: 0 }, false), 'IMPLAUSIBLE_VALUES');
   assert.equal(outsideReviewQueueReason({ ...ordinary, calories: 0, proteinG: 0, carbsG: 0, fatG: 0 }, false), null);
+});
+
+test('RND admission is accepted only with an acknowledged preview, never during AI lookup', () => {
+  assert.equal(
+    outsideMealBodySchema.safeParse({ mealType: 'LUNCH', mealName: 'Food', requestRndReview: true }).success,
+    false
+  );
+  assert.equal(
+    outsideMealBodySchema.safeParse({
+      mealType: 'LUNCH',
+      warningAcknowledged: true,
+      confirmationId: 'saved-preview',
+      requestRndReview: true,
+    }).success,
+    true
+  );
 });

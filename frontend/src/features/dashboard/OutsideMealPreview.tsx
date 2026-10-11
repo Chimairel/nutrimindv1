@@ -1,6 +1,7 @@
+import OutsideReviewRequestButton from '@/features/membership/OutsideReviewRequestButton';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Calculator } from 'lucide-react';
 import type { OutsideMealWarning } from './model';
 import type { OutsideMealModalProps as Props } from './outside-meal-modal.types';
 
@@ -10,7 +11,7 @@ const sourceLabels: Record<OutsideMealWarning['items'][number]['source'], string
   USER_REPORTED: 'Your label values',
   USER_ADJUSTED_LIBRARY: 'Library recipe, values adjusted by you',
   GEMINI_ESTIMATED: 'AI estimate',
-  NUTRITIONIST_REVIEWED: 'RND reviewed',
+  NUTRITIONIST_REVIEWED: 'RND-reviewed estimate',
   UNRESOLVED: 'Unresolved',
 };
 
@@ -20,7 +21,7 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
     <div className="flex flex-col gap-4">
       <div className="rounded-xl border border-brand-border bg-brand-bgAlt/50 p-4">
         <div className="mb-3 flex items-center gap-2 font-display text-sm font-extrabold uppercase">
-          <CheckCircle2 className="h-4 w-4 text-brand-green" /> Review before logging
+          <Calculator className="h-4 w-4 text-brand-green" /> Your nutrition estimate
         </div>
         <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold">
           <MacroEstimate label="Cal" value={Math.round(estimate.calories)} />
@@ -30,8 +31,7 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
         </div>
         {summary.provisionalItemCount > 0 && (
           <p className="mt-3 text-xs font-semibold text-status-pending-text">
-            {Math.round(summary.provisionalCalories)} kcal is provisional and will update automatically after any RND
-            correction. These values have not been independently confirmed.
+            {Math.round(summary.provisionalCalories)} kcal remains estimated. Saving it does not request RND review.
           </p>
         )}
       </div>
@@ -88,23 +88,30 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
         </p>
       )}
 
-      <div className="flex gap-3">
-        <Button
-          variant="secondary"
-          className="flex-1 text-xs font-bold"
-          onClick={props.onWarningCancel}
-          disabled={props.isLoading}
-        >
-          Back
-        </Button>
-        <Button
-          variant="primary"
-          className="flex-1 text-xs font-bold"
-          onClick={() => props.onSubmit(true)}
-          disabled={props.isLoading}
-        >
-          Confirm and log
-        </Button>
+      <div className="space-y-4 border-t border-brand-border pt-4">
+        <p className="text-sm leading-relaxed text-brand-muted">
+          Save these values for tracking, or request an RND review of the whole meal. Reviewed values are still
+          estimates.
+        </p>
+        <div className="flex flex-wrap items-start gap-3">
+          <Button
+            variant="secondary"
+            className="flex-1 text-xs font-bold"
+            onClick={props.onWarningCancel}
+            disabled={props.isLoading}
+          >
+            Back
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1 text-xs font-bold"
+            onClick={() => props.onSubmit(true)}
+            disabled={props.isLoading}
+          >
+            Use estimate
+          </Button>
+        </div>
+        <OutsideReviewRequestButton busy={props.isLoading} onRequest={() => props.onSubmit(true, undefined, true)} />
       </div>
     </div>
   );

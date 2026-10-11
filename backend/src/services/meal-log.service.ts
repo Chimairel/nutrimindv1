@@ -1,11 +1,11 @@
+import { lockUserProfile } from './profile-revision.service';
+import { admitOutsideMealReview, isOutsideReviewWriteConflict } from './outside-meal-review-admission.service';
 import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
 import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
-import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
 import { evaluateOutsideMealCompatibility } from '@/domain/outside-meal-safety.policy';
 import {
   assertValidOutsideMealMacros,
-  outsideMealReviewPriority,
   parseOutsideMealItems,
   resolveOutsideMealAiAllowance,
   resolveOutsideMealAiLimits,
@@ -51,6 +51,7 @@ interface LogOutsideMealInput {
   useAiEstimate?: boolean;
   requestKey?: string;
   warningAcknowledged?: boolean;
+  requestRndReview?: boolean;
   confirmationId?: string;
   notes?: string;
   estimationContext?: string;
@@ -573,11 +574,15 @@ export class MealLogService {
     try {
       return await prisma.$transaction(
         async (tx) => {
+          // Lock before FK inserts; upgrading a later shared User lock can deadlock concurrent saves.
+          await lockUserProfile(tx, input.userId);
           const previous = await tx.mealLog.findFirst({
             where: { userId: input.userId, outsidePreviewId: input.confirmationId, source: MealLogSource.USER_LOGGED },
             include: { outsideItems: true },
           });
-          if (previous)
+          if (previous) {
+            if (input.requestRndReview && previous.outsideItems[0])
+              await admitOutsideMealReview(tx, input.userId, previous.id, previous.outsideItems[0].id);
             return {
               warningRequired: false,
               log: previous,
@@ -595,6 +600,7 @@ export class MealLogService {
               safetyFollowUp: previous.outsideSafetyFollowUp,
               replayed: true,
             };
+          }
           const preview = await tx.outsideMealPreview.findFirst({
             where: { id: input.confirmationId, userId: input.userId, consumedAt: null, expiresAt: { gt: new Date() } },
           });
@@ -685,28 +691,12 @@ export class MealLogService {
                       snapshot: item as unknown as Prisma.InputJsonValue,
                     },
                   },
-                  ...(outsideReviewQueueReason(item)
-                    ? {
-                        review: {
-                          create: {
-                            queueReason: outsideReviewQueueReason(item),
-                            priority: outsideMealReviewPriority({
-                              compatibilityStatus: item.compatibilityStatus,
-                              warningCount: item.warnings.length,
-                              uncertaintyRatio:
-                                item.calories > 0 && item.calorieHigh !== null && item.calorieLow !== null
-                                  ? (item.calorieHigh - item.calorieLow) / item.calories
-                                  : null,
-                            }),
-                          },
-                        },
-                      }
-                    : {}),
                 })),
               },
             },
             include: { outsideItems: true },
           });
+          if (input.requestRndReview) await admitOutsideMealReview(tx, input.userId, log.id, log.outsideItems[0].id);
           await recalculateDailyNutritionLog(input.userId, log.loggedAt, tx);
           await tx.outsideMealPreview.update({ where: { id: preview.id }, data: { consumedAt: new Date() } });
           return { warningRequired: false, log, summary, safetyFollowUp, replayed: false };
@@ -714,11 +704,7 @@ export class MealLogService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 15_000, timeout: 60_000 }
       );
     } catch (error) {
-      if (
-        attempt < 2 &&
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        (error.code === 'P2034' || error.code === 'P2002')
-      ) {
+      if (attempt < 2 && isOutsideReviewWriteConflict(error)) {
         return this.commitPreview(input, attempt + 1);
       }
       throw error;

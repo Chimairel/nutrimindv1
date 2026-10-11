@@ -1,3 +1,4 @@
+import { useMembership } from '@/features/membership/MembershipProvider';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -8,6 +9,7 @@ import type { SubmitOptions } from './outside-meal-modal.types';
 
 /** A preview is never a saved log. Retries reuse the same key for the same details. */
 export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }) => void, ownerId?: string) {
+  const { refresh: refreshMembership } = useMembership();
   const [isOpen, setIsOpen] = useState(false);
   const [mealName, setMealName] = useState('');
   const [mealType, setMealType] = useState<MealType>('BREAKFAST');
@@ -56,7 +58,7 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
     request.current = null;
   };
 
-  const onSubmit = async (acknowledge = false, options?: SubmitOptions) => {
+  const onSubmit = async (acknowledge = false, options?: SubmitOptions, requestRndReview = false) => {
     if (inFlight.current) return;
     if (acknowledge && !warning) return;
     const submittedOwner = ownerId;
@@ -84,6 +86,7 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
           ? {
               mealType,
               warningAcknowledged: true,
+              ...(requestRndReview ? { requestRndReview: true } : {}),
               confirmationId: warning!.confirmationId,
               requestKey: request.current?.key,
             }
@@ -103,6 +106,7 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
       if (!payload.log?.id) throw new Error('The saved food response was incomplete. Retry to check the entry.');
       const photo = image.current;
       onSaved(payload.log);
+      if (requestRndReview) refreshMembership();
       reset();
       const followUp = payload.safetyFollowUp as { status: string; messages: string[] } | undefined;
       if (followUp?.status === 'CONFLICT_DETECTED') {
@@ -112,7 +116,7 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
           duration: 10000,
         });
       } else {
-        toast.success('Food logged', {
+        toast.success(requestRndReview ? 'Food logged; RND review requested' : 'Food logged', {
           id: toastId,
           description: 'Your intake has been updated. Estimated values remain provisional.',
         });

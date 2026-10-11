@@ -21,7 +21,7 @@ export default function OutsideMealReviewQueue({ model }: SectionProps) {
         ) : rows.length === 0 ? (
           <EmptyState
             title="No outside-meal estimates waiting"
-            description="Member requests and selected uncertain or conflicting entries will appear here."
+            description="Health Plan members’ requested estimate reviews appear here."
           />
         ) : (
           rows.map((row) => {

@@ -74,7 +74,7 @@ describe('OutsideMealModal', () => {
     expect((fatInput as HTMLInputElement).value).toBe('30');
 
     // Click submit
-    const submitBtn = screen.getByRole('button', { name: /LOG THIS FOOD/i });
+    const submitBtn = screen.getByRole('button', { name: /Preview nutrition/i });
     fireEvent.click(submitBtn);
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -105,7 +105,7 @@ describe('OutsideMealModal', () => {
     const [, calories, protein, carbs, fat] = screen.getAllByRole('spinbutton');
     fireEvent.change(calories, { target: { value: '400' } });
     for (const input of [protein, carbs, fat]) fireEvent.change(input, { target: { value: '0' } });
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Preview nutrition/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
       expect.objectContaining({
@@ -116,11 +116,11 @@ describe('OutsideMealModal', () => {
     );
   });
 
-  it('calls AI estimate when HELP ME FIND VALUES WITH AI is clicked', () => {
+  it('calls AI estimate when Get AI estimate is clicked', () => {
     const onSubmit = vi.fn();
     render(<OutsideMealModal {...defaultProps} onSubmit={onSubmit} />);
 
-    const aiButton = screen.getByText('HELP ME FIND VALUES WITH AI');
+    const aiButton = screen.getByText('Get AI estimate');
     fireEvent.click(aiButton);
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -181,7 +181,7 @@ describe('OutsideMealModal', () => {
     expect(screen.queryByText('Chicken Adobo Recipe')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Cooked rice with this dish'), { target: { value: '150' } });
     expect(screen.getByText(/Plate preview: 494 kcal/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Preview nutrition/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
       expect.objectContaining({
@@ -220,7 +220,7 @@ describe('OutsideMealModal', () => {
     fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Ric' } });
     fireEvent.click(await screen.findByText('Rice, well-milled, boiled'));
     fireEvent.change(screen.getByLabelText('Amount eaten (grams)'), { target: { value: '150' } });
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Preview nutrition/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
       expect.objectContaining({
@@ -295,17 +295,17 @@ describe('OutsideMealModal', () => {
     const onSubmit = vi.fn();
     render(<OutsideMealModal {...defaultProps} onSubmit={onSubmit} />);
     fireEvent.change(screen.getAllByRole('spinbutton')[1], { target: { value: '400' } });
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Preview nutrition/i }));
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('disables form controls and uses no second submission spinner while saving', () => {
     const onSubmit = vi.fn();
     render(<OutsideMealModal {...defaultProps} isLoading onSubmit={onSubmit} />);
-    expect(screen.getByRole('button', { name: /LOG THIS FOOD/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Preview nutrition/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Breakfast' })).toBeDisabled();
     expect(screen.queryByText('Processing...')).not.toBeInTheDocument();
-    fireEvent.submit(screen.getByRole('button', { name: /LOG THIS FOOD/i }).closest('form')!);
+    fireEvent.submit(screen.getByRole('button', { name: /Preview nutrition/i }).closest('form')!);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });
