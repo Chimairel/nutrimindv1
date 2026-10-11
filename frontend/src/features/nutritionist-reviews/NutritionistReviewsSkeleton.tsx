@@ -1,27 +1,11 @@
+import { QueueSkeleton } from '@/components/shared/WorkspaceQueue';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 import SplitWorkspace, { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
 import { SkeletonHeader, SkeletonMacros, SkeletonTabs } from '@/components/shared/WorkspaceSkeleton';
 
 export function ReviewQueueSkeleton({ count = 5 }: { count?: number }) {
-  return (
-    <div className="space-y-3" aria-label="Loading review queue items" aria-busy="true">
-      {Array.from({ length: count }, (_, i) => (
-        <Card key={i} className="space-y-3 rounded-2xl p-4">
-          <div className="flex items-center justify-between gap-2">
-            <Skeleton className="h-5 w-20 rounded-full" />
-            <Skeleton className="h-5 w-16 rounded-full" />
-          </div>
-          <Skeleton className="h-5 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <div className="flex items-center gap-2 border-t border-brand-border/40 pt-2.5">
-            <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
+  return <QueueSkeleton count={count} />;
 }
 export function ReviewDetailSkeleton() {
   return (
