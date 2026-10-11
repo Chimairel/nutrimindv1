@@ -345,7 +345,7 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
   const secondNotes = {
     ...notes,
     explanation: 'A second independent challenge of the republished corrected recipe.',
-    proposedCorrection: 'Keep the recipe withheld until two independent RNDs review this second concern.',
+    proposedCorrection: 'Keep the recipe withheld until an admin decides this second incident.',
   };
   const second = await ok(
     request(rnds[1].user, `/nutritionist/library/${root.id}/flag`, 'POST', {
@@ -357,7 +357,7 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
   assert.equal(second.reviewState, 'QUARANTINED');
   const quarantine = await ok(request(admin, `/admin/meal-review-cases/${root.id}`));
   assert.equal(quarantine.state, 'QUARANTINED');
-  assert.equal(quarantine.canAdminRelease, false);
+  assert.equal(quarantine.canAdminRelease, true);
   assert.equal(quarantine.history.length, 2);
   assert.deepEqual(
     quarantine.history.map((incident: { reports: { notes: unknown }[] }) => incident.reports[0].notes),
@@ -400,8 +400,8 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
   assert.equal(
     (
       await request(admin, `/admin/meal-review-cases/${root.id}/release`, 'POST', {
-        expectedVersion: quarantine.reviewVersion,
-        rationale: 'Premature release must be blocked in this fixture.',
+        expectedVersion: 'f'.repeat(64),
+        rationale: 'A stale version release must be blocked in this fixture.',
       })
     ).status,
     409

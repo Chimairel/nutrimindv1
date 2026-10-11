@@ -407,9 +407,14 @@ router.patch(
   })
 );
 
+// Historical dispute records remain blocked and auditable; no new adjudication workflow.
+const retiredDispute = (_req: AuthenticatedRequest, res: Response) =>
+  res.status(410).json({ success: false, code: 'MEAL_DISPUTES_RETIRED', error: 'Meal dispute resolution is retired.' });
+
 router.get('/governance/queue', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const view = req.query.view === 'disputed' ? 'disputed' : 'audit';
+    if (req.query.view === 'disputed') return retiredDispute(req, res);
+    const view = 'audit';
     const data = await ConditionClearanceService.getGovernanceQueue(req.nutritionistProfileId!, view);
     return res.json({ success: true, data });
   } catch (error: unknown) {
@@ -446,22 +451,7 @@ router.post(
   }
 );
 
-router.post(
-  '/condition-clearances/:id/resolve',
-  validateZodBody(decisionSchema.extend({ rationale: z.string().trim().min(1).max(1000) })),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const data = await ConditionClearanceService.resolveDispute({
-        nutritionistProfileId: req.nutritionistProfileId!,
-        clearanceId: req.params.id,
-        ...req.body,
-      });
-      return res.json({ success: true, data });
-    } catch (error: unknown) {
-      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Dispute resolution failed.') });
-    }
-  }
-);
+router.post('/condition-clearances/:id/resolve', retiredDispute);
 
 router.post(
   '/condition-clearances/:id/suspend',
@@ -480,28 +470,7 @@ router.post(
   }
 );
 
-router.post(
-  '/review/:id/dispute-resolution',
-  validateZodBody(
-    z.object({
-      decision: z.enum(['APPROVE', 'REJECT']),
-      rationale: z.string().trim().min(3).max(1000),
-    })
-  ),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const data = await NutritionistService.resolveMealPlanDispute(
-        req.nutritionistProfileId!,
-        req.params.id,
-        req.body.decision,
-        req.body.rationale
-      );
-      return res.json({ success: true, data });
-    } catch (error: unknown) {
-      return res.status(422).json({ success: false, error: sanitizeErrorMessage(error, 'Adjudication failed.') });
-    }
-  }
-);
+router.post('/review/:id/dispute-resolution', retiredDispute);
 
 router.post('/rule-policies/:id/impact', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -575,17 +544,26 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post('/queue/:id/claim', validateZodBody(claimMealReviewSchema), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, req.params.id, true, req.body.expectedContextKey);
-    return res.status(200).json({ success: true, data: result });
-  } catch (error: unknown) {
-    if (error instanceof AppError)
-      return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
-    const message = sanitizeErrorMessage(error, 'Could not claim this review.');
-    return res.status(isNutritionistReviewConflict(message) ? 409 : 422).json({ success: false, error: message });
+router.post(
+  '/queue/:id/claim',
+  validateZodBody(claimMealReviewSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await NutritionistService.getReviewCardDetails(
+        req.nutritionistProfileId!,
+        req.params.id,
+        true,
+        req.body.expectedContextKey
+      );
+      return res.status(200).json({ success: true, data: result });
+    } catch (error: unknown) {
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
+      const message = sanitizeErrorMessage(error, 'Could not claim this review.');
+      return res.status(isNutritionistReviewConflict(message) ? 409 : 422).json({ success: false, error: message });
+    }
   }
-});
+);
 
 router.post('/queue/:id/release', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -634,11 +612,23 @@ router.patch(
       const mealPlanId = req.params.id;
 
       if (action === 'approve') {
-        const result = await NutritionistService.approveMealPlan(req.nutritionistProfileId!, mealPlanId, note, updates, expectedContextKey);
+        const result = await NutritionistService.approveMealPlan(
+          req.nutritionistProfileId!,
+          mealPlanId,
+          note,
+          updates,
+          expectedContextKey
+        );
         return res.status(200).json({ success: true, data: result });
       } else if (action === 'reject') {
         if (!note) return res.status(400).json({ success: false, error: 'Rejection reason is required.' });
-        const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note, expectedContextKey, replacementOutcome);
+        const result = await NutritionistService.rejectMealPlan(
+          req.nutritionistProfileId!,
+          mealPlanId,
+          note,
+          expectedContextKey,
+          replacementOutcome
+        );
         return res.status(200).json({ success: true, data: result });
       } else {
         return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });

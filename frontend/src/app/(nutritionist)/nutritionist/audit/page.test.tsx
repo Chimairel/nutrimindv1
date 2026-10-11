@@ -43,7 +43,7 @@ describe('RND audit page', () => {
     );
   });
 
-  it('shows review history across RNDs, pages results, and opens due rechecks', async () => {
+  it('shows review history across RNDs, pages results, and opens flagged approvals', async () => {
     render(<NutritionistAuditPage />);
     expect(await screen.findByText('Andrea Reyes')).toBeInTheDocument();
     expect(screen.getByText('Flagged a meal')).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('RND audit page', () => {
       expect(mocks.get).toHaveBeenCalledWith('/nutritionist/audit-history', { params: { page: 2, limit: 20 } })
     );
     expect(await screen.findByText(/Page 2 of 2/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Due rechecks.*99\+/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Flagged approvals.*99\+/ }));
     expect(screen.getByTestId('recheck-queue')).toHaveTextContent('audit');
   });
   it('resets to page one and requests only the signed-in reviewer with Me', async () => {

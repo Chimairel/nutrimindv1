@@ -62,7 +62,7 @@ export default function NutritionistAuditPage() {
             { value: 'history', label: 'Activity history' },
             {
               value: 'rechecks',
-              label: 'Due rechecks',
+              label: 'Flagged approvals',
               count: counts?.audit ? formatBadgeCount(counts.audit) : undefined,
             },
           ]}

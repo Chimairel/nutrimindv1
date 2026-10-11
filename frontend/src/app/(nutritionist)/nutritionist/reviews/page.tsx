@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
 import OutsideMealReviewsPanel from '../outside-meals/OutsideMealReviewsPanel';
-import GovernanceQueuePanel from './GovernanceQueuePanel';
 import MealVerificationPanel from './MealVerificationPanel';
 import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
@@ -27,7 +26,7 @@ export default function ReviewsPage() {
 function ReviewsWorkspace() {
   const workCounts = useReviewWorkCounts();
   const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
-  const [caseFilter, setCaseFilter] = useState<'pending' | 'disputed' | 'outside'>('pending');
+  const [caseFilter, setCaseFilter] = useState<'pending' | 'outside'>('pending');
   const [expanded, setExpanded] = useState(false);
   const review = useNutritionistReviews(workspace === 'case' && caseFilter === 'pending');
 
@@ -55,7 +54,6 @@ function ReviewsWorkspace() {
       items={[
         { value: 'pending', label: 'Pending' },
         { value: 'outside', label: 'Outside food logs' },
-        { value: 'disputed', label: 'Needs resolution' },
       ]}
     />
   );
@@ -89,24 +87,6 @@ function ReviewsWorkspace() {
           />
           {navigation}
           <ProfileWorkPanel />
-        </div>
-      </div>
-    );
-  }
-
-  if (caseFilter === 'disputed') {
-    return (
-      <div className="portal-page space-y-5 pb-20 text-brand-text">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5">
-          <PortalPageHeader
-            icon={ShieldCheck}
-            eyebrow="Clinical workspace"
-            title="Reviews"
-            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
-          />
-          {navigation}
-          {caseFilters}
-          <GovernanceQueuePanel tab={caseFilter} />
         </div>
       </div>
     );

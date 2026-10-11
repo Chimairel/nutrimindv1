@@ -27,10 +27,10 @@ export default function MealReviewQueue({
   return (
     <section
       className="space-y-3 rounded-2xl border border-brand-border bg-brand-surface p-4"
-      aria-label="Shared recipe re-review pool"
+      aria-label="Flagged recipes"
     >
       <div className="flex flex-wrap justify-between gap-3">
-        <h2 className="font-display text-lg font-bold">Shared recipe re-review pool</h2>
+        <h2 className="font-display text-lg font-bold">Flagged recipes</h2>
         <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>
           Refresh cases
         </Button>

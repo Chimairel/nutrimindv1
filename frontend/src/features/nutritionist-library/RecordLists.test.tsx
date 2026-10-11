@@ -22,7 +22,7 @@ for (const isAdmin of [false, true]) {
     const table = await screen.findByRole('table', { name: 'Held recipe cases' });
     expect(mocks.get).toHaveBeenCalledWith(`/${isAdmin ? 'admin' : 'nutritionist'}/meal-review-cases`);
     expect(within(table).getByText('Quarantined')).toBeInTheDocument();
-    expect(within(table).getByRole('cell', { name: '2', exact: true })).toBeInTheDocument();
+    expect(within(table).getByRole('cell', { name: /^2$/ })).toBeInTheDocument();
     fireEvent.click(within(table).getByRole('button', { name: 'Review case' }));
     expect(openMeal).toHaveBeenCalledWith(row);
     expect(within(table).queryByRole('checkbox')).not.toBeInTheDocument();

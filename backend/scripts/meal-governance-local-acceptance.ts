@@ -310,26 +310,14 @@ async function main() {
     const second = await flag(rnds[1].user, variant.id);
     assert.equal(second.incidentNumber, 2);
     assert.equal(second.reviewState, 'QUARANTINED');
-    assert.equal((await adminRelease()).status, 409);
-    await confirm(4);
-    assert.equal((await adminRelease()).status, 409);
-    await confirm(5);
-    await prisma.nutritionistProfile.update({
-      where: { id: rnds[4].profile.id },
-      data: { prcLicenseExpiry: new Date('2000-01-01') },
+    assert.equal((await detail()).canAdminRelease, true);
+    assert.equal((await detail()).validConfirmations.length, 0);
+    const quarantineClaim = await request(rnds[4].user, `/nutritionist/meal-review-cases/${root.id}/claim`, 'POST', {
+      expectedVersion: (await detail()).reviewVersion,
     });
-    assert.equal((await adminRelease()).status, 409);
-    await prisma.nutritionistProfile.update({
-      where: { id: rnds[4].profile.id },
-      data: { prcLicenseExpiry: new Date('2099-01-01') },
-    });
-    assert.equal((await detail()).validConfirmations.length, 2);
-    passed('Second incident quarantines; two distinct current credentials plus admin release are mandatory');
+    assert.equal(quarantineClaim.status, 409);
+    passed('Second incident quarantines; only admin can decide release without RND confirmations');
     const originalIncident = (await detail()).incident;
-    const confirmation = originalIncident.confirmations[0];
-    await assert.rejects(
-      prisma.mealReviewConfirmation.update({ where: { id: confirmation.id }, data: { version: 'f'.repeat(64) } })
-    );
     const decision = await prisma.mealReviewDecision.findFirstOrThrow({ where: { incidentId: originalIncident.id } });
     await assert.rejects(prisma.mealReviewDecision.delete({ where: { id: decision.id } }));
     await assert.rejects(
@@ -367,8 +355,6 @@ async function main() {
       ).status,
       409
     );
-    await confirm(4);
-    await confirm(5);
     const beforeCorrection = await detail();
     const corrected = {
       mealName: root.mealName,
@@ -398,7 +384,7 @@ async function main() {
     );
     assert.equal((await detail()).validConfirmations.length, 0);
     assert.equal((await detail()).state, 'QUARANTINED');
-    assert.equal((await adminRelease()).status, 409);
+    assert.equal((await detail()).canAdminRelease, true);
     const current = await detail();
     const historyValues = current.history.flatMap(
       (incident: { decisions: { action: string; snapshot: { meals: { id: string; calories: number }[] } }[] }) =>
@@ -408,25 +394,23 @@ async function main() {
     );
     assert.equal(historyValues.find((row: { id: string }) => row.id === root.id).calories, 200);
     assert.equal((await prisma.mealLibrary.findUniqueOrThrow({ where: { id: root.id } })).calories, 250);
-    await confirm(4);
-    await confirm(5);
     assert.equal((await adminRelease()).status, 200);
     assert.equal((await detail()).state, 'PUBLISHED');
     assert.equal((await flag(rnds[1].user, root.id)).reviewState, 'QUARANTINED');
     assert.equal((await detail()).incidentCount, 3);
     const challenged = await detail();
-    for (const index of [4, 5])
+    for (const index of [0, 1, 3])
       assert.equal(
         (
           await request(rnds[index].user, `/nutritionist/meal-review-cases/${root.id}/claim`, 'POST', {
             expectedVersion: challenged.reviewVersion,
           })
         ).status,
-        403,
-        'Both challenged confirmers must be excluded from the new incident.'
+        409,
+        'Quarantine review decisions are reserved for admin.'
       );
     passed(
-      'Additional reports and corrections invalidate confirmations; immutable before/after values; future flags immediately quarantine'
+      'Additional reports and corrections require a current admin release version; immutable before/after values; future flags immediately quarantine'
     );
 
     const draftInput = {
@@ -697,7 +681,7 @@ async function main() {
     });
     const presentation = serializeActionableMeal(retainedPlan);
     assert.equal(presentation.verifier?.name, rnds[2].user.name);
-    assert.equal(presentation.verifier?.reviewScope, 'MEMBER');
+    assert.equal(presentation.verifier?.reviewScope, 'RECORDED');
     assert.equal(presentation.verifier?.university, null);
     assert.equal(presentation.verifier?.yearsOfExperience, null);
     passed(

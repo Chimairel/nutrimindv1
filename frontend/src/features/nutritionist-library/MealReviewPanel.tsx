@@ -147,7 +147,7 @@ export default function MealReviewPanel({
             <div className="space-y-4">
               <p className="text-sm font-semibold">
                 {data.state === 'QUARANTINED'
-                  ? `${data.validConfirmations.length} of 2 current independent RND confirmations. Admin release is also required.`
+                  ? 'Quarantined after repeated flags. Only an admin can release or archive this recipe.'
                   : 'One uninvolved eligible RND can re-verify the current version.'}
               </p>
               {data.incident.reports.map((report) => (
@@ -165,7 +165,7 @@ export default function MealReviewPanel({
                   <p>
                     <strong>Proposed correction:</strong> {report.notes.proposedCorrection ?? 'Not recorded'}
                   </p>
-                  {!isAdmin && (
+                  {!isAdmin && data.state !== 'QUARANTINED' && (
                     <label className="block font-semibold">
                       Resolution of this concern
                       <textarea
@@ -180,67 +180,72 @@ export default function MealReviewPanel({
                   )}
                 </section>
               ))}
-              <label className="block text-sm font-semibold">
-                {isAdmin ? 'Administrative rationale' : 'Independent review findings'}
-                <textarea
-                  className={`${field} mt-2`}
-                  minLength={20}
-                  maxLength={3000}
-                  rows={3}
-                  value={rationale}
-                  onChange={(event) => setRationale(event.target.value)}
-                />
-              </label>
-              {!isAdmin && (
-                <label className="flex min-h-11 items-center gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={evidenceReviewed}
-                    onChange={(event) => setEvidenceReviewed(event.target.checked)}
-                  />
-                  I reviewed the nutrition evidence, measured ingredients, preparation and rice role for every serving
-                  variant.
-                </label>
+              {(isAdmin || data.state !== 'QUARANTINED') && (
+                <>
+                  <label className="block text-sm font-semibold">
+                    {isAdmin ? 'Administrative rationale' : 'Independent review findings'}
+                    <textarea
+                      className={`${field} mt-2`}
+                      minLength={20}
+                      maxLength={3000}
+                      rows={3}
+                      value={rationale}
+                      onChange={(event) => setRationale(event.target.value)}
+                    />
+                  </label>
+                  {!isAdmin && (
+                    <label className="flex min-h-11 items-center gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={evidenceReviewed}
+                        onChange={(event) => setEvidenceReviewed(event.target.checked)}
+                      />
+                      I reviewed the nutrition evidence, measured ingredients, preparation and rice role for every
+                      serving variant.
+                    </label>
+                  )}
+                  <div className="flex flex-wrap gap-3">
+                    {isAdmin ? (
+                      <>
+                        <Button
+                          disabled={busy || !data.canAdminRelease || rationale.trim().length < 20}
+                          onClick={() => void mutate('release')}
+                        >
+                          Release quarantine
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled={busy || rationale.trim().length < 20}
+                          onClick={() => void mutate('archive')}
+                        >
+                          Archive unresolved recipe
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="secondary" disabled={busy} onClick={() => void mutate('claim')}>
+                          Claim re-review
+                        </Button>
+                        <Button
+                          disabled={
+                            busy ||
+                            !evidenceReviewed ||
+                            rationale.trim().length < 20 ||
+                            data.incident.reports.some((report) => (resolutions[report.id]?.trim().length ?? 0) < 20)
+                          }
+                          onClick={() => void mutate('confirm')}
+                        >
+                          Re-verify recipe
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </>
               )}
-              <div className="flex flex-wrap gap-3">
-                {isAdmin ? (
-                  <>
-                    <Button
-                      disabled={busy || !data.canAdminRelease || rationale.trim().length < 20}
-                      onClick={() => void mutate('release')}
-                    >
-                      Release quarantine
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={busy || rationale.trim().length < 20}
-                      onClick={() => void mutate('archive')}
-                    >
-                      Archive unresolved recipe
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="secondary" disabled={busy} onClick={() => void mutate('claim')}>
-                      Claim re-review
-                    </Button>
-                    <Button
-                      disabled={
-                        busy ||
-                        !evidenceReviewed ||
-                        rationale.trim().length < 20 ||
-                        data.incident.reports.some((report) => (resolutions[report.id]?.trim().length ?? 0) < 20)
-                      }
-                      onClick={() => void mutate('confirm')}
-                    >
-                      {data.state === 'QUARANTINED' ? 'Confirm this version' : 'Re-verify recipe'}
-                    </Button>
-                  </>
-                )}
-              </div>
               <p className="text-xs text-brand-muted">
-                Authors, flaggers and challenged verifiers cannot confirm. Corrections and new evidence invalidate prior
-                confirmations. Admin release grants no member-specific clinical approval.
+                {data.state === 'QUARANTINED'
+                  ? 'Admin release records an administrative decision. Member-specific clinical approvals still require RND review.'
+                  : 'Authors, flaggers and challenged verifiers cannot re-verify this incident. Corrections and new evidence invalidate prior confirmations.'}
               </p>
               {!isAdmin && (
                 <RecipeDerivationForm

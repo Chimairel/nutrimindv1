@@ -83,9 +83,10 @@ async function validateEvidence(tx: ReviewTx, context: ReviewContext) {
   }
 }
 
-async function publish(tx: ReviewTx, context: ReviewContext, reviewerIds: string[]) {
+async function publish(tx: ReviewTx, context: ReviewContext, reviewerId: string | null) {
   const incident = active(context);
-  for (const meal of context.meals) {
+  // An administrative release removes the hold; it never fabricates an RND verification.
+  for (const meal of reviewerId ? context.meals : []) {
     const revisionKey = libraryBaseRevisionKey(meal.recipeSignature!, meal.description);
     await tx.mealBaseVerification.upsert({
       where: { targetKind_targetId_revisionKey: { targetKind: 'LIBRARY_MEAL', targetId: meal.id, revisionKey } },
@@ -94,13 +95,13 @@ async function publish(tx: ReviewTx, context: ReviewContext, reviewerIds: string
         targetId: meal.id,
         revisionKey,
         status: 'VERIFIED',
-        reviewedByNutritionistId: reviewerIds[0],
+        reviewedByNutritionistId: reviewerId,
         reviewedAt: new Date(),
         rationale: `Independent case review ${incident.id}`,
       },
       update: {
         status: 'VERIFIED',
-        reviewedByNutritionistId: reviewerIds[0],
+        reviewedByNutritionistId: reviewerId,
         reviewedAt: new Date(),
         rationale: `Independent case review ${incident.id}`,
       },
@@ -109,7 +110,10 @@ async function publish(tx: ReviewTx, context: ReviewContext, reviewerIds: string
   await tx.mealReviewLineage.update({ where: { id: context.lineage!.id }, data: { state: 'PUBLISHED' } });
   await tx.mealLibrary.updateMany({
     where: { reviewLineageId: context.lineage!.id, status: 'FLAGGED' },
-    data: { status: 'APPROVED', verifiedByNutritionistId: reviewerIds[0], riceRoleReviewStatus: 'REVIEWED' },
+    data: {
+      status: 'APPROVED',
+      ...(reviewerId ? { verifiedByNutritionistId: reviewerId, riceRoleReviewStatus: 'REVIEWED' as const } : {}),
+    },
   });
   await tx.mealLibraryFlag.updateMany({
     where: { mealLibraryId: { in: context.meals.map((meal) => meal.id) }, status: 'PENDING' },
@@ -165,7 +169,7 @@ export class MealReviewService {
           currentSnapshot: context.snapshot,
           history,
           validConfirmations,
-          canAdminRelease: context.incident?.state === 'QUARANTINED' && validConfirmations.length >= 2,
+          canAdminRelease: context.incident?.state === 'QUARANTINED' && !context.incident.closedAt,
         };
       },
       { timeout: 30_000 }
@@ -190,6 +194,8 @@ export class MealReviewService {
       await reviewActor(tx, userId, profileId);
       const context = await reviewContext(tx, mealId, true);
       const incident = active(context);
+      if (incident.state === 'QUARANTINED')
+        throw new AppError('Quarantine requires an administrative decision.', 409, 'QUARANTINE_ADMIN_REQUIRED');
       assertVersion(context.reviewVersion, version);
       assertIndependent(context, profileId, userId);
       if (!canAcquireReviewClaim(incident, profileId))
@@ -210,6 +216,8 @@ export class MealReviewService {
         const actor = await reviewActor(tx, userId, profileId);
         const context = await reviewContext(tx, mealId, true);
         const incident = active(context);
+        if (incident.state === 'QUARANTINED')
+          throw new AppError('Quarantine requires an administrative decision.', 409, 'QUARANTINE_ADMIN_REQUIRED');
         assertVersion(context.reviewVersion, submission.expectedVersion);
         assertIndependent(context, profileId, userId);
         if (incident.claimedByNutritionistId !== profileId || !isReviewClaimActive(incident))
@@ -239,18 +247,9 @@ export class MealReviewService {
           },
         });
         await recordReviewDecision(tx, context, actor, 'CONFIRMED', submission.rationale, submission.resolutions);
-        if (incident.state === 'PENDING_REREVIEW') {
-          await publish(tx, context, [profileId]);
-          await recordReviewDecision(tx, context, actor, 'REVERIFIED', submission.rationale);
-        } else
-          await tx.mealReviewIncident.update({
-            where: { id: incident.id },
-            data: { claimedByNutritionistId: null, claimedAt: null },
-          });
-        return {
-          state: incident.state === 'PENDING_REREVIEW' ? 'PUBLISHED' : 'QUARANTINED',
-          incidentNumber: incident.number,
-        };
+        await publish(tx, context, profileId);
+        await recordReviewDecision(tx, context, actor, 'REVERIFIED', submission.rationale);
+        return { state: 'PUBLISHED', incidentNumber: incident.number };
       },
       { maxWait: 10_000, timeout: 30_000 }
     );
@@ -274,22 +273,8 @@ export class MealReviewService {
         if (action === 'release') {
           if (incident.state !== 'QUARANTINED')
             throw new AppError('Pending re-review requires an independent RND decision.', 409, 'RND_REVIEW_REQUIRED');
-          const reviewers = [];
-          for (const confirmation of incident.confirmations.filter((item) => item.version === context.reviewVersion)) {
-            const rnd = await currentReviewProfile(tx, confirmation.nutritionistId);
-            if (rnd && isNutritionistEligibleForReview(rnd)) {
-              assertIndependent(context, rnd.id, rnd.userId);
-              reviewers.push(rnd.id);
-            }
-          }
-          if (new Set(reviewers).size < 2)
-            throw new AppError(
-              'Two independent, currently eligible RND confirmations of all concerns are required.',
-              409,
-              'QUARANTINE_CONFIRMATIONS_REQUIRED'
-            );
           await validateEvidence(tx, context);
-          await publish(tx, context, reviewers);
+          await publish(tx, context, null);
         } else {
           const sourceIds = context.meals.flatMap((meal) =>
             meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []

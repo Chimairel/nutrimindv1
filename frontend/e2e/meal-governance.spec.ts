@@ -106,7 +106,6 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
           { ...decision, id: 'after-correction', action: 'CORRECTED', snapshot: { meals: [meal] } },
         ],
       };
-      let confirmations = 0;
       const mutations: { path: string; body: Record<string, unknown> }[] = [];
       await page.route('**/api/**', async (route) => {
         const request = route.request(),
@@ -127,13 +126,12 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
             legacyHistoryUnknown: false,
             incident,
             history: [priorIncident, incident],
-            validConfirmations: Array.from({ length: confirmations }, () => ({})),
-            canAdminRelease: false,
+            validConfirmations: [],
+            canAdminRelease: true,
           };
         else if (path.endsWith('/claim') || path.endsWith('/confirm')) {
           const body = request.postDataJSON() as Record<string, unknown>;
           mutations.push({ path, body });
-          if (path.endsWith('/confirm')) confirmations++;
           data = { state: 'QUARANTINED' };
         } else if (path.endsWith('/library/held-recipe/approvals')) data = [];
         else if (path.endsWith('/library/held-recipe')) data = meal;
@@ -148,41 +146,20 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
       await expect(panel.getByRole('strong').filter({ hasText: /^Quarantined$/ })).toBeVisible();
       await expect(panel.getByText('NUTRITION · Synthetic flagger')).toBeVisible();
       await expect(panel.getByText('Recorded composition reference from the food catalogue.')).toBeVisible();
+      await expect(panel.getByText(/Only an admin can release/)).toBeVisible();
+      await expect(panel.getByRole('button', { name: 'Claim re-review' })).toHaveCount(0);
+      await expect(panel.getByRole('button', { name: 'Confirm this version' })).toHaveCount(0);
       if (role === 'ADMIN') {
+        await expect(panel.getByRole('button', { name: 'Release quarantine' })).toBeDisabled();
         await panel
           .getByLabel('Administrative rationale')
-          .fill('Administrative release must wait for two independent current RND confirmations.');
-        await expect(panel.getByRole('button', { name: 'Release quarantine' })).toBeDisabled();
-        await expect(panel.getByRole('button', { name: 'Archive unresolved recipe' })).toBeEnabled();
-        await expect(panel.getByRole('button', { name: 'Confirm this version' })).toHaveCount(0);
+          .fill('Reviewed the current recipe concerns and release evidence.');
+        await expect(panel.getByRole('button', { name: 'Release quarantine' })).toBeEnabled();
       } else {
-        await expect(panel.getByRole('button', { name: 'Confirm this version' })).toBeDisabled();
-        await panel
-          .getByLabel('Resolution of this concern')
-          .fill('I checked every ingredient quantity and the recorded food composition values.');
-        await panel
-          .getByLabel('Independent review findings')
-          .fill('Independent review confirms the exact measured serving and resolves the sodium concern.');
-        await panel.getByRole('checkbox').check();
-        await panel.getByRole('button', { name: 'Claim re-review' }).click();
-        await expect(panel.getByText('Claimed for 30 minutes. Review every concern before confirming.')).toBeVisible();
-        await panel.getByRole('button', { name: 'Confirm this version' }).click();
-        await expect(
-          panel.getByText('1 of 2 current independent RND confirmations. Admin release is also required.')
-        ).toBeVisible();
-        expect(mutations.at(-1)?.body).toMatchObject({
-          expectedVersion: 'b'.repeat(64),
-          evidenceReviewed: true,
-          riceRoleReviewed: true,
-          resolutions: [
-            {
-              reportId: 'concern-1',
-              rationale: 'I checked every ingredient quantity and the recorded food composition values.',
-            },
-          ],
-        });
         await expect(panel.getByRole('button', { name: 'Release quarantine' })).toHaveCount(0);
       }
+      await panel.getByText(/Only an admin can release/).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath(`quarantine-controls-${role}-${width}.png`) });
       await expect(panel.getByRole('heading', { name: 'Recipe withheld', exact: true })).toBeVisible();
       await expect(panel.getByText('Immutable values recorded for this decision.', { exact: false })).toBeVisible();
       await expect(panel.getByText('150 mg sodium', { exact: true })).toBeVisible();
@@ -195,6 +172,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
       await expect(panel.getByText('Prior recorded composition reference.')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`review-${role}-${width}.png`), fullPage: true });
+      expect(mutations).toEqual([]);
       expect(errors).toEqual([]);
     });
   }

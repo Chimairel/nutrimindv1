@@ -172,7 +172,7 @@ describe('shared library permissions and feedback', () => {
       return { data: { success: true } };
     });
     fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
-    await screen.findByText('NUTRITION · Test admin');
+    await screen.findByText(/NUTRITION.*Test admin/);
     expect(mocks.post).toHaveBeenCalledWith('/admin/library/meal-1/flag', {
       expectedVersion: 'a'.repeat(64),
       notes: {
@@ -186,19 +186,19 @@ describe('shared library permissions and feedback', () => {
     expect(screen.queryByRole('button', { name: 'Confirm this version' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Release quarantine' })).toBeDisabled();
   });
-  it('RND review requires every concern resolution and evidence acknowledgement; quarantine cannot be self-released', async () => {
-    held('QUARANTINED');
+  it('RND review requires every concern resolution and evidence acknowledgement; one RND re-verifies the first incident', async () => {
+    held('PENDING_REREVIEW');
     render(<SharedMealLibraryWorkspace />);
     await open();
-    await screen.findByText('NUTRITION · Test admin');
+    await screen.findByText(/NUTRITION.*Test admin/);
     expect(screen.getByText('Clinical evidence editor')).toBeInTheDocument();
     expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument();
     expect(screen.getByText('Held recipe correction editor')).toBeInTheDocument();
     const header = screen.getByRole('heading', { name: 'Test lunch', level: 1 }).closest('header')!;
-    expect(within(header).getByText('Quarantined')).toBeInTheDocument();
+    expect(within(header).getByText('Pending re-review')).toBeInTheDocument();
     expect(within(header).queryByText('Verified')).not.toBeInTheDocument();
     expect(screen.getByText('Private case approvals')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Confirm this version' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Re-verify recipe' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Release quarantine' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Resolution of this concern'), {
       target: { value: 'Resolved by reviewing measured food amounts and recorded evidence.' },
@@ -213,8 +213,8 @@ describe('shared library permissions and feedback', () => {
         expectedVersion: 'b'.repeat(64),
       })
     );
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm this version' })).toBeEnabled());
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm this version' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Re-verify recipe' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Re-verify recipe' }));
     await waitFor(() =>
       expect(mocks.post).toHaveBeenCalledWith(
         '/nutritionist/meal-review-cases/meal-1/confirm',
@@ -228,6 +228,36 @@ describe('shared library permissions and feedback', () => {
         })
       )
     );
+  });
+  it('admin can decide quarantine with a rationale and no RND confirmations', async () => {
+    held('QUARANTINED');
+    review.canAdminRelease = true;
+    render(<SharedMealLibraryWorkspace role="admin" />);
+    await open();
+    await screen.findByText(/Only an admin can release/);
+    expect(screen.getByRole('button', { name: 'Release quarantine' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Administrative rationale'), {
+      target: { value: 'Reviewed this current version and all recorded quarantine concerns.' },
+    });
+    expect(screen.getByRole('button', { name: 'Release quarantine' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Release quarantine' }));
+    await waitFor(() =>
+      expect(mocks.post).toHaveBeenCalledWith('/admin/meal-review-cases/meal-1/release', {
+        expectedVersion: 'b'.repeat(64),
+        rationale: 'Reviewed this current version and all recorded quarantine concerns.',
+      })
+    );
+  });
+  it('quarantine needs an admin decision and offers no RND confirmation or claim', async () => {
+    held('QUARANTINED');
+    render(<SharedMealLibraryWorkspace />);
+    await open();
+    await screen.findByText(/NUTRITION.*Test admin/);
+    expect(screen.getByText(/Only an admin can release/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Claim re-review' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Re-verify recipe' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Release quarantine' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Resolution of this concern')).not.toBeInTheDocument();
   });
   it('retains comprehensive flag notes when the server rejects a stale version', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);

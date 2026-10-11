@@ -1,5 +1,7 @@
 # RND real-browser verification — October 10, 2026
 
+> Policy update (October 11, 2026): the legacy dispute tab and public adjudication endpoints are retired. Quarantine release now requires only an active admin, current recipe evidence/version and a recorded rationale. Historical results below describe the policy tested on October 10; see engineering record CHG-20261011-11 for current verification.
+
 ## Environment and method
 
 This follow-up uses actual password sign-in and the connected Codex in-app browser, with the normal frontend and Express routes. Browser interactions did not inject authentication cookies, intercept API responses, or issue hidden API requests. Synthetic fixture setup used guarded local scripts. All data belongs to the task-owned loopback PostgreSQL database `kainara_browser_full_20261010_v3` on port 55488, with all 103 migrations. No shared Neon database writes occurred.

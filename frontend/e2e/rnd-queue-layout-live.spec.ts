@@ -42,6 +42,11 @@ test('RND queue rows preserve keyboard preview, themes, search and claim boundar
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate((value) => localStorage.setItem('nutrimind-theme', value), theme);
     await page.goto('/nutritionist/reviews');
+    const caseFilters = page.getByRole('navigation', { name: 'Case approval filters' });
+    await expect(caseFilters.getByRole('button')).toHaveCount(2);
+    await expect(caseFilters.getByRole('button', { name: 'Pending', exact: true })).toBeVisible();
+    await expect(caseFilters.getByRole('button', { name: 'Outside food logs', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Needs resolution', exact: true })).toHaveCount(0);
     const loaded = page.waitForResponse(
       (response) => new URL(response.url()).pathname === '/api/nutritionist/profile-work'
     );
